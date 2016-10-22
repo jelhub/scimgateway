@@ -1,0 +1,31 @@
+{
+  "name": "scimgateway",
+  "version": "0.2.0",
+  "description": "SCIM Gateway",
+  "author": "Jarle Elshaug <jarle.elshaug@gmail.com>",
+  "license": "MIT",
+  "main": "index.js",
+  "keywords": [
+    "scim",
+    "gateway",
+    "proxy",
+    "ca",
+    "identity",
+    "manager",
+    "provisioning",
+    "sap",
+    "hana"
+  ],
+  "engines": {
+    "node": "4.2.4"
+  },
+  "dependencies": {
+    "basic-auth": "^1.0.4",
+    "dot-object": "^1.5.4",
+    "express": "^4.13.3",
+    "hdb": "^0.5.3",
+    "morgan": "^1.6.1",
+    "soap": "^0.13.0",
+    "winston": "^2.1.1"
+  }
+}

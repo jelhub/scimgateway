@@ -1,0 +1,20 @@
+{
+    "scimgateway": {
+        "localhostonly": false,
+        "port": 8882,
+        "username": "gwadmin",
+        "password": "password",
+        "loglevel": "debug",
+        "certificate": {
+            "key": null,
+            "cert": null,
+            "ca": null
+        }
+    },
+    "endpoint": {
+        "wsdl_userservice": "http://localhost:8089/forwardinc/services/UserService",
+        "wsdl_groupservice": "http://localhost:8089/forwardinc/services/GroupService",
+        "username": "admin",
+        "password": "password"
+    }
+}

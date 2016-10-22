@@ -1,0 +1,21 @@
+{
+    "scimgateway": {
+        "localhostonly": false,
+        "port": 8884,
+        "username": "gwadmin",
+        "password": "password",
+        "loglevel": "error",
+        "certificate": {
+            "key": null,
+            "cert": null,
+            "ca": null
+        }
+    },
+    "endpoint": {
+        "host": "hostname",
+        "port": 30015,
+        "username": "username",
+        "password": "password",
+        "saml_provider": "saml_provider_name"
+    }
+}
