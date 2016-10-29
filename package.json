@@ -5,6 +5,10 @@
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com>",
   "license": "MIT",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jelhub/scimgateway"
+  },
   "keywords": [
     "scim",
     "gateway",
@@ -12,9 +16,7 @@
     "ca",
     "identity",
     "manager",
-    "provisioning",
-    "sap",
-    "hana"
+    "provisioning"
   ],
   "engines": {
     "node": "4.2.4"
