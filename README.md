@@ -42,19 +42,22 @@ Node.js is a prerequisite and have to be installed on the server.
 [Download](https://nodejs.org/en/download/) the windows installer (.msi 64-bit) and install using default options.  
 
 #### Install ScimGateway  
-  
 
-	Copy ScimGateway package to your server e.g. C:\CA\scimgateway  
+Open a command window (run as administrator)
+	
+	mkdir C:\CA
+	cd C:\CA
+	npm install scimgateway --prefix .\dummy
+	move .\dummy\node_modules\scimgateway C:\CA
+	rmdir .\dummy /s /q
 
-This directory will be `<package-root>`. Open a command window (run as administrator) and go to `<package-root>` containing the package.json file.
+We now have **C:\\CA\\scimgateway** and this will now be `<package-root>`  
 
-Install package dependencies:  
-      
-    C:\CA\scimgateway\npm install
+Using --prefix to get dependencies under the scimgateway package  
 
-Dependencies will be installed under scimgateway\\**node_modules**
+If internet connection is blocked, we could install on another machine and copy the scimgateway folder.
 
-If internet connection is blocked, we could execute this job on another machine and copy the node_modules folder.
+We may also download scimgateway from [github](https://github.com/jelhub/scimgateway "github") and run `npm install` command in the `<package-root>` directory containing the package.json file  
 
 ## Configuration  
 
