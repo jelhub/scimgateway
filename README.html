@@ -335,13 +335,11 @@ Should be used as the main template for building new plugins</p></li>
 <p>Open a command window (run as administrator)</p>
 
 <pre><code>mkdir C:\CA
-cd C:\CA
-npm install scimgateway --prefix .\dummy
-move .\dummy\node_modules\scimgateway C:\CA
-rmdir .\dummy /s /q
+npm install scimgateway --prefix C:\CA
+rmdir C:\CA\etc
 </code></pre>
 
-<p>We now have <strong>C:\CA\scimgateway</strong> and this will now be <code>&lt;package-root&gt;</code>  </p>
+<p>We now have <strong>C:\CA\node_modules\scimgateway</strong> and this will be <code>&lt;package-root&gt;</code>  </p>
 
 <p>Using --prefix to get dependencies under the scimgateway package  </p>
 
@@ -425,7 +423,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 
 <p>Gateway can now be started from a command window running in administrative mode</p>
 
-<p><code>node C:\CA\scimgateway</code>  </p>
+<p><code>node C:\CA\node_modules\scimgateway</code>  </p>
 
 <p>or </p>
 
@@ -451,7 +449,7 @@ Actions tab:
 ------------
 Action = Start a program
 Program/script = C:\Program Files\nodejs\node.exe
-Arguments = C:\CA\scimgateway
+Arguments = C:\CA\node_modules\scimgateway
 
 Settings - tab:
 ---------------

@@ -46,12 +46,10 @@ Node.js is a prerequisite and have to be installed on the server.
 Open a command window (run as administrator)
 	
 	mkdir C:\CA
-	cd C:\CA
-	npm install scimgateway --prefix .\dummy
-	move .\dummy\node_modules\scimgateway C:\CA
-	rmdir .\dummy /s /q
+	npm install scimgateway --prefix C:\CA
+	rmdir C:\CA\etc
 
-We now have **C:\\CA\\scimgateway** and this will now be `<package-root>`  
+We now have **C:\\CA\\node\_modules\\scimgateway** and this will be `<package-root>`  
 
 Using --prefix to get dependencies under the scimgateway package  
 
@@ -137,7 +135,7 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 Gateway can now be started from a command window running in administrative mode
 
-`node C:\CA\scimgateway`  
+`node C:\CA\node_modules\scimgateway`  
 
 or 
 
@@ -163,7 +161,7 @@ Start Windows Task Scheduler (taskschd.msc), right click on "Task Scheduler Libr
 	------------
 	Action = Start a program
 	Program/script = C:\Program Files\nodejs\node.exe
-	Arguments = C:\CA\scimgateway
+	Arguments = C:\CA\node_modules\scimgateway
 
 	Settings - tab:
 	---------------
