@@ -332,19 +332,22 @@ Should be used as the main template for building new plugins</p></li>
 
 <h4>Install ScimGateway</h4>
 
-<pre><code>Copy ScimGateway package to your server e.g. C:\CA\scimgateway  
+<p>Open a command window (run as administrator)</p>
+
+<pre><code>mkdir C:\CA
+cd C:\CA
+npm install scimgateway --prefix .\dummy
+move .\dummy\node_modules\scimgateway C:\CA
+rmdir .\dummy /s /q
 </code></pre>
 
-<p>This directory will be <code>&lt;package-root&gt;</code>. Open a command window (run as administrator) and go to <code>&lt;package-root&gt;</code> containing the package.json file.</p>
+<p>We now have <strong>C:\CA\scimgateway</strong> and this will now be <code>&lt;package-root&gt;</code>  </p>
 
-<p>Install package dependencies:  </p>
+<p>Using --prefix to get dependencies under the scimgateway package  </p>
 
-<pre><code>C:\CA\scimgateway\npm install
-</code></pre>
+<p>If internet connection is blocked, we could install on another machine and copy the scimgateway folder.</p>
 
-<p>Dependencies will be installed under scimgateway\<strong>node_modules</strong></p>
-
-<p>If internet connection is blocked, we could execute this job on another machine and copy the node_modules folder.</p>
+<p>We may also download scimgateway from <a href="https://github.com/jelhub/scimgateway" title="github">github</a> and run <code>npm install</code> command in the <code>&lt;package-root&gt;</code> directory containing the package.json file  </p>
 
 <h2>Configuration</h2>
 
