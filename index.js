@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 //
 // ScimGateway plugin startup
 // One or more plugin could be started (must be listening on unique ports)
