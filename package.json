@@ -5,6 +5,9 @@
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (http://elshaug.xyz)",
   "license": "MIT",
   "main": "index.js",
+  "bin": {
+    "scimgateway": "./index.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/jelhub/scimgateway"
@@ -19,7 +22,7 @@
     "provisioning"
   ],
   "engines": {
-    "node": "4.2.4"
+    "node": "6.8.0"
   },
   "dependencies": {
     "basic-auth": "^1.0.4",

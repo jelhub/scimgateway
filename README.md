@@ -35,7 +35,7 @@ Should be used as the main template for building new plugins
 
 ## Installation  
 
-#### Install Node.js
+#### Install Node.js  
 
 Node.js is a prerequisite and have to be installed on the server.  
 
@@ -44,18 +44,33 @@ Node.js is a prerequisite and have to be installed on the server.
 #### Install ScimGateway  
 
 Open a command window (run as administrator)
-	
-	mkdir C:\CA
-	npm install scimgateway --prefix C:\CA
-	rmdir C:\CA\etc
 
-We now have **C:\\CA\\node\_modules\\scimgateway** and this will be `<package-root>`  
+	npm install scimgateway --prefix C:\CA\npm
 
-Using --prefix to get dependencies under the scimgateway package  
+We now have **C:\\CA\\npm\\node\_modules\\scimgateway** and this will be `<package-root>`  
 
-If internet connection is blocked, we could install on another machine and copy the scimgateway folder.
+Using --prefix (the "global" way) to get dependencies under the scimgateway package  
+
+If internet connection is blocked, we could install on another machine and copy the npm folder.
 
 We may also download scimgateway from [github](https://github.com/jelhub/scimgateway "github") and run `npm install` command in the `<package-root>` directory containing the package.json file  
+
+#### Upgrade ScimGateway  
+
+Not needed after a fresh install  
+
+Check if newer versions are available: 
+
+	npm outdated --prefix C:\CA\npm
+	
+	Lists current, wanted and latest version
+	No output on screen means we are running the latest version
+
+Upgrade to latest version:  
+
+	npm update scimgateway --prefix C:\CA\npm
+
+>Note, **update/install will replace scimgateway with original package**. Any custom plugins and configuration will be removed. Always backup/copy C:\\CA\\npm before upgrade. After upgrade we can restore missing custom plugins and configuration files.  
 
 ## Configuration  
 
@@ -135,11 +150,13 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 Gateway can now be started from a command window running in administrative mode
 
-`node C:\CA\node_modules\scimgateway`  
+3 ways to start:
 
-or 
+	node C:\CA\npm\node_modules\scimgateway
 
-`<package-root>\node .`  
+	<package-root>node .
+
+	C:\CA\npm\scimgateway.cmd
 
 <kbd>ctrl</kbd>+<kbd>c</kbd> to to stop  
 
@@ -161,7 +178,7 @@ Start Windows Task Scheduler (taskschd.msc), right click on "Task Scheduler Libr
 	------------
 	Action = Start a program
 	Program/script = C:\Program Files\nodejs\node.exe
-	Arguments = C:\CA\node_modules\scimgateway
+	Arguments = C:\CA\npm\node_modules\scimgateway
 
 	Settings - tab:
 	---------------
@@ -280,7 +297,13 @@ Coding should be done step by step and each step should be verified and tested b
 
 Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from "Job Title" if our endpoint/code do not support title)  
 
-CA Provisioning do not support SCIM Enterprise User Schema Extension (having attributes like employeeNumber, costCenter, organization, division, department and manager). If we need these or other attributes not found in CA Provisioning, we could define our own by using the free-text "type" definition in the multivalue entitlements or roles attribute. In the template entitlements definition we could for example define type=Company and set value to %UCOMP%. Please see plugin-forwardinc.js using Company as a multivalue "type" definition.
+CA Provisioning using default SCIM endpoint do not support SCIM Enterprise User Schema Extension (having attributes like employeeNumber, costCenter, organization, division, department and manager). If we need these or other attributes not found in CA Provisioning, we could define our own by using the free-text "type" definition in the multivalue entitlements or roles attribute. In the template entitlements definition we could for example define type=Company and set value to %UCOMP%. Please see plugin-forwardinc.js using Company as a multivalue "type" definition.  
+
+Using CA Connector Xpress we could create a new SCIM endpoint type based on the original SCIM. We could then add/remove attributes and change  from default assign "user to groups" to assign "groups to user". For project setup:  
+
+* Datasource =  Layer7 (CA API) - this is SCIM  
+* Layer7 Base URL = ScimGateway url and port (SCIM Base URL)  
+* Authentication = Base Authentication
 
 
 ## Known limitations  
