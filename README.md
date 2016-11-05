@@ -1,6 +1,8 @@
 
 # ScimGateway  
 
+[![Version npm](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dm/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway)
+
 ---  
 Author: Jarle Elshaug  
 
@@ -10,7 +12,7 @@ Early Stage code
  
 With ScimGateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.
 
-Using CA Identity Manager (Provisioning Server), we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each endpoint, and the ScimGateway would work like a "CA Connector Server" communicating with endpoints.
+Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each endpoint, and the ScimGateway would work like a "CA Connector Server" communicating with endpoints.
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
 
@@ -62,15 +64,14 @@ Not needed after a fresh install
 Check if newer versions are available: 
 
 	npm outdated --prefix C:\CA\npm
-	
-	Lists current, wanted and latest version
-	No output on screen means we are running the latest version
+
+Lists current, wanted and latest version. No output on screen means we are running the latest version.
 
 Upgrade to latest version:  
 
 	npm update scimgateway --prefix C:\CA\npm
 
->Note, **update/install will replace scimgateway with original package**. Any custom plugins and configuration will be removed. Always backup/copy C:\\CA\\npm before upgrade. After upgrade we can restore missing custom plugins and configuration files.  
+>Note, **update/install will replace scimgateway with original package**. Any custom plugins and configuration made in this package will be removed. Always backup/copy C:\\CA\\npm before upgrade. After upgrade we can restore custom plugins and configuration files.  
 
 ## Configuration  
 
@@ -303,7 +304,8 @@ Using CA Connector Xpress we could create a new SCIM endpoint type based on the 
 
 * Datasource =  Layer7 (CA API) - this is SCIM  
 * Layer7 Base URL = ScimGateway url and port (SCIM Base URL)  
-* Authentication = Base Authentication
+* Authentication = Base Authentication  
+(connect using gwadmin/password defined in plugin config-file)
 
 
 ## Known limitations  

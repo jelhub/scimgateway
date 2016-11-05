@@ -289,6 +289,8 @@ img {
 <body>
 <h1>ScimGateway</h1>
 
+<p><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square" alt="Version npm" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dm/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a></p>
+
 <hr />
 
 <p>Author: Jarle Elshaug  </p>
@@ -299,7 +301,7 @@ img {
 
 <p>With ScimGateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.</p>
 
-<p>Using CA Identity Manager (Provisioning Server), we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each endpoint, and the ScimGateway would work like a "CA Connector Server" communicating with endpoints.</p>
+<p>Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each endpoint, and the ScimGateway would work like a "CA Connector Server" communicating with endpoints.</p>
 
 <p><img src="https://jelhub.github.io/images/ScimGateway.svg" alt="" /></p>
 
@@ -352,10 +354,9 @@ Should be used as the main template for building new plugins</p></li>
 <p>Check if newer versions are available: </p>
 
 <pre><code>npm outdated --prefix C:\CA\npm
-
-Lists current, wanted and latest version
-No output on screen means we are running the latest version
 </code></pre>
+
+<p>Lists current, wanted and latest version. No output on screen means we are running the latest version.</p>
 
 <p>Upgrade to latest version:  </p>
 
@@ -363,7 +364,7 @@ No output on screen means we are running the latest version
 </code></pre>
 
 <blockquote>
-  <p>Note, <strong>update/install will replace scimgateway with original package</strong>. Any custom plugins and configuration will be removed. Always backup/copy C:\CA\npm before upgrade. After upgrade we can restore missing custom plugins and configuration files.  </p>
+  <p>Note, <strong>update/install will replace scimgateway with original package</strong>. Any custom plugins and configuration made in this package will be removed. Always backup/copy C:\CA\npm before upgrade. After upgrade we can restore custom plugins and configuration files.  </p>
 </blockquote>
 
 <h2>Configuration</h2>
@@ -614,7 +615,8 @@ Coding should be done step by step and each step should be verified and tested b
 <ul>
 <li>Datasource =  Layer7 (CA API) - this is SCIM  </li>
 <li>Layer7 Base URL = ScimGateway url and port (SCIM Base URL)  </li>
-<li>Authentication = Base Authentication</li>
+<li>Authentication = Base Authentication<br />
+(connect using gwadmin/password defined in plugin config-file)</li>
 </ul>
 
 <h2>Known limitations</h2>
