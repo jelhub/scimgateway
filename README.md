@@ -49,9 +49,12 @@ Open a command window (run as administrator)
 
 	npm install scimgateway --prefix C:\CA\npm
 
+Please ignore any error messages related to module soap installation of optional dependency 'ursa' that also includes 'node-gyp' (misc. prerequisites must manually be installed) unless soap WSSecurityCert functionality is needed in your custom plugin code. We may also add argument "--no-optional" to avoid these messages.
+
+
 We now have **C:\\CA\\npm\\node\_modules\\scimgateway** and this will be `<package-root>`  
 
-Using --prefix (the "global" way) to get dependencies under the scimgateway package  
+Using --prefix ("the global way") to get dependencies under the scimgateway package  
 
 If internet connection is blocked, we could install on another machine and copy the npm folder.
 
