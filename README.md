@@ -1,7 +1,7 @@
 
 # ScimGateway  
 
-[![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dm/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](http://elshaug.xyz/md/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/badges/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
+[![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/md/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/badges/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
 
 ---  
 Author: Jarle Elshaug  
@@ -45,20 +45,33 @@ Node.js is a prerequisite and have to be installed on the server.
 
 #### Install ScimGateway  
 
-Open a command window (run as administrator)
+Open a command window (run as administrator)  
+Create a directory for installation e.g C:\CA\scimgateway and install in this directory
 
-	npm install scimgateway --prefix C:\CA\npm
+	cd C:\CA\scimgateway
+	npm install scimgateway
 
-Please ignore any error messages related to module soap installation of optional dependency 'ursa' that also includes 'node-gyp' (misc. prerequisites must manually be installed) unless soap WSSecurityCert functionality is needed in your custom plugin code. We may also add argument "--no-optional" to avoid these messages.
+Please **ignore any error messages** unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually be installed.
 
 
-We now have **C:\\CA\\npm\\node\_modules\\scimgateway** and this will be `<package-root>`  
+We now have **C:\\CA\\scimgateway** and this will be `<package-root>`  
 
-Using --prefix ("the global way") to get dependencies under the scimgateway package  
 
-If internet connection is blocked, we could install on another machine and copy the npm folder.
+If internet connection is blocked, we could install on another machine and copy the scimgateway folder.
 
-We may also download scimgateway from [github](https://github.com/jelhub/scimgateway "github") and run `npm install` command in the `<package-root>` directory containing the package.json file  
+
+#### Startup and verify default testmode-plugin 
+
+	node C:\CA\scimgateway
+	
+	Start a browser
+	http://localhost:8880/Users?attributes=userName
+
+	Logon using gwadmin/password and two users should be listed
+
+	"Ctrl + c" to stop the scimgateway
+
+For more functionality using browser (post/patch/delete), we need a REST extension/add-on. 	
 
 #### Upgrade ScimGateway  
 
@@ -66,15 +79,17 @@ Not needed after a fresh install
 
 Check if newer versions are available: 
 
-	npm outdated --prefix C:\CA\npm
+	cd C:\CA\scimgateway
+	npm outdated
 
 Lists current, wanted and latest version. No output on screen means we are running the latest version.
 
 Upgrade to latest version:  
 
-	npm update scimgateway --prefix C:\CA\npm
+	cd C:\CA\scimgateway
+	npm update scimgateway
 
->Note, **update/install will replace scimgateway with original package**. Any custom plugins and configuration made in this package will be removed. Always backup/copy C:\\CA\\npm before upgrade. After upgrade we can restore custom plugins and configuration files.  
+>Note, Always backup/copy C:\\CA\\scimgateway before update/install. Custom plugins and corresponding configuration files will not be affected.  
 
 ## Configuration  
 
@@ -133,13 +148,13 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 - **loglevel** - error or debug. Output to console and logfile `logs\plugin-saphana.log` (debug not sent to console)  
 
-- **certificate** - If not using SSL/TLS certificate, set "key", "cert" and "ca" to **null**. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-key. Both files must be located in the `<package-root>/config` directory e.g:  
+- **certificate** - If not using SSL/TLS certificate, set "key", "cert" and "ca" to **null**. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-key. Both files must be located in the `<package-root>\config\certs` directory e.g:  
   
-        "certificate": {
-            "key": "key.pem",
-            "cert": "cert.pem",
+		"certificate": {
+			"key": "key.pem",
+			"cert": "cert.pem",
 			"ca": null
-        }
+		}
 
   Example of how to make a self signed certificate:  
   `openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj "/O=Testing/OU=ScimGateway/CN=<FQDN>"`  
@@ -156,13 +171,14 @@ Gateway can now be started from a command window running in administrative mode
 
 3 ways to start:
 
-	node C:\CA\npm\node_modules\scimgateway
+	node C:\CA\scimgateway
+
+	node C:\CA\scimgateway\index.js
 
 	<package-root>node .
 
-	C:\CA\npm\scimgateway.cmd
 
-<kbd>ctrl</kbd>+<kbd>c</kbd> to to stop  
+<kbd>Ctrl</kbd>+<kbd>c</kbd> to to stop  
 
 ## Automatic startup - Windows Task Scheduler  
 
@@ -182,7 +198,7 @@ Start Windows Task Scheduler (taskschd.msc), right click on "Task Scheduler Libr
 	------------
 	Action = Start a program
 	Program/script = C:\Program Files\nodejs\node.exe
-	Arguments = C:\CA\npm\node_modules\scimgateway
+	Arguments = C:\CA\scimgateway
 
 	Settings - tab:
 	---------------
@@ -297,7 +313,7 @@ Coding should be done step by step and each step should be verified and tested b
 7. **explore groups** (test provisioning explore groups)
 8. **get group** (test provisioning group list groups)
 9. **get group members** (test provisioning retrieve account - group list groups)
-10. **modify group members** (test provisioning retrieve account - group add/remove groups)
+10. **modify group members** (test provisioning retrieve account - group add/remove groups)  
 
 Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from "Job Title" if our endpoint/code do not support title)  
 
@@ -307,7 +323,7 @@ Using CA Connector Xpress we could create a new SCIM endpoint type based on the 
 
 * Datasource =  Layer7 (CA API) - this is SCIM  
 * Layer7 Base URL = ScimGateway url and port (SCIM Base URL)  
-* Authentication = Base Authentication  
+* Authentication = Basic Authentication  
 (connect using gwadmin/password defined in plugin config-file)
 
 
@@ -316,6 +332,30 @@ Using CA Connector Xpress we could create a new SCIM endpoint type based on the 
 * Importing "certificate authority - CA" on the CA Connector Server gives a "Failure" message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  
 
 * Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retreiving an account takes approx 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate).   
+
+## Change log  
+
+### v0.3.0  
+[ENHANCEMENT] Installation changed from "global" to local method 
+
+[ENHANCEMENT] `<Base URL>/[baseEntity]` Using optional "baseEntity" gives flexibility to define several endpoints for same gateway/plugin. Each unique entity e.g ClientA, ClientB,... could have their own client spesific settings defiend in configuration file.  
+
+[ENHANCEMENT] plugin-forwardinc now includes examples using custom soap header and signed saml assertion  
+
+[ENHANCEMENT] Supporting groups defined on user object "group member of user"  
+
+[DOC] Installation, baseEntity, Connector Xpress configuration  
+
+[UPGRADE NOTES] Use "fresh" install. Restore custom plugins. Custom plugins needs to be updated (listener names have changed, listener functions must include "baseEntity" - please see example plugins)
+
+### v0.2.2 - v0.2.8  
+[Doc] minor readme changes and version bumps
+
+### v0.2.1
+[Fix] plugin-forwardinc explore of empty endpoint
+
+### v0.2.0  
+Initial version
 
 ## License
 

@@ -289,7 +289,7 @@ img {
 <body>
 <h1>ScimGateway</h1>
 
-<p><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&amp;label=latest" alt="npm Version" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dm/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a> <a href="http://elshaug.xyz/md/scimgateway#disqus_thread"><img src="https://jelhub.github.io/images/chat.svg" alt="chat disqus" /></a> <a href="https://github.com/jelhub/scimgateway"><img src="https://img.shields.io/github/forks/badges/scimgateway.svg?style=social&amp;label=Fork" alt="GitHub forks" /></a>  </p>
+<p><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&amp;label=latest" alt="npm Version" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a> <a href="https://elshaug.xyz/md/scimgateway#disqus_thread"><img src="https://jelhub.github.io/images/chat.svg" alt="chat disqus" /></a> <a href="https://github.com/jelhub/scimgateway"><img src="https://img.shields.io/github/forks/badges/scimgateway.svg?style=social&amp;label=Fork" alt="GitHub forks" /></a>  </p>
 
 <hr />
 
@@ -334,20 +334,32 @@ Should be used as the main template for building new plugins</p></li>
 
 <h4>Install ScimGateway</h4>
 
-<p>Open a command window (run as administrator)</p>
+<p>Open a command window (run as administrator)<br />
+Create a directory for installation e.g C:\CA\scimgateway and install in this directory</p>
 
-<pre><code>npm install scimgateway --prefix C:\CA\npm
+<pre><code>cd C:\CA\scimgateway
+npm install scimgateway
 </code></pre>
 
-<p>Please ignore any error messages related to module soap installation of optional dependency 'ursa' that also includes 'node-gyp' (misc. prerequisites must manually be installed) unless soap WSSecurityCert functionality is needed in your custom plugin code. We may also add argument "--no-optional" to avoid these messages.</p>
+<p>Please <strong>ignore any error messages</strong> unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually be installed.</p>
 
-<p>We now have <strong>C:\CA\npm\node_modules\scimgateway</strong> and this will be <code>&lt;package-root&gt;</code>  </p>
+<p>We now have <strong>C:\CA\scimgateway</strong> and this will be <code>&lt;package-root&gt;</code>  </p>
 
-<p>Using --prefix ("the global way") to get dependencies under the scimgateway package  </p>
+<p>If internet connection is blocked, we could install on another machine and copy the scimgateway folder.</p>
 
-<p>If internet connection is blocked, we could install on another machine and copy the npm folder.</p>
+<h4>Startup and verify default testmode-plugin</h4>
 
-<p>We may also download scimgateway from <a href="https://github.com/jelhub/scimgateway" title="github">github</a> and run <code>npm install</code> command in the <code>&lt;package-root&gt;</code> directory containing the package.json file  </p>
+<pre><code>node C:\CA\scimgateway
+
+Start a browser
+http://localhost:8880/Users?attributes=userName
+
+Logon using gwadmin/password and two users should be listed
+
+"Ctrl + c" to stop the scimgateway
+</code></pre>
+
+<p>For more functionality using browser (post/patch/delete), we need a REST extension/add-on.  </p>
 
 <h4>Upgrade ScimGateway</h4>
 
@@ -355,18 +367,20 @@ Should be used as the main template for building new plugins</p></li>
 
 <p>Check if newer versions are available: </p>
 
-<pre><code>npm outdated --prefix C:\CA\npm
+<pre><code>cd C:\CA\scimgateway
+npm outdated
 </code></pre>
 
 <p>Lists current, wanted and latest version. No output on screen means we are running the latest version.</p>
 
 <p>Upgrade to latest version:  </p>
 
-<pre><code>npm update scimgateway --prefix C:\CA\npm
+<pre><code>cd C:\CA\scimgateway
+npm update scimgateway
 </code></pre>
 
 <blockquote>
-  <p>Note, <strong>update/install will replace scimgateway with original package</strong>. Any custom plugins and configuration made in this package will be removed. Always backup/copy C:\CA\npm before upgrade. After upgrade we can restore custom plugins and configuration files.  </p>
+  <p>Note, Always backup/copy C:\CA\scimgateway before update/install. Custom plugins and corresponding configuration files will not be affected.  </p>
 </blockquote>
 
 <h2>Configuration</h2>
@@ -423,7 +437,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 <li><p><strong>username</strong> - username used by clients for gateway authentication. For endpoint the username refers to endpoint authentication.  </p></li>
 <li><p><strong>password</strong> - password used by clients for gateway authentication. For endpoint the password refers to endpoint authentication. Note, we set a clear text password and when gateway is started this <strong>password will become encrypted and updated in the configuration file</strong>.  </p></li>
 <li><p><strong>loglevel</strong> - error or debug. Output to console and logfile <code>logs\plugin-saphana.log</code> (debug not sent to console)  </p></li>
-<li><p><strong>certificate</strong> - If not using SSL/TLS certificate, set "key", "cert" and "ca" to <strong>null</strong>. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-key. Both files must be located in the <code>&lt;package-root&gt;/config</code> directory e.g:  </p>
+<li><p><strong>certificate</strong> - If not using SSL/TLS certificate, set "key", "cert" and "ca" to <strong>null</strong>. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-key. Both files must be located in the <code>&lt;package-root&gt;\config\certs</code> directory e.g:  </p>
 
 <pre><code>"certificate": {
     "key": "key.pem",
@@ -447,14 +461,14 @@ Below shows an example of config\plugin-saphana.json  </p>
 
 <p>3 ways to start:</p>
 
-<pre><code>node C:\CA\npm\node_modules\scimgateway
+<pre><code>node C:\CA\scimgateway
+
+node C:\CA\scimgateway\index.js
 
 &lt;package-root&gt;node .
-
-C:\CA\npm\scimgateway.cmd
 </code></pre>
 
-<p><kbd>ctrl</kbd>+<kbd>c</kbd> to to stop  </p>
+<p><kbd>Ctrl</kbd>+<kbd>c</kbd> to to stop  </p>
 
 <h2>Automatic startup - Windows Task Scheduler</h2>
 
@@ -474,7 +488,7 @@ Actions tab:
 ------------
 Action = Start a program
 Program/script = C:\Program Files\nodejs\node.exe
-Arguments = C:\CA\npm\node_modules\scimgateway
+Arguments = C:\CA\scimgateway
 
 Settings - tab:
 ---------------
@@ -605,7 +619,7 @@ Coding should be done step by step and each step should be verified and tested b
 <li><strong>explore groups</strong> (test provisioning explore groups)</li>
 <li><strong>get group</strong> (test provisioning group list groups)</li>
 <li><strong>get group members</strong> (test provisioning retrieve account - group list groups)</li>
-<li><strong>modify group members</strong> (test provisioning retrieve account - group add/remove groups)</li>
+<li><strong>modify group members</strong> (test provisioning retrieve account - group add/remove groups)  </li>
 </ol>
 
 <p>Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from "Job Title" if our endpoint/code do not support title)  </p>
@@ -617,7 +631,7 @@ Coding should be done step by step and each step should be verified and tested b
 <ul>
 <li>Datasource =  Layer7 (CA API) - this is SCIM  </li>
 <li>Layer7 Base URL = ScimGateway url and port (SCIM Base URL)  </li>
-<li>Authentication = Base Authentication<br />
+<li>Authentication = Basic Authentication<br />
 (connect using gwadmin/password defined in plugin config-file)</li>
 </ul>
 

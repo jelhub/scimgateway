@@ -1,16 +1,17 @@
 {
   "name": "scimgateway",
-  "version": "0.2.8",
+  "version": "0.3.0",
   "description": "SCIM Gateway",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (http://elshaug.xyz)",
   "license": "MIT",
-  "main": "index.js",
-  "bin": {
-    "scimgateway": "./index.js"
+  "main": "lib/scimgateway.js",
+  "scripts": {
+    "postinstall": "node lib/postinstall.js",
+	"start": "node index.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jelhub/scimgateway"
+    "url": "https://github.com/jelhub/scimgateway.git"
   },
   "keywords": [
     "scim",
@@ -25,11 +26,14 @@
     "node": "6.8.0"
   },
   "dependencies": {
+    "async": "^2.1.2",
     "basic-auth": "^1.0.4",
+    "callsite": "^1.0.0",
     "dot-object": "^1.5.4",
     "express": "^4.13.3",
     "hdb": "^0.9.0",
     "morgan": "^1.6.1",
+    "saml": "^0.10.2",
     "soap": "^0.17.0",
     "winston": "^2.3.0"
   }
