@@ -26,7 +26,9 @@ Currently supported endpoint plugins are:
 
 * **Forwardinc** (SOAP Webservice)  
 Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-provisioning (please see [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com"))  
-Example plugin for SOAP Webservice   
+Example plugin for SOAP Webservice using WS-Security    
+Shows how to use a custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service   
+Shows how to implement a higly configurable multi tenant solution using "baseEntity" parameter  
 
 * **Testmode** (SCIM)  
 SCIM endpoint simulation (in-memory, no physical endpoint)  
