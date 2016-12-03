@@ -15,6 +15,14 @@
         "username": "admin",
         "password": "db12cedc22823e697c5dcb08d8f8260f",
         "baseServiceEndpoint": "http://localhost:8089/forwardinc/services",
+        "exploreUsers": {
+            "service": "UserService",
+            "method": "searchUsers"
+        },
+        "exploreGroups": {
+            "service": "GroupService",
+            "method": "searchGroup"
+        },
         "createUser": {
             "service": "UserService",
             "method": "addUser"
@@ -47,22 +55,14 @@
             "service": "N/A",
             "method": "N/A"
         },
-        "exploreUsers": {
-            "service": "UserService",
-            "method": "searchUsers"
-        },
-        "exploreGroups": {
-            "service": "GroupService",
-            "method": "searchGroup"
-        },
         "entity": {
             "clientA": {
-                "clientId": "1234",    
+                "userId": "1111",    
                 "key": "clientA.key",
                 "cert": "clientA.cert"
             },
             "clientB": {
-                "clientId": "9876",    
+                "userId": "2222",    
                 "key": "clientB.key",
                 "cert": "clientC.cert"
             }

@@ -2,12 +2,15 @@
   "name": "scimgateway",
   "version": "0.3.0",
   "description": "SCIM Gateway",
-  "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (http://elshaug.xyz)",
+  "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
   "license": "MIT",
   "main": "lib/scimgateway.js",
   "scripts": {
     "postinstall": "node lib/postinstall.js",
-	"start": "node index.js"
+    "start": "node index.js"
+  },
+  "bin": {
+    "scimgateway": "./index.js"
   },
   "repository": {
     "type": "git",
