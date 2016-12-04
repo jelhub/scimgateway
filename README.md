@@ -12,7 +12,7 @@ Early Stage code
  
 With ScimGateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.  
 
-ScimGateway is a standalone product, however this document also shows how the gateway could be used by products like CA Identity Manager.
+ScimGateway is a standalone product, however this document shows how the gateway could be used by products like CA Identity Manager.
 
 Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the ScimGateway would work like a "CA Connector Server" communicating with endpoints.
 
@@ -49,7 +49,7 @@ Node.js is a prerequisite and have to be installed on the server.
 #### Install ScimGateway  
 
 Open a command window (run as administrator)  
-Create a directory for installation e.g C:\CA\scimgateway and install in this directory
+Create a directory for installation e.g. C:\CA\scimgateway and install in this directory
 
 	cd C:\CA\scimgateway
 	npm install scimgateway
@@ -235,7 +235,7 @@ Username, password and port must correspond with plugin configuration file. For 
 
 "SCIM Based URL" refer to the FQDN (or localhost) having ScimGateway installed. Portnumber must be included. Use HTTPS instead of HTTP if ScimGateway-configuration includes certificates. 
 
-"baseEntity" is optional. This is a parameter used for multi tentant or multi endpoint solutions. We could create several endpoints having same base url with unique baseEntity. e.g:  
+"baseEntity" is optional. This is a parameter used for multi tenant or multi endpoint solutions. We could create several endpoints having same base url with unique baseEntity. e.g:  
 
 http://localhost:8880/clientA  
 http://localhost:8880/clientB
@@ -249,16 +249,16 @@ IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transfe
 	Create = POST http://example.com:8880/Users  
 	(body contains the user information)
 	
-	Update = PATCH http://example.com:8880/Users/{id}
+	Update = PATCH http://example.com:8880/Users/<id>
 	(body contains the attributes to be updated)
 	
 	Search/Read = GET http://example.com:8880/Users?userName eq 
-	"userID"&attributes={comma separated list of scim-schema defined attributes}
+	"userID"&attributes=<comma separated list of scim-schema defined attributes>
 	
 	Search/explore all users:
 	GET http://example.com:8880/Users?attributes=userName
 	
-	Delete = DELETE http://example.com:8880/Users/{id}
+	Delete = DELETE http://example.com:8880/Users/<id>
 
 Discovery:
 
@@ -279,19 +279,19 @@ Note:
 	select USER_NAME from SYS.USERS where IS_SAML_ENABLED like 'TRUE';
 	
 	Get a specific user:  
-	select USER_NAME, USER_DEACTIVATED from SYS.USERS where USER_NAME like '{UserID}';
+	select USER_NAME, USER_DEACTIVATED from SYS.USERS where USER_NAME like '<UserID>';
 	
 	Create User:  
-	CREATE USER {UserID} WITH IDENTITY '{UserID}' FOR SAML PROVIDER {SamlProvider};
+	CREATE USER <UserID> WITH IDENTITY '<UserID>' FOR SAML PROVIDER <SamlProvider>;
 	
 	Delete user:  
-	DROP USER {UserID};
+	DROP USER <UserID>;
 	
 	Modify user (enable user):  
-	ALTER USER {UserID} ACTIVATE;
+	ALTER USER <UserID> ACTIVATE;
 	
 	Modify user (disable user):  
-	ALTER USER {UserID} DEACTIVATE;  
+	ALTER USER <UserID> DEACTIVATE;  
 
 Only SAML users will be explored and managed
 
@@ -312,55 +312,100 @@ For javascript coding editor you may use [Visual Studio Code](https://code.visua
 Preparation:
 
 * Copy `lib\plugin-testmode.js` and `config\plugin-testmode.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) 
-* Edit plugin-mine.json and define a unique portnumber for the scimgateway setting  
+* Edit plugin-mine.json and define a unique port number for the scimgateway setting  
 * Edit index.js and add a new line for starting your plugin e.g. `var mine = require('./lib/plugin-mine');`  
-* Start ScimGateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the portnumber you defined
+* Start ScimGateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  
 
 Now we are ready for custom coding by editing plugin-mine.js
 Coding should be done step by step and each step should be verified and tested before starting the next (they are all highlighted by comments in existing code).  
 
-1. **explore users** (test provisioning explore users)
+1. **Turn off group functionality** in getGroup, getGroupMembers, getGroupUsers and modifyGroupMembers  
+Please see callback definitions in plugin-saphana that do not use groups.
+2. **explore users** (test provisioning explore users)
 3. **get user** (test provisioning retrieve account)
 4. **create user** (test provisioning new account)
 5. **delete user** (test provisioning delete account)
 6. **modify user** (test provisioning modify account)
 7. **explore groups** (test provisioning explore groups)
+8. **Turn on group functionality** (if supporting groups)
 8. **get group** (test provisioning group list groups)
 9. **get group members** (test provisioning retrieve account - group list groups)
-10. **modify group members** (test provisioning retrieve account - group add/remove groups)  
+10. **modify group members** (test provisioning retrieve account - group add/remove groups)
+11. **get group users** (if using "groups member of user")    
 
 Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from "Job Title" if our endpoint/code do not support title)  
 
 CA Provisioning using default SCIM endpoint do not support SCIM Enterprise User Schema Extension (having attributes like employeeNumber, costCenter, organization, division, department and manager). If we need these or other attributes not found in CA Provisioning, we could define our own by using the free-text "type" definition in the multivalue entitlements or roles attribute. In the template entitlements definition we could for example define type=Company and set value to %UCOMP%. Please see plugin-forwardinc.js using Company as a multivalue "type" definition.  
 
-Using CA Connector Xpress we could create a new SCIM endpoint type based on the original SCIM. We could then add/remove attributes and change  from default assign "user to groups" to assign "groups to user". For project setup:  
+Using CA Connector Xpress we could create a new SCIM endpoint type based on the original SCIM. We could then add/remove attributes and change  from default assign "user to groups" to assign "groups to user". There are also other predefined endpoints based on the original SCIM. You may take a look at "ServiceNow - WSL7" and "Zendesk - WSL7". 
+
+
+For project setup:  
 
 * Datasource =  Layer7 (CA API) - this is SCIM  
 * Layer7 Base URL = ScimGateway url and port (SCIM Base URL)  
 * Authentication = Basic Authentication  
 (connect using gwadmin/password defined in plugin config-file)
 
+### How to change "user member of groups" to "groups member of user"  
+
+Using Connector Xpress based on the original SCIM endpoint.
+
+Delete defaults:  
+Group - Associations - with User Account  
+User Account - Attributes - Group Membership
+
+Create new attribute:  
+User Account - Attributes: Groups - Flexi DN - Multivalue - **groups**
+
+Create User - Group associations:  
+User Account - Accociations - **Direct association with = Group**  
+User Account - Accociations - with Group
+
+Note, "Include a Reverse Association" - not needed if we don't need Group object functionality e.g list/add/remove group members
+
+User Attribute = **Physical Attribute = Groups**  
+Match Group = By Attribute = Name
+
+Objects Must Exist  
+Use DNs in Attribute = deactivated (toggled off)  
+
+Include a Reverse Association (if needed)  
+Group Attribute = **Virtual Attribute = User Membership**  
+Match User Account = By Attribute = User Name  
+
+Note, groups should be capability attribute (updated when account is synchronized with template):  
+advanced options - **Synchronized** = enabled (toggled on)
 
 ## Known limitations  
 
+* Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ingnored unless soap WSSecurityCert functionality is needed in custom plugin code.  
+
 * Importing "certificate authority - CA" on the CA Connector Server gives a "Failure" message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  
 
-* Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retreiving an account takes approx 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate).   
+* Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate).   
+
+## License  
+
+MIT
+
 
 ## Change log  
 
 ### v0.3.0  
-[ENHANCEMENT] Installation changed from "global" to local method 
+[ENHANCEMENT] Preferred installation method changed from "global" to "local" 
 
-[ENHANCEMENT] `<Base URL>/[baseEntity]` Using optional "baseEntity" gives flexibility to define several endpoints for same gateway/plugin. Each unique entity e.g ClientA, ClientB,... could have their own client spesific settings defiend in configuration file.  
+[ENHANCEMENT] `<Base URL>/[baseEntity]` for multi tenant or multi endpoint flexibility  
 
-[ENHANCEMENT] plugin-forwardinc now includes examples using custom soap header and signed saml assertion  
+[ENHANCEMENT] plugin-forwardinc includes examples of baseEntity, custom soap header and signed saml assertion  
 
-[ENHANCEMENT] Supporting groups defined on user object "group member of user"  
+[ENHANCEMENT] Support groups defined on user object "group member of user"  
+
+[ENHANCEMENT] New module dependendcies included: saml, async and callsite  
 
 [DOC] Installation, baseEntity, Connector Xpress configuration  
 
-[UPGRADE NOTES] Use "fresh" install. Restore custom plugins. Custom plugins needs to be updated (listener names have changed, listener functions must include "baseEntity" - please see example plugins)
+[UPGRADE] Use "fresh" install and restore any custom plugins. Custom plugins needs to be updated (listener names have changed, listener functions must include "baseEntity" - please see example plugins)
 
 ### v0.2.2 - v0.2.8  
 [Doc] minor readme changes and version bumps
@@ -371,7 +416,4 @@ Using CA Connector Xpress we could create a new SCIM endpoint type based on the 
 ### v0.2.0  
 Initial version
 
-## License
-
-MIT
 

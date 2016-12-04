@@ -3,7 +3,7 @@
         "localhostonly": false,
         "port": 8880,
         "username": "gwadmin",
-        "password": "68f7245cc9e00597144f3b78fe7d9792",
+        "password": "password",
         "loglevel": "debug",
         "certificate": {
             "key": null,
@@ -15,6 +15,6 @@
         "host": "hostname",
         "port": 99999,
         "username": "username",
-        "password": "68f7245cc9e00597144f3b78fe7d9792"
+        "password": "password"
     }
 }

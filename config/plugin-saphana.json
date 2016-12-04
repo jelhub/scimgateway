@@ -3,7 +3,7 @@
         "localhostonly": false,
         "port": 8884,
         "username": "gwadmin",
-        "password": "459fe5cee2278e8ce3c01dce99b408fa",
+        "password": "password",
         "loglevel": "error",
         "certificate": {
             "key": null,
@@ -15,7 +15,7 @@
         "host": "hostname",
         "port": 30015,
         "username": "username",
-        "password": "459fe5cee2278e8ce3c01dce99b408fa",
+        "password": "password",
         "saml_provider": "saml_provider_name"
     }
 }

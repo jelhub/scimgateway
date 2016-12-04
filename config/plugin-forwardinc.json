@@ -3,7 +3,7 @@
         "localhostonly": false,
         "port": 8882,
         "username": "gwadmin",
-        "password": "db12cedc22823e697c5dcb08d8f8260f",
+        "password": "password",
         "loglevel": "debug",
         "certificate": {
             "key": null,
@@ -13,7 +13,7 @@
     },
     "endpoint": {
         "username": "admin",
-        "password": "db12cedc22823e697c5dcb08d8f8260f",
+        "password": "password",
         "baseServiceEndpoint": "http://localhost:8089/forwardinc/services",
         "exploreUsers": {
             "service": "UserService",
@@ -66,7 +66,6 @@
                 "key": "clientB.key",
                 "cert": "clientC.cert"
             }
-        }
-        
+        }    
     }
 }
