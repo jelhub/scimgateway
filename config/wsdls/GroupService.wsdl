@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:ns1="http://org.apache.axis2/xsd" xmlns:ns="http://ws.forwardinc.sdkws.jcs.ca.com" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:ax21="http://pojo.forwardinc.sdkws.jcs.ca.com/xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" targetNamespace="http://ws.forwardinc.sdkws.jcs.ca.com">
+    <wsdl:documentation>GroupService</wsdl:documentation>
+    <wsdl:types>
+        <xs:schema xmlns:ax22="http://pojo.forwardinc.sdkws.jcs.ca.com/xsd" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://ws.forwardinc.sdkws.jcs.ca.com">
+            <xs:import namespace="http://pojo.forwardinc.sdkws.jcs.ca.com/xsd"/>
+            <xs:complexType name="Exception">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="Exception" nillable="true" type="xs:anyType"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:element name="addGroup">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="group" nillable="true" type="ax22:Group"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="addGroupResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="assignUserToGroup">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="groupID" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="userID" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="assignUserToGroupResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="modifyGroup">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="group" nillable="true" type="ax22:Group"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="modifyGroupResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="removeGroup">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="groupID" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="removeGroupResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="removeUserFromGroup">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="groupID" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="userID" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="removeUserFromGroupResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="renameGroup">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="fromGroupID" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="toGroupID" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="renameGroupResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="lookupGroup">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="groupID" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="lookupGroupResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax22:Group"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="searchGroup">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="sql" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="searchGroupResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax22:Group"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="pingGroup">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="name" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="pingGroupResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:schema>
+        <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://pojo.forwardinc.sdkws.jcs.ca.com/xsd">
+            <xs:complexType name="Group">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="description" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="groupID" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="groupName" nillable="true" type="xs:string"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="members" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="lookupGroupRequest">
+        <wsdl:part name="parameters" element="ns:lookupGroup"/>
+    </wsdl:message>
+    <wsdl:message name="lookupGroupResponse">
+        <wsdl:part name="parameters" element="ns:lookupGroupResponse"/>
+    </wsdl:message>
+    <wsdl:message name="modifyGroupRequest">
+        <wsdl:part name="parameters" element="ns:modifyGroup"/>
+    </wsdl:message>
+    <wsdl:message name="modifyGroupResponse">
+        <wsdl:part name="parameters" element="ns:modifyGroupResponse"/>
+    </wsdl:message>
+    <wsdl:message name="removeGroupRequest">
+        <wsdl:part name="parameters" element="ns:removeGroup"/>
+    </wsdl:message>
+    <wsdl:message name="removeGroupResponse">
+        <wsdl:part name="parameters" element="ns:removeGroupResponse"/>
+    </wsdl:message>
+    <wsdl:message name="pingGroupRequest">
+        <wsdl:part name="parameters" element="ns:pingGroup"/>
+    </wsdl:message>
+    <wsdl:message name="pingGroupResponse">
+        <wsdl:part name="parameters" element="ns:pingGroupResponse"/>
+    </wsdl:message>
+    <wsdl:message name="assignUserToGroupRequest">
+        <wsdl:part name="parameters" element="ns:assignUserToGroup"/>
+    </wsdl:message>
+    <wsdl:message name="assignUserToGroupResponse">
+        <wsdl:part name="parameters" element="ns:assignUserToGroupResponse"/>
+    </wsdl:message>
+    <wsdl:message name="removeUserFromGroupRequest">
+        <wsdl:part name="parameters" element="ns:removeUserFromGroup"/>
+    </wsdl:message>
+    <wsdl:message name="removeUserFromGroupResponse">
+        <wsdl:part name="parameters" element="ns:removeUserFromGroupResponse"/>
+    </wsdl:message>
+    <wsdl:message name="searchGroupRequest">
+        <wsdl:part name="parameters" element="ns:searchGroup"/>
+    </wsdl:message>
+    <wsdl:message name="searchGroupResponse">
+        <wsdl:part name="parameters" element="ns:searchGroupResponse"/>
+    </wsdl:message>
+    <wsdl:message name="addGroupRequest">
+        <wsdl:part name="parameters" element="ns:addGroup"/>
+    </wsdl:message>
+    <wsdl:message name="addGroupResponse">
+        <wsdl:part name="parameters" element="ns:addGroupResponse"/>
+    </wsdl:message>
+    <wsdl:message name="renameGroupRequest">
+        <wsdl:part name="parameters" element="ns:renameGroup"/>
+    </wsdl:message>
+    <wsdl:message name="renameGroupResponse">
+        <wsdl:part name="parameters" element="ns:renameGroupResponse"/>
+    </wsdl:message>
+    <wsdl:portType name="GroupServicePortType">
+        <wsdl:operation name="lookupGroup">
+            <wsdl:input message="ns:lookupGroupRequest" wsaw:Action="urn:lookupGroup"/>
+            <wsdl:output message="ns:lookupGroupResponse" wsaw:Action="urn:lookupGroupResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="modifyGroup">
+            <wsdl:input message="ns:modifyGroupRequest" wsaw:Action="urn:modifyGroup"/>
+            <wsdl:output message="ns:modifyGroupResponse" wsaw:Action="urn:modifyGroupResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="removeGroup">
+            <wsdl:input message="ns:removeGroupRequest" wsaw:Action="urn:removeGroup"/>
+            <wsdl:output message="ns:removeGroupResponse" wsaw:Action="urn:removeGroupResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="pingGroup">
+            <wsdl:input message="ns:pingGroupRequest" wsaw:Action="urn:pingGroup"/>
+            <wsdl:output message="ns:pingGroupResponse" wsaw:Action="urn:pingGroupResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="assignUserToGroup">
+            <wsdl:input message="ns:assignUserToGroupRequest" wsaw:Action="urn:assignUserToGroup"/>
+            <wsdl:output message="ns:assignUserToGroupResponse" wsaw:Action="urn:assignUserToGroupResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="removeUserFromGroup">
+            <wsdl:input message="ns:removeUserFromGroupRequest" wsaw:Action="urn:removeUserFromGroup"/>
+            <wsdl:output message="ns:removeUserFromGroupResponse" wsaw:Action="urn:removeUserFromGroupResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="searchGroup">
+            <wsdl:input message="ns:searchGroupRequest" wsaw:Action="urn:searchGroup"/>
+            <wsdl:output message="ns:searchGroupResponse" wsaw:Action="urn:searchGroupResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="addGroup">
+            <wsdl:input message="ns:addGroupRequest" wsaw:Action="urn:addGroup"/>
+            <wsdl:output message="ns:addGroupResponse" wsaw:Action="urn:addGroupResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="renameGroup">
+            <wsdl:input message="ns:renameGroupRequest" wsaw:Action="urn:renameGroup"/>
+            <wsdl:output message="ns:renameGroupResponse" wsaw:Action="urn:renameGroupResponse"/>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="GroupServiceSoap11Binding" type="ns:GroupServicePortType">
+        <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+        <wsdl:operation name="lookupGroup">
+            <soap:operation soapAction="urn:lookupGroup" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="modifyGroup">
+            <soap:operation soapAction="urn:modifyGroup" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="removeGroup">
+            <soap:operation soapAction="urn:removeGroup" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="assignUserToGroup">
+            <soap:operation soapAction="urn:assignUserToGroup" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="pingGroup">
+            <soap:operation soapAction="urn:pingGroup" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="removeUserFromGroup">
+            <soap:operation soapAction="urn:removeUserFromGroup" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchGroup">
+            <soap:operation soapAction="urn:searchGroup" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="addGroup">
+            <soap:operation soapAction="urn:addGroup" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="renameGroup">
+            <soap:operation soapAction="urn:renameGroup" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:binding name="GroupServiceSoap12Binding" type="ns:GroupServicePortType">
+        <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+        <wsdl:operation name="lookupGroup">
+            <soap12:operation soapAction="urn:lookupGroup" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="modifyGroup">
+            <soap12:operation soapAction="urn:modifyGroup" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="removeGroup">
+            <soap12:operation soapAction="urn:removeGroup" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="assignUserToGroup">
+            <soap12:operation soapAction="urn:assignUserToGroup" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="pingGroup">
+            <soap12:operation soapAction="urn:pingGroup" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="removeUserFromGroup">
+            <soap12:operation soapAction="urn:removeUserFromGroup" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchGroup">
+            <soap12:operation soapAction="urn:searchGroup" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="addGroup">
+            <soap12:operation soapAction="urn:addGroup" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="renameGroup">
+            <soap12:operation soapAction="urn:renameGroup" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:binding name="GroupServiceHttpBinding" type="ns:GroupServicePortType">
+        <http:binding verb="POST"/>
+        <wsdl:operation name="lookupGroup">
+            <http:operation location="GroupService/lookupGroup"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="lookupGroup"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="lookupGroup"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="modifyGroup">
+            <http:operation location="GroupService/modifyGroup"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="modifyGroup"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="modifyGroup"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="removeGroup">
+            <http:operation location="GroupService/removeGroup"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="removeGroup"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="removeGroup"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="assignUserToGroup">
+            <http:operation location="GroupService/assignUserToGroup"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="assignUserToGroup"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="assignUserToGroup"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="pingGroup">
+            <http:operation location="GroupService/pingGroup"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="pingGroup"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="pingGroup"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="removeUserFromGroup">
+            <http:operation location="GroupService/removeUserFromGroup"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="removeUserFromGroup"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="removeUserFromGroup"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchGroup">
+            <http:operation location="GroupService/searchGroup"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="searchGroup"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="searchGroup"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="addGroup">
+            <http:operation location="GroupService/addGroup"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="addGroup"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="addGroup"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="renameGroup">
+            <http:operation location="GroupService/renameGroup"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="renameGroup"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="renameGroup"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="GroupService">
+        <wsdl:port name="GroupServiceHttpSoap11Endpoint" binding="ns:GroupServiceSoap11Binding">
+            <soap:address location="http://172.24.27.237:8089/forwardinc/services/GroupService.GroupServiceHttpSoap11Endpoint/"/>
+        </wsdl:port>
+        <wsdl:port name="GroupServiceHttpSoap12Endpoint" binding="ns:GroupServiceSoap12Binding">
+            <soap12:address location="http://172.24.27.237:8089/forwardinc/services/GroupService.GroupServiceHttpSoap12Endpoint/"/>
+        </wsdl:port>
+        <wsdl:port name="GroupServiceHttpEndpoint" binding="ns:GroupServiceHttpBinding">
+            <http:address location="http://172.24.27.237:8089/forwardinc/services/GroupService.GroupServiceHttpEndpoint/"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

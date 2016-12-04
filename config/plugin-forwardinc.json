@@ -12,9 +12,60 @@
         }
     },
     "endpoint": {
-        "wsdl_userservice": "http://localhost:8089/forwardinc/services/UserService",
-        "wsdl_groupservice": "http://localhost:8089/forwardinc/services/GroupService",
         "username": "admin",
-        "password": "password"
+        "password": "password",
+        "baseServiceEndpoint": "http://localhost:8089/forwardinc/services",
+        "exploreUsers": {
+            "service": "UserService",
+            "method": "searchUsers"
+        },
+        "exploreGroups": {
+            "service": "GroupService",
+            "method": "searchGroup"
+        },
+        "createUser": {
+            "service": "UserService",
+            "method": "addUser"
+        },
+        "modifyUser": {
+            "service": "UserService",
+            "method": "modifyUser"
+        },
+        "deleteUser": {
+            "service": "UserService",
+            "method": "removeUser"
+        },
+        "getUser": {
+            "service": "UserService",
+            "method": "lookupUser"
+        },
+        "getGroup": {
+            "service": "GroupService",
+            "method": "lookupGroup"
+        },
+        "getGroupMembers": {
+            "service": "GroupService",
+            "method": "searchGroup"
+        },
+        "modifyGroupMembers": {
+            "service": "GroupService",
+            "method": "Defined inline - assignUserToGroup and removeUserFromGroup"
+        },
+        "getGroupUsers": {
+            "service": "N/A",
+            "method": "N/A"
+        },
+        "entity": {
+            "clientA": {
+                "userId": "1111",    
+                "key": "clientA.key",
+                "cert": "clientA.cert"
+            },
+            "clientB": {
+                "userId": "2222",    
+                "key": "clientB.key",
+                "cert": "clientC.cert"
+            }
+        }    
     }
 }

@@ -1,0 +1,573 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:ns1="http://org.apache.axis2/xsd" xmlns:ns="http://ws.forwardinc.sdkws.jcs.ca.com" xmlns:ax27="http://ws.forwardinc.sdkws.jcs.ca.com/xsd" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:ax25="http://pojo.forwardinc.sdkws.jcs.ca.com/xsd" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" targetNamespace="http://ws.forwardinc.sdkws.jcs.ca.com">
+    <wsdl:documentation>UserService</wsdl:documentation>
+    <wsdl:types>
+        <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://ws.forwardinc.sdkws.jcs.ca.com/xsd">
+            <xs:complexType name="Handle">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="handleId" type="xs:int"/>
+                    <xs:element minOccurs="0" name="size" type="xs:int"/>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:schema>
+        <xs:schema xmlns:ax28="http://ws.forwardinc.sdkws.jcs.ca.com/xsd" xmlns:ax26="http://pojo.forwardinc.sdkws.jcs.ca.com/xsd" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://ws.forwardinc.sdkws.jcs.ca.com">
+            <xs:import namespace="http://pojo.forwardinc.sdkws.jcs.ca.com/xsd"/>
+            <xs:import namespace="http://ws.forwardinc.sdkws.jcs.ca.com/xsd"/>
+            <xs:complexType name="Exception">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="Exception" nillable="true" type="xs:anyType"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:element name="addUser">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="user" nillable="true" type="ax26:User"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="addUserResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="modifyUser">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="user" nillable="true" type="ax26:User"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="modifyUserResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="releaseHandle">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="handleId" type="xs:int"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="releaseHandleResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="removeUser">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="userID" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="removeUserResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="renameUser">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="fromUserID" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="toUserID" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="renameUserResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="lookupUser">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="userID" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="lookupUserResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax26:User"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="searchPagedUser">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="handleId" type="xs:int"/>
+                        <xs:element minOccurs="0" name="startIndex" type="xs:int"/>
+                        <xs:element minOccurs="0" name="endIndex" type="xs:int"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="searchPagedUserResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax26:User"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="searchUser">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="sql" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="searchUserResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax26:User"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="searchUsers">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="sql" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="searchUsersResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax28:Handle"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="pingUser">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="name" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="pingUserResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:schema>
+        <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://pojo.forwardinc.sdkws.jcs.ca.com/xsd">
+            <xs:complexType name="User">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="company" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="displayName" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="emailAddress" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="firstName" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="lastName" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="password" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="phoneNumber" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="title" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="userID" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="removeUserRequest">
+        <wsdl:part name="parameters" element="ns:removeUser"/>
+    </wsdl:message>
+    <wsdl:message name="removeUserResponse">
+        <wsdl:part name="parameters" element="ns:removeUserResponse"/>
+    </wsdl:message>
+    <wsdl:message name="modifyUserRequest">
+        <wsdl:part name="parameters" element="ns:modifyUser"/>
+    </wsdl:message>
+    <wsdl:message name="modifyUserResponse">
+        <wsdl:part name="parameters" element="ns:modifyUserResponse"/>
+    </wsdl:message>
+    <wsdl:message name="releaseHandleRequest">
+        <wsdl:part name="parameters" element="ns:releaseHandle"/>
+    </wsdl:message>
+    <wsdl:message name="releaseHandleResponse">
+        <wsdl:part name="parameters" element="ns:releaseHandleResponse"/>
+    </wsdl:message>
+    <wsdl:message name="lookupUserRequest">
+        <wsdl:part name="parameters" element="ns:lookupUser"/>
+    </wsdl:message>
+    <wsdl:message name="lookupUserResponse">
+        <wsdl:part name="parameters" element="ns:lookupUserResponse"/>
+    </wsdl:message>
+    <wsdl:message name="renameUserRequest">
+        <wsdl:part name="parameters" element="ns:renameUser"/>
+    </wsdl:message>
+    <wsdl:message name="renameUserResponse">
+        <wsdl:part name="parameters" element="ns:renameUserResponse"/>
+    </wsdl:message>
+    <wsdl:message name="pingUserRequest">
+        <wsdl:part name="parameters" element="ns:pingUser"/>
+    </wsdl:message>
+    <wsdl:message name="pingUserResponse">
+        <wsdl:part name="parameters" element="ns:pingUserResponse"/>
+    </wsdl:message>
+    <wsdl:message name="searchPagedUserRequest">
+        <wsdl:part name="parameters" element="ns:searchPagedUser"/>
+    </wsdl:message>
+    <wsdl:message name="searchPagedUserResponse">
+        <wsdl:part name="parameters" element="ns:searchPagedUserResponse"/>
+    </wsdl:message>
+    <wsdl:message name="searchUsersRequest">
+        <wsdl:part name="parameters" element="ns:searchUsers"/>
+    </wsdl:message>
+    <wsdl:message name="searchUsersResponse">
+        <wsdl:part name="parameters" element="ns:searchUsersResponse"/>
+    </wsdl:message>
+    <wsdl:message name="addUserRequest">
+        <wsdl:part name="parameters" element="ns:addUser"/>
+    </wsdl:message>
+    <wsdl:message name="addUserResponse">
+        <wsdl:part name="parameters" element="ns:addUserResponse"/>
+    </wsdl:message>
+    <wsdl:message name="searchUserRequest">
+        <wsdl:part name="parameters" element="ns:searchUser"/>
+    </wsdl:message>
+    <wsdl:message name="searchUserResponse">
+        <wsdl:part name="parameters" element="ns:searchUserResponse"/>
+    </wsdl:message>
+    <wsdl:portType name="UserServicePortType">
+        <wsdl:operation name="removeUser">
+            <wsdl:input message="ns:removeUserRequest" wsaw:Action="urn:removeUser"/>
+            <wsdl:output message="ns:removeUserResponse" wsaw:Action="urn:removeUserResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="modifyUser">
+            <wsdl:input message="ns:modifyUserRequest" wsaw:Action="urn:modifyUser"/>
+            <wsdl:output message="ns:modifyUserResponse" wsaw:Action="urn:modifyUserResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="releaseHandle">
+            <wsdl:input message="ns:releaseHandleRequest" wsaw:Action="urn:releaseHandle"/>
+            <wsdl:output message="ns:releaseHandleResponse" wsaw:Action="urn:releaseHandleResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="lookupUser">
+            <wsdl:input message="ns:lookupUserRequest" wsaw:Action="urn:lookupUser"/>
+            <wsdl:output message="ns:lookupUserResponse" wsaw:Action="urn:lookupUserResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="renameUser">
+            <wsdl:input message="ns:renameUserRequest" wsaw:Action="urn:renameUser"/>
+            <wsdl:output message="ns:renameUserResponse" wsaw:Action="urn:renameUserResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="pingUser">
+            <wsdl:input message="ns:pingUserRequest" wsaw:Action="urn:pingUser"/>
+            <wsdl:output message="ns:pingUserResponse" wsaw:Action="urn:pingUserResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="searchPagedUser">
+            <wsdl:input message="ns:searchPagedUserRequest" wsaw:Action="urn:searchPagedUser"/>
+            <wsdl:output message="ns:searchPagedUserResponse" wsaw:Action="urn:searchPagedUserResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="searchUsers">
+            <wsdl:input message="ns:searchUsersRequest" wsaw:Action="urn:searchUsers"/>
+            <wsdl:output message="ns:searchUsersResponse" wsaw:Action="urn:searchUsersResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="addUser">
+            <wsdl:input message="ns:addUserRequest" wsaw:Action="urn:addUser"/>
+            <wsdl:output message="ns:addUserResponse" wsaw:Action="urn:addUserResponse"/>
+        </wsdl:operation>
+        <wsdl:operation name="searchUser">
+            <wsdl:input message="ns:searchUserRequest" wsaw:Action="urn:searchUser"/>
+            <wsdl:output message="ns:searchUserResponse" wsaw:Action="urn:searchUserResponse"/>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="UserServiceSoap11Binding" type="ns:UserServicePortType">
+        <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+        <wsdl:operation name="removeUser">
+            <soap:operation soapAction="urn:removeUser" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="modifyUser">
+            <soap:operation soapAction="urn:modifyUser" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="releaseHandle">
+            <soap:operation soapAction="urn:releaseHandle" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="lookupUser">
+            <soap:operation soapAction="urn:lookupUser" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="renameUser">
+            <soap:operation soapAction="urn:renameUser" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="pingUser">
+            <soap:operation soapAction="urn:pingUser" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchUsers">
+            <soap:operation soapAction="urn:searchUsers" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchPagedUser">
+            <soap:operation soapAction="urn:searchPagedUser" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="addUser">
+            <soap:operation soapAction="urn:addUser" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchUser">
+            <soap:operation soapAction="urn:searchUser" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:binding name="UserServiceSoap12Binding" type="ns:UserServicePortType">
+        <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+        <wsdl:operation name="removeUser">
+            <soap12:operation soapAction="urn:removeUser" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="modifyUser">
+            <soap12:operation soapAction="urn:modifyUser" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="releaseHandle">
+            <soap12:operation soapAction="urn:releaseHandle" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="lookupUser">
+            <soap12:operation soapAction="urn:lookupUser" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="renameUser">
+            <soap12:operation soapAction="urn:renameUser" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="pingUser">
+            <soap12:operation soapAction="urn:pingUser" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchUsers">
+            <soap12:operation soapAction="urn:searchUsers" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchPagedUser">
+            <soap12:operation soapAction="urn:searchPagedUser" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="addUser">
+            <soap12:operation soapAction="urn:addUser" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchUser">
+            <soap12:operation soapAction="urn:searchUser" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:binding name="UserServiceHttpBinding" type="ns:UserServicePortType">
+        <http:binding verb="POST"/>
+        <wsdl:operation name="removeUser">
+            <http:operation location="UserService/removeUser"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="removeUser"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="removeUser"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="modifyUser">
+            <http:operation location="UserService/modifyUser"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="modifyUser"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="modifyUser"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="releaseHandle">
+            <http:operation location="UserService/releaseHandle"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="releaseHandle"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="releaseHandle"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="lookupUser">
+            <http:operation location="UserService/lookupUser"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="lookupUser"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="lookupUser"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="renameUser">
+            <http:operation location="UserService/renameUser"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="renameUser"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="renameUser"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="pingUser">
+            <http:operation location="UserService/pingUser"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="pingUser"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="pingUser"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchUsers">
+            <http:operation location="UserService/searchUsers"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="searchUsers"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="searchUsers"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchPagedUser">
+            <http:operation location="UserService/searchPagedUser"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="searchPagedUser"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="searchPagedUser"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="addUser">
+            <http:operation location="UserService/addUser"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="addUser"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="addUser"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="searchUser">
+            <http:operation location="UserService/searchUser"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="searchUser"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="searchUser"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="UserService">
+        <wsdl:port name="UserServiceHttpSoap11Endpoint" binding="ns:UserServiceSoap11Binding">
+            <soap:address location="http://172.24.27.237:8089/forwardinc/services/UserService.UserServiceHttpSoap11Endpoint/"/>
+        </wsdl:port>
+        <wsdl:port name="UserServiceHttpSoap12Endpoint" binding="ns:UserServiceSoap12Binding">
+            <soap12:address location="http://172.24.27.237:8089/forwardinc/services/UserService.UserServiceHttpSoap12Endpoint/"/>
+        </wsdl:port>
+        <wsdl:port name="UserServiceHttpEndpoint" binding="ns:UserServiceHttpBinding">
+            <http:address location="http://172.24.27.237:8089/forwardinc/services/UserService.UserServiceHttpEndpoint/"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>
