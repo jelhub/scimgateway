@@ -10,32 +10,33 @@ Early Stage code
 
 ## Overview  
  
-With ScimGateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.
+With ScimGateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.  
 
-Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each endpoint, and the ScimGateway would work like a "CA Connector Server" communicating with endpoints.
+ScimGateway is a standalone product, however this document also shows how the gateway could be used by products like CA Identity Manager.
+
+Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the ScimGateway would work like a "CA Connector Server" communicating with endpoints.
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
 
-Instead of using Connector Xpress or IM-SDK for building our own integration for none supported endpoints, we can now build new integration based on ScimGateway plugins. ScimGateway works with IM as long as IM supports SCIM.
+Instead of using IM-SDK for building our own integration for none supported endpoints, we can now build new integration based on ScimGateway plugins. ScimGateway works with IM as long as IM supports SCIM.
 
 ScimGateway is based on the popular asynchronous event driven framework [Node.js](https://nodejs.org/en/about/) using javascripts. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may loadbalance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.
 
-Currently supported endpoint plugins are:
+Following example plugins are included:
 
 * **SAP HANA** (database) 
 
 * **Forwardinc** (SOAP Webservice)  
 Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-provisioning (please see [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com"))  
-Example plugin for SOAP Webservice using WS-Security    
-Shows how to use a custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service   
-Shows how to implement a higly configurable multi tenant solution using "baseEntity" parameter  
+Using WS-Security    
+Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service   
+Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  
 
 * **Testmode** (SCIM)  
 SCIM endpoint simulation (in-memory, no physical endpoint)  
 Two predefined users  
 Supports explore, create, delete, modify and list users (including groups)  
 Example of a fully functional ScimGateway plugin  
-Should be used as the main template for building new plugins
 
 ## Installation  
 
@@ -56,8 +57,9 @@ Create a directory for installation e.g C:\CA\scimgateway and install in this di
 Please **ignore any error messages** unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually be installed.
 
 
-We now have **C:\\CA\\scimgateway** and this will be `<package-root>`  
-
+**C:\\CA\\scimgateway** will now be `<package-root>` 
+ 
+index.js, lib and config directories containing example plugins have been copied from the original scimgateway package located under node_modules.  
 
 If internet connection is blocked, we could install on another machine and copy the scimgateway folder.
 
@@ -73,7 +75,7 @@ If internet connection is blocked, we could install on another machine and copy 
 
 	"Ctrl + c" to stop the scimgateway
 
-For more functionality using browser (post/patch/delete), we need a REST extension/add-on. 	
+For more functionality using browser (post/patch/delete) a REST extension/add-on is needed. 	
 
 #### Upgrade ScimGateway  
 
@@ -91,7 +93,7 @@ Upgrade to latest version:
 	cd C:\CA\scimgateway
 	npm update scimgateway
 
->Note, Always backup/copy C:\\CA\\scimgateway before update/install. Custom plugins and corresponding configuration files will not be affected.  
+>Note, always backup/copy C:\\CA\\scimgateway before update/install. Custom plugins and corresponding configuration files will not be affected.  
 
 ## Configuration  
 
@@ -226,9 +228,19 @@ SCIM endpoint configuration example for Testmode plugin (plugin-testmode)
 	SCIM Authentication Method = HTTP Basic Authentication  
 	SCIM Based URL = http://localhost:8880  
 
+	or
+	SCIM Based URL = http://localhost:8880/[baseEntity]
+
 Username, password and port must correspond with plugin configuration file. For "Testmode" plugin it will be `config\plugin-testmode.json`  
 
-"SCIM Based URL" refer to the FQDN (or localhost) having ScimGateway installed. Portnumber must be included. Use HTTPS instead of HTTP if ScimGateway-configuration includes certificates. Also accepts trailing "/v1" e.g `http://localhost:8880/v1`
+"SCIM Based URL" refer to the FQDN (or localhost) having ScimGateway installed. Portnumber must be included. Use HTTPS instead of HTTP if ScimGateway-configuration includes certificates. 
+
+"baseEntity" is optional. This is a parameter used for multi tentant or multi endpoint solutions. We could create several endpoints having same base url with unique baseEntity. e.g:  
+
+http://localhost:8880/clientA  
+http://localhost:8880/clientB
+
+Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-forwardinc.
 
 IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Testmode plugin supports pagination. Other plugin may ignore this setting.  
 

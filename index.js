@@ -9,6 +9,6 @@
 // node-http-proxy for horizontal loadbalancing among hosts (or use nginx)
 //
 
-//var testmode    = require('./lib/plugin-testmode');
-var forwardinc  = require('./lib/plugin-forwardinc');
+var testmode    = require('./lib/plugin-testmode');
+// var forwardinc  = require('./lib/plugin-forwardinc');
 // var saphana   = require('./lib/plugin-saphana');
