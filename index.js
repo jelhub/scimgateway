@@ -10,5 +10,6 @@
 //
 
 var testmode    = require('./lib/plugin-testmode');
+// var restful  = require('./lib/plugin-restful');
 // var forwardinc  = require('./lib/plugin-forwardinc');
 // var saphana   = require('./lib/plugin-saphana');
