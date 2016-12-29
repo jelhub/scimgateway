@@ -1,0 +1,28 @@
+{
+    "scimgateway": {
+        "localhostonly": false,
+        "port": 8886,
+        "username": "gwadmin",
+        "password": "password",
+        "loglevel": "debug",
+        "certificate": {
+            "key": null,
+            "cert": null,
+            "ca": null
+        }
+    },
+    "endpoint": {
+        "entity": {
+            "undefined": {
+                "baseUrl": "http://localhost:8880",
+                "username": "gwadmin",
+                "password": "password"
+            },
+            "clientA": {
+                "baseUrl": "http://localhost:8880",
+                "username": "gwadmin",
+                "password": "password"
+            }
+        }
+    }
+}
