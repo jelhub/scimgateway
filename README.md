@@ -4,9 +4,7 @@
 [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/md/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/badges/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
 
 ---  
-Author: Jarle Elshaug  
-
-Early Stage code  
+Author: Jarle Elshaug   
 
 ## Overview  
  
@@ -31,6 +29,9 @@ Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-prov
 Using WS-Security    
 Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service   
 Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  
+
+* **RESTful** (REST Webservices)  
+REST plugin using "Testmode" as a REST endpoint
 
 * **Testmode** (SCIM)  
 SCIM endpoint simulation (in-memory, no physical endpoint)  
@@ -392,8 +393,11 @@ MIT
 
 ## Change log  
 
+### v0.3.1  
+[ENHANCEMENT] plugin-restful, REST Webservices example plugin 
+
 ### v0.3.0  
-[ENHANCEMENT] Preferred installation method changed from "global" to "local" 
+[ENHANCEMENT] Preferred installation method changed from "global" to "local"
 
 [ENHANCEMENT] `<Base URL>/[baseEntity]` for multi tenant or multi endpoint flexibility  
 
