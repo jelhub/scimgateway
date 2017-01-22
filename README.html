@@ -312,13 +312,13 @@ img {
 <p>Following example plugins are included:</p>
 
 <ul>
-<li><p><strong>SAP HANA</strong> (database) </p></li>
+<li><p><strong>SAP HANA</strong> (Database) </p></li>
 <li><p><strong>Forwardinc</strong> (SOAP Webservice)<br />
 Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-provisioning (please see <a href="https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements" title="wiki.ca.com">wiki.ca.com</a>)<br />
 Using WS-Security<br />
 Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service<br />
 Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  </p></li>
-<li><p><strong>RESTful</strong> (REST Webservices)<br />
+<li><p><strong>RESTful</strong> (REST Webservice)<br />
 REST plugin using "Testmode" as a REST endpoint</p></li>
 <li><p><strong>Testmode</strong> (SCIM)<br />
 SCIM endpoint simulation (in-memory, no physical endpoint)<br />
@@ -393,6 +393,7 @@ npm update scimgateway
 <p><strong>index.js</strong> defines one or more plugins to be started. We could comment out those we do not need (default configuration only starts testmode plugin).  </p>
 
 <pre><code>var testmode    = require('./lib/plugin-testmode');
+// var restful  = require('./lib/plugin-restful');
 // var forwardinc  = require('./lib/plugin-forwardinc');
 // var saphana   = require('./lib/plugin-saphana');
 </code></pre>
@@ -691,7 +692,8 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 <ul>
 <li><p>Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ingnored unless soap WSSecurityCert functionality is needed in custom plugin code.  </p></li>
 <li><p>Importing "certificate authority - CA" on the CA Connector Server gives a "Failure" message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  </p></li>
-<li><p>Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate).   </p></li>
+<li><p>Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate). </p></li>
+<li><p>Create/Delete groups not supported  </p></li>
 </ul>
 
 <h2>License</h2>
@@ -699,6 +701,10 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 <p>MIT</p>
 
 <h2>Change log</h2>
+
+<h3>v0.3.2</h3>
+
+<p>[Fix] Minor changes related to SCIM 1.1 spesification </p>
 
 <h3>v0.3.1</h3>
 

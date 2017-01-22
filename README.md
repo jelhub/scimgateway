@@ -22,7 +22,7 @@ ScimGateway is based on the popular asynchronous event driven framework [Node.js
 
 Following example plugins are included:
 
-* **SAP HANA** (database) 
+* **SAP HANA** (Database) 
 
 * **Forwardinc** (SOAP Webservice)  
 Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-provisioning (please see [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com"))  
@@ -30,7 +30,7 @@ Using WS-Security
 Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service   
 Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  
 
-* **RESTful** (REST Webservices)  
+* **RESTful** (REST Webservice)  
 REST plugin using "Testmode" as a REST endpoint
 
 * **Testmode** (SCIM)  
@@ -101,6 +101,7 @@ Upgrade to latest version:
 **index.js** defines one or more plugins to be started. We could comment out those we do not need (default configuration only starts testmode plugin).  
 
 	var testmode    = require('./lib/plugin-testmode');
+	// var restful  = require('./lib/plugin-restful');
 	// var forwardinc  = require('./lib/plugin-forwardinc');
 	// var saphana   = require('./lib/plugin-saphana');
 
@@ -384,7 +385,9 @@ advanced options - **Synchronized** = enabled (toggled on)
 
 * Importing "certificate authority - CA" on the CA Connector Server gives a "Failure" message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  
 
-* Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate).   
+* Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate). 
+
+* Create/Delete groups not supported  
 
 ## License  
 
@@ -392,6 +395,9 @@ MIT
 
 
 ## Change log  
+
+### v0.3.2  
+[Fix] Minor changes related to SCIM 1.1 spesification 
 
 ### v0.3.1  
 [ENHANCEMENT] plugin-restful, REST Webservices example plugin 
