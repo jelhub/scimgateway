@@ -702,6 +702,16 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 
 <h2>Change log</h2>
 
+<h3>v0.3.3</h3>
+
+<p>[ENHANCEMENT] New module dependendcies included: tedious  </p>
+
+<p>[Fix] Logic for handling incorrect pagination request to avoid endless looping conditions (there is a pagination bug in CA Identity Manager v.14)  </p>
+
+<p>[Fix] Pagination now supported on getGroupMembers  </p>
+
+<p><strong>[UPGRADE]</strong> Custom plugins needs to be updated regarding listener method <code>scimgateway.on('getGroupMembers',...</code> New arguments have been added "startIndex" and "count". Also a new return variable "ret". Please see example plugins for details.</p>
+
 <h3>v0.3.2</h3>
 
 <p>[Fix] Minor changes related to SCIM 1.1 spesification </p>
@@ -724,7 +734,7 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 
 <p>[DOC] Installation, baseEntity, Connector Xpress configuration  </p>
 
-<p>[UPGRADE] Use "fresh" install and restore any custom plugins. Custom plugins needs to be updated (listener names have changed, listener functions must include "baseEntity" - please see example plugins)</p>
+<p><strong>[UPGRADE]</strong> Use "fresh" install and restore any custom plugins. Custom plugins needs to be updated. Listener method names have changed and method must include "baseEntity" - please see example plugins.</p>
 
 <h3>v0.2.2 - v0.2.8</h3>
 
