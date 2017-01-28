@@ -389,12 +389,22 @@ advanced options - **Synchronized** = enabled (toggled on)
 
 * Create/Delete groups not supported  
 
+
 ## License  
 
 MIT
 
 
 ## Change log  
+
+### v0.3.3  
+[ENHANCEMENT] New module dependendcies included: tedious  
+
+[Fix] Logic for handling incorrect pagination request to avoid endless looping conditions (there is a pagination bug in CA Identity Manager v.14)  
+
+[Fix] Pagination now supported on getGroupMembers  
+
+**[UPGRADE]** Custom plugins needs to be updated regarding listener method `scimgateway.on('getGroupMembers',...` New arguments have been added "startIndex" and "count". Also a new return variable "ret". Please see example plugins for details.
 
 ### v0.3.2  
 [Fix] Minor changes related to SCIM 1.1 spesification 
@@ -415,7 +425,7 @@ MIT
 
 [DOC] Installation, baseEntity, Connector Xpress configuration  
 
-[UPGRADE] Use "fresh" install and restore any custom plugins. Custom plugins needs to be updated (listener names have changed, listener functions must include "baseEntity" - please see example plugins)
+**[UPGRADE]** Use "fresh" install and restore any custom plugins. Custom plugins needs to be updated. Listener method names have changed and method must include "baseEntity" - please see example plugins.
 
 ### v0.2.2 - v0.2.8  
 [Doc] minor readme changes and version bumps
