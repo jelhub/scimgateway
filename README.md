@@ -22,7 +22,14 @@ ScimGateway is based on the popular asynchronous event driven framework [Node.js
 
 Following example plugins are included:
 
-* **SAP HANA** (Database) 
+* **Testmode** (SCIM)  
+SCIM endpoint simulation (in-memory, no physical endpoint)  
+Two predefined users  
+Supports explore, create, delete, modify and list users (including groups)  
+Example of a fully functional ScimGateway plugin  
+
+* **RESTful** (REST Webservice)  
+REST plugin using "Testmode" as a REST endpoint
 
 * **Forwardinc** (SOAP Webservice)  
 Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-provisioning (please see [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com"))  
@@ -30,14 +37,13 @@ Using WS-Security
 Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service   
 Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  
 
-* **RESTful** (REST Webservice)  
-REST plugin using "Testmode" as a REST endpoint
+* **MSSQL** (MSSQL Database)  
+Using SQL for userprovisioning towards MSSQL database table
 
-* **Testmode** (SCIM)  
-SCIM endpoint simulation (in-memory, no physical endpoint)  
-Two predefined users  
-Supports explore, create, delete, modify and list users (including groups)  
-Example of a fully functional ScimGateway plugin  
+* **SAP HANA** (SAP HANA Database)  
+SAP HANA spesific user provisioning
+
+
 
 ## Installation  
 
@@ -397,41 +403,60 @@ MIT
 
 ## Change log  
 
+### v0.3.4  
+[ENHANCEMENT]  
+
+- MSSQL example plugin: `plugin-mssql` 
+- Changed multivalue logic in example plugins, now using `scimgateway.getArrayObject`  
+
+[Fix]  
+
+- Minor changes related to SCIM 1.1 spesification
+
+
 ### v0.3.3  
-[ENHANCEMENT] New module dependendcies included: tedious  
+[Fix]  
 
-[Fix] Logic for handling incorrect pagination request to avoid endless looping conditions (there is a pagination bug in CA Identity Manager v.14)  
+- Logic for handling incorrect pagination request to avoid endless loop conditions (there is a pagination bug in CA Identity Manager v.14)  
+- Pagination now supported on getGroupMembers  
 
-[Fix] Pagination now supported on getGroupMembers  
+**[UPGRADE]**  
 
-**[UPGRADE]** Custom plugins needs to be updated regarding listener method `scimgateway.on('getGroupMembers',...` New arguments have been added "startIndex" and "count". Also a new return variable "ret". Please see example plugins for details.
+- Custom plugins needs to be updated regarding listener method `scimgateway.on('getGroupMembers',...` New arguments have been added "startIndex" and "count". Also a new return variable "ret". Please see example plugins for details.
 
 ### v0.3.2  
-[Fix] Minor changes related to SCIM 1.1 spesification 
+[Fix]  
+
+- Minor changes related to SCIM 1.1 spesification 
 
 ### v0.3.1  
-[ENHANCEMENT] plugin-restful, REST Webservices example plugin 
+[ENHANCEMENT]  
+
+- REST Webservices example plugin: `plugin-restful` 
 
 ### v0.3.0  
-[ENHANCEMENT] Preferred installation method changed from "global" to "local"
+[ENHANCEMENT]  
 
-[ENHANCEMENT] `<Base URL>/[baseEntity]` for multi tenant or multi endpoint flexibility  
+- Preferred installation method changed from "global" to "local"
+- `<Base URL>/[baseEntity]` for multi tenant or multi endpoint flexibility  
+- plugin-forwardinc includes examples of baseEntity, custom soap header and signed saml assertion  
+- Support groups defined on user object "group member of user"  
+- New module dependendcies included: saml, async and callsite  
 
-[ENHANCEMENT] plugin-forwardinc includes examples of baseEntity, custom soap header and signed saml assertion  
 
-[ENHANCEMENT] Support groups defined on user object "group member of user"  
+**[UPGRADE]**  
 
-[ENHANCEMENT] New module dependendcies included: saml, async and callsite  
-
-[DOC] Installation, baseEntity, Connector Xpress configuration  
-
-**[UPGRADE]** Use "fresh" install and restore any custom plugins. Custom plugins needs to be updated. Listener method names have changed and method must include "baseEntity" - please see example plugins.
+- Use "fresh" install and restore any custom plugins. Custom plugins needs to be updated. Listener method names have changed and method must include "baseEntity" - please see example plugins.
 
 ### v0.2.2 - v0.2.8  
-[Doc] minor readme changes and version bumps
+[Doc]
+
+- Minor readme changes and version bumps
 
 ### v0.2.1
-[Fix] plugin-forwardinc explore of empty endpoint
+[Fix]
+
+- plugin-forwardinc explore of empty endpoint
 
 ### v0.2.0  
 Initial version
