@@ -312,19 +312,22 @@ img {
 <p>Following example plugins are included:</p>
 
 <ul>
-<li><p><strong>SAP HANA</strong> (Database) </p></li>
-<li><p><strong>Forwardinc</strong> (SOAP Webservice)<br />
-Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-provisioning (please see <a href="https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements" title="wiki.ca.com">wiki.ca.com</a>)<br />
-Using WS-Security<br />
-Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service<br />
-Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  </p></li>
-<li><p><strong>RESTful</strong> (REST Webservice)<br />
-REST plugin using "Testmode" as a REST endpoint</p></li>
 <li><p><strong>Testmode</strong> (SCIM)<br />
 SCIM endpoint simulation (in-memory, no physical endpoint)<br />
 Two predefined users<br />
 Supports explore, create, delete, modify and list users (including groups)<br />
 Example of a fully functional ScimGateway plugin  </p></li>
+<li><p><strong>RESTful</strong> (REST Webservice)<br />
+REST plugin using "Testmode" as a REST endpoint</p></li>
+<li><p><strong>Forwardinc</strong> (SOAP Webservice)<br />
+Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-provisioning (please see <a href="https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements" title="wiki.ca.com">wiki.ca.com</a>)<br />
+Using WS-Security<br />
+Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service<br />
+Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  </p></li>
+<li><p><strong>MSSQL</strong> (MSSQL Database)<br />
+Using SQL for userprovisioning towards MSSQL database table</p></li>
+<li><p><strong>SAP HANA</strong> (SAP HANA Database)<br />
+SAP HANA spesific user provisioning</p></li>
 </ul>
 
 <h2>Installation</h2>
@@ -702,47 +705,85 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 
 <h2>Change log</h2>
 
+<h3>v0.3.4</h3>
+
+<p>[ENHANCEMENT]  </p>
+
+<ul>
+<li>MSSQL example plugin: <code>plugin-mssql</code> </li>
+<li>Changed multivalue logic in example plugins, now using <code>scimgateway.getArrayObject</code>  </li>
+</ul>
+
+<p>[Fix]  </p>
+
+<ul>
+<li>Minor changes related to SCIM 1.1 spesification</li>
+</ul>
+
 <h3>v0.3.3</h3>
 
-<p>[ENHANCEMENT] New module dependendcies included: tedious  </p>
+<p>[Fix]  </p>
 
-<p>[Fix] Logic for handling incorrect pagination request to avoid endless looping conditions (there is a pagination bug in CA Identity Manager v.14)  </p>
+<ul>
+<li>Logic for handling incorrect pagination request to avoid endless loop conditions (there is a pagination bug in CA Identity Manager v.14)  </li>
+<li>Pagination now supported on getGroupMembers  </li>
+</ul>
 
-<p>[Fix] Pagination now supported on getGroupMembers  </p>
+<p><strong>[UPGRADE]</strong>  </p>
 
-<p><strong>[UPGRADE]</strong> Custom plugins needs to be updated regarding listener method <code>scimgateway.on('getGroupMembers',...</code> New arguments have been added "startIndex" and "count". Also a new return variable "ret". Please see example plugins for details.</p>
+<ul>
+<li>Custom plugins needs to be updated regarding listener method <code>scimgateway.on('getGroupMembers',...</code> New arguments have been added "startIndex" and "count". Also a new return variable "ret". Please see example plugins for details.</li>
+</ul>
 
 <h3>v0.3.2</h3>
 
-<p>[Fix] Minor changes related to SCIM 1.1 spesification </p>
+<p>[Fix]  </p>
+
+<ul>
+<li>Minor changes related to SCIM 1.1 spesification </li>
+</ul>
 
 <h3>v0.3.1</h3>
 
-<p>[ENHANCEMENT] plugin-restful, REST Webservices example plugin </p>
+<p>[ENHANCEMENT]  </p>
+
+<ul>
+<li>REST Webservices example plugin: <code>plugin-restful</code> </li>
+</ul>
 
 <h3>v0.3.0</h3>
 
-<p>[ENHANCEMENT] Preferred installation method changed from "global" to "local"</p>
+<p>[ENHANCEMENT]  </p>
 
-<p>[ENHANCEMENT] <code>&lt;Base URL&gt;/[baseEntity]</code> for multi tenant or multi endpoint flexibility  </p>
+<ul>
+<li>Preferred installation method changed from "global" to "local"</li>
+<li><code>&lt;Base URL&gt;/[baseEntity]</code> for multi tenant or multi endpoint flexibility  </li>
+<li>plugin-forwardinc includes examples of baseEntity, custom soap header and signed saml assertion  </li>
+<li>Support groups defined on user object "group member of user"  </li>
+<li>New module dependendcies included: saml, async and callsite  </li>
+</ul>
 
-<p>[ENHANCEMENT] plugin-forwardinc includes examples of baseEntity, custom soap header and signed saml assertion  </p>
+<p><strong>[UPGRADE]</strong>  </p>
 
-<p>[ENHANCEMENT] Support groups defined on user object "group member of user"  </p>
-
-<p>[ENHANCEMENT] New module dependendcies included: saml, async and callsite  </p>
-
-<p>[DOC] Installation, baseEntity, Connector Xpress configuration  </p>
-
-<p><strong>[UPGRADE]</strong> Use "fresh" install and restore any custom plugins. Custom plugins needs to be updated. Listener method names have changed and method must include "baseEntity" - please see example plugins.</p>
+<ul>
+<li>Use "fresh" install and restore any custom plugins. Custom plugins needs to be updated. Listener method names have changed and method must include "baseEntity" - please see example plugins.</li>
+</ul>
 
 <h3>v0.2.2 - v0.2.8</h3>
 
-<p>[Doc] minor readme changes and version bumps</p>
+<p>[Doc]</p>
+
+<ul>
+<li>Minor readme changes and version bumps</li>
+</ul>
 
 <h3>v0.2.1</h3>
 
-<p>[Fix] plugin-forwardinc explore of empty endpoint</p>
+<p>[Fix]</p>
+
+<ul>
+<li>plugin-forwardinc explore of empty endpoint</li>
+</ul>
 
 <h3>v0.2.0</h3>
 
