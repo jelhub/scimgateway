@@ -404,6 +404,11 @@ MIT
 
 ## Change log  
 
+### v0.3.5  
+[Fix]  
+
+- plugin-mssql not included in postinstall  
+
 ### v0.3.4  
 [ENHANCEMENT]  
 
