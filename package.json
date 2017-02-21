@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "SCIM Gateway",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
   "license": "MIT",
@@ -34,6 +34,7 @@
     "callsite": "^1.0.0",
     "dot-object": "^1.5.4",
     "express": "^4.13.3",
+    "express-bearer-token": "^2.1.0",
     "hdb": "^0.9.0",
     "morgan": "^1.6.1",
     "saml": "^0.10.2",

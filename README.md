@@ -4,7 +4,12 @@
 [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/md/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/badges/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
 
 ---  
-Author: Jarle Elshaug   
+Author: Jarle Elshaug  
+
+Validated on:  
+
+- CA Identity Manager
+- Microsoft Azure Active Directory (Early Stage Code)
 
 ## Overview  
  
@@ -76,9 +81,12 @@ If internet connection is blocked, we could install on another machine and copy 
 	node C:\CA\scimgateway
 	
 	Start a browser
-	http://localhost:8880/Users?attributes=userName
+	http://localhost:8880/Users?attributes=userName  
 
-	Logon using gwadmin/password and two users should be listed
+	Logon using gwadmin/password and two users should be listed  
+
+	http://localhost:8880/Users/bjensen
+	Lists all user attributes for spesified user
 
 	"Ctrl + c" to stop the scimgateway
 
@@ -124,10 +132,14 @@ Below shows an example of config\plugin-saphana.json
   
 	{
 	    "scimgateway": {
+			"scimversion": "1.1",
 	        "localhostonly": false,
 	        "port": 8884,
 	        "username": "gwadmin",
 	        "password": "password",
+			"oauth": {
+            	"accesstoken": null
+        	},
 	        "loglevel": "error",
 	        "certificate": {
 	            "key": null,
@@ -151,6 +163,8 @@ Definitions under "scimgateway" have fixed attributes but we can change the valu
 
 Definitions under "endpoint" are used by endpoint plugin for communicating with endpoint and needs to be defined according to our code. 
 
+- **scimversion** - "1.1" or "2.0". Default is "1.1". For Azure AD "2.0" should be used.  
+
 - **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the Provisioning Server).  
 
 - **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana 
@@ -158,6 +172,8 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 - **username** - username used by clients for gateway authentication. For endpoint the username refers to endpoint authentication.  
 
 - **password** - password used by clients for gateway authentication. For endpoint the password refers to endpoint authentication. Note, we set a clear text password and when gateway is started this **password will become encrypted and updated in the configuration file**.  
+
+- **oauth** - For Azure AD, define access token for OAuth2 bearer token (access token). This will be the password accepted by ScimGateway. Using standard OAuth key/secret/endpoints is not supported.  
 
 - **loglevel** - error or debug. Output to console and logfile `logs\plugin-saphana.log` (debug not sent to console)  
 
@@ -314,6 +330,48 @@ Currently no other attributes needed. Trying to update other attributes will the
 SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provisioning template should therefore also convert to uppercase.
 
 	User Name = %$$TOUPPER(%AC%)%
+
+## Microsoft Azure Active Directory  
+"Early Stage Code"  
+
+Azure AD first checks if user/group exists, if not exist they will be created.  
+
+Group creation is currently not supported. For Azure AD this also means add/remove groups to user is not supported.
+
+Deleting a user i Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. Standard SCIM "DELETE" method is not used?  
+
+Plugin configuration file must include:
+
+	"scimversion": "2.0",
+    "oauth": {
+        "accesstoken": "<password>"
+    },
+
+Access token password must correspond with "Secret Token" defined in Azure AD
+
+`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Secret Token`
+
+User mappings attributes between AD and SCIM also needs to be configured  
+
+`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Mappings`
+
+Azure AD default SCIM attribute mapping have:  
+
+	externalId mapped to mailNickname (matching precedence #1)  
+	userName mapped to userPrincipalName  
+
+ScimGateway accepts externalId (as matching precedence) instead of  userName, but `userName and externalId must be mapped to the same AD attribute` e.g:
+
+	externalId mapped to mailNickname (matching precedence #1)  
+	userName mapped to mailNickname  
+
+	or:  
+
+	externalId mapped to userPrincipalName (matching precedence #1)  
+	userName mapped to userPrincipalName  
+
+
+
  
 ## How to build your own plugins  
 For javascript coding editor you may use [Visual Studio Code](https://code.visualstudio.com/ "Visual Studio Code") 
@@ -403,6 +461,12 @@ MIT
 
 
 ## Change log  
+
+### v0.3.6  
+[ENHANCEMENT]  
+
+- SCIM version 2.0 support
+- ScimGateway used by Microsoft Azure Active Directory (currently no group functionality)   
 
 ### v0.3.5  
 [Fix]  
