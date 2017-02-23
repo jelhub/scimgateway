@@ -289,7 +289,7 @@ img {
 <body>
 <h1>ScimGateway</h1>
 
-<p><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&amp;label=latest" alt="npm Version" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a> <a href="https://elshaug.xyz/md/scimgateway#disqus_thread"><img src="https://jelhub.github.io/images/chat.svg" alt="chat disqus" /></a> <a href="https://github.com/jelhub/scimgateway"><img src="https://img.shields.io/github/forks/badges/scimgateway.svg?style=social&amp;label=Fork" alt="GitHub forks" /></a>  </p>
+<p><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&amp;label=latest" alt="npm Version" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a> <a href="https://elshaug.xyz/md/scimgateway#disqus_thread"><img src="https://jelhub.github.io/images/chat.svg" alt="chat disqus" /></a> <a href="https://github.com/jelhub/scimgateway"><img src="https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&amp;label=Fork" alt="GitHub forks" /></a>  </p>
 
 <hr />
 
@@ -425,6 +425,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 <pre><code>{
     "scimgateway": {
         "scimversion": "1.1",
+        "loglevel": "error",
         "localhostonly": false,
         "port": 8884,
         "username": "gwadmin",
@@ -432,7 +433,6 @@ Below shows an example of config\plugin-saphana.json  </p>
         "oauth": {
             "accesstoken": null
         },
-        "loglevel": "error",
         "certificate": {
             "key": null,
             "cert": null,
@@ -457,12 +457,12 @@ Below shows an example of config\plugin-saphana.json  </p>
 
 <ul>
 <li><p><strong>scimversion</strong> - "1.1" or "2.0". Default is "1.1". For Azure AD "2.0" should be used.  </p></li>
+<li><p><strong>loglevel</strong> - error or debug. Output to console and logfile <code>logs\plugin-saphana.log</code> (debug not sent to console)  </p></li>
 <li><p><strong>localhostonly</strong> - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the Provisioning Server).  </p></li>
 <li><p><strong>port</strong> - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana </p></li>
 <li><p><strong>username</strong> - username used by clients for gateway authentication. For endpoint the username refers to endpoint authentication.  </p></li>
 <li><p><strong>password</strong> - password used by clients for gateway authentication. For endpoint the password refers to endpoint authentication. Note, we set a clear text password and when gateway is started this <strong>password will become encrypted and updated in the configuration file</strong>.  </p></li>
 <li><p><strong>oauth</strong> - For Azure AD, define access token for OAuth2 bearer token (access token). This will be the password accepted by ScimGateway. Using standard OAuth key/secret/endpoints is not supported.  </p></li>
-<li><p><strong>loglevel</strong> - error or debug. Output to console and logfile <code>logs\plugin-saphana.log</code> (debug not sent to console)  </p></li>
 <li><p><strong>certificate</strong> - If not using SSL/TLS certificate, set "key", "cert" and "ca" to <strong>null</strong>. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-key. Both files must be located in the <code>&lt;package-root&gt;\config\certs</code> directory e.g:  </p>
 
 <pre><code>"certificate": {
