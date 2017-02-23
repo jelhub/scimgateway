@@ -636,8 +636,6 @@ ALTER USER &lt;UserID&gt; DEACTIVATE;
 
 <p>Azure AD first checks if user/group exists, if not exist they will be created.  </p>
 
-<p>Group creation is currently not supported. For Azure AD this also means add/remove groups to user is not supported.</p>
-
 <p>Deleting a user i Azure AD sends a modify user <code>{"active":"False"}</code> which means user should be disabled. Standard SCIM "DELETE" method is not used?  </p>
 
 <p>Plugin configuration file must include:</p>
@@ -656,7 +654,7 @@ ALTER USER &lt;UserID&gt; DEACTIVATE;
 
 <p><code>Azure-Azure Active Directory-Enterprise Application-&lt;My Application&gt;-Provisioning-Mappings</code></p>
 
-<p>Azure AD default SCIM attribute mapping have:  </p>
+<p>Azure AD default SCIM attribute mapping for <strong>USER</strong> have:  </p>
 
 <pre><code>externalId mapped to mailNickname (matching precedence #1)  
 userName mapped to userPrincipalName  
@@ -671,6 +669,18 @@ or:
 
 externalId mapped to userPrincipalName (matching precedence #1)  
 userName mapped to userPrincipalName  
+</code></pre>
+
+<p>Azure AD default SCIM attribute mapping for <strong>GROUP</strong> have:  </p>
+
+<pre><code>externalId mapped to displayName (matching precedence #1)  
+displayName mapped to mailNickname  
+</code></pre>
+
+<p>ScimGateway accepts externalId (as matching precedence) instead of displayName, but <code>displayName and externalId must then be mapped to the same AD attribute</code> e.g:  </p>
+
+<pre><code>externalId mapped to displayName (matching precedence #1)
+displayName mapped to displayName
 </code></pre>
 
 <h2>How to build your own plugins</h2>
@@ -756,7 +766,7 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 <li><p>Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ingnored unless soap WSSecurityCert functionality is needed in custom plugin code.  </p></li>
 <li><p>Importing "certificate authority - CA" on the CA Connector Server gives a "Failure" message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  </p></li>
 <li><p>Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate). </p></li>
-<li><p>Create/Delete groups not supported  </p></li>
+<li><p>Delete groups not supported  </p></li>
 </ul>
 
 <h2>License</h2>
@@ -770,8 +780,15 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 <p>[ENHANCEMENT]  </p>
 
 <ul>
-<li>SCIM version 2.0 support</li>
-<li>ScimGateway used by Microsoft Azure Active Directory (currently no group functionality)   </li>
+<li>ScimGateway used by Microsoft Azure Active Directory is supported</li>
+<li>SCIM version 2.0 is supported</li>
+<li>Create group is supported  </li>
+</ul>
+
+<p><strong>[UPGRADE]</strong>  </p>
+
+<ul>
+<li>For custom plugins to support create group, they needs to be updated regarding listener method <code>scimgateway.on('createGroup',...</code> Please see example plugins for details. </li>
 </ul>
 
 <h3>v0.3.5</h3>
@@ -794,7 +811,7 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 <p>[Fix]  </p>
 
 <ul>
-<li>Minor changes related to SCIM 1.1 spesification</li>
+<li>Minor changes related to SCIM 1.1</li>
 </ul>
 
 <h3>v0.3.3</h3>
@@ -817,7 +834,7 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 <p>[Fix]  </p>
 
 <ul>
-<li>Minor changes related to SCIM 1.1 spesification </li>
+<li>Minor changes related to SCIM 1.1</li>
 </ul>
 
 <h3>v0.3.1</h3>

@@ -472,9 +472,15 @@ MIT
 ### v0.3.6  
 [ENHANCEMENT]  
 
-- ScimGateway used by Microsoft Azure Active Directory supported
-- SCIM version 2.0 supported
-- Create group supported   
+- ScimGateway used by Microsoft Azure Active Directory is supported
+- SCIM version 2.0 is supported
+- Create group is supported  
+
+**[UPGRADE]**  
+
+- For custom plugins to support create group, they needs to be updated regarding listener method `scimgateway.on('createGroup',...` Please see example plugins for details. 
+
+
 
 ### v0.3.5  
 [Fix]  
@@ -489,7 +495,7 @@ MIT
 
 [Fix]  
 
-- Minor changes related to SCIM 1.1 spesification
+- Minor changes related to SCIM 1.1
 
 
 ### v0.3.3  
@@ -505,7 +511,7 @@ MIT
 ### v0.3.2  
 [Fix]  
 
-- Minor changes related to SCIM 1.1 spesification 
+- Minor changes related to SCIM 1.1
 
 ### v0.3.1  
 [ENHANCEMENT]  
