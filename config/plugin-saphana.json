@@ -1,10 +1,14 @@
 {
     "scimgateway": {
+        "scimversion": "1.1",
+        "loglevel": "error",
         "localhostonly": false,
         "port": 8884,
         "username": "gwadmin",
         "password": "password",
-        "loglevel": "error",
+        "oauth": {
+            "accesstoken": null
+        },
         "certificate": {
             "key": null,
             "cert": null,
