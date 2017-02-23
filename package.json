@@ -20,6 +20,7 @@
     "scim",
     "gateway",
     "proxy",
+    "azure",
     "ca",
     "identity",
     "manager",
