@@ -336,8 +336,6 @@ SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provi
 
 Azure AD first checks if user/group exists, if not exist they will be created.  
 
-Group creation is currently not supported. For Azure AD this also means add/remove groups to user is not supported.
-
 Deleting a user i Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. Standard SCIM "DELETE" method is not used?  
 
 Plugin configuration file must include:
@@ -355,7 +353,7 @@ User mappings attributes between AD and SCIM also needs to be configured
 
 `Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Mappings`
 
-Azure AD default SCIM attribute mapping have:  
+Azure AD default SCIM attribute mapping for **USER** have:  
 
 	externalId mapped to mailNickname (matching precedence #1)  
 	userName mapped to userPrincipalName  
@@ -371,6 +369,15 @@ ScimGateway accepts externalId (as matching precedence) instead of  userName, bu
 	userName mapped to userPrincipalName  
 
 
+Azure AD default SCIM attribute mapping for **GROUP** have:  
+
+	externalId mapped to displayName (matching precedence #1)  
+	displayName mapped to mailNickname  
+
+ScimGateway accepts externalId (as matching precedence) instead of displayName, but `displayName and externalId must then be mapped to the same AD attribute` e.g:  
+
+	externalId mapped to displayName (matching precedence #1)
+	displayName mapped to displayName
 
  
 ## How to build your own plugins  
@@ -452,7 +459,7 @@ advanced options - **Synchronized** = enabled (toggled on)
 
 * Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate). 
 
-* Create/Delete groups not supported  
+* Delete groups not supported  
 
 
 ## License  
@@ -465,8 +472,9 @@ MIT
 ### v0.3.6  
 [ENHANCEMENT]  
 
-- SCIM version 2.0 support
-- ScimGateway used by Microsoft Azure Active Directory (currently no group functionality)   
+- ScimGateway used by Microsoft Azure Active Directory supported
+- SCIM version 2.0 supported
+- Create group supported   
 
 ### v0.3.5  
 [Fix]  
