@@ -647,13 +647,9 @@ ALTER USER &lt;UserID&gt; DEACTIVATE;
 
 <p>"Early Stage Code"  </p>
 
-<p>Azure AD first checks if user/group exists, if not exist they will be created.  </p>
-
-<p>Deleting a user i Azure AD sends a modify user <code>{"active":"False"}</code> which means user should be disabled. Standard SCIM "DELETE" method is not used?  </p>
-
 <p>Plugin configuration file must include:</p>
 
-<pre><code>"scimversion": "2.0",
+<pre><code>"scimversion": 2.0,
 "oauth": {
     "accesstoken": "&lt;password&gt;"
 },
@@ -695,6 +691,14 @@ displayName mapped to mailNickname
 <pre><code>externalId mapped to displayName (matching precedence #1)
 displayName mapped to displayName
 </code></pre>
+
+<p>Some notes related to Azure AD:  </p>
+
+<ul>
+<li><p>Azure AD do a regular check for a "none" existing user/group. This check seems to be a "keep alive" to verify connection.</p></li>
+<li><p>Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  </p></li>
+<li><p>Deleting a user i Azure AD sends a modify user <code>{"active":"False"}</code> which means user should be disabled. Standard SCIM "DELETE" method is not used.  </p></li>
+</ul>
 
 <h2>How to build your own plugins</h2>
 

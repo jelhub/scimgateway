@@ -347,13 +347,9 @@ SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provi
 ## Microsoft Azure Active Directory  
 "Early Stage Code"  
 
-Azure AD first checks if user/group exists, if not exist they will be created.  
-
-Deleting a user i Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. Standard SCIM "DELETE" method is not used?  
-
 Plugin configuration file must include:
 
-	"scimversion": "2.0",
+	"scimversion": 2.0,
     "oauth": {
         "accesstoken": "<password>"
     },
@@ -391,6 +387,14 @@ ScimGateway accepts externalId (as matching precedence) instead of displayName, 
 
 	externalId mapped to displayName (matching precedence #1)
 	displayName mapped to displayName
+
+Some notes related to Azure AD:  
+
+- Azure AD do a regular check for a "none" existing user/group. This check seems to be a "keep alive" to verify connection.
+
+- Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
+
+- Deleting a user i Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. Standard SCIM "DELETE" method is not used.  
 
  
 ## How to build your own plugins  
