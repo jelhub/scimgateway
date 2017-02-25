@@ -1,6 +1,6 @@
 {
     "scimgateway": {
-        "scimversion": "1.1",
+        "scimversion": 1.1,
         "loglevel": "error",
         "localhostonly": false,
         "port": 8884,
@@ -12,7 +12,11 @@
         "certificate": {
             "key": null,
             "cert": null,
-            "ca": null
+            "ca": null,
+            "pfx": {
+                "bundle": null,
+                "password": null
+            }
         }
     },
     "endpoint": {
