@@ -132,7 +132,7 @@ Below shows an example of config\plugin-saphana.json
   
 	{
 		"scimgateway": {
-			"scimversion": 1.1,
+			"scimversion": "1.1",
 	        "loglevel": "error",
 	        "localhostonly": false,
 	        "port": 8884,
@@ -349,7 +349,7 @@ SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provi
 
 Plugin configuration file must include:
 
-	"scimversion": 2.0,
+	"scimversion": "2.0",
     "oauth": {
         "accesstoken": "<password>"
     },
@@ -394,7 +394,7 @@ Some notes related to Azure AD:
 
 - Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
 
-- Deleting a user i Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. Standard SCIM "DELETE" method is not used.  
+- Deleting a user i Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM "DELETE" method is not used.  
 
  
 ## How to build your own plugins  

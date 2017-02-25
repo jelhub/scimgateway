@@ -1,6 +1,6 @@
 {
     "scimgateway": {
-        "scimversion": 1.1,
+        "scimversion": "1.1",
         "loglevel": "debug",
         "localhostonly": false,
         "port": 8888,
