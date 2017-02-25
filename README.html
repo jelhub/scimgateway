@@ -334,7 +334,7 @@ Shows how to implement a higly configurable multi tenant or multi endpoint solut
 <li><p><strong>MSSQL</strong> (MSSQL Database)<br />
 Using SQL for userprovisioning towards MSSQL database table</p></li>
 <li><p><strong>SAP HANA</strong> (SAP HANA Database)<br />
-SAP HANA spesific user provisioning</p></li>
+SAP HANA specific user provisioning</p></li>
 </ul>
 
 <h2>Installation</h2>
@@ -372,7 +372,7 @@ http://localhost:8880/Users?attributes=userName
 Logon using gwadmin/password and two users should be listed  
 
 http://localhost:8880/Users/bjensen
-Lists all user attributes for spesified user
+Lists all user attributes for specified user
 
 "Ctrl + c" to stop the scimgateway
 </code></pre>
@@ -424,7 +424,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 
 <pre><code>{
     "scimgateway": {
-        "scimversion": "1.1",
+        "scimversion": 1.1,
         "loglevel": "error",
         "localhostonly": false,
         "port": 8884,
@@ -436,7 +436,11 @@ Below shows an example of config\plugin-saphana.json  </p>
         "certificate": {
             "key": null,
             "cert": null,
-            "ca": null
+            "ca": null,
+            "pfx": {
+                "bundle": null,
+                "password": null
+            }
         }
     },
     "endpoint": {
@@ -456,14 +460,14 @@ Below shows an example of config\plugin-saphana.json  </p>
 <p>Definitions under "endpoint" are used by endpoint plugin for communicating with endpoint and needs to be defined according to our code. </p>
 
 <ul>
-<li><p><strong>scimversion</strong> - "1.1" or "2.0". Default is "1.1". For Azure AD "2.0" should be used.  </p></li>
+<li><p><strong>scimversion</strong> - 1.1 or 2.0. Default is 1.1. For Azure AD 2.0 should be used.  </p></li>
 <li><p><strong>loglevel</strong> - error or debug. Output to console and logfile <code>logs\plugin-saphana.log</code> (debug not sent to console)  </p></li>
 <li><p><strong>localhostonly</strong> - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the Provisioning Server).  </p></li>
 <li><p><strong>port</strong> - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana </p></li>
 <li><p><strong>username</strong> - username used by clients for gateway authentication. For endpoint the username refers to endpoint authentication.  </p></li>
 <li><p><strong>password</strong> - password used by clients for gateway authentication. For endpoint the password refers to endpoint authentication. Note, we set a clear text password and when gateway is started this <strong>password will become encrypted and updated in the configuration file</strong>.  </p></li>
 <li><p><strong>oauth</strong> - For Azure AD, define access token for OAuth2 bearer token (access token). This will be the password accepted by ScimGateway. Using standard OAuth key/secret/endpoints is not supported.  </p></li>
-<li><p><strong>certificate</strong> - If not using SSL/TLS certificate, set "key", "cert" and "ca" to <strong>null</strong>. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-key. Both files must be located in the <code>&lt;package-root&gt;\config\certs</code> directory e.g:  </p>
+<li><p><strong>certificate</strong> - If not using SSL/TLS certificate, set "key", "cert" and "ca" to <strong>null</strong>. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the <code>&lt;package-root&gt;\config\certs</code> directory e.g:  </p>
 
 <pre><code>"certificate": {
     "key": "key.pem",
@@ -477,7 +481,15 @@ Below shows an example of config\plugin-saphana.json  </p>
 
 <p><code>&lt;FQDN&gt;</code> is Fully Qualified Domain Name of the host having ScimGateway installed</p>
 
-<p>Note, when using CA Provisioning, the "certificate authority - CA" also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.</p></li>
+<p>Note, when using CA Provisioning, the "certificate authority - CA" also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  </p>
+
+<p>PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: </p>
+
+<pre><code>"pfx": {
+    "bundle": "certbundle.pfx",
+    "password": "password"
+}
+</code></pre></li>
 <li><p><strong>samlprovider</strong> - SAP Hana specific saml provider name. Users created in SAP Hana needs to have a saml provider defined.</p></li>
 </ul>
 
@@ -543,7 +555,8 @@ Password = password
 SCIM Authentication Method = HTTP Basic Authentication  
 SCIM Based URL = http://localhost:8880  
 
-or
+or:  
+
 SCIM Based URL = http://localhost:8880/[baseEntity]
 </code></pre>
 
@@ -774,6 +787,14 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 <p>MIT</p>
 
 <h2>Change log</h2>
+
+<h3>v0.3.7</h3>
+
+<p>[ENHANCEMENT]  </p>
+
+<ul>
+<li>PFX / PKCS#12 certificate bundle is supported</li>
+</ul>
 
 <h3>v0.3.6</h3>
 
