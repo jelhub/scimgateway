@@ -144,7 +144,11 @@ Below shows an example of config\plugin-saphana.json
 	        "certificate": {
 	            "key": null,
 	            "cert": null,
-	            "ca": null
+	            "ca": null,
+	            "pfx": {
+	                "bundle": null,
+	                "password": null
+	            }
 	        }
 	    },
 	    "endpoint": {
@@ -163,7 +167,7 @@ Definitions under "scimgateway" have fixed attributes but we can change the valu
 
 Definitions under "endpoint" are used by endpoint plugin for communicating with endpoint and needs to be defined according to our code. 
 
-- **scimversion** - "1.1" or "2.0". Default is "1.1". For Azure AD "2.0" should be used.  
+- **scimversion** - 1.1 or 2.0. Default is 1.1. For Azure AD 2.0 should be used.  
 
 - **loglevel** - error or debug. Output to console and logfile `logs\plugin-saphana.log` (debug not sent to console)  
 
@@ -177,7 +181,7 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 - **oauth** - For Azure AD, define access token for OAuth2 bearer token (access token). This will be the password accepted by ScimGateway. Using standard OAuth key/secret/endpoints is not supported.  
 
-- **certificate** - If not using SSL/TLS certificate, set "key", "cert" and "ca" to **null**. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-key. Both files must be located in the `<package-root>\config\certs` directory e.g:  
+- **certificate** - If not using SSL/TLS certificate, set "key", "cert" and "ca" to **null**. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the `<package-root>\config\certs` directory e.g:  
   
 		"certificate": {
 			"key": "key.pem",
@@ -190,7 +194,15 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
   `<FQDN>` is Fully Qualified Domain Name of the host having ScimGateway installed
   
-  Note, when using CA Provisioning, the "certificate authority - CA" also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.
+  Note, when using CA Provisioning, the "certificate authority - CA" also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  
+
+  PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: 
+
+        "pfx": {
+            "bundle": "certbundle.pfx",
+            "password": "password"
+        }
+
 
 - **samlprovider** - SAP Hana specific saml provider name. Users created in SAP Hana needs to have a saml provider defined.
 
@@ -335,10 +347,6 @@ SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provi
 ## Microsoft Azure Active Directory  
 "Early Stage Code"  
 
-Azure AD first checks if user/group exists, if not exist they will be created.  
-
-Deleting a user i Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. Standard SCIM "DELETE" method is not used?  
-
 Plugin configuration file must include:
 
 	"scimversion": "2.0",
@@ -379,6 +387,14 @@ ScimGateway accepts externalId (as matching precedence) instead of displayName, 
 
 	externalId mapped to displayName (matching precedence #1)
 	displayName mapped to displayName
+
+Some notes related to Azure AD:  
+
+- Azure AD do a regular check for a "none" existing user/group. This check seems to be a "keep alive" to verify connection.
+
+- Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
+
+- Deleting a user i Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM "DELETE" method is not used.  
 
  
 ## How to build your own plugins  
@@ -469,6 +485,11 @@ MIT
 
 
 ## Change log  
+
+### v0.3.7  
+[ENHANCEMENT]  
+
+- PFX / PKCS#12 certificate bundle is supported
 
 ### v0.3.6  
 [ENHANCEMENT]  

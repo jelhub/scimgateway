@@ -12,7 +12,11 @@
         "certificate": {
             "key": null,
             "cert": null,
-            "ca": null
+            "ca": null,
+            "pfx": {
+                "bundle": null,
+                "password": null
+            }
         }
     },
     "endpoint": {
