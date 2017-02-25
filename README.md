@@ -46,7 +46,7 @@ Shows how to implement a higly configurable multi tenant or multi endpoint solut
 Using SQL for userprovisioning towards MSSQL database table
 
 * **SAP HANA** (SAP HANA Database)  
-SAP HANA spesific user provisioning
+SAP HANA specific user provisioning
 
 
 
@@ -86,7 +86,7 @@ If internet connection is blocked, we could install on another machine and copy 
 	Logon using gwadmin/password and two users should be listed  
 
 	http://localhost:8880/Users/bjensen
-	Lists all user attributes for spesified user
+	Lists all user attributes for specified user
 
 	"Ctrl + c" to stop the scimgateway
 
@@ -131,7 +131,7 @@ Edit specific plugin configuration file according to your needs.
 Below shows an example of config\plugin-saphana.json  
   
 	{
-	    "scimgateway": {
+		"scimgateway": {
 			"scimversion": "1.1",
 	        "loglevel": "error",
 	        "localhostonly": false,
@@ -253,7 +253,8 @@ SCIM endpoint configuration example for Testmode plugin (plugin-testmode)
 	SCIM Authentication Method = HTTP Basic Authentication  
 	SCIM Based URL = http://localhost:8880  
 
-	or
+	or:  
+
 	SCIM Based URL = http://localhost:8880/[baseEntity]
 
 Username, password and port must correspond with plugin configuration file. For "Testmode" plugin it will be `config\plugin-testmode.json`  
