@@ -486,6 +486,11 @@ MIT
 
 ## Change log  
 
+### v0.3.8  
+[Fix]  
+
+- Minor changes related to SCIM specification
+
 ### v0.3.7  
 [ENHANCEMENT]  
 
@@ -517,7 +522,7 @@ MIT
 
 [Fix]  
 
-- Minor changes related to SCIM 1.1
+- Minor changes related to SCIM specification
 
 
 ### v0.3.3  
@@ -533,7 +538,7 @@ MIT
 ### v0.3.2  
 [Fix]  
 
-- Minor changes related to SCIM 1.1
+- Minor changes related to SCIM specification
 
 ### v0.3.1  
 [ENHANCEMENT]  
