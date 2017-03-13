@@ -30,17 +30,17 @@
     "node": "6.8.0"
   },
   "dependencies": {
-    "async": "^2.1.2",
-    "basic-auth": "^1.0.4",
+    "async": "^2.1.5",
+    "basic-auth": "^1.1.0",
     "callsite": "^1.0.0",
     "dot-object": "^1.5.4",
-    "express": "^4.13.3",
+    "express": "^4.15.2",
     "express-bearer-token": "^2.1.0",
-    "hdb": "^0.9.0",
-    "morgan": "^1.6.1",
+    "hdb": "^0.12.1",
+    "morgan": "^1.8.1",
     "saml": "^0.10.2",
-    "soap": "^0.17.0",
-    "tedious": "^1.14.0",
-    "winston": "^2.3.0"
+    "soap": "^0.18.0",
+    "tedious": "^1.15.0",
+    "winston": "^2.3.1"
   }
 }
