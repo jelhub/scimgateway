@@ -383,6 +383,12 @@ Lists all user attributes for specified user
 
 <p>Not needed after a fresh install  </p>
 
+<p>List current version:   </p>
+
+<pre><code>cd C:\CA\scimgateway
+npm info scimgateway version
+</code></pre>
+
 <p>Check if newer versions are available: </p>
 
 <pre><code>cd C:\CA\scimgateway
@@ -791,6 +797,21 @@ advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
 <p>MIT</p>
 
 <h2>Change log</h2>
+
+<h3>v0.4.0</h3>
+
+<p>[ENHANCEMENT]  </p>
+
+<ul>
+<li>Not using the SCIM standard for handling multi-value attributes and cleared attributes. Changed from array to object based on type. This simplifies plugin-coding for multivalue attributes like emails, phoneNumbers, entitlements, ...</li>
+<li>Module dependencies updated to latest versions  </li>
+</ul>
+
+<p><strong>[UPGRADE]</strong>  </p>
+
+<ul>
+<li>Custom plugins using multivalue attributes needs to be updated regarding methods createUser and modifyUser. Please see example plugins for details.</li>
+</ul>
 
 <h3>v0.3.8</h3>
 

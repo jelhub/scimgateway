@@ -96,6 +96,11 @@ For more functionality using browser (post/patch/delete) a REST extension/add-on
 
 Not needed after a fresh install  
 
+List current version:   
+
+	cd C:\CA\scimgateway
+	npm info scimgateway version
+
 Check if newer versions are available: 
 
 	cd C:\CA\scimgateway
@@ -485,6 +490,16 @@ MIT
 
 
 ## Change log  
+
+### v0.4.0  
+[ENHANCEMENT]  
+
+- Not using the SCIM standard for handling multi-value attributes and cleared attributes. Changed from array to object based on type. This simplifies plugin-coding for multivalue attributes like emails, phoneNumbers, entitlements, ...
+- Module dependencies updated to latest versions  
+
+**[UPGRADE]**  
+
+- Custom plugins using multivalue attributes needs to be updated regarding methods createUser and modifyUser. Please see example plugins for details.
 
 ### v0.3.8  
 [Fix]  
