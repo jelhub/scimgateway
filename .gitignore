@@ -1,2 +1,11 @@
-node_modules
+﻿.DS_Store
+uml.txt
+typings.json
+jsconfig.json
 npm-debug.log
+config/certs
+node_modules/
+typings/
+logs/
+client_deploy/
+.vscode/

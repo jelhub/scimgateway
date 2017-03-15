@@ -96,11 +96,6 @@ For more functionality using browser (post/patch/delete) a REST extension/add-on
 
 Not needed after a fresh install  
 
-List current version:   
-
-	cd C:\CA\scimgateway
-	npm info scimgateway version
-
 Check if newer versions are available: 
 
 	cd C:\CA\scimgateway
