@@ -8,7 +8,7 @@ describe('plugin-testmode tests', () => {
 
     it('getUser test', (done) => {
         let user = undefined;
-        scimgateway.emit('getUser', 'req.params.baseEntity', 'bjensen', null, function(err, data) {
+        scimgateway.emit('getUser', 'req.params.baseEntity', 'bjensen', null, function (err, data) {
             user = data;
         });
         expect(user).to.not.equal('undefined');
@@ -44,7 +44,7 @@ describe('plugin-testmode tests', () => {
 
     it('exploreUsers test', (done) => {
         let users = undefined;
-        scimgateway.emit('exploreUsers', 'req.params.baseEntity', 1, 10, function(err, data) {
+        scimgateway.emit('exploreUsers', 'req.params.baseEntity', 1, 10, function (err, data) {
             users = data;
         });
 
@@ -57,7 +57,7 @@ describe('plugin-testmode tests', () => {
 
     it('exploreGroups test', (done) => {
         let groups = undefined;
-        scimgateway.emit('exploreGroups', 'req.params.baseEntity', 1, 10, function(err, data) {
+        scimgateway.emit('exploreGroups', 'req.params.baseEntity', 1, 10, function (err, data) {
             groups = data;
         });
 
@@ -79,7 +79,7 @@ describe('plugin-testmode tests', () => {
 
     it('getGroup test', (done) => {
         let group = undefined;
-        scimgateway.emit('getGroup', 'req.params.baseEntity', 'Admins', '', function(err, data) {
+        scimgateway.emit('getGroup', 'req.params.baseEntity', 'Admins', '', function (err, data) {
             group = data;
         });
         expect(group).to.not.equal('undefined');
@@ -92,7 +92,7 @@ describe('plugin-testmode tests', () => {
 
     it('getGroupMembers test', (done) => {
         let groupMembers = undefined;
-        scimgateway.emit('getGroupMembers', 'req.params.baseEntity', 'bjensen', '', 1, 10, function(err, data) {
+        scimgateway.emit('getGroupMembers', 'req.params.baseEntity', 'bjensen', '', 1, 10, function (err, data) {
             groupMembers = data;
         });
         expect(groupMembers).to.not.equal('undefined');
@@ -104,13 +104,93 @@ describe('plugin-testmode tests', () => {
 
     it('getGroupUsers test', (done) => {
         let groupUsers = undefined;
-        scimgateway.emit('getGroupUsers', 'req.params.baseEntity', 'UserGroup-1', '', function(err, data) {
+        scimgateway.emit('getGroupUsers', 'req.params.baseEntity', 'UserGroup-1', '', function (err, data) {
             groupUsers = data;
         });
         expect(groupUsers).to.not.equal('undefined');
         expect(groupUsers[0].userName).to.equal('bjensen');
         done();
     });
+
+
+    it('convertedScim test', (done) => {
+        let user = {
+            entitlements: [{
+                value: 'jgilber@example.com',
+                type: 'newentitlement'
+            },
+            {
+                value: 'nobody@example.com',
+                type: 'anotherentitlement'                
+            }],
+            name: {
+                formatted: 'Mr. Jeff Gilbert',
+                familyName: 'Gilbert',
+                givenName: 'Jeff'
+            },
+            x509Certificates: [{
+                value: 'jgilber@example.com',
+                type: 'cert'
+            }],
+            active: true,
+            phoneNumbers: [{
+                value: 'tel:555-555-8376',
+                type: 'work'
+            }],
+            roles: [{
+                value: 'jgilber@example.com',
+                type: 'newrole'
+            }],
+            userName: 'jgilber',
+            emails: [{
+                "value": 'jgilber@example.com',
+                "type": 'work'
+            }],
+            ims: [{
+                value: 'jgilber@example.com',
+                type: 'aim'
+            }],
+            photos: [{
+                value: 'jgilber@example.com',
+                type: 'photo'
+            }],
+            id: 'jgilber',
+            groups: [{
+                display: 'UserGroup-1',
+                value: 'UserGroup-1'
+            }]
+        };
+
+        user = scimgateway.convertedScim(user); // multivalue array to none-array based on type
+      
+        expect(user).to.not.equal('undefined');
+        expect(user.entitlements.newentitlement.value).to.equal('jgilber@example.com');
+        expect(user.entitlements.newentitlement.type).to.equal('newentitlement');
+        expect(user.entitlements.anotherentitlement.value).to.equal('nobody@example.com');
+        expect(user.entitlements.anotherentitlement.type).to.equal('anotherentitlement');
+        expect(user.name.formatted).to.equal('Mr. Jeff Gilbert');
+        expect(user.name.familyName).to.equal('Gilbert');
+        expect(user.name.givenName).to.equal('Jeff');
+        expect(user.x509Certificates.cert.value).to.equal('jgilber@example.com');
+        expect(user.x509Certificates.cert.type).to.equal('cert');
+        expect(user.active).to.equal(true);
+        expect(user.phoneNumbers.work.value).to.equal('tel:555-555-8376');
+        expect(user.phoneNumbers.work.type).to.equal('work');
+        expect(user.roles.newrole.value).to.equal('jgilber@example.com');
+        expect(user.roles.newrole.type).to.equal('newrole');
+        expect(user.userName).to.equal('jgilber');
+        expect(user.emails.work.value).to.equal('jgilber@example.com');
+        expect(user.emails.work.type).to.equal('work');
+        expect(user.ims.aim.value).to.equal('jgilber@example.com');
+        expect(user.ims.aim.type).to.equal('aim');
+        expect(user.photos.photo.value).to.equal('jgilber@example.com');
+        expect(user.photos.photo.type).to.equal('photo');
+        expect(user.id).to.equal('jgilber');
+        expect(user.groups[0].display).to.equal('UserGroup-1'); // groups not converted
+        expect(user.groups[0].value).to.equal('UserGroup-1');
+        done();
+    });
+
 
     it('createUser test', (done) => {
         let newUser = {
@@ -138,8 +218,8 @@ describe('plugin-testmode tests', () => {
             }],
             userName: 'jgilber',
             emails: [{
-                value: 'jgilber@example.com',
-                type: 'work'
+                "value": 'jgilber@example.com',
+                "type": 'work'
             }],
             ims: [{
                 value: 'jgilber@example.com',
@@ -156,7 +236,8 @@ describe('plugin-testmode tests', () => {
             }]
         };
         let returnValue = undefined;
-        scimgateway.emit('createUser', 'req.params.baseEntity', newUser, function(err, data) {
+        newUser = scimgateway.convertedScim(newUser); // multivalue array to none-array based on type
+        scimgateway.emit('createUser', 'req.params.baseEntity', newUser, function (err, data) {
             expect(err).to.equal(null);
             returnValue = data;
         });
@@ -167,29 +248,29 @@ describe('plugin-testmode tests', () => {
 
     it('getUser just created test', (done) => {
         let user = undefined;
-        scimgateway.emit('getUser', 'req.params.baseEntity', 'jgilber', null, function(err, data) {
+        scimgateway.emit('getUser', 'req.params.baseEntity', 'jgilber', null, function (err, data) {
             user = data;
         });
         expect(user).to.not.equal('undefined');
         expect(user.entitlements[0].value).to.equal('jgilber@example.com');
-	expect(user.entitlements[0].type).to.equal('0');
+        expect(user.entitlements[0].type).to.equal('newentitlement');
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert');
         expect(user.name.familyName).to.equal('Gilbert');
         expect(user.name.givenName).to.equal('Jeff');
         expect(user.x509Certificates[0].value).to.equal('jgilber@example.com');
-        expect(user.x509Certificates[0].type).to.equal('0');
+        expect(user.x509Certificates[0].type).to.equal('cert');
         expect(user.active).to.equal(true);
         expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8376');
-        expect(user.phoneNumbers[0].type).to.equal('0');
+        expect(user.phoneNumbers[0].type).to.equal('work');
         expect(user.roles[0].value).to.equal('jgilber@example.com');
-        expect(user.roles[0].type).to.equal('0');
+        expect(user.roles[0].type).to.equal('newrole');
         expect(user.userName).to.equal('jgilber');
         expect(user.emails[0].value).to.equal('jgilber@example.com');
-        expect(user.emails[0].type).to.equal('0');
+        expect(user.emails[0].type).to.equal('work');
         expect(user.ims[0].value).to.equal('jgilber@example.com');
-        expect(user.ims[0].type).to.equal('0');
+        expect(user.ims[0].type).to.equal('aim');
         expect(user.photos[0].value).to.equal('jgilber@example.com');
-        expect(user.photos[0].type).to.equal('0');
+        expect(user.photos[0].type).to.equal('photo');
         expect(user.id).to.equal('jgilber');
         expect(user.groups[0].display).to.equal('UserGroup-1');
         expect(user.groups[0].value).to.equal('UserGroup-1');
@@ -198,60 +279,67 @@ describe('plugin-testmode tests', () => {
 
     it('modifyUser test', (done) => {
         let user = {
-            entitlements: [{
-                value: 'jgilber@example.com',
-                type: 'newentitlement'
-            }],
-            name: {
-                formatted: 'Mr. Jeff Gilbert',
-                familyName: 'Gilbert',
-                givenName: 'Jeff'
+             name: {
+                givenName: 'Jeff-Modified'
             },
-            x509Certificates: [{
-                value: 'jgilber@example.com',
-                type: 'cert'
-            }],
-            active: true,
+            active: false,
             phoneNumbers: [{
-                value: 'tel:555-555-8375',
-                type: 'work'
-            }],
-            roles: [{
-                value: 'jgilber@example.com',
-                type: 'newrole'
-            }],
-            userName: 'jgilber',
-            emails: [{
-                value: 'jgilber@example.com',
-                type: 'work'
-            }],
-            ims: [{
-                value: 'jgilber@example.com',
-                type: 'aim'
+                value: 'tel:911',
+                type: 'home'
             }],
             photos: [{
+                operation: "delete",
                 value: 'jgilber@example.com',
                 type: 'photo'
             }],
-            id: 'jgilber',
-            groups: [{
-                display: 'UserGroup-1',
-                value: 'UserGroup-1'
-            }]
         };
         let returnValue = undefined;
-        scimgateway.emit('modifyUser', 'req.params.baseEntity', 'jgilber', user, function(err, data) {
+        user = scimgateway.convertedScim(user); // multivalue array to none-array based on type
+        scimgateway.emit('modifyUser', 'req.params.baseEntity', 'jgilber', user, function (err, data) {
             expect(err).to.equal(null);
             returnValue = data;
         });
         expect(returnValue).to.not.equal('undefined');
-        expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8375');
         done();
     });
 
+
+    it('getUser just modified test', (done) => {
+        let user = undefined;
+        scimgateway.emit('getUser', 'req.params.baseEntity', 'jgilber', null, function (err, data) {
+            user = data;
+        });
+        expect(user).to.not.equal('undefined');
+        expect(user.entitlements[0].value).to.equal('jgilber@example.com');
+        expect(user.entitlements[0].type).to.equal('newentitlement');
+        expect(user.name.formatted).to.equal('Mr. Jeff Gilbert');
+        expect(user.name.familyName).to.equal('Gilbert');
+        expect(user.name.givenName).to.equal('Jeff-Modified');                  // modified
+        expect(user.x509Certificates[0].value).to.equal('jgilber@example.com');
+        expect(user.x509Certificates[0].type).to.equal('cert');
+        expect(user.active).to.equal(false);                                    // modified
+        expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8376');
+        expect(user.phoneNumbers[0].type).to.equal('work');
+        expect(user.phoneNumbers[1].value).to.equal('tel:911');                 // added
+        expect(user.phoneNumbers[1].type).to.equal('home');                     // added
+        expect(user.roles[0].value).to.equal('jgilber@example.com');
+        expect(user.roles[0].type).to.equal('newrole');
+        expect(user.userName).to.equal('jgilber');
+        expect(user.emails[0].value).to.equal('jgilber@example.com');
+        expect(user.emails[0].type).to.equal('work');
+        expect(user.ims[0].value).to.equal('jgilber@example.com');
+        expect(user.ims[0].type).to.equal('aim');
+        expect(user.photos).to.equal(undefined);                                // deleted
+        expect(user.id).to.equal('jgilber');
+        expect(user.groups[0].display).to.equal('UserGroup-1');
+        expect(user.groups[0].value).to.equal('UserGroup-1');
+        done();
+    });
+
+
     it('deleteUser test', (done) => {
         let returnValue = undefined;
-        scimgateway.emit('deleteUser', 'req.params.baseEntity', 'jgilber', function(err, data) {
+        scimgateway.emit('deleteUser', 'req.params.baseEntity', 'jgilber', function (err, data) {
             expect(err).to.equal(null);
             returnValue = data;
         });
@@ -261,7 +349,7 @@ describe('plugin-testmode tests', () => {
 
 
     it('getUser just deleted test', (done) => {
-        scimgateway.emit('getUser', 'req.params.baseEntity', 'jgilber', null, function(err, data) {
+        scimgateway.emit('getUser', 'req.params.baseEntity', 'jgilber', null, function (err, data) {
             expect(err).to.not.equal(null);
             expect(err.message).to.equal('Could not find user with userName jgilber');
             expect(data).to.equal(undefined);
@@ -281,7 +369,7 @@ describe('plugin-testmode tests', () => {
             }]
         };
         let returnValue = undefined;
-        scimgateway.emit('createGroup', 'req.params.baseEntity', newGroup, function(err, data) {
+        scimgateway.emit('createGroup', 'req.params.baseEntity', newGroup, function (err, data) {
             expect(err).to.equal(null);
             returnValue = data;
         });
@@ -291,7 +379,7 @@ describe('plugin-testmode tests', () => {
 
     it('getGroup new group test', (done) => {
         let group = undefined;
-        scimgateway.emit('getGroup', 'req.params.baseEntity', 'Undead', '', function(err, data) {
+        scimgateway.emit('getGroup', 'req.params.baseEntity', 'Undead', '', function (err, data) {
             group = data;
         });
         expect(group).to.not.equal('undefined');
@@ -304,7 +392,7 @@ describe('plugin-testmode tests', () => {
 
     it('modifyGroupMembers test', (done) => {
         let returnValue = undefined;
-        scimgateway.emit('modifyGroupMembers', 'req.params.baseEntity', 'Undead', [{"operation":"delete","value":"bjensen"}], function(err, data) {
+        scimgateway.emit('modifyGroupMembers', 'req.params.baseEntity', 'Undead', [{ "operation": "delete", "value": "bjensen" }], function (err, data) {
             expect(err).to.equal(null);
             returnValue = data;
         });
