@@ -158,7 +158,8 @@ describe('plugin-testmode tests', () => {
             groups: [{
                 display: 'UserGroup-1',
                 value: 'UserGroup-1'
-            }]
+            }],
+            meta:{attributes:['name.familyName', 'title']}
         };
 
         user = scimgateway.convertedScim(user); // multivalue array to none-array based on type
@@ -169,7 +170,7 @@ describe('plugin-testmode tests', () => {
         expect(user.entitlements.anotherentitlement.value).to.equal('nobody@example.com');
         expect(user.entitlements.anotherentitlement.type).to.equal('anotherentitlement');
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert');
-        expect(user.name.familyName).to.equal('Gilbert');
+        expect(user.name.familyName).to.equal('');                      // cleared
         expect(user.name.givenName).to.equal('Jeff');
         expect(user.x509Certificates.cert.value).to.equal('jgilber@example.com');
         expect(user.x509Certificates.cert.type).to.equal('cert');
@@ -186,8 +187,9 @@ describe('plugin-testmode tests', () => {
         expect(user.photos.photo.value).to.equal('jgilber@example.com');
         expect(user.photos.photo.type).to.equal('photo');
         expect(user.id).to.equal('jgilber');
-        expect(user.groups[0].display).to.equal('UserGroup-1'); // groups not converted
+        expect(user.groups[0].display).to.equal('UserGroup-1');         // groups not converted
         expect(user.groups[0].value).to.equal('UserGroup-1');
+        expect(user.title).to.equal('');                                // cleared
         done();
     });
 
@@ -284,7 +286,7 @@ describe('plugin-testmode tests', () => {
             },
             active: false,
             phoneNumbers: [{
-                value: 'tel:911',
+                value: 'tel:123',
                 type: 'home'
             }],
             photos: [{
@@ -292,6 +294,7 @@ describe('plugin-testmode tests', () => {
                 value: 'jgilber@example.com',
                 type: 'photo'
             }],
+            meta:{attributes:['name.familyName']}
         };
         let returnValue = undefined;
         user = scimgateway.convertedScim(user); // multivalue array to none-array based on type
@@ -313,14 +316,14 @@ describe('plugin-testmode tests', () => {
         expect(user.entitlements[0].value).to.equal('jgilber@example.com');
         expect(user.entitlements[0].type).to.equal('newentitlement');
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert');
-        expect(user.name.familyName).to.equal('Gilbert');
+        expect(user.name.familyName).to.equal(undefined);                       // cleared
         expect(user.name.givenName).to.equal('Jeff-Modified');                  // modified
         expect(user.x509Certificates[0].value).to.equal('jgilber@example.com');
         expect(user.x509Certificates[0].type).to.equal('cert');
         expect(user.active).to.equal(false);                                    // modified
         expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8376');
         expect(user.phoneNumbers[0].type).to.equal('work');
-        expect(user.phoneNumbers[1].value).to.equal('tel:911');                 // added
+        expect(user.phoneNumbers[1].value).to.equal('tel:123');                 // added
         expect(user.phoneNumbers[1].type).to.equal('home');                     // added
         expect(user.roles[0].value).to.equal('jgilber@example.com');
         expect(user.roles[0].type).to.equal('newrole');
