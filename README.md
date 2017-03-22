@@ -486,6 +486,11 @@ MIT
 
 ## Change log  
 
+### v0.4.2
+[Fix]  
+
+- plugin-restful minor adjustments to multivalue and cleared attributes logic introduced in v0.4.0  
+
 ### v0.4.1
 [ENHANCEMENT]  
 
@@ -500,7 +505,7 @@ MIT
 ### v0.4.0  
 [ENHANCEMENT]  
 
-- Not using the SCIM standard for handling multi-value attributes and cleared attributes. Changed from array to object based on type. This simplifies plugin-coding for multivalue attributes like emails, phoneNumbers, entitlements, ...
+- Not using the SCIM standard for handling multivalue attributes and cleared attributes. Changed from array to object based on type. This simplifies plugin-coding for multivalue attributes like emails, phoneNumbers, entitlements, ...
 - Module dependencies updated to latest versions  
 
 **[UPGRADE]**  
