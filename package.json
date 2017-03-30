@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "async": "^2.1.5",
+    "azure-ad-jwt": "^0.2.0",
     "basic-auth": "^1.1.0",
     "callsite": "^1.0.0",
     "dot-object": "^1.5.4",
