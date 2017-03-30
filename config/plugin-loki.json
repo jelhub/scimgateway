@@ -20,9 +20,7 @@
         }
     },
     "endpoint": {
-        "host": "hostname",
-        "port": 99999,
-        "username": "username",
-        "password": "d889be3bc59843112188c6538173afd2"
+        "dbname": "loki.db",
+        "persistence": false
     }
 }

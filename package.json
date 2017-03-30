@@ -38,6 +38,7 @@
     "express": "^4.15.2",
     "express-bearer-token": "^2.1.0",
     "hdb": "^0.12.1",
+    "lokijs": "^1.4.3",
     "morgan": "^1.8.1",
     "saml": "^0.10.2",
     "soap": "^0.18.0",

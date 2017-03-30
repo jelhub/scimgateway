@@ -3,6 +3,7 @@ uml.txt
 typings.json
 jsconfig.json
 npm-debug.log
+config/*.db
 config/certs
 node_modules/
 typings/
