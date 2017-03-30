@@ -292,8 +292,8 @@ describe('plugin-restful tests', () => {
 
     it('createGroup test', (done) => {
         let newGroup = {
-            displayName: 'GoGo',
-            id: 'GoGo',
+            displayName: 'GoGoRest',
+            id: 'GoGoRest',
             externalId: undefined,
             members: [{
                 value: 'bjensen'
@@ -306,28 +306,28 @@ describe('plugin-restful tests', () => {
             .end(function (err, res) {
                 expect(err).to.equal(null);
                 expect(res.statusCode).to.equal(201);
-                expect(res.body.meta.location).to.equal('http://localhost:8886/Groups/GoGo');
+                expect(res.body.meta.location).to.equal('http://localhost:8886/Groups/GoGoRest');
                 done();
             });
     });
 
 
     it('getGroup just created test', (done) => {
-        server_8886.get('/Groups/GoGo')
+        server_8886.get('/Groups/GoGoRest')
             .set(options.headers)
             .end(function (err, res) {
                 let group = res.body;
                 expect(res.statusCode).to.equal(200);
                 expect(group).to.not.equal('undefined');
-                expect(group.displayName).to.equal('GoGo');
-                expect(group.id).to.equal('GoGo');
+                expect(group.displayName).to.equal('GoGoRest');
+                expect(group.id).to.equal('GoGoRest');
                 done();
             });
     });
 
 
     it('modifyGroupMembers test', (done) => {
-        server_8886.patch('/Groups/GoGo')
+        server_8886.patch('/Groups/GoGoRest')
             .set(options.headers)
             .send({ "members": [{ "value": "jsmith" }, { "value": "bjensen" }], "schemas": ["urn:scim:schemas:core:1.0"] })
             .end(function (err, res) {
@@ -339,14 +339,14 @@ describe('plugin-restful tests', () => {
 
 
     it('getGroup just modified members test', (done) => {
-        server_8886.get('/Groups/GoGo')
+        server_8886.get('/Groups/GoGoRest')
             .set(options.headers)
             .end(function (err, res) {
                 let group = res.body;
                 expect(res.statusCode).to.equal(200);
                 expect(group).to.not.equal('undefined');
-                expect(group.displayName).to.equal('GoGo');
-                expect(group.id).to.equal('GoGo');
+                expect(group.displayName).to.equal('GoGoRest');
+                expect(group.id).to.equal('GoGoRest');
                 expect(group.members.length).to.equal(2);
                 expect(group.members[0].value).to.equal('jsmith');
                 expect(group.members[1].value).to.equal('bjensen');
