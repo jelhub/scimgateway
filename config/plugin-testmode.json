@@ -4,10 +4,12 @@
         "loglevel": "debug",
         "localhostonly": false,
         "port": 8880,
-        "username": "gwadmin",
-        "password": "password",
+        "authType": "token",
         "oauth": {
-            "accesstoken": null
+            "audience": "00000002-0000-0000-c000-000000000000",
+            "tenantId": "MY_TENANT.onmicrosoft.com",
+            "issuer": "https://sts.windows.net/A_HASH_THAT_REPRESENTS_MY_ISSUER/",
+            "clientId": "A_HASH_THAT_REPRESENTS_MY_CLIENT_ID"
         },
         "certificate": {
             "key": null,
