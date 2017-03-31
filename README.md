@@ -27,14 +27,17 @@ ScimGateway is based on the popular asynchronous event driven framework [Node.js
 
 Following example plugins are included:
 
-* **Testmode** (SCIM)  
-SCIM endpoint simulation (in-memory, no physical endpoint)  
-Two predefined users  
-Supports explore, create, delete, modify and list users (including groups)  
+* **Loki** (NoSQL Document-Oriented Database)  
+Gives a SCIM endpoint located on ScimGateway  
+Demonstrates userprovisioning towards a document-oriented database  
+Using [LokiJS](http://lokijs.org) for a fast, in-memory document-oriented database (much like MongoDB/PouchDB)  
+Default gives two predefined test users loaded using in-memory only (no persistence)  
+Setting {"persistence": true} gives persistence file store (no test users)  
+Supporting explore, create, delete, modify and list users (including groups)  
 Example of a fully functional ScimGateway plugin  
 
 * **RESTful** (REST Webservice)  
-REST plugin using "Testmode" as a REST endpoint
+REST plugin using "Loki" as a REST endpoint
 
 * **Forwardinc** (SOAP Webservice)  
 Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-provisioning (please see [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com"))  
@@ -76,7 +79,7 @@ index.js, lib and config directories containing example plugins have been copied
 If internet connection is blocked, we could install on another machine and copy the scimgateway folder.
 
 
-#### Startup and verify default testmode-plugin 
+#### Startup and verify default loki-plugin 
 
 	node C:\CA\scimgateway
 	
@@ -112,9 +115,9 @@ Upgrade to latest version:
 
 ## Configuration  
 
-**index.js** defines one or more plugins to be started. We could comment out those we do not need (default configuration only starts testmode plugin).  
+**index.js** defines one or more plugins to be started. We could comment out those we do not need (default configuration only starts loki plugin).  
 
-	var testmode    = require('./lib/plugin-testmode');
+	var loki    = require('./lib/plugin-loki');
 	// var restful  = require('./lib/plugin-restful');
 	// var forwardinc  = require('./lib/plugin-forwardinc');
 	// var mssql = require('./lib/plugin-mssql');
@@ -131,16 +134,16 @@ Edit specific plugin configuration file according to your needs.
 Below shows an example of config\plugin-saphana.json  
   
 	{
-		"scimgateway": {
-			"scimversion": "1.1",
+	    "scimgateway": {
+	        "scimversion": "1.1",
 	        "loglevel": "error",
 	        "localhostonly": false,
 	        "port": 8884,
 	        "username": "gwadmin",
 	        "password": "password",
-			"oauth": {
-            	"accesstoken": null
-        	},
+	        "oauth": {
+                "accesstoken": null
+            },
 	        "certificate": {
 	            "key": null,
 	            "cert": null,
@@ -257,9 +260,9 @@ Using the CA Provisioning Manager we have to configure
   
 `Endpoint type = SCIM (DYN Endpoint)`  
 
-SCIM endpoint configuration example for Testmode plugin (plugin-testmode)
+SCIM endpoint configuration example for Loki plugin (plugin-loki)
 
-	Endpoint Name = Testmode  
+	Endpoint Name = Loki  
 	User Name = gwadmin  
 	Password = password  
 	SCIM Authentication Method = HTTP Basic Authentication  
@@ -269,7 +272,7 @@ SCIM endpoint configuration example for Testmode plugin (plugin-testmode)
 
 	SCIM Based URL = http://localhost:8880/[baseEntity]
 
-Username, password and port must correspond with plugin configuration file. For "Testmode" plugin it will be `config\plugin-testmode.json`  
+Username, password and port must correspond with plugin configuration file. For "Loki" plugin it will be `config\plugin-loki.json`  
 
 "SCIM Based URL" refer to the FQDN (or localhost) having ScimGateway installed. Portnumber must be included. Use HTTPS instead of HTTP if ScimGateway-configuration includes certificates. 
 
@@ -280,7 +283,7 @@ http://localhost:8880/clientB
 
 Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-forwardinc.
 
-IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Testmode plugin supports pagination. Other plugin may ignore this setting.  
+IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Loki plugin supports pagination. Other plugin may ignore this setting.  
 
 ## ScimGateway REST API 
       
@@ -402,7 +405,7 @@ For javascript coding editor you may use [Visual Studio Code](https://code.visua
 
 Preparation:
 
-* Copy `lib\plugin-testmode.js` and `config\plugin-testmode.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) 
+* Copy `lib\plugin-loki.js` and `config\plugin-loki.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) 
 * Edit plugin-mine.json and define a unique port number for the scimgateway setting  
 * Edit index.js and add a new line for starting your plugin e.g. `var mine = require('./lib/plugin-mine');`  
 * Start ScimGateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  
@@ -412,17 +415,18 @@ Coding should be done step by step and each step should be verified and tested b
 
 1. **Turn off group functionality** in getGroup, getGroupMembers, getGroupUsers and modifyGroupMembers  
 Please see callback definitions in plugin-saphana that do not use groups.
-2. **explore users** (test provisioning explore users)
-3. **get user** (test provisioning retrieve account)
-4. **create user** (test provisioning new account)
-5. **delete user** (test provisioning delete account)
-6. **modify user** (test provisioning modify account)
-7. **explore groups** (test provisioning explore groups)
+2. **exploreUsers** (test provisioning explore users)
+3. **getUser** (test provisioning retrieve account)
+4. **createUser** (test provisioning new account)
+5. **deleteUser** (test provisioning delete account)
+6. **modifyUser** (test provisioning modify account)
+7. **exploreGroups** (test provisioning explore groups)
 8. **Turn on group functionality** (if supporting groups)
-8. **get group** (test provisioning group list groups)
-9. **get group members** (test provisioning retrieve account - group list groups)
-10. **modify group members** (test provisioning retrieve account - group add/remove groups)
-11. **get group users** (if using "groups member of user")    
+8. **getGroup** (test provisioning group list groups)
+9. **getGroupMembers** (test provisioning retrieve account - group list groups)
+10. **modifyGroupMembers** (test provisioning retrieve account - group add/remove groups)
+11. **getGroupUsers** (if using "groups member of user")   
+12. **createGroup** (test provisioning new group)  
 
 Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from "Job Title" if our endpoint/code do not support title)  
 
@@ -468,6 +472,188 @@ Match User Account = By Attribute = User Name
 Note, groups should be capability attribute (updated when account is synchronized with template):  
 advanced options - **Synchronized** = enabled (toggled on)
 
+## Methods 
+
+### exploreUsers  
+
+	scimgateway.on('exploreUsers', function (baseEntity, startIndex, count, callback) {
+	    var ret = {
+	        "Resources": [],
+	        "totalResults": null
+	    };
+		...
+		callback(null, ret);
+	});  
+
+* baseEntity = Optional for multi tenant or multi endpoint support (defined in base url e.g. `<baseurl>/client1` gives baseEntity=client1)  
+* startIndex = Pagination - The 1-based index of the first result in the current set of search results  
+* count = Pagination - Number of elements to be returned in the current set of search results  
+* callback(error, ret):  
+  ret.Resources = array filled with objects containing userName and id (userName and id set to the same value) e.g [{"userName":"bjensen","id":"bjensen"}, "userName":"jsmith","id":"jsmith"}]  
+   ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (users) at the endpoint else set to null
+
+### exploreGroups  
+
+	scimgateway.on('exploreGroups', function (baseEntity, startIndex, count, callback) {
+	    var ret = {
+	        "Resources": [],
+	        "totalResults": null
+	    };
+		...
+		callback(null, ret);
+	});  
+
+* callback(error, ret):  
+  ret.Resources = array filled with objects containing group displayName and id (displayName and id set to the same value) e.g [{"displayName":"Admins","id":"Admins"}, "displayName":"Employees","id":"Employees"}]  
+   ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (groups) at the endpoint else set to null
+
+### getUser  
+
+	scimgateway.on('getUser', function (baseEntity, userName, attributes, callback) {
+		...
+		callback(error, userObj);
+	});  
+
+* userName = user id (eg. bjensen)  
+* attributes = scim attributes to be returned in callback. If no attributes defined, all should will be returned.  
+* callback(error, userObj): userObj containing scim userattributes/values
+eg:  
+{"id":"bjensen","name":{"formatted":"Ms. Barbara J Jensen III","familyName":"Jensen","givenName":"Barbara"}}
+
+Note, CA Provisioning use two types of "getUser"  
+1. Check if user exist: attributes=userName and/or id  
+2. Retrive user: attributes=list of all attributes
+
+### createUser
+
+	scimgateway.on('createUser', function (baseEntity, userObj, callback) {
+		...
+		callback(error);
+	}); 
+
+* userObj = user object containing userattributes according to scim standard  
+Note, multi-value attributes excluding user attribute 'groups' are customized from array to object based on type  
+* callback(error): null if OK, else error object  
+
+### deleteUser  
+
+	scimgateway.on('deleteUser', function (baseEntity, id, callback) {
+		...
+		callback(error);
+	}); 
+
+* id = user id to be deleted 
+* callback(error): null if OK, else error object  
+
+### modifyUser  
+
+	scimgateway.on('modifyUser', function (baseEntity, id, attrObj, callback) {
+		...
+		callback(error);
+	}); 
+
+
+* id = user id  
+* attrObj = object containing userattributes to be modified according to scim standard  
+Note, multi-value attributes excluding user attribute 'groups' are customized from array to object based on type  
+* callback(error): null if OK, else error object 
+
+### getGroup  
+
+	scimgateway.on('getGroup', function (baseEntity, displayName, attributes, callback) {
+		...
+		callback(error, retObj);
+	}); 
+
+
+* displayName = group name  
+* attributes  = scim attributes to be returned in callback (displayName and members is mandatory)  
+* callback(error, retObj): retObj containing group displayName and id (+ members if using default "users are member of group")  
+
+	eg. using default "users are member of group":  
+{"displayName":"Admins","id":"Admins","members":[{"value":"bjensen","display":"bjensen"]}  
+
+	eg. using "groups are member of user":  
+{"displayName":"Admins","id":"Admins"}
+
+	If we do not support groups, callback(null, null)
+
+### getGroupMembers  
+
+	scimgateway.on('getGroupMembers', function (baseEntity, id, attributes, startIndex, count, callback) {
+	    var ret = {
+    	    "Resources": [],
+    	    "totalResults": null
+    	};
+		...
+		callback(error, ret);
+	});
+
+Retrieve all users for a spesific group WHEN **"user member of group"**. This setting is CA IM default scim endpoint configuration. This means Group having multivalue attribute members containing userName.  
+
+* id = user id (eg. bjensen)  
+* attributes = attributes to be returned in callback (we only return the name of groups - displayName and current user as member)  
+* startIndex = Pagination - The 1-based index of the first result in the current set of search results  
+* count = Pagination - Number of elements to be returned in the current set of search results  
+* callback(error, ret):  
+ret.Resources = array to be filled with objects containing groups with current user as member  
+e.g [{"displayName":"Admins","members": [{ "value": bjensen}]}, {"displayName":"Employees", "members": [{ "value": bjensen}]}]  
+
+	ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (group members) at the endpoint else set to null  
+  
+	If we do not support groups (or "user member of group"), callback(null, [])  
+
+
+### getGroupUsers  
+
+	scimgateway.on('getGroupUsers', function (baseEntity, groupName, attributes, callback) {
+    	var arrRet = [];
+		...
+    	callback(error, arrRet);
+	});
+
+Retrieve all users for a spesific group WHEN **"group member of user"**. This means user having multivalue attribute groups containing value GroupName  
+
+* groupName = group name (eg. UserGroup-1)  
+* attributes = scim attributes to be returned in callback  
+* callback(error, arrRet): arrRet = array containing the userName's'
+	eg: [{"userName", "bjensen"}, {"userName", "jsmith"}]
+
+	If we do not support groups (or "group member of user"), callback(null, [])  
+
+### createGroup  
+	scimgateway.on('createGroup', function (baseEntity, groupObj, callback) {
+		...
+	    return callback(error);
+	});
+
+* groupObj = group object containing groupattributes according to scim standard  
+groupObj.displayName contains the group name to be created
+* callback(error): null if OK, else error object  
+
+
+### modifyGroupMembers  
+
+	scimgateway.on('modifyGroupMembers', function (baseEntity, id, members, callback) {
+		...
+	    return callback(error);
+	});
+
+* id = group name (eg. Admins)  
+* members = array of objects containing groupmembers modifications  
+eg: {"value":"bjensen"},{"operation":"delete","value":"jsmith"}  
+(adding bjensen and deliting jsmith from group)  
+* callback(error): null if OK, else error object  
+If we do not support groups, callback(null)
+
+
+
+
+
+
+
+
+
 ## Known limitations  
 
 * Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ingnored unless soap WSSecurityCert functionality is needed in custom plugin code.  
@@ -485,6 +671,19 @@ MIT
 
 
 ## Change log  
+
+### v0.4.3  
+[ENHANCEMENT]  
+
+- NoSQL Document-Oriented Database plugin: `plugin-loki`  
+This plugin now replace previous `plugin-testmode`  
+**Thanks to [visualjeff](https://github.com/visualjeff)**  
+- Method comments moved from plugins to this readme  
+
+**[UPGRADE]**  
+
+- delete depricated `lib/plugin-testmode.js` and `config/plugin-testmode.json`
+- edit index.js, replace tesmode with loki   
 
 ### v0.4.2
 [Fix]  
