@@ -115,13 +115,13 @@ Upgrade to latest version:
 
 ## Configuration  
 
-**index.js** defines one or more plugins to be started. We could comment out those we do not need (default configuration only starts loki plugin).  
+**index.js** defines one or more plugins to be started. We could comment out those we do not need. Default configuration only starts the loki plugin.  
 
-	var loki    = require('./lib/plugin-loki');
-	// var restful  = require('./lib/plugin-restful');
-	// var forwardinc  = require('./lib/plugin-forwardinc');
+	var loki = require('./lib/plugin-loki');
+	// var restful = require('./lib/plugin-restful');
+	// var forwardinc = require('./lib/plugin-forwardinc');
 	// var mssql = require('./lib/plugin-mssql');
-	// var saphana   = require('./lib/plugin-saphana');
+	// var saphana = require('./lib/plugin-saphana');
 
   
 
@@ -174,7 +174,7 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 - **loglevel** - error or debug. Output to console and logfile `logs\plugin-saphana.log` (debug not sent to console)  
 
-- **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the Provisioning Server).  
+- **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the CA Connector Server).  
 
 - **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana 
 
@@ -482,15 +482,16 @@ advanced options - **Synchronized** = enabled (toggled on)
 	        "totalResults": null
 	    };
 		...
-		callback(null, ret);
+		callback(error, ret);
 	});  
 
 * baseEntity = Optional for multi tenant or multi endpoint support (defined in base url e.g. `<baseurl>/client1` gives baseEntity=client1)  
 * startIndex = Pagination - The 1-based index of the first result in the current set of search results  
 * count = Pagination - Number of elements to be returned in the current set of search results  
 * callback(error, ret):  
-  ret.Resources = array filled with objects containing userName and id (userName and id set to the same value) e.g [{"userName":"bjensen","id":"bjensen"}, "userName":"jsmith","id":"jsmith"}]  
-   ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (users) at the endpoint else set to null
+error = null if OK, else error object  
+ret.Resources = array filled with objects containing userName and id (userName and id set to the same value) e.g [{"userName":"bjensen","id":"bjensen"}, "userName":"jsmith","id":"jsmith"}]  
+ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (users) at the endpoint else set to null
 
 ### exploreGroups  
 
@@ -500,12 +501,13 @@ advanced options - **Synchronized** = enabled (toggled on)
 	        "totalResults": null
 	    };
 		...
-		callback(null, ret);
+		callback(error, ret);
 	});  
 
 * callback(error, ret):  
-  ret.Resources = array filled with objects containing group displayName and id (displayName and id set to the same value) e.g [{"displayName":"Admins","id":"Admins"}, "displayName":"Employees","id":"Employees"}]  
-   ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (groups) at the endpoint else set to null
+error = null if OK, else error object  
+ret.Resources = array filled with objects containing group displayName and id (displayName and id set to the same value) e.g [{"displayName":"Admins","id":"Admins"}, "displayName":"Employees","id":"Employees"}]  
+ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (groups) at the endpoint else set to null
 
 ### getUser  
 
