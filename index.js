@@ -9,8 +9,8 @@
 // node-http-proxy for horizontal loadbalancing among hosts (or use nginx)
 //
 
-var loki    = require('./lib/plugin-loki');
-// var restful  = require('./lib/plugin-restful');
-// var forwardinc  = require('./lib/plugin-forwardinc');
+var loki = require('./lib/plugin-loki');
+// var restful = require('./lib/plugin-restful');
+// var forwardinc = require('./lib/plugin-forwardinc');
 // var mssql = require('./lib/plugin-mssql');
-// var saphana   = require('./lib/plugin-saphana');
+// var saphana = require('./lib/plugin-saphana');
