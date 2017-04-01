@@ -78,10 +78,10 @@ describe('plugin-restful tests', () => {
                 expect(user.name.familyName).to.equal('Jensen');
                 expect(user.name.formatted).to.equal('Ms. Barbara J Jensen III');
                 expect(user.entitlements).to.equal(null);
-                expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8377');
                 expect(user.phoneNumbers[0].type).to.equal('work');
-                expect(user.emails[0].value).to.equal('bjensen@example.com');
+                expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8377');
                 expect(user.emails[0].type).to.equal('work');
+                expect(user.emails[0].value).to.equal('bjensen@example.com');
                 expect(user.meta.location).to.not.equal(undefined);
                 expect(user.schemas).to.not.equal(undefined);
                 done();
@@ -104,10 +104,10 @@ describe('plugin-restful tests', () => {
                 expect(user.name.familyName).to.equal('Jensen');
                 expect(user.name.formatted).to.equal('Ms. Barbara J Jensen III');
                 expect(user.entitlements).to.equal(null);
-                expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8377');
                 expect(user.phoneNumbers[0].type).to.equal('work');
-                expect(user.emails[0].value).to.equal('bjensen@example.com');
+                expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8377');
                 expect(user.emails[0].type).to.equal('work');
+                expect(user.emails[0].value).to.equal('bjensen@example.com');
                 done();
             });
     });
@@ -329,7 +329,7 @@ describe('plugin-restful tests', () => {
     it('modifyGroupMembers test', (done) => {
         server_8886.patch('/Groups/GoGoRest')
             .set(options.headers)
-            .send({ "members": [{ "value": "jsmith" }, { "value": "bjensen" }], "schemas": ["urn:scim:schemas:core:1.0"] })
+            .send({ "members": [{ "value": "xman" }, { "value": "zperson" }], "schemas": ["urn:scim:schemas:core:1.0"] })
             .end(function (err, res) {
                 expect(err).to.equal(null);
                 expect(res.statusCode).to.equal(200);
@@ -348,8 +348,8 @@ describe('plugin-restful tests', () => {
                 expect(group.displayName).to.equal('GoGoRest');
                 expect(group.id).to.equal('GoGoRest');
                 expect(group.members.length).to.equal(2);
-                expect(group.members[0].value).to.equal('jsmith');
-                expect(group.members[1].value).to.equal('bjensen');
+                expect(group.members[0].value).to.equal('xman');
+                expect(group.members[1].value).to.equal('zperson');
                 done();
             });
     });
