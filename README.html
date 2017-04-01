@@ -288,82 +288,71 @@ img {
 </head>
 <body>
 <h1>ScimGateway</h1>
-
-<p><a href="https://travis-ci.org/jelhub/scimgateway"><img src="https://travis-ci.org/jelhub/scimgateway.svg" alt="Build Status" /></a> <a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&amp;label=latest" alt="npm Version" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a> <a href="https://elshaug.xyz/md/scimgateway#disqus_thread"><img src="https://jelhub.github.io/images/chat.svg" alt="chat disqus" /></a> <a href="https://github.com/jelhub/scimgateway"><img src="https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&amp;label=Fork" alt="GitHub forks" /></a>  </p>
-
+<p><a href="https://travis-ci.org/jelhub/scimgateway"><img src="https://travis-ci.org/jelhub/scimgateway.svg" alt="Build Status" /></a> <a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&amp;label=latest" alt="npm Version" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a> <a href="https://elshaug.xyz/md/scimgateway#disqus_thread"><img src="https://jelhub.github.io/images/chat.svg" alt="chat disqus" /></a> <a href="https://github.com/jelhub/scimgateway"><img src="https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&amp;label=Fork" alt="GitHub forks" /></a>  </p>
 <hr />
-
-<p>Author: Jarle Elshaug  </p>
-
-<p>Validated on:  </p>
-
+<p>Author: Jarle Elshaug  </p>
+<p>Validated on:  </p>
 <ul>
 <li>CA Identity Manager</li>
 <li>Microsoft Azure Active Directory (Early Stage Code)</li>
 </ul>
-
 <h2>Overview</h2>
-
-<p>With ScimGateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.  </p>
-
+<p>With ScimGateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.  </p>
 <p>ScimGateway is a standalone product, however this document shows how the gateway could be used by products like CA Identity Manager.</p>
-
-<p>Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the ScimGateway would work like a "CA Connector Server" communicating with endpoints.</p>
-
-<p><img src="https://jelhub.github.io/images/ScimGateway.svg" alt="" /></p>
-
+<p>Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the ScimGateway would work like a &quot;CA Connector Server&quot; communicating with endpoints.</p>
+<p><img src="https://jelhub.github.io/images/ScimGateway.svg" /></p>
 <p>Instead of using IM-SDK for building our own integration for none supported endpoints, we can now build new integration based on ScimGateway plugins. ScimGateway works with IM as long as IM supports SCIM.</p>
-
 <p>ScimGateway is based on the popular asynchronous event driven framework <a href="https://nodejs.org/en/about/">Node.js</a> using javascripts. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may loadbalance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.</p>
-
 <p>Following example plugins are included:</p>
-
 <ul>
-<li><p><strong>Testmode</strong> (SCIM)<br />
-SCIM endpoint simulation (in-memory, no physical endpoint)<br />
-Two predefined users<br />
-Supports explore, create, delete, modify and list users (including groups)<br />
-Example of a fully functional ScimGateway plugin  </p></li>
-<li><p><strong>RESTful</strong> (REST Webservice)<br />
-REST plugin using "Testmode" as a REST endpoint</p></li>
-<li><p><strong>Forwardinc</strong> (SOAP Webservice)<br />
+<li>
+<p><strong>Loki</strong> (NoSQL Document-Oriented Database)<br />
+Gives a SCIM endpoint located on ScimGateway<br />
+Demonstrates userprovisioning towards a document-oriented database<br />
+Using <a href="http://lokijs.org">LokiJS</a> for a fast, in-memory document-oriented database (much like MongoDB/PouchDB)<br />
+Default gives two predefined test users loaded using in-memory only (no persistence)<br />
+Setting {&quot;persistence&quot;: true} gives persistence file store (no test users)<br />
+Supporting explore, create, delete, modify and list users (including groups)<br />
+Example of a fully functional ScimGateway plugin  
+</p>
+</li>
+<li>
+<p><strong>RESTful</strong> (REST Webservice)<br />
+REST plugin using &quot;Loki&quot; as a REST endpoint</p>
+</li>
+<li>
+<p><strong>Forwardinc</strong> (SOAP Webservice)<br />
 Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-provisioning (please see <a href="https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements" title="wiki.ca.com">wiki.ca.com</a>)<br />
-Using WS-Security<br />
-Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service<br />
-Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  </p></li>
-<li><p><strong>MSSQL</strong> (MSSQL Database)<br />
-Using SQL for userprovisioning towards MSSQL database table</p></li>
-<li><p><strong>SAP HANA</strong> (SAP HANA Database)<br />
-SAP HANA specific user provisioning</p></li>
+Using WS-Security  <br />
+Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service <br />
+Shows how to implement a higly configurable multi tenant or multi endpoint solution using &quot;baseEntity&quot; parameter  
+</p>
+</li>
+<li>
+<p><strong>MSSQL</strong> (MSSQL Database)<br />
+Using SQL for userprovisioning towards MSSQL database table</p>
+</li>
+<li>
+<p><strong>SAP HANA</strong> (SAP HANA Database)<br />
+SAP HANA specific user provisioning</p>
+</li>
 </ul>
-
 <h2>Installation</h2>
-
 <h4>Install Node.js</h4>
-
-<p>Node.js is a prerequisite and have to be installed on the server.  </p>
-
-<p><a href="https://nodejs.org/en/download/">Download</a> the windows installer (.msi 64-bit) and install using default options.  </p>
-
+<p>Node.js is a prerequisite and have to be installed on the server.  </p>
+<p><a href="https://nodejs.org/en/download/">Download</a> the windows installer (.msi 64-bit) and install using default options.  </p>
 <h4>Install ScimGateway</h4>
-
 <p>Open a command window (run as administrator)<br />
 Create a directory for installation e.g. C:\CA\scimgateway and install in this directory</p>
-
 <pre><code>cd C:\CA\scimgateway
 npm install scimgateway
 </code></pre>
 
 <p>Please <strong>ignore any error messages</strong> unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually be installed.</p>
-
 <p><strong>C:\CA\scimgateway</strong> will now be <code>&lt;package-root&gt;</code> </p>
-
-<p>index.js, lib and config directories containing example plugins have been copied from the original scimgateway package located under node_modules.  </p>
-
+<p>index.js, lib and config directories containing example plugins have been copied from the original scimgateway package located under node_modules.  </p>
 <p>If internet connection is blocked, we could install on another machine and copy the scimgateway folder.</p>
-
-<h4>Startup and verify default testmode-plugin</h4>
-
+<h4>Startup and verify default loki-plugin</h4>
 <pre><code>node C:\CA\scimgateway
 
 Start a browser
@@ -374,131 +363,134 @@ Logon using gwadmin/password and two users should be listed
 http://localhost:8880/Users/bjensen
 Lists all user attributes for specified user
 
-"Ctrl + c" to stop the scimgateway
+&quot;Ctrl + c&quot; to stop the scimgateway
 </code></pre>
 
-<p>For more functionality using browser (post/patch/delete) a REST extension/add-on is needed.     </p>
-
+<p>For more functionality using browser (post/patch/delete) a REST extension/add-on is needed. 	</p>
 <h4>Upgrade ScimGateway</h4>
-
-<p>Not needed after a fresh install  </p>
-
+<p>Not needed after a fresh install  </p>
 <p>Check if newer versions are available: </p>
-
 <pre><code>cd C:\CA\scimgateway
 npm outdated
 </code></pre>
 
 <p>Lists current, wanted and latest version. No output on screen means we are running the latest version.</p>
-
-<p>Upgrade to latest version:  </p>
-
+<p>Upgrade to latest version:  </p>
 <pre><code>cd C:\CA\scimgateway
 npm update scimgateway
 </code></pre>
 
 <blockquote>
-  <p>Note, always backup/copy C:\CA\scimgateway before update/install. Custom plugins and corresponding configuration files will not be affected.  </p>
+<p>Note, always backup/copy C:\CA\scimgateway before update/install. Custom plugins and corresponding configuration files will not be affected.  
+</p>
 </blockquote>
-
 <h2>Configuration</h2>
-
-<p><strong>index.js</strong> defines one or more plugins to be started. We could comment out those we do not need (default configuration only starts testmode plugin).  </p>
-
-<pre><code>var testmode    = require('./lib/plugin-testmode');
-// var restful  = require('./lib/plugin-restful');
-// var forwardinc  = require('./lib/plugin-forwardinc');
+<p><strong>index.js</strong> defines one or more plugins to be started. We could comment out those we do not need. Default configuration only starts the loki plugin.  </p>
+<pre><code>var loki = require('./lib/plugin-loki');
+// var restful = require('./lib/plugin-restful');
+// var forwardinc = require('./lib/plugin-forwardinc');
 // var mssql = require('./lib/plugin-mssql');
-// var saphana   = require('./lib/plugin-saphana');
+// var saphana = require('./lib/plugin-saphana');
 </code></pre>
 
-<p>Each endpoint plugin needs a javascript file (.js) and a configuration file (.json). <strong>They both must have the same naming suffix</strong>. For SAP Hana endpoint we have:  </p>
-
+<p>Each endpoint plugin needs a javascript file (.js) and a configuration file (.json). <strong>They both must have the same naming suffix</strong>. For SAP Hana endpoint we have:  </p>
 <blockquote>
-  <p>lib\plugin-saphana.js<br />
-  config\plugin-saphana.json</p>
+<p>lib\plugin-saphana.js<br />
+config\plugin-saphana.json</p>
 </blockquote>
-
 <p>Edit specific plugin configuration file according to your needs.<br />
-Below shows an example of config\plugin-saphana.json  </p>
-
+Below shows an example of config\plugin-saphana.json  </p>
 <pre><code>{
-    "scimgateway": {
-        "scimversion": "1.1",
-        "loglevel": "error",
-        "localhostonly": false,
-        "port": 8884,
-        "username": "gwadmin",
-        "password": "password",
-        "oauth": {
-            "accesstoken": null
+    &quot;scimgateway&quot;: {
+        &quot;scimversion&quot;: &quot;1.1&quot;,
+        &quot;loglevel&quot;: &quot;error&quot;,
+        &quot;localhostonly&quot;: false,
+        &quot;port&quot;: 8884,
+        &quot;username&quot;: &quot;gwadmin&quot;,
+        &quot;password&quot;: &quot;password&quot;,
+        &quot;oauth&quot;: {
+            &quot;accesstoken&quot;: null
         },
-        "certificate": {
-            "key": null,
-            "cert": null,
-            "ca": null,
-            "pfx": {
-                "bundle": null,
-                "password": null
+        &quot;certificate&quot;: {
+            &quot;key&quot;: null,
+            &quot;cert&quot;: null,
+            &quot;ca&quot;: null,
+            &quot;pfx&quot;: {
+                &quot;bundle&quot;: null,
+                &quot;password&quot;: null
             }
         }
     },
-    "endpoint": {
-        "host": "hostname",
-        "port": 30015,
-        "username": "username",
-        "password": "password",
-        "saml_provider": "saml_provider_name"
+    &quot;endpoint&quot;: {
+        &quot;host&quot;: &quot;hostname&quot;,
+        &quot;port&quot;: 30015,
+        &quot;username&quot;: &quot;username&quot;,
+        &quot;password&quot;: &quot;password&quot;,
+        &quot;saml_provider&quot;: &quot;saml_provider_name&quot;
     }
 }
 </code></pre>
 
-<p>Attribute explanation:  </p>
-
-<p>Definitions under "scimgateway" have fixed attributes but we can change the values. This section is used by the core functionality of the ScimGateway.  </p>
-
-<p>Definitions under "endpoint" are used by endpoint plugin for communicating with endpoint and needs to be defined according to our code. </p>
-
+<p>Attribute explanation:  </p>
+<p>Definitions under &quot;scimgateway&quot; have fixed attributes but we can change the values. This section is used by the core functionality of the ScimGateway.  </p>
+<p>Definitions under &quot;endpoint&quot; are used by endpoint plugin for communicating with endpoint and needs to be defined according to our code. </p>
 <ul>
-<li><p><strong>scimversion</strong> - 1.1 or 2.0. Default is 1.1. For Azure AD 2.0 should be used.  </p></li>
-<li><p><strong>loglevel</strong> - error or debug. Output to console and logfile <code>logs\plugin-saphana.log</code> (debug not sent to console)  </p></li>
-<li><p><strong>localhostonly</strong> - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the Provisioning Server).  </p></li>
-<li><p><strong>port</strong> - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana </p></li>
-<li><p><strong>username</strong> - username used by clients for gateway authentication. For endpoint the username refers to endpoint authentication.  </p></li>
-<li><p><strong>password</strong> - password used by clients for gateway authentication. For endpoint the password refers to endpoint authentication. Note, we set a clear text password and when gateway is started this <strong>password will become encrypted and updated in the configuration file</strong>.  </p></li>
-<li><p><strong>oauth</strong> - For Azure AD, define access token for OAuth2 bearer token (access token). This will be the password accepted by ScimGateway. Using standard OAuth key/secret/endpoints is not supported.  </p></li>
-<li><p><strong>certificate</strong> - If not using SSL/TLS certificate, set "key", "cert" and "ca" to <strong>null</strong>. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the <code>&lt;package-root&gt;\config\certs</code> directory e.g:  </p>
-
-<pre><code>"certificate": {
-    "key": "key.pem",
-    "cert": "cert.pem",
-    "ca": null
+<li>
+<p><strong>scimversion</strong> - 1.1 or 2.0. Default is 1.1. For Azure AD 2.0 should be used.  
+</p>
+</li>
+<li>
+<p><strong>loglevel</strong> - error or debug. Output to console and logfile <code>logs\plugin-saphana.log</code> (debug not sent to console)  
+</p>
+</li>
+<li>
+<p><strong>localhostonly</strong> - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the CA Connector Server).  
+</p>
+</li>
+<li>
+<p><strong>port</strong> - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana </p>
+</li>
+<li>
+<p><strong>username</strong> - username used by clients for gateway authentication. For endpoint the username refers to endpoint authentication.  
+</p>
+</li>
+<li>
+<p><strong>password</strong> - password used by clients for gateway authentication. For endpoint the password refers to endpoint authentication. Note, we set a clear text password and when gateway is started this <strong>password will become encrypted and updated in the configuration file</strong>.  
+</p>
+</li>
+<li>
+<p><strong>oauth</strong> - For Azure AD, define access token for OAuth2 bearer token (access token). This will be the password accepted by ScimGateway. Using standard OAuth key/secret/endpoints is not supported.  
+</p>
+</li>
+<li>
+<p><strong>certificate</strong> - If not using SSL/TLS certificate, set &quot;key&quot;, &quot;cert&quot; and &quot;ca&quot; to <strong>null</strong>. When using SSL/TLS, &quot;key&quot; and &quot;cert&quot; have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the <code>&lt;package-root&gt;\config\certs</code> directory e.g:  
+</p>
+<pre><code>&quot;certificate&quot;: {
+    &quot;key&quot;: &quot;key.pem&quot;,
+    &quot;cert&quot;: &quot;cert.pem&quot;,
+    &quot;ca&quot;: null
 }
 </code></pre>
 
-<p>Example of how to make a self signed certificate:<br />
-<code>openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj "/O=Testing/OU=ScimGateway/CN=&lt;FQDN&gt;"</code>  </p>
-
-<p><code>&lt;FQDN&gt;</code> is Fully Qualified Domain Name of the host having ScimGateway installed</p>
-
-<p>Note, when using CA Provisioning, the "certificate authority - CA" also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  </p>
-
-<p>PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: </p>
-
-<pre><code>"pfx": {
-    "bundle": "certbundle.pfx",
-    "password": "password"
-}
-</code></pre></li>
-<li><p><strong>samlprovider</strong> - SAP Hana specific saml provider name. Users created in SAP Hana needs to have a saml provider defined.</p></li>
+</li>
 </ul>
+<p>Example of how to make a self signed certificate:<br />
+  <code>openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj &quot;/O=Testing/OU=ScimGateway/CN=&lt;FQDN&gt;&quot;</code>  </p>
+<p><code>&lt;FQDN&gt;</code> is Fully Qualified Domain Name of the host having ScimGateway installed</p>
+<p>Note, when using CA Provisioning, the &quot;certificate authority - CA&quot; also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  </p>
+<p>PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: </p>
+<pre><code>    &quot;pfx&quot;: {
+        &quot;bundle&quot;: &quot;certbundle.pfx&quot;,
+        &quot;password&quot;: &quot;password&quot;
+    }
+</code></pre>
 
+<ul>
+<li><strong>samlprovider</strong> - SAP Hana specific saml provider name. Users created in SAP Hana needs to have a saml provider defined.</li>
+</ul>
 <h2>Manual startup</h2>
-
 <p>Gateway can now be started from a command window running in administrative mode</p>
-
 <p>3 ways to start:</p>
-
 <pre><code>node C:\CA\scimgateway
 
 node C:\CA\scimgateway\index.js
@@ -506,12 +498,9 @@ node C:\CA\scimgateway\index.js
 &lt;package-root&gt;node .
 </code></pre>
 
-<p><kbd>Ctrl</kbd>+<kbd>c</kbd> to to stop  </p>
-
+<p><kbd>Ctrl</kbd>+<kbd>c</kbd> to to stop  </p>
 <h2>Automatic startup - Windows Task Scheduler</h2>
-
-<p>Start Windows Task Scheduler (taskschd.msc), right click on "Task Scheduler Library" and choose "Create Task"  </p>
-
+<p>Start Windows Task Scheduler (taskschd.msc), right click on &quot;Task Scheduler Library&quot; and choose &quot;Create Task&quot;  </p>
 <pre><code>General tab:  
 -----------
 Name = ScimGateway
@@ -534,22 +523,16 @@ Stop the task if runs longer than = Disabled (greyed out)
 </code></pre>
 
 <p>Verification:</p>
-
 <ul>
-<li>Right click task - <strong>Run</strong>, verify process node.exe (ScimGateway) can be found in the task manager (not the same as task scheduler). Also verify logfiles <code>&lt;pakage-root&gt;\logs</code>  </li>
-<li>Right click task - <strong>End</strong>, verify process node.exe have been terminated and disappeared from task manager   </li>
+<li>Right click task - <strong>Run</strong>, verify process node.exe (ScimGateway) can be found in the task manager (not the same as task scheduler). Also verify logfiles <code>&lt;pakage-root&gt;\logs</code>  </li>
+<li>Right click task - <strong>End</strong>, verify process node.exe have been terminated and disappeared from task manager   </li>
 <li><strong>Reboot</strong> server and verify ScimGateway have been automatically started</li>
 </ul>
-
 <h2>CA Provisioningserver - SCIM Endpoint</h2>
-
-<p>Using the CA Provisioning Manager we have to configure  </p>
-
-<p><code>Endpoint type = SCIM (DYN Endpoint)</code>  </p>
-
-<p>SCIM endpoint configuration example for Testmode plugin (plugin-testmode)</p>
-
-<pre><code>Endpoint Name = Testmode  
+<p>Using the CA Provisioning Manager we have to configure  </p>
+<p><code>Endpoint type = SCIM (DYN Endpoint)</code>  </p>
+<p>SCIM endpoint configuration example for Loki plugin (plugin-loki)</p>
+<pre><code>Endpoint Name = Loki  
 User Name = gwadmin  
 Password = password  
 SCIM Authentication Method = HTTP Basic Authentication  
@@ -560,21 +543,14 @@ or:
 SCIM Based URL = http://localhost:8880/[baseEntity]
 </code></pre>
 
-<p>Username, password and port must correspond with plugin configuration file. For "Testmode" plugin it will be <code>config\plugin-testmode.json</code>  </p>
-
-<p>"SCIM Based URL" refer to the FQDN (or localhost) having ScimGateway installed. Portnumber must be included. Use HTTPS instead of HTTP if ScimGateway-configuration includes certificates. </p>
-
-<p>"baseEntity" is optional. This is a parameter used for multi tenant or multi endpoint solutions. We could create several endpoints having same base url with unique baseEntity. e.g:  </p>
-
+<p>Username, password and port must correspond with plugin configuration file. For &quot;Loki&quot; plugin it will be <code>config\plugin-loki.json</code>  </p>
+<p>&quot;SCIM Based URL&quot; refer to the FQDN (or localhost) having ScimGateway installed. Portnumber must be included. Use HTTPS instead of HTTP if ScimGateway-configuration includes certificates. </p>
+<p>&quot;baseEntity&quot; is optional. This is a parameter used for multi tenant or multi endpoint solutions. We could create several endpoints having same base url with unique baseEntity. e.g:  </p>
 <p>http://localhost:8880/clientA<br />
 http://localhost:8880/clientB</p>
-
 <p>Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-forwardinc.</p>
-
-<p>IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Testmode plugin supports pagination. Other plugin may ignore this setting.  </p>
-
+<p>IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Loki plugin supports pagination. Other plugin may ignore this setting.  </p>
 <h2>ScimGateway REST API</h2>
-
 <pre><code>Create = POST http://example.com:8880/Users  
 (body contains the user information)
 
@@ -582,7 +558,7 @@ Update = PATCH http://example.com:8880/Users/&lt;id&gt;
 (body contains the attributes to be updated)
 
 Search/Read = GET http://example.com:8880/Users?userName eq 
-"userID"&amp;attributes=&lt;comma separated list of scim-schema defined attributes&gt;
+&quot;userID&quot;&amp;attributes=&lt;comma separated list of scim-schema defined attributes&gt;
 
 Search/explore all users:
 GET http://example.com:8880/Users?attributes=userName
@@ -591,7 +567,6 @@ Delete = DELETE http://example.com:8880/Users/&lt;id&gt;
 </code></pre>
 
 <p>Discovery:</p>
-
 <pre><code>GET http://example.com:8880/ServiceProviderConfigs
 Specification compliance, authentication schemes, data models.
 
@@ -599,15 +574,12 @@ GET http://example.com:8880/Schemas
 Introspect resources and attribute extensions.
 </code></pre>
 
-<p>Note:  </p>
-
+<p>Note:  </p>
 <ul>
-<li>userName (mandatory) = UserID  </li>
-<li>id (mandatory) = Unique id. Could be set to the same as UserID but don't have to.  </li>
+<li>userName (mandatory) = UserID  </li>
+<li>id (mandatory) = Unique id. Could be set to the same as UserID but don't have to.  </li>
 </ul>
-
 <h2>SAP Hana endpointspecific details</h2>
-
 <pre><code>Get all users (explore):  
 select USER_NAME from SYS.USERS where IS_SAML_ENABLED like 'TRUE';
 
@@ -628,49 +600,35 @@ ALTER USER &lt;UserID&gt; DEACTIVATE;
 </code></pre>
 
 <p>Only SAML users will be explored and managed</p>
-
-<p>Supported template attributes:  </p>
-
+<p>Supported template attributes:  </p>
 <ul>
 <li>User Name (UserID)</li>
-<li>Suspended (Enabled/Disabled)  </li>
+<li>Suspended (Enabled/Disabled)  </li>
 </ul>
-
 <p>Currently no other attributes needed. Trying to update other attributes will then give an error message.  <strong>The SCIM Provisioning template should therefore not include any other global user attribute references.</strong></p>
-
 <p>SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provisioning template should therefore also convert to uppercase.</p>
-
 <pre><code>User Name = %$$TOUPPER(%AC%)%
 </code></pre>
 
 <h2>Microsoft Azure Active Directory</h2>
-
-<p>"Early Stage Code"  </p>
-
+<p>&quot;Early Stage Code&quot;  </p>
 <p>Plugin configuration file must include:</p>
-
-<pre><code>"scimversion": "2.0",
-"oauth": {
-    "accesstoken": "&lt;password&gt;"
+<pre><code>&quot;scimversion&quot;: &quot;2.0&quot;,
+&quot;oauth&quot;: {
+    &quot;accesstoken&quot;: &quot;&lt;password&gt;&quot;
 },
 </code></pre>
 
-<p>Access token password must correspond with "Secret Token" defined in Azure AD</p>
-
+<p>Access token password must correspond with &quot;Secret Token&quot; defined in Azure AD</p>
 <p><code>Azure-Azure Active Directory-Enterprise Application-&lt;My Application&gt;-Provisioning-Secret Token</code></p>
-
-<p>User mappings attributes between AD and SCIM also needs to be configured  </p>
-
+<p>User mappings attributes between AD and SCIM also needs to be configured  </p>
 <p><code>Azure-Azure Active Directory-Enterprise Application-&lt;My Application&gt;-Provisioning-Mappings</code></p>
-
-<p>Azure AD default SCIM attribute mapping for <strong>USER</strong> have:  </p>
-
+<p>Azure AD default SCIM attribute mapping for <strong>USER</strong> have:  </p>
 <pre><code>externalId mapped to mailNickname (matching precedence #1)  
 userName mapped to userPrincipalName  
 </code></pre>
 
 <p>ScimGateway accepts externalId (as matching precedence) instead of  userName, but <code>userName and externalId must be mapped to the same AD attribute</code> e.g:</p>
-
 <pre><code>externalId mapped to mailNickname (matching precedence #1)  
 userName mapped to mailNickname  
 
@@ -680,279 +638,431 @@ externalId mapped to userPrincipalName (matching precedence #1)
 userName mapped to userPrincipalName  
 </code></pre>
 
-<p>Azure AD default SCIM attribute mapping for <strong>GROUP</strong> have:  </p>
-
+<p>Azure AD default SCIM attribute mapping for <strong>GROUP</strong> have:  </p>
 <pre><code>externalId mapped to displayName (matching precedence #1)  
 displayName mapped to mailNickname  
 </code></pre>
 
-<p>ScimGateway accepts externalId (as matching precedence) instead of displayName, but <code>displayName and externalId must then be mapped to the same AD attribute</code> e.g:  </p>
-
+<p>ScimGateway accepts externalId (as matching precedence) instead of displayName, but <code>displayName and externalId must then be mapped to the same AD attribute</code> e.g:  </p>
 <pre><code>externalId mapped to displayName (matching precedence #1)
 displayName mapped to displayName
 </code></pre>
 
-<p>Some notes related to Azure AD:  </p>
-
+<p>Some notes related to Azure AD:  </p>
 <ul>
-<li><p>Azure AD do a regular check for a "none" existing user/group. This check seems to be a "keep alive" to verify connection.</p></li>
-<li><p>Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  </p></li>
-<li><p>Deleting a user i Azure AD sends a modify user <code>{"active":"False"}</code> which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM "DELETE" method is not used.  </p></li>
+<li>
+<p>Azure AD do a regular check for a &quot;none&quot; existing user/group. This check seems to be a &quot;keep alive&quot; to verify connection.</p>
+</li>
+<li>
+<p>Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
+</p>
+</li>
+<li>
+<p>Deleting a user i Azure AD sends a modify user <code>{&quot;active&quot;:&quot;False&quot;}</code> which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM &quot;DELETE&quot; method is not used.  
+</p>
+</li>
 </ul>
-
 <h2>How to build your own plugins</h2>
-
 <p>For javascript coding editor you may use <a href="https://code.visualstudio.com/" title="Visual Studio Code">Visual Studio Code</a> </p>
-
 <p>Preparation:</p>
-
 <ul>
-<li>Copy <code>lib\plugin-testmode.js</code> and <code>config\plugin-testmode.json</code> and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) </li>
-<li>Edit plugin-mine.json and define a unique port number for the scimgateway setting  </li>
-<li>Edit index.js and add a new line for starting your plugin e.g. <code>var mine = require('./lib/plugin-mine');</code>  </li>
-<li>Start ScimGateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  </li>
+<li>Copy <code>lib\plugin-loki.js</code> and <code>config\plugin-loki.json</code> and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) </li>
+<li>Edit plugin-mine.json and define a unique port number for the scimgateway setting  </li>
+<li>Edit index.js and add a new line for starting your plugin e.g. <code>var mine = require('./lib/plugin-mine');</code>  </li>
+<li>Start ScimGateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  </li>
 </ul>
-
 <p>Now we are ready for custom coding by editing plugin-mine.js
-Coding should be done step by step and each step should be verified and tested before starting the next (they are all highlighted by comments in existing code).  </p>
-
+Coding should be done step by step and each step should be verified and tested before starting the next (they are all highlighted by comments in existing code).  </p>
 <ol>
 <li><strong>Turn off group functionality</strong> in getGroup, getGroupMembers, getGroupUsers and modifyGroupMembers<br />
 Please see callback definitions in plugin-saphana that do not use groups.</li>
-<li><strong>explore users</strong> (test provisioning explore users)</li>
-<li><strong>get user</strong> (test provisioning retrieve account)</li>
-<li><strong>create user</strong> (test provisioning new account)</li>
-<li><strong>delete user</strong> (test provisioning delete account)</li>
-<li><strong>modify user</strong> (test provisioning modify account)</li>
-<li><strong>explore groups</strong> (test provisioning explore groups)</li>
+<li><strong>exploreUsers</strong> (test provisioning explore users)</li>
+<li><strong>getUser</strong> (test provisioning retrieve account)</li>
+<li><strong>createUser</strong> (test provisioning new account)</li>
+<li><strong>deleteUser</strong> (test provisioning delete account)</li>
+<li><strong>modifyUser</strong> (test provisioning modify account)</li>
+<li><strong>exploreGroups</strong> (test provisioning explore groups)</li>
 <li><strong>Turn on group functionality</strong> (if supporting groups)</li>
-<li><strong>get group</strong> (test provisioning group list groups)</li>
-<li><strong>get group members</strong> (test provisioning retrieve account - group list groups)</li>
-<li><strong>modify group members</strong> (test provisioning retrieve account - group add/remove groups)</li>
-<li><strong>get group users</strong> (if using "groups member of user")    </li>
+<li><strong>getGroup</strong> (test provisioning group list groups)</li>
+<li><strong>getGroupMembers</strong> (test provisioning retrieve account - group list groups)</li>
+<li><strong>modifyGroupMembers</strong> (test provisioning retrieve account - group add/remove groups)</li>
+<li><strong>getGroupUsers</strong> (if using &quot;groups member of user&quot;)   </li>
+<li><strong>createGroup</strong> (test provisioning new group)  </li>
 </ol>
-
-<p>Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from "Job Title" if our endpoint/code do not support title)  </p>
-
-<p>CA Provisioning using default SCIM endpoint do not support SCIM Enterprise User Schema Extension (having attributes like employeeNumber, costCenter, organization, division, department and manager). If we need these or other attributes not found in CA Provisioning, we could define our own by using the free-text "type" definition in the multivalue entitlements or roles attribute. In the template entitlements definition we could for example define type=Company and set value to %UCOMP%. Please see plugin-forwardinc.js using Company as a multivalue "type" definition.  </p>
-
-<p>Using CA Connector Xpress we could create a new SCIM endpoint type based on the original SCIM. We could then add/remove attributes and change  from default assign "user to groups" to assign "groups to user". There are also other predefined endpoints based on the original SCIM. You may take a look at "ServiceNow - WSL7" and "Zendesk - WSL7". </p>
-
-<p>For project setup:  </p>
-
+<p>Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from &quot;Job Title&quot; if our endpoint/code do not support title)  </p>
+<p>CA Provisioning using default SCIM endpoint do not support SCIM Enterprise User Schema Extension (having attributes like employeeNumber, costCenter, organization, division, department and manager). If we need these or other attributes not found in CA Provisioning, we could define our own by using the free-text &quot;type&quot; definition in the multivalue entitlements or roles attribute. In the template entitlements definition we could for example define type=Company and set value to %UCOMP%. Please see plugin-forwardinc.js using Company as a multivalue &quot;type&quot; definition.  </p>
+<p>Using CA Connector Xpress we could create a new SCIM endpoint type based on the original SCIM. We could then add/remove attributes and change  from default assign &quot;user to groups&quot; to assign &quot;groups to user&quot;. There are also other predefined endpoints based on the original SCIM. You may take a look at &quot;ServiceNow - WSL7&quot; and &quot;Zendesk - WSL7&quot;. </p>
+<p>For project setup:  </p>
 <ul>
-<li>Datasource =  Layer7 (CA API) - this is SCIM  </li>
-<li>Layer7 Base URL = ScimGateway url and port (SCIM Base URL)  </li>
+<li>Datasource =  Layer7 (CA API) - this is SCIM  </li>
+<li>Layer7 Base URL = ScimGateway url and port (SCIM Base URL)  </li>
 <li>Authentication = Basic Authentication<br />
 (connect using gwadmin/password defined in plugin config-file)</li>
 </ul>
-
-<h3>How to change "user member of groups" to "groups member of user"</h3>
-
+<h3>How to change &quot;user member of groups&quot; to &quot;groups member of user&quot;</h3>
 <p>Using Connector Xpress based on the original SCIM endpoint.</p>
-
 <p>Delete defaults:<br />
 Group - Associations - with User Account<br />
 User Account - Attributes - Group Membership</p>
-
 <p>Create new attribute:<br />
 User Account - Attributes: Groups - Flexi DN - Multivalue - <strong>groups</strong></p>
-
 <p>Create User - Group associations:<br />
 User Account - Accociations - <strong>Direct association with = Group</strong><br />
 User Account - Accociations - with Group</p>
-
-<p>Note, "Include a Reverse Association" - not needed if we don't need Group object functionality e.g list/add/remove group members</p>
-
+<p>Note, &quot;Include a Reverse Association&quot; - not needed if we don't need Group object functionality e.g list/add/remove group members</p>
 <p>User Attribute = <strong>Physical Attribute = Groups</strong><br />
 Match Group = By Attribute = Name</p>
-
 <p>Objects Must Exist<br />
-Use DNs in Attribute = deactivated (toggled off)  </p>
-
+Use DNs in Attribute = deactivated (toggled off)  </p>
 <p>Include a Reverse Association (if needed)<br />
 Group Attribute = <strong>Virtual Attribute = User Membership</strong><br />
-Match User Account = By Attribute = User Name  </p>
-
+Match User Account = By Attribute = User Name  </p>
 <p>Note, groups should be capability attribute (updated when account is synchronized with template):<br />
 advanced options - <strong>Synchronized</strong> = enabled (toggled on)</p>
+<h2>Methods</h2>
+<p>Plugins should have following initialization:  </p>
+<pre><code>// mandatory plugin initialization - start
+const path = require('path');
+let ScimGateway = null;
+try {
+    ScimGateway = require('scimgateway');
+} catch (err) {
+    ScimGateway = require('./scimgateway');
+}
+let scimgateway = new ScimGateway();
+let pluginName = path.basename(__filename, '.js');
+let configDir = path.join(__dirname, '..', 'config');
+let configFile = path.join(`${configDir}`, `${pluginName}.json`);
+let config = require(configFile).endpoint;
+let validScimAttr = []; // empty array - all attrbutes are supported by endpoint
+// mandatory plugin initialization - end
+</code></pre>
 
+<h3>exploreUsers</h3>
+<pre><code>scimgateway.on('exploreUsers', function (baseEntity, startIndex, count, callback) {
+    var ret = {
+        &quot;Resources&quot;: [],
+        &quot;totalResults&quot;: null
+    };
+    ...
+    callback(error, ret);
+});  
+</code></pre>
+
+<ul>
+<li>baseEntity = Optional for multi tenant or multi endpoint support (defined in base url e.g. <code>&lt;baseurl&gt;/client1</code> gives baseEntity=client1)  </li>
+<li>startIndex = Pagination - The 1-based index of the first result in the current set of search results  </li>
+<li>count = Pagination - Number of elements to be returned in the current set of search results  </li>
+<li>callback(error, ret):<br />
+error = null if OK, else error object<br />
+ret.Resources = array filled with objects containing userName and id (userName and id set to the same value) e.g [{&quot;userName&quot;:&quot;bjensen&quot;,&quot;id&quot;:&quot;bjensen&quot;}, &quot;userName&quot;:&quot;jsmith&quot;,&quot;id&quot;:&quot;jsmith&quot;}]<br />
+ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (users) at the endpoint else set to null</li>
+</ul>
+<h3>exploreGroups</h3>
+<pre><code>scimgateway.on('exploreGroups', function (baseEntity, startIndex, count, callback) {
+    var ret = {
+        &quot;Resources&quot;: [],
+        &quot;totalResults&quot;: null
+    };
+    ...
+    callback(error, ret);
+});  
+</code></pre>
+
+<ul>
+<li>callback(error, ret):<br />
+error = null if OK, else error object<br />
+ret.Resources = array filled with objects containing group displayName and id (displayName and id set to the same value) e.g [{&quot;displayName&quot;:&quot;Admins&quot;,&quot;id&quot;:&quot;Admins&quot;}, &quot;displayName&quot;:&quot;Employees&quot;,&quot;id&quot;:&quot;Employees&quot;}]<br />
+ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (groups) at the endpoint else set to null</li>
+</ul>
+<h3>getUser</h3>
+<pre><code>scimgateway.on('getUser', function (baseEntity, userName, attributes, callback) {
+    ...
+    callback(error, userObj);
+});  
+</code></pre>
+
+<ul>
+<li>userName = user id (eg. bjensen)  </li>
+<li>attributes = scim attributes to be returned in callback. If no attributes defined, all should will be returned.  </li>
+<li>callback(error, userObj): userObj containing scim userattributes/values
+eg:<br />
+{&quot;id&quot;:&quot;bjensen&quot;,&quot;name&quot;:{&quot;formatted&quot;:&quot;Ms. Barbara J Jensen III&quot;,&quot;familyName&quot;:&quot;Jensen&quot;,&quot;givenName&quot;:&quot;Barbara&quot;}}</li>
+</ul>
+<p>Note, CA Provisioning use two types of &quot;getUser&quot;<br />
+1. Check if user exist: attributes=userName and/or id<br />
+2. Retrive user: attributes=list of all attributes</p>
+<h3>createUser</h3>
+<pre><code>scimgateway.on('createUser', function (baseEntity, userObj, callback) {
+    ...
+    callback(error);
+}); 
+</code></pre>
+
+<ul>
+<li>userObj = user object containing userattributes according to scim standard<br />
+Note, multi-value attributes excluding user attribute 'groups' are customized from array to object based on type  </li>
+<li>callback(error): null if OK, else error object  </li>
+</ul>
+<h3>deleteUser</h3>
+<pre><code>scimgateway.on('deleteUser', function (baseEntity, id, callback) {
+    ...
+    callback(error);
+}); 
+</code></pre>
+
+<ul>
+<li>id = user id to be deleted </li>
+<li>callback(error): null if OK, else error object  </li>
+</ul>
+<h3>modifyUser</h3>
+<pre><code>scimgateway.on('modifyUser', function (baseEntity, id, attrObj, callback) {
+    ...
+    callback(error);
+}); 
+</code></pre>
+
+<ul>
+<li>id = user id  </li>
+<li>attrObj = object containing userattributes to be modified according to scim standard<br />
+Note, multi-value attributes excluding user attribute 'groups' are customized from array to object based on type  </li>
+<li>callback(error): null if OK, else error object </li>
+</ul>
+<h3>getGroup</h3>
+<pre><code>scimgateway.on('getGroup', function (baseEntity, displayName, attributes, callback) {
+    ...
+    callback(error, retObj);
+}); 
+</code></pre>
+
+<ul>
+<li>displayName = group name  </li>
+<li>attributes  = scim attributes to be returned in callback (displayName and members is mandatory)  </li>
+<li>
+<p>callback(error, retObj): retObj containing group displayName and id (+ members if using default &quot;users are member of group&quot;)  
+</p>
+<p>eg. using default &quot;users are member of group&quot;:<br />
+{&quot;displayName&quot;:&quot;Admins&quot;,&quot;id&quot;:&quot;Admins&quot;,&quot;members&quot;:[{&quot;value&quot;:&quot;bjensen&quot;,&quot;display&quot;:&quot;bjensen&quot;]}  
+</p>
+<p>eg. using &quot;groups are member of user&quot;:<br />
+{&quot;displayName&quot;:&quot;Admins&quot;,&quot;id&quot;:&quot;Admins&quot;}</p>
+<p>If we do not support groups, callback(null, null)</p>
+</li>
+</ul>
+<h3>getGroupMembers</h3>
+<pre><code>scimgateway.on('getGroupMembers', function (baseEntity, id, attributes, startIndex, count, callback) {
+    var ret = {
+        &quot;Resources&quot;: [],
+        &quot;totalResults&quot;: null
+    };
+    ...
+    callback(error, ret);
+});
+</code></pre>
+
+<p>Retrieve all users for a spesific group WHEN <strong>&quot;user member of group&quot;</strong>. This setting is CA IM default scim endpoint configuration. This means Group having multivalue attribute members containing userName.  </p>
+<ul>
+<li>id = user id (eg. bjensen)  </li>
+<li>attributes = attributes to be returned in callback (we only return the name of groups - displayName and current user as member)  </li>
+<li>startIndex = Pagination - The 1-based index of the first result in the current set of search results  </li>
+<li>count = Pagination - Number of elements to be returned in the current set of search results  </li>
+<li>
+<p>callback(error, ret):<br />
+ret.Resources = array to be filled with objects containing groups with current user as member<br />
+e.g [{&quot;displayName&quot;:&quot;Admins&quot;,&quot;members&quot;: [{ &quot;value&quot;: bjensen}]}, {&quot;displayName&quot;:&quot;Employees&quot;, &quot;members&quot;: [{ &quot;value&quot;: bjensen}]}]  
+</p>
+<p>ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (group members) at the endpoint else set to null  
+</p>
+<p>If we do not support groups (or &quot;user member of group&quot;), callback(null, [])  
+</p>
+</li>
+</ul>
+<h3>getGroupUsers</h3>
+<pre><code>scimgateway.on('getGroupUsers', function (baseEntity, groupName, attributes, callback) {
+    var arrRet = [];
+    ...
+    callback(error, arrRet);
+});
+</code></pre>
+
+<p>Retrieve all users for a spesific group WHEN <strong>&quot;group member of user&quot;</strong>. This means user having multivalue attribute groups containing value GroupName  </p>
+<ul>
+<li>groupName = group name (eg. UserGroup-1)  </li>
+<li>attributes = scim attributes to be returned in callback  </li>
+<li>
+<p>callback(error, arrRet): arrRet = array containing the userName's'
+eg: [{&quot;userName&quot;, &quot;bjensen&quot;}, {&quot;userName&quot;, &quot;jsmith&quot;}]</p>
+<p>If we do not support groups (or &quot;group member of user&quot;), callback(null, [])  
+</p>
+</li>
+</ul>
+<h3>createGroup</h3>
+<pre><code>scimgateway.on('createGroup', function (baseEntity, groupObj, callback) {
+    ...
+    return callback(error);
+});
+</code></pre>
+
+<ul>
+<li>groupObj = group object containing groupattributes according to scim standard<br />
+groupObj.displayName contains the group name to be created</li>
+<li>callback(error): null if OK, else error object  </li>
+</ul>
+<h3>modifyGroupMembers</h3>
+<pre><code>scimgateway.on('modifyGroupMembers', function (baseEntity, id, members, callback) {
+    ...
+    return callback(error);
+});
+</code></pre>
+
+<ul>
+<li>id = group name (eg. Admins)  </li>
+<li>members = array of objects containing groupmembers modifications<br />
+eg: {&quot;value&quot;:&quot;bjensen&quot;},{&quot;operation&quot;:&quot;delete&quot;,&quot;value&quot;:&quot;jsmith&quot;}<br />
+(adding bjensen and deliting jsmith from group)  </li>
+<li>callback(error): null if OK, else error object<br />
+If we do not support groups, callback(null)</li>
+</ul>
 <h2>Known limitations</h2>
-
 <ul>
-<li><p>Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ingnored unless soap WSSecurityCert functionality is needed in custom plugin code.  </p></li>
-<li><p>Importing "certificate authority - CA" on the CA Connector Server gives a "Failure" message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  </p></li>
-<li><p>Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate). </p></li>
-<li><p>Delete groups not supported  </p></li>
+<li>
+<p>Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ingnored unless soap WSSecurityCert functionality is needed in custom plugin code.  
+</p>
+</li>
+<li>
+<p>Importing &quot;certificate authority - CA&quot; on the CA Connector Server gives a &quot;Failure&quot; message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  
+</p>
+</li>
+<li>
+<p>Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate). </p>
+</li>
+<li>
+<p>Delete groups not supported  
+</p>
+</li>
 </ul>
-
 <h2>License</h2>
-
 <p>MIT</p>
-
 <h2>Change log</h2>
-
-<h3>v0.4.2</h3>
-
-<p>[Fix]  </p>
-
+<h3>v0.4.3</h3>
+<p>[ENHANCEMENT]  </p>
 <ul>
-<li>plugin-restful minor adjustments to multivalue and cleared attributes logic introduced in v0.4.0  </li>
+<li>NoSQL Document-Oriented Database plugin: <code>plugin-loki</code><br />
+This plugin now replace previous <code>plugin-testmode</code><br />
+<strong>Thanks to <a href="https://github.com/visualjeff">visualjeff</a></strong>  </li>
+<li>Minor code/comment reorganizations in provided plugins  </li>
 </ul>
-
-<h3>v0.4.1</h3>
-
-<p>[ENHANCEMENT]  </p>
-
+<p><strong>[UPGRADE]</strong>  </p>
 <ul>
-<li>Mocha test scripts for automated testing of plugin-testmode  </li>
+<li>delete depricated <code>lib/plugin-testmode.js</code> and <code>config/plugin-testmode.json</code></li>
+<li>edit index.js, replace tesmode with loki   </li>
+</ul>
+<h3>v0.4.2</h3>
+<p>[Fix]  </p>
+<ul>
+<li>plugin-restful minor adjustments to multivalue and cleared attributes logic introduced in v0.4.0  </li>
+</ul>
+<h3>v0.4.1</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>Mocha test scripts for automated testing of plugin-testmode  </li>
 <li>Automated tests run on Travis-ci.org (click on build badge) </li>
 <li><strong>Thanks to <a href="https://github.com/visualjeff">visualjeff</a></strong></li>
 </ul>
-
-<p>[Fix]  </p>
-
+<p>[Fix]  </p>
 <ul>
 <li>Minor adjustments to multi-value logic introduced in v0.4.0</li>
 </ul>
-
 <h3>v0.4.0</h3>
-
-<p>[ENHANCEMENT]  </p>
-
+<p>[ENHANCEMENT]  </p>
 <ul>
 <li>Not using the SCIM standard for handling multivalue attributes and cleared attributes. Changed from array to object based on type. This simplifies plugin-coding for multivalue attributes like emails, phoneNumbers, entitlements, ...</li>
-<li>Module dependencies updated to latest versions  </li>
+<li>Module dependencies updated to latest versions  </li>
 </ul>
-
-<p><strong>[UPGRADE]</strong>  </p>
-
+<p><strong>[UPGRADE]</strong>  </p>
 <ul>
 <li>Custom plugins using multivalue attributes needs to be updated regarding methods createUser and modifyUser. Please see example plugins for details.</li>
 </ul>
-
 <h3>v0.3.8</h3>
-
-<p>[Fix]  </p>
-
+<p>[Fix]  </p>
 <ul>
 <li>Minor changes related to SCIM specification</li>
 </ul>
-
 <h3>v0.3.7</h3>
-
-<p>[ENHANCEMENT]  </p>
-
+<p>[ENHANCEMENT]  </p>
 <ul>
 <li>PFX / PKCS#12 certificate bundle is supported</li>
 </ul>
-
 <h3>v0.3.6</h3>
-
-<p>[ENHANCEMENT]  </p>
-
+<p>[ENHANCEMENT]  </p>
 <ul>
 <li>ScimGateway used by Microsoft Azure Active Directory is supported</li>
 <li>SCIM version 2.0 is supported</li>
-<li>Create group is supported  </li>
+<li>Create group is supported  </li>
 </ul>
-
-<p><strong>[UPGRADE]</strong>  </p>
-
+<p><strong>[UPGRADE]</strong>  </p>
 <ul>
 <li>For custom plugins to support create group, they needs to be updated regarding listener method <code>scimgateway.on('createGroup',...</code> Please see example plugins for details. </li>
 </ul>
-
 <h3>v0.3.5</h3>
-
-<p>[Fix]  </p>
-
+<p>[Fix]  </p>
 <ul>
-<li>plugin-mssql not included in postinstall  </li>
+<li>plugin-mssql not included in postinstall  </li>
 </ul>
-
 <h3>v0.3.4</h3>
-
-<p>[ENHANCEMENT]  </p>
-
+<p>[ENHANCEMENT]  </p>
 <ul>
 <li>MSSQL example plugin: <code>plugin-mssql</code> </li>
-<li>Changed multivalue logic in example plugins, now using <code>scimgateway.getArrayObject</code>  </li>
+<li>Changed multivalue logic in example plugins, now using <code>scimgateway.getArrayObject</code>  </li>
 </ul>
-
-<p>[Fix]  </p>
-
+<p>[Fix]  </p>
 <ul>
 <li>Minor changes related to SCIM specification</li>
 </ul>
-
 <h3>v0.3.3</h3>
-
-<p>[Fix]  </p>
-
+<p>[Fix]  </p>
 <ul>
-<li>Logic for handling incorrect pagination request to avoid endless loop conditions (there is a pagination bug in CA Identity Manager v.14)  </li>
-<li>Pagination now supported on getGroupMembers  </li>
+<li>Logic for handling incorrect pagination request to avoid endless loop conditions (there is a pagination bug in CA Identity Manager v.14)  </li>
+<li>Pagination now supported on getGroupMembers  </li>
 </ul>
-
-<p><strong>[UPGRADE]</strong>  </p>
-
+<p><strong>[UPGRADE]</strong>  </p>
 <ul>
-<li>Custom plugins needs to be updated regarding listener method <code>scimgateway.on('getGroupMembers',...</code> New arguments have been added "startIndex" and "count". Also a new return variable "ret". Please see example plugins for details.</li>
+<li>Custom plugins needs to be updated regarding listener method <code>scimgateway.on('getGroupMembers',...</code> New arguments have been added &quot;startIndex&quot; and &quot;count&quot;. Also a new return variable &quot;ret&quot;. Please see example plugins for details.</li>
 </ul>
-
 <h3>v0.3.2</h3>
-
-<p>[Fix]  </p>
-
+<p>[Fix]  </p>
 <ul>
 <li>Minor changes related to SCIM specification</li>
 </ul>
-
 <h3>v0.3.1</h3>
-
-<p>[ENHANCEMENT]  </p>
-
+<p>[ENHANCEMENT]  </p>
 <ul>
 <li>REST Webservices example plugin: <code>plugin-restful</code> </li>
 </ul>
-
 <h3>v0.3.0</h3>
-
-<p>[ENHANCEMENT]  </p>
-
+<p>[ENHANCEMENT]  </p>
 <ul>
-<li>Preferred installation method changed from "global" to "local"</li>
-<li><code>&lt;Base URL&gt;/[baseEntity]</code> for multi tenant or multi endpoint flexibility  </li>
-<li>plugin-forwardinc includes examples of baseEntity, custom soap header and signed saml assertion  </li>
-<li>Support groups defined on user object "group member of user"  </li>
-<li>New module dependendcies included: saml, async and callsite  </li>
+<li>Preferred installation method changed from &quot;global&quot; to &quot;local&quot;</li>
+<li><code>&lt;Base URL&gt;/[baseEntity]</code> for multi tenant or multi endpoint flexibility  </li>
+<li>plugin-forwardinc includes examples of baseEntity, custom soap header and signed saml assertion  </li>
+<li>Support groups defined on user object &quot;group member of user&quot;  </li>
+<li>New module dependendcies included: saml, async and callsite  </li>
 </ul>
-
-<p><strong>[UPGRADE]</strong>  </p>
-
+<p><strong>[UPGRADE]</strong>  </p>
 <ul>
-<li>Use "fresh" install and restore any custom plugins. Custom plugins needs to be updated. Listener method names have changed and method must include "baseEntity" - please see example plugins.</li>
+<li>Use &quot;fresh&quot; install and restore any custom plugins. Custom plugins needs to be updated. Listener method names have changed and method must include &quot;baseEntity&quot; - please see example plugins.</li>
 </ul>
-
 <h3>v0.2.2 - v0.2.8</h3>
-
 <p>[Doc]</p>
-
 <ul>
 <li>Minor readme changes and version bumps</li>
 </ul>
-
 <h3>v0.2.1</h3>
-
 <p>[Fix]</p>
-
 <ul>
 <li>plugin-forwardinc explore of empty endpoint</li>
 </ul>
-
 <h3>v0.2.0</h3>
-
 <p>Initial version</p>
 
 </body>

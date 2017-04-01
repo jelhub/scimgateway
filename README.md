@@ -474,6 +474,25 @@ advanced options - **Synchronized** = enabled (toggled on)
 
 ## Methods 
 
+Plugins should have following initialization:  
+
+	// mandatory plugin initialization - start
+	const path = require('path');
+	let ScimGateway = null;
+	try {
+	    ScimGateway = require('scimgateway');
+	} catch (err) {
+	    ScimGateway = require('./scimgateway');
+	}
+	let scimgateway = new ScimGateway();
+	let pluginName = path.basename(__filename, '.js');
+	let configDir = path.join(__dirname, '..', 'config');
+	let configFile = path.join(`${configDir}`, `${pluginName}.json`);
+	let config = require(configFile).endpoint;
+	let validScimAttr = []; // empty array - all attrbutes are supported by endpoint
+	// mandatory plugin initialization - end
+
+
 ### exploreUsers  
 
 	scimgateway.on('exploreUsers', function (baseEntity, startIndex, count, callback) {
@@ -668,7 +687,7 @@ If we do not support groups, callback(null)
 
 
 ## License  
-
+ 
 MIT
 
 
@@ -680,7 +699,7 @@ MIT
 - NoSQL Document-Oriented Database plugin: `plugin-loki`  
 This plugin now replace previous `plugin-testmode`  
 **Thanks to [visualjeff](https://github.com/visualjeff)**  
-- Method comments moved from plugins to this readme  
+- Minor code/comment reorganizations in provided plugins  
 
 **[UPGRADE]**  
 
