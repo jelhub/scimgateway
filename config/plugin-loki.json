@@ -21,9 +21,6 @@
     },
     "endpoint": {
         "dbname": "loki.db",
-        "persistence": false,
-        "passwordEncryptionExample": {
-            "password": "password"
-        }
+        "persistence": false
     }
 }
