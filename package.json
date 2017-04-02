@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "SCIM Gateway",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
   "license": "MIT",
@@ -25,7 +25,8 @@
     "ca",
     "identity",
     "manager",
-    "provisioning"
+    "provisioning",
+    "nosql"
   ],
   "engines": {
     "node": "6.8.0"

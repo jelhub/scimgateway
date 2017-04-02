@@ -40,8 +40,7 @@ Example of a fully functional ScimGateway plugin
 REST plugin using "Loki" as a REST endpoint
 
 * **Forwardinc** (SOAP Webservice)  
-Endpoint that comes with CA IM SDK (SDKWS) for testing SOAP Webservice user-provisioning (please see [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com"))  
-Using WS-Security    
+CA IM SDK (SDKWS) endpoint for testing SOAP Webservice user-provisioning (please see [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com"))  
 Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service   
 Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  
 
@@ -693,13 +692,14 @@ MIT
 
 ## Change log  
 
-### v0.4.3  
+### v0.4.4  
 [ENHANCEMENT]  
 
 - NoSQL Document-Oriented Database plugin: `plugin-loki`  
 This plugin now replace previous `plugin-testmode`  
 **Thanks to [visualjeff](https://github.com/visualjeff)**  
 - Minor code/comment reorganizations in provided plugins  
+- Minor adjustments to multi-value logic introduced in v0.4.0  
 
 **[UPGRADE]**  
 
