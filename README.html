@@ -303,12 +303,12 @@ img {
 <p><img src="https://jelhub.github.io/images/ScimGateway.svg" /></p>
 <p>Instead of using IM-SDK for building our own integration for none supported endpoints, we can now build new integration based on ScimGateway plugins. ScimGateway works with IM as long as IM supports SCIM.</p>
 <p>ScimGateway is based on the popular asynchronous event driven framework <a href="https://nodejs.org/en/about/">Node.js</a> using javascripts. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may loadbalance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.</p>
-<p>Following example plugins are included:</p>
+<p><strong>Following example plugins are included:</strong></p>
 <ul>
 <li>
 <p><strong>Loki</strong> (NoSQL Document-Oriented Database)<br />
 Gives a SCIM endpoint located on ScimGateway<br />
-Demonstrates userprovisioning towards a document-oriented database<br />
+Demonstrates user provisioning towards document-oriented database<br />
 Using <a href="http://lokijs.org">LokiJS</a> for a fast, in-memory document-oriented database (much like MongoDB/PouchDB)<br />
 Default gives two predefined test users loaded using in-memory only (no persistence)<br />
 Setting {&quot;persistence&quot;: true} gives persistence file store (no test users)<br />
@@ -318,22 +318,26 @@ Example of a fully functional ScimGateway plugin
 </li>
 <li>
 <p><strong>RESTful</strong> (REST Webservice)<br />
-REST plugin using &quot;Loki&quot; as a REST endpoint</p>
+Demonstrates user provisioning towards a REST-Based endpoint <br />
+Using plugin &quot;Loki&quot; as a REST endpoint</p>
 </li>
 <li>
 <p><strong>Forwardinc</strong> (SOAP Webservice)<br />
-CA IM SDK (SDKWS) endpoint for testing SOAP Webservice user-provisioning (please see <a href="https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements" title="wiki.ca.com">wiki.ca.com</a>)<br />
-Shows how to use custom SOAP header with signed SAML assertion for authentication or token request towards a Security Token Service <br />
+Demonstrates user provisioning towards SOAP-Based endpoint <br />
+Using endpoint Forwardinc that comes with CA IM SDK (SDKWS) - please see <a href="https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements" title="wiki.ca.com">wiki.ca.com</a><br />
+Includes examples using signed SAML assertion for authentication or token request towards a Security Token Service <br />
 Shows how to implement a higly configurable multi tenant or multi endpoint solution using &quot;baseEntity&quot; parameter  
 </p>
 </li>
 <li>
 <p><strong>MSSQL</strong> (MSSQL Database)<br />
-Using SQL for userprovisioning towards MSSQL database table</p>
+Demonstrates user provisioning towards MSSQL database  
+</p>
 </li>
 <li>
 <p><strong>SAP HANA</strong> (SAP HANA Database)<br />
-SAP HANA specific user provisioning</p>
+Demonstrates SAP HANA specific user provisioning  
+</p>
 </li>
 </ul>
 <h2>Installation</h2>
@@ -447,14 +451,14 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>port</strong> - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana </p>
+<p><strong>port</strong> - (**) Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana </p>
 </li>
 <li>
 <p><strong>username</strong> - username used by clients for gateway authentication. For endpoint the username refers to endpoint authentication.  
 </p>
 </li>
 <li>
-<p><strong>password</strong> - password used by clients for gateway authentication. For endpoint the password refers to endpoint authentication. Note, we set a clear text password and when gateway is started this <strong>password will become encrypted and updated in the configuration file</strong>.  
+<p><strong>password</strong> - (**) password used by clients for gateway authentication. For endpoint the password refers to endpoint authentication. Note, we set a clear text password and when gateway is started this <strong>password will become encrypted and updated in the configuration file</strong>.  
 </p>
 </li>
 <li>
@@ -468,25 +472,35 @@ Below shows an example of config\plugin-saphana.json  </p>
     &quot;key&quot;: &quot;key.pem&quot;,
     &quot;cert&quot;: &quot;cert.pem&quot;,
     &quot;ca&quot;: null
+}  
+</code></pre>
+
+<p>Example of how to make a self signed certificate:<br />
+<code>openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj &quot;/O=Testing/OU=ScimGateway/CN=&lt;FQDN&gt;&quot;</code></p>
+<p><code>&lt;FQDN&gt;</code> is Fully Qualified Domain Name of the host having ScimGateway installed</p>
+<p>Note, when using CA Provisioning, the &quot;certificate authority - CA&quot; also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  
+</p>
+<p>PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: </p>
+<pre><code>&quot;pfx&quot;: {
+    &quot;bundle&quot;: &quot;certbundle.pfx&quot;,
+    &quot;password&quot;: &quot;password&quot;
 }
 </code></pre>
 
 </li>
+<li>
+<p><strong>samlprovider</strong> - SAP Hana specific saml provider name. Users created in SAP Hana needs to have a saml provider defined.  
+</p>
+</li>
 </ul>
-<p>Example of how to make a self signed certificate:<br />
-  <code>openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj &quot;/O=Testing/OU=ScimGateway/CN=&lt;FQDN&gt;&quot;</code>  </p>
-<p><code>&lt;FQDN&gt;</code> is Fully Qualified Domain Name of the host having ScimGateway installed</p>
-<p>Note, when using CA Provisioning, the &quot;certificate authority - CA&quot; also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  </p>
-<p>PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: </p>
-<pre><code>    &quot;pfx&quot;: {
-        &quot;bundle&quot;: &quot;certbundle.pfx&quot;,
-        &quot;password&quot;: &quot;password&quot;
+<p>Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable <code>SEED</code> will override default password seed. Setting the ScimGateway port in the configuartion file to <code>&quot;process.env.XXX&quot;</code> where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  </p>
+<pre><code>    &quot;scimgateway&quot;: {
+        ...
+        &quot;port&quot;: &quot;process.env.PORT&quot;,
+        ...
     }
 </code></pre>
 
-<ul>
-<li><strong>samlprovider</strong> - SAP Hana specific saml provider name. Users created in SAP Hana needs to have a saml provider defined.</li>
-</ul>
 <h2>Manual startup</h2>
 <p>Gateway can now be started from a command window running in administrative mode</p>
 <p>3 ways to start:</p>
@@ -943,6 +957,26 @@ If we do not support groups, callback(null)</li>
 <h2>License</h2>
 <p>MIT</p>
 <h2>Change log</h2>
+<h3>v0.4.5</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>Password encryption/decryption logic used in config-file  </li>
+<li>Environment variable <code>SEED</code> overrides default password seeding  </li>
+<li>Setting ScimGateway port to <code>&quot;process.env.XXX&quot;</code> lets environment variable XXX define the port  </li>
+<li>Don't validate config-file port number for numeric value (Azure AD - iisnode using a name pipe for communication) </li>
+</ul>
+<p><strong>[UPGRADE]</strong>  </p>
+<ul>
+<li>
+Configuration files for custom plugins <code>config/plugin-xxx.json</code> needs to be updated:  
+
+<ul>
+<li>Encrypted passwords needs to be reset to clear text passwords</li>
+<li>Start ScimGateway and passswords will become encrypted  
+</li>
+</ul>
+</li>
+</ul>
 <h3>v0.4.4</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
