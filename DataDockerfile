@@ -1,0 +1,10 @@
+# To build: docker build --force-rm=true -t scimgateway-data:latest .
+# To run: docker run -d --name scimgateway-data -t scimgateway-data:latest
+
+FROM busybox:latest
+MAINTAINER Jeffrey Gilbert
+
+RUN mkdir -p /home/scimgateway/config
+VOLUME /home/scimgateway/config
+
+CMD ["echo", "Data container for scimgateway created and will now shutdown.  No need to run again."]
