@@ -781,7 +781,7 @@ MIT
 
 - Document updated on how to run ScimGateway as a Docker container  
 - `config\docker` includes docker configuration examples  
-**Thanks to Charles Watson and Jeffrey Gilbert**  
+**Thanks to Charley Watson and Jeffrey Gilbert**  
 
 
 ### v0.4.5  
