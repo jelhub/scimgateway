@@ -4,6 +4,10 @@
 <title>README</title>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <style type="text/css">
+/* GitHub stylesheet for MarkdownPad (http://markdownpad.com) */
+/* Author: Nicolas Hery - http://nicolashery.com */
+/* Version: b13fe65ca28d2e568c6ed5d7f06581183df8f2ff */
+/* Source: https://github.com/nicolahery/markdownpad-github */
 
 /* RESET
 =============================================================================*/
@@ -294,7 +298,12 @@ img {
 <p>Validated on:  </p>
 <ul>
 <li>CA Identity Manager</li>
-<li>Microsoft Azure Active Directory (Early Stage Code)</li>
+<li>Microsoft Azure Active Directory (Early Stage Code)  </li>
+</ul>
+<p>Latest News:  </p>
+<ul>
+<li>Running ScimGateway as a Docker container  </li>
+<li>Plugin Loki for NoSQL Document-Oriented Database</li>
 </ul>
 <h2>Overview</h2>
 <p>With ScimGateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.  </p>
@@ -318,7 +327,7 @@ Example of a fully functional ScimGateway plugin
 </li>
 <li>
 <p><strong>RESTful</strong> (REST Webservice)<br />
-Demonstrates user provisioning towards a REST-Based endpoint <br />
+Demonstrates user provisioning towards REST-Based endpoint <br />
 Using plugin &quot;Loki&quot; as a REST endpoint</p>
 </li>
 <li>
@@ -355,7 +364,7 @@ npm install scimgateway
 <p><strong>C:\CA\scimgateway</strong> will now be <code>&lt;package-root&gt;</code> </p>
 <p>index.js, lib and config directories containing example plugins have been copied from the original scimgateway package located under node_modules.  </p>
 <p>If internet connection is blocked, we could install on another machine and copy the scimgateway folder.</p>
-<h4>Startup and verify default loki-plugin</h4>
+<h4>Startup and verify default Loki plugin</h4>
 <pre><code>node C:\CA\scimgateway
 
 Start a browser
@@ -493,7 +502,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 </ul>
-<p>Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable <code>SEED</code> will override default password seed. Setting the ScimGateway port in the configuartion file to <code>&quot;process.env.XXX&quot;</code> where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  </p>
+<p>(**) Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable <code>SEED</code> will override default password seed. Setting the ScimGateway port in the configuartion file to <code>&quot;process.env.XXX&quot;</code> where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  </p>
 <pre><code>    &quot;scimgateway&quot;: {
         ...
         &quot;port&quot;: &quot;process.env.PORT&quot;,
@@ -541,6 +550,76 @@ Stop the task if runs longer than = Disabled (greyed out)
 <li>Right click task - <strong>End</strong>, verify process node.exe have been terminated and disappeared from task manager   </li>
 <li><strong>Reboot</strong> server and verify ScimGateway have been automatically started</li>
 </ul>
+<h2>Running as a isolated virtual Docker container</h2>
+<p>On Linux systems we may also run ScimGateway as a Docker image (using docker-compose)  </p>
+<ul>
+<li>
+<p>Docker Pre-requisites:<br />
+<strong>docker-ce<br />
+docker-compose</strong></p>
+</li>
+<li>
+<p>Install ScimGateway within your own package and copy provided docker files:</p>
+<pre><code>mkdir /opt/myScimGateway  
+cd /opt/myScimGateway  
+npm init -y  
+npm install scimgateway --save  
+cp ./config/docker/* .  
+</code></pre>
+
+<p><strong>docker-compose.yml</strong>   &lt;== Here is where you would set the exposed port and environment<br />
+<strong>Dockerfile</strong>   &lt;== Main dockerfile<br />
+<strong>DataDockerfile</strong>   &lt;== Handles volume mapping   
+</p>
+</li>
+<li>
+<p>Create a scimgateway user on your Linux VM.   
+</p>
+<pre><code>adduser scimgateway
+</code></pre>
+
+</li>
+<li>
+<p>Create a directory on your VM host for the scimgateway configs:  
+</p>
+<pre><code>mkdir /home/scimgateway/config
+</code></pre>
+
+</li>
+<li>
+<p>Copy your updated configuration file e.g. scimgateway/config/plugin-loki.json to /home/scimgateway/config.  Use scp to perform the copy.</p>
+<p>NOTE: /home/scimgateway/config is where all of important configuration and loki datastore will reside.  <strong>Outside of the running docker container.  If you upgrade scimgateway you won't loose you configurations and data.</strong></p>
+</li>
+<li>
+<p>Build docker images and start it up  
+</p>
+<pre><code>docker-compose up --build -d
+</code></pre>
+
+<p>NOTE: Add the -d flag to run the command above detached.  
+</p>
+<p>Be sure to confirm that port 8880 is available with a simple http request</p>
+<p>If using default plugin-loki and we have configured <code>{&quot;persistence&quot;: true}</code>, we could confirm scimgateway created loki.db:</p>
+<pre><code>su scimgateway  
+cd /home/scimgateway/config  
+ls loki.db  
+</code></pre>
+
+</li>
+</ul>
+<p>To view the logs:<br />
+<code>docker logs scimgateway</code></p>
+<p>To execute command within your running container:<br />
+<code>docker exec scimgateway &lt;bash command&gt;</code></p>
+<p>To stop scimgateway:<br />
+<code>docker-compose stop</code></p>
+<p>To restart scimgateway:<br />
+<code>docker-compose start</code></p>
+<p>To upgrade scimgateway docker image (remove the old stuff before running docker-compose up --build):  </p>
+<pre><code>docker rm scimgateway  
+docker rm $(docker ps -a -q); docker rmi $(docker images -q -f &quot;dangling=true&quot;)  
+</code></pre>
+
 <h2>CA Provisioningserver - SCIM Endpoint</h2>
 <p>Using the CA Provisioning Manager we have to configure  </p>
 <p><code>Endpoint type = SCIM (DYN Endpoint)</code>  </p>
@@ -553,7 +632,7 @@ SCIM Based URL = http://localhost:8880
 
 or:  
 
-SCIM Based URL = http://localhost:8880/[baseEntity]
+SCIM Based URL = http://localhost:8880/&lt;baseEntity&gt;
 </code></pre>
 
 <p>Username, password and port must correspond with plugin configuration file. For &quot;Loki&quot; plugin it will be <code>config\plugin-loki.json</code>  </p>
@@ -957,10 +1036,16 @@ If we do not support groups, callback(null)</li>
 <h2>License</h2>
 <p>MIT</p>
 <h2>Change log</h2>
+<h3>v0.4.6</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>Document updated on how to run ScimGateway as a Docker container  </li>
+<li><code>config\docker</code> includes docker configuration examples<br />
+<strong>Thanks to Charles Watson and Jeffrey Gilbert</strong>  </li>
+</ul>
 <h3>v0.4.5</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
-<li>Password encryption/decryption logic used in config-file  </li>
 <li>Environment variable <code>SEED</code> overrides default password seeding  </li>
 <li>Setting ScimGateway port to <code>&quot;process.env.XXX&quot;</code> lets environment variable XXX define the port  </li>
 <li>Don't validate config-file port number for numeric value (Azure AD - iisnode using a name pipe for communication) </li>
@@ -972,7 +1057,7 @@ Configuration files for custom plugins <code>config/plugin-xxx.json</code> needs
 
 <ul>
 <li>Encrypted passwords needs to be reset to clear text passwords</li>
-<li>Start ScimGateway and passswords will become encrypted  
+<li>Start ScimGateway and passwords will become encrypted  
 </li>
 </ul>
 </li>
@@ -982,7 +1067,7 @@ Configuration files for custom plugins <code>config/plugin-xxx.json</code> needs
 <ul>
 <li>NoSQL Document-Oriented Database plugin: <code>plugin-loki</code><br />
 This plugin now replace previous <code>plugin-testmode</code><br />
-<strong>Thanks to <a href="https://github.com/visualjeff">visualjeff</a></strong>  </li>
+<strong>Thanks to Jeffrey Gilbert</strong>  </li>
 <li>Minor code/comment reorganizations in provided plugins  </li>
 <li>Minor adjustments to multi-value logic introduced in v0.4.0  </li>
 </ul>
@@ -1001,7 +1086,7 @@ This plugin now replace previous <code>plugin-testmode</code><br />
 <ul>
 <li>Mocha test scripts for automated testing of plugin-testmode  </li>
 <li>Automated tests run on Travis-ci.org (click on build badge) </li>
-<li><strong>Thanks to <a href="https://github.com/visualjeff">visualjeff</a></strong></li>
+<li><strong>Thanks to Jeffrey Gilbert</strong></li>
 </ul>
 <p>[Fix]  </p>
 <ul>
@@ -1101,3 +1186,4 @@ This plugin now replace previous <code>plugin-testmode</code><br />
 
 </body>
 </html>
+<!-- This document was created with MarkdownPad, the Markdown editor for Windows (http://markdownpad.com) -->

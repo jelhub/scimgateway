@@ -1,0 +1,29 @@
+version: '2'
+services:
+  scimgateway:
+    build: 
+      context: .
+      dockerfile: ./Dockerfile
+    image: scimgateway:latest
+    container_name: scimgateway
+    hostname:
+      scimgateway
+    volumes:
+      - /home/scimgateway/config:/home/scimgateway/config:rw
+      - /var/lib/dbus:/var/lib/dbus:ro
+    volumes_from:
+      - scimgateway-data
+    ports:
+      - "8880:8880"
+#    environment:
+#      - NODE_ENV=production
+#      - PORT=8880
+#      - SEED=changeit
+    restart: on-failure:3
+            
+  scimgateway-data:
+    image: scimgateway-data:latest
+    container_name: scimgateway-data
+    build:
+      context: .
+      dockerfile: ./DataDockerfile

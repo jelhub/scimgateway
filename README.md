@@ -9,7 +9,12 @@ Author: Jarle Elshaug
 Validated on:  
 
 - CA Identity Manager
-- Microsoft Azure Active Directory (Early Stage Code)
+- Microsoft Azure Active Directory (Early Stage Code)  
+
+Latest News:  
+
+- Running ScimGateway as a Docker container  
+- Plugin Loki for NoSQL Document-Oriented Database
 
 ## Overview  
  
@@ -37,7 +42,7 @@ Supporting explore, create, delete, modify and list users (including groups)
 Example of a fully functional ScimGateway plugin  
 
 * **RESTful** (REST Webservice)  
-Demonstrates user provisioning towards a REST-Based endpoint   
+Demonstrates user provisioning towards REST-Based endpoint   
 Using plugin "Loki" as a REST endpoint
 
 * **Forwardinc** (SOAP Webservice)  
@@ -79,7 +84,7 @@ index.js, lib and config directories containing example plugins have been copied
 If internet connection is blocked, we could install on another machine and copy the scimgateway folder.
 
 
-#### Startup and verify default loki-plugin 
+#### Startup and verify default Loki plugin 
 
 	node C:\CA\scimgateway
 	
@@ -209,7 +214,7 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 - **samlprovider** - SAP Hana specific saml provider name. Users created in SAP Hana needs to have a saml provider defined.  
 
-  Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable `SEED` will override default password seed. Setting the ScimGateway port in the configuartion file to `"process.env.XXX"` where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  
+  (**) Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable `SEED` will override default password seed. Setting the ScimGateway port in the configuartion file to `"process.env.XXX"` where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  
 
 	    "scimgateway": {
 			...
@@ -263,6 +268,75 @@ Verification:
 - Right click task - **End**, verify process node.exe have been terminated and disappeared from task manager   
 - **Reboot** server and verify ScimGateway have been automatically started
 
+## Running as a isolated virtual Docker container  
+On Linux systems we may also run ScimGateway as a Docker image (using docker-compose)  
+
+* Docker Pre-requisites:  
+**docker-ce  
+docker-compose**
+
+
+
+- Install ScimGateway within your own package and copy provided docker files:
+
+		mkdir /opt/myScimGateway  
+		cd /opt/myScimGateway  
+		npm init -y  
+		npm install scimgateway --save  
+		cp ./config/docker/* .  
+
+	**docker-compose.yml**   <== Here is where you would set the exposed port and environment  
+	**Dockerfile**   <== Main dockerfile  
+	**DataDockerfile**   <== Handles volume mapping   
+
+
+
+- Create a scimgateway user on your Linux VM.   
+
+		adduser scimgateway
+
+- Create a directory on your VM host for the scimgateway configs:  
+
+		mkdir /home/scimgateway/config
+
+- Copy your updated configuration file e.g. scimgateway/config/plugin-loki.json to /home/scimgateway/config.  Use scp to perform the copy.
+
+	NOTE: /home/scimgateway/config is where all of important configuration and loki datastore will reside.  **Outside of the running docker container.  If you upgrade scimgateway you won't loose you configurations and data.**
+
+- Build docker images and start it up  
+
+		docker-compose up --build -d
+
+	NOTE: Add the -d flag to run the command above detached.  
+
+	Be sure to confirm that port 8880 is available with a simple http request
+
+	If using default plugin-loki and we have configured `{"persistence": true}`, we could confirm scimgateway created loki.db:
+	
+		su scimgateway  
+		cd /home/scimgateway/config  
+		ls loki.db  
+	
+
+
+
+To view the logs:  
+`docker logs scimgateway`
+
+To execute command within your running container:  
+`docker exec scimgateway <bash command>`
+
+To stop scimgateway:  
+`docker-compose stop`
+
+To restart scimgateway:  
+`docker-compose start`
+
+To upgrade scimgateway docker image (remove the old stuff before running docker-compose up --build):  
+
+	docker rm scimgateway  
+	docker rm $(docker ps -a -q); docker rmi $(docker images -q -f "dangling=true")  
+
 ## CA Provisioningserver - SCIM Endpoint  
 
 Using the CA Provisioning Manager we have to configure  
@@ -279,7 +353,7 @@ SCIM endpoint configuration example for Loki plugin (plugin-loki)
 
 	or:  
 
-	SCIM Based URL = http://localhost:8880/[baseEntity]
+	SCIM Based URL = http://localhost:8880/<baseEntity>
 
 Username, password and port must correspond with plugin configuration file. For "Loki" plugin it will be `config\plugin-loki.json`  
 
@@ -702,10 +776,17 @@ MIT
 
 ## Change log  
 
+### v0.4.6  
+[ENHANCEMENT]  
+
+- Document updated on how to run ScimGateway as a Docker container  
+- `config\docker` includes docker configuration examples  
+**Thanks to Charles Watson and Jeffrey Gilbert**  
+
+
 ### v0.4.5  
 [ENHANCEMENT]  
 
-- Password encryption/decryption logic used in config-file  
 - Environment variable `SEED` overrides default password seeding  
 - Setting ScimGateway port to `"process.env.XXX"` lets environment variable XXX define the port  
 - Don't validate config-file port number for numeric value (Azure AD - iisnode using a name pipe for communication) 
@@ -714,14 +795,14 @@ MIT
 
 - Configuration files for custom plugins `config/plugin-xxx.json` needs to be updated:  
 	- Encrypted passwords needs to be reset to clear text passwords
-	- Start ScimGateway and passswords will become encrypted  
+	- Start ScimGateway and passwords will become encrypted  
 
 ### v0.4.4  
 [ENHANCEMENT]  
 
 - NoSQL Document-Oriented Database plugin: `plugin-loki`  
 This plugin now replace previous `plugin-testmode`  
-**Thanks to [visualjeff](https://github.com/visualjeff)**  
+**Thanks to Jeffrey Gilbert**  
 - Minor code/comment reorganizations in provided plugins  
 - Minor adjustments to multi-value logic introduced in v0.4.0  
 
@@ -740,7 +821,7 @@ This plugin now replace previous `plugin-testmode`
 
 - Mocha test scripts for automated testing of plugin-testmode  
 - Automated tests run on Travis-ci.org (click on build badge) 
-- **Thanks to [visualjeff](https://github.com/visualjeff)**
+- **Thanks to Jeffrey Gilbert**
   
 [Fix]  
 
