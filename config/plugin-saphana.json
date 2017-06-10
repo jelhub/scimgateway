@@ -1,29 +1,29 @@
 {
-    "scimgateway": {
-        "scimversion": "1.1",
-        "loglevel": "error",
-        "localhostonly": false,
-        "port": 8884,
-        "username": "gwadmin",
-        "password": "password",
-        "oauth": {
-            "accesstoken": null
-        },
-        "certificate": {
-            "key": null,
-            "cert": null,
-            "ca": null,
-            "pfx": {
-                "bundle": null,
-                "password": null
-            }
-        }
+  "scimgateway": {
+    "scimversion": "1.1",
+    "loglevel": "error",
+    "localhostonly": false,
+    "port": 8884,
+    "username": "gwadmin",
+    "password": "password",
+    "oauth": {
+      "accesstoken": null
     },
-    "endpoint": {
-        "host": "hostname",
-        "port": 30015,
-        "username": "username",
-        "password": "password",
-        "saml_provider": "saml_provider_name"
+    "certificate": {
+      "key": null,
+      "cert": null,
+      "ca": null,
+      "pfx": {
+        "bundle": null,
+        "password": null
+      }
     }
+  },
+  "endpoint": {
+    "host": "hostname",
+    "port": 30015,
+    "username": "username",
+    "password": "password",
+    "saml_provider": "saml_provider_name"
+  }
 }

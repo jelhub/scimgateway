@@ -1,26 +1,26 @@
 {
-    "scimgateway": {
-        "scimversion": "1.1",
-        "loglevel": "debug",
-        "localhostonly": false,
-        "port": 8880,
-        "username": "gwadmin",
-        "password": "password",
-        "oauth": {
-            "accesstoken": null
-        },
-        "certificate": {
-            "key": null,
-            "cert": null,
-            "ca": null,
-            "pfx": {
-                "bundle": null,
-                "password": null
-            }
-        }
+  "scimgateway": {
+    "scimversion": "1.1",
+    "loglevel": "debug",
+    "localhostonly": false,
+    "port": 8880,
+    "username": "gwadmin",
+    "password": "password",
+    "oauth": {
+      "accesstoken": null
     },
-    "endpoint": {
-        "dbname": "loki.db",
-        "persistence": false
+    "certificate": {
+      "key": null,
+      "cert": null,
+      "ca": null,
+      "pfx": {
+        "bundle": null,
+        "password": null
+      }
     }
+  },
+  "endpoint": {
+    "dbname": "loki.db",
+    "persistence": false
+  }
 }

@@ -301,7 +301,7 @@ docker-compose**
 
 - Copy your updated configuration file e.g. scimgateway/config/plugin-loki.json to /home/scimgateway/config.  Use scp to perform the copy.
 
-	NOTE: /home/scimgateway/config is where all of important configuration and loki datastore will reside.  **Outside of the running docker container.  If you upgrade scimgateway you won't loose you configurations and data.**
+	NOTE: /home/scimgateway/config is where all of important configuration and loki datastore will reside outside of the running docker container.  If you upgrade scimgateway you won't loose you configurations and data.
 
 - Build docker images and start it up  
 
@@ -480,7 +480,7 @@ Some notes related to Azure AD:
 
 - Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
 
-- Deleting a user i Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM "DELETE" method is not used.  
+- Deleting a user in Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM "DELETE" method seems not to be used.  
 
  
 ## How to build your own plugins  
@@ -760,7 +760,7 @@ If we do not support groups, callback(null)
 
 ## Known limitations  
 
-* Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ingnored unless soap WSSecurityCert functionality is needed in custom plugin code.  
+* Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ignored unless soap WSSecurityCert functionality is needed in custom plugin code.  
 
 * Importing "certificate authority - CA" on the CA Connector Server gives a "Failure" message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  
 
@@ -808,8 +808,8 @@ This plugin now replace previous `plugin-testmode`
 
 **[UPGRADE]**  
 
-- delete depricated `lib/plugin-testmode.js` and `config/plugin-testmode.json`
-- edit index.js, replace tesmode with loki   
+- Delete depricated `lib/plugin-testmode.js` and `config/plugin-testmode.json`
+- Edit index.js, replace tesmode with loki   
 
 ### v0.4.2
 [Fix]  
