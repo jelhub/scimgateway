@@ -744,15 +744,17 @@ ALTER USER &lt;UserID&gt; DEACTIVATE;
   &quot;scimversion&quot;: &quot;2.0&quot;,
   ...
   &quot;auth&quot;: {
+    ...
+    &quot;bearer&quot;: {
+      &quot;token&quot;: &quot;shared-secret&quot;,
+      &quot;jwt&quot;: {
+        &quot;azure&quot;: {
+          &quot;tenantIdGUID&quot;: &quot;xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;
+        },
+    ...
+  },
   ...
-  &quot;bearer&quot;: {
-    &quot;token&quot;: &quot;shared-secret&quot;,
-    &quot;jwt&quot;: {
-      &quot;azure&quot;: {
-        &quot;tenantIdGUID&quot;: &quot;xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;
-      },
-  ...
-},
+}
 </code></pre>
 
 <p><code>bearer.token</code> configuration must correspond with &quot;Secret Token&quot; defined in Azure AD<br />
@@ -1091,7 +1093,7 @@ If we do not support groups, callback(null)</li>
 <h2>License</h2>
 <p>MIT</p>
 <h2>Change log</h2>
-<h3>v0.5.0</h3>
+<h3>v0.5.1</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
 <li>

@@ -468,15 +468,17 @@ Plugin configuration file must include scimversion "2.0" and either bearer.token
 	  "scimversion": "2.0",
 	  ...
 	  "auth": {
+	    ...
+        "bearer": {
+          "token": "shared-secret",
+          "jwt": {
+            "azure": {
+              "tenantIdGUID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            },
+	    ...
+      },
 	  ...
-      "bearer": {
-        "token": "shared-secret",
-        "jwt": {
-          "azure": {
-            "tenantIdGUID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-          },
-	  ...
-    },
+	}
 
 `bearer.token` configuration must correspond with "Secret Token" defined in Azure AD  
 `tenantIdGUID` configuration must correspond with Azure Active Directory Tenant ID  
@@ -823,7 +825,7 @@ MIT
 
 ## Change log  
 
-### v0.5.0  
+### v0.5.1  
 [ENHANCEMENT]  
 
 - One or more of following authentication/authorization methods are supported:  
