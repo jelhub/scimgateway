@@ -825,7 +825,7 @@ MIT
 
 ## Change log  
 
-### v0.5.1  
+### v0.5.2  
 [ENHANCEMENT]  
 
 - One or more of following authentication/authorization methods are supported:  
