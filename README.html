@@ -329,8 +329,7 @@ Using plugin &quot;Loki&quot; as a REST endpoint</p>
 <li>
 <p><strong>Forwardinc</strong> (SOAP Webservice)<br />
 Demonstrates user provisioning towards SOAP-Based endpoint <br />
-Using endpoint Forwardinc that comes with CA IM SDK (SDKWS) - please see <a href="https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements" title="wiki.ca.com">wiki.ca.com</a><br />
-Includes examples using signed SAML assertion for authentication or token request towards a Security Token Service <br />
+Using endpoint Forwardinc that comes with CA IM SDK (SDKWS) - please see <a href="https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements" title="wiki.ca.com">wiki.ca.com</a>  <br />
 Shows how to implement a higly configurable multi tenant or multi endpoint solution using &quot;baseEntity&quot; parameter  
 </p>
 </li>
@@ -394,11 +393,11 @@ npm update scimgateway
 </blockquote>
 <h2>Configuration</h2>
 <p><strong>index.js</strong> defines one or more plugins to be started. We could comment out those we do not need. Default configuration only starts the loki plugin.  </p>
-<pre><code>var loki = require('./lib/plugin-loki');
-// var restful = require('./lib/plugin-restful');
-// var forwardinc = require('./lib/plugin-forwardinc');
-// var mssql = require('./lib/plugin-mssql');
-// var saphana = require('./lib/plugin-saphana');
+<pre><code>const loki = require('./lib/plugin-loki')
+// const restful = require('./lib/plugin-restful')
+// const forwardinc = require('./lib/plugin-forwardinc')
+// const mssql = require('./lib/plugin-mssql')
+// const saphana = require('./lib/plugin-saphana')
 </code></pre>
 
 <p>Each endpoint plugin needs a javascript file (.js) and a configuration file (.json). <strong>They both must have the same naming suffix</strong>. For SAP Hana endpoint we have:  </p>
@@ -739,16 +738,29 @@ ALTER USER &lt;UserID&gt; DEACTIVATE;
 </code></pre>
 
 <h2>Microsoft Azure Active Directory</h2>
-<p>&quot;Early Stage Code&quot;  </p>
-<p>Plugin configuration file must include:</p>
-<pre><code>&quot;scimversion&quot;: &quot;2.0&quot;,
-&quot;oauth&quot;: {
-    &quot;accesstoken&quot;: &quot;&lt;password&gt;&quot;
+<p>Azure AD could do automatic user provisioning by synchronizing users towards ScimGateway, and ScimGateway plugins will update endpoints.</p>
+<p>Plugin configuration file must include scimversion &quot;2.0&quot; and either bearer.token or azure.tenantIdGUID (or both):  </p>
+<pre><code>{
+  &quot;scimversion&quot;: &quot;2.0&quot;,
+  ...
+  &quot;auth&quot;: {
+  ...
+  &quot;bearer&quot;: {
+    &quot;token&quot;: &quot;shared-secret&quot;,
+    &quot;jwt&quot;: {
+      &quot;azure&quot;: {
+        &quot;tenantIdGUID&quot;: &quot;xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;
+      },
+  ...
 },
 </code></pre>
 
-<p>Access token password must correspond with &quot;Secret Token&quot; defined in Azure AD</p>
-<p><code>Azure-Azure Active Directory-Enterprise Application-&lt;My Application&gt;-Provisioning-Secret Token</code></p>
+<p><code>bearer.token</code> configuration must correspond with &quot;Secret Token&quot; defined in Azure AD<br />
+<code>tenantIdGUID</code> configuration must correspond with Azure Active Directory Tenant ID  </p>
+<p>In Azure Portal:
+<code>Azure-Azure Active Directory-Enterprise Application-&lt;My Application&gt;-Provisioning-Secret Token</code><br />
+Note, when &quot;Secret Token&quot; is left blank, Azure will use JWT (tenantIdGUID)</p>
+<p><code>Azure-Azure Active Directory-Properties-Directory ID</code></p>
 <p>User mappings attributes between AD and SCIM also needs to be configured  </p>
 <p><code>Azure-Azure Active Directory-Enterprise Application-&lt;My Application&gt;-Provisioning-Mappings</code></p>
 <p>Azure AD default SCIM attribute mapping for <strong>USER</strong> have:  </p>
@@ -779,6 +791,13 @@ displayName mapped to displayName
 <p>Some notes related to Azure AD:  </p>
 <ul>
 <li>
+<p>Azure Active Directory SCIM <a href="https://docs.microsoft.com/en-us/azure/active-directory/active-directory-scim-provisioning">documentation</a>  
+</p>
+</li>
+<li>
+<p>Use the &quot;<a href="https://manage.windowsazure.com">old Portal</a>&quot; for adding/creating your SCIM application.  Adding an application using the &quot;<a href="https://portal.azure.com">new Portal</a>&quot; will not give an OAuth/JWT compatible app - only bearer token (Secret Token) will be used. After the app have been registered (passing the &quot;Test phase&quot;), we could start using the &quot;new Portal&quot;</p>
+</li>
+<li>
 <p>Azure AD do a regular check for a &quot;none&quot; existing user/group. This check seems to be a &quot;keep alive&quot; to verify connection.</p>
 </li>
 <li>
@@ -794,7 +813,7 @@ displayName mapped to displayName
 <p>For javascript coding editor you may use <a href="https://code.visualstudio.com/" title="Visual Studio Code">Visual Studio Code</a> </p>
 <p>Preparation:</p>
 <ul>
-<li>Copy <code>lib\plugin-loki.js</code> and <code>config\plugin-loki.json</code> and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) </li>
+<li>Copy &quot;best matching&quot; example plugin e.g. <code>lib\plugin-loki.js</code> and <code>config\plugin-loki.json</code> and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) </li>
 <li>Edit plugin-mine.json and define a unique port number for the scimgateway setting  </li>
 <li>Edit index.js and add a new line for starting your plugin e.g. <code>var mine = require('./lib/plugin-mine');</code>  </li>
 <li>Start ScimGateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  </li>

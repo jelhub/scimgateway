@@ -47,8 +47,7 @@ Using plugin "Loki" as a REST endpoint
 
 * **Forwardinc** (SOAP Webservice)  
 Demonstrates user provisioning towards SOAP-Based endpoint   
-Using endpoint Forwardinc that comes with CA IM SDK (SDKWS) - please see [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com")  
-Includes examples using signed SAML assertion for authentication or token request towards a Security Token Service   
+Using endpoint Forwardinc that comes with CA IM SDK (SDKWS) - please see [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com")    
 Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  
 
 * **MSSQL** (MSSQL Database)  
@@ -122,11 +121,11 @@ Upgrade to latest version:
 
 **index.js** defines one or more plugins to be started. We could comment out those we do not need. Default configuration only starts the loki plugin.  
 
-	var loki = require('./lib/plugin-loki');
-	// var restful = require('./lib/plugin-restful');
-	// var forwardinc = require('./lib/plugin-forwardinc');
-	// var mssql = require('./lib/plugin-mssql');
-	// var saphana = require('./lib/plugin-saphana');
+	const loki = require('./lib/plugin-loki')
+	// const restful = require('./lib/plugin-restful')
+	// const forwardinc = require('./lib/plugin-forwardinc')
+	// const mssql = require('./lib/plugin-mssql')
+	// const saphana = require('./lib/plugin-saphana')
 
   
 
@@ -460,18 +459,33 @@ SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provi
 	User Name = %$$TOUPPER(%AC%)%
 
 ## Microsoft Azure Active Directory  
-"Early Stage Code"  
 
-Plugin configuration file must include:
+Azure AD could do automatic user provisioning by synchronizing users towards ScimGateway, and ScimGateway plugins will update endpoints.
 
-	"scimversion": "2.0",
-    "oauth": {
-        "accesstoken": "<password>"
+Plugin configuration file must include scimversion "2.0" and either bearer.token or azure.tenantIdGUID (or both):  
+
+	{
+	  "scimversion": "2.0",
+	  ...
+	  "auth": {
+	  ...
+      "bearer": {
+        "token": "shared-secret",
+        "jwt": {
+          "azure": {
+            "tenantIdGUID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          },
+	  ...
     },
 
-Access token password must correspond with "Secret Token" defined in Azure AD
+`bearer.token` configuration must correspond with "Secret Token" defined in Azure AD  
+`tenantIdGUID` configuration must correspond with Azure Active Directory Tenant ID  
 
-`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Secret Token`
+In Azure Portal:
+`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Secret Token`  
+Note, when "Secret Token" is left blank, Azure will use JWT (tenantIdGUID)
+
+`Azure-Azure Active Directory-Properties-Directory ID`
 
 User mappings attributes between AD and SCIM also needs to be configured  
 
@@ -505,6 +519,10 @@ ScimGateway accepts externalId (as matching precedence) instead of displayName, 
 
 Some notes related to Azure AD:  
 
+- Azure Active Directory SCIM [documentation](https://docs.microsoft.com/en-us/azure/active-directory/active-directory-scim-provisioning)  
+
+- Use the "[old Portal]( https://manage.windowsazure.com)" for adding/creating your SCIM application.  Adding an application using the "[new Portal](https://portal.azure.com)" will not give an OAuth/JWT compatible app - only bearer token (Secret Token) will be used. After the app have been registered (passing the "Test phase"), we could start using the "new Portal"
+
 - Azure AD do a regular check for a "none" existing user/group. This check seems to be a "keep alive" to verify connection.
 
 - Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
@@ -517,7 +535,7 @@ For javascript coding editor you may use [Visual Studio Code](https://code.visua
 
 Preparation:
 
-* Copy `lib\plugin-loki.js` and `config\plugin-loki.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) 
+* Copy "best matching" example plugin e.g. `lib\plugin-loki.js` and `config\plugin-loki.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) 
 * Edit plugin-mine.json and define a unique port number for the scimgateway setting  
 * Edit index.js and add a new line for starting your plugin e.g. `var mine = require('./lib/plugin-mine');`  
 * Start ScimGateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  
