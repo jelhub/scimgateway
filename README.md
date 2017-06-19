@@ -13,7 +13,7 @@ Validated on:
 
 Latest News:  
 
-- Authentication/Authorization now also includes Standard JSON Web Token (JWT) and Azure JWT
+- Authentication/Authorization now includes Standard JSON Web Token (JWT) and Azure JWT
 - Running ScimGateway as a Docker container  
 
 ## Overview  
@@ -314,6 +314,7 @@ docker-compose**
 	**docker-compose.yml**   <== Here is where you would set the exposed port and environment  
 	**Dockerfile**   <== Main dockerfile  
 	**DataDockerfile**   <== Handles volume mapping   
+	**docker-compose-debug.yml** <== Debugging  
 
 
 
@@ -344,8 +345,6 @@ docker-compose**
 		ls loki.db  
 	
 
-
-
 To view the logs:  
 `docker logs scimgateway`
 
@@ -357,6 +356,10 @@ To stop scimgateway:
 
 To restart scimgateway:  
 `docker-compose start`
+
+To debug running container (using Visual Studio Code):  
+`docker-compose -f docker-compose.yml -f docker-compose-debug.yml up -d`  
+Start Visual Studio Code and follow [these](https://code.visualstudio.com/docs/nodejs/nodejs-debugging) debugging instructions  
 
 To upgrade scimgateway docker image (remove the old stuff before running docker-compose up --build):  
 

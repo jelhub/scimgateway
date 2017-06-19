@@ -294,12 +294,12 @@ img {
 <p>Validated on:  </p>
 <ul>
 <li>CA Identity Manager</li>
-<li>Microsoft Azure Active Directory (Early Stage Code)  </li>
+<li>Microsoft Azure Active Directory  </li>
 </ul>
 <p>Latest News:  </p>
 <ul>
+<li>Authentication/Authorization now includes Standard JSON Web Token (JWT) and Azure JWT</li>
 <li>Running ScimGateway as a Docker container  </li>
-<li>Plugin Loki for NoSQL Document-Oriented Database</li>
 </ul>
 <h2>Overview</h2>
 <p>With ScimGateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.  </p>
@@ -409,33 +409,49 @@ config\plugin-saphana.json</p>
 <p>Edit specific plugin configuration file according to your needs.<br />
 Below shows an example of config\plugin-saphana.json  </p>
 <pre><code>{
-    &quot;scimgateway&quot;: {
-        &quot;scimversion&quot;: &quot;1.1&quot;,
-        &quot;loglevel&quot;: &quot;error&quot;,
-        &quot;localhostonly&quot;: false,
-        &quot;port&quot;: 8884,
+  &quot;scimgateway&quot;: {
+    &quot;scimversion&quot;: &quot;1.1&quot;,
+    &quot;loglevel&quot;: &quot;debug&quot;,
+    &quot;localhostonly&quot;: false,
+    &quot;port&quot;: 8884,
+    &quot;auth&quot;: {
+      &quot;basic&quot;: {
         &quot;username&quot;: &quot;gwadmin&quot;,
-        &quot;password&quot;: &quot;password&quot;,
-        &quot;oauth&quot;: {
-            &quot;accesstoken&quot;: null
-        },
-        &quot;certificate&quot;: {
-            &quot;key&quot;: null,
-            &quot;cert&quot;: null,
-            &quot;ca&quot;: null,
-            &quot;pfx&quot;: {
-                &quot;bundle&quot;: null,
-                &quot;password&quot;: null
+        &quot;password&quot;: &quot;password&quot;
+      },
+      &quot;bearer&quot;: {
+        &quot;token&quot;: null,
+        &quot;jwt&quot;: {
+          &quot;azure&quot;: {
+            &quot;tenantIdGUID&quot;: null
+          },
+          &quot;standard&quot;: {
+            &quot;secret&quot;: null,
+            &quot;publicKey&quot;: null,
+            &quot;options&quot;: {
+              &quot;issuer&quot;: null
             }
+          }
         }
+      }
     },
-    &quot;endpoint&quot;: {
-        &quot;host&quot;: &quot;hostname&quot;,
-        &quot;port&quot;: 30015,
-        &quot;username&quot;: &quot;username&quot;,
-        &quot;password&quot;: &quot;password&quot;,
-        &quot;saml_provider&quot;: &quot;saml_provider_name&quot;
+    &quot;certificate&quot;: {
+      &quot;key&quot;: null,
+      &quot;cert&quot;: null,
+      &quot;ca&quot;: null,
+      &quot;pfx&quot;: {
+        &quot;bundle&quot;: null,
+        &quot;password&quot;: null
+      }
     }
+  },
+  &quot;endpoint&quot;: {
+    &quot;host&quot;: &quot;hostname&quot;,
+    &quot;port&quot;: 30015,
+    &quot;username&quot;: &quot;username&quot;,
+    &quot;password&quot;: &quot;password&quot;,
+    &quot;saml_provider&quot;: &quot;saml_provider_name&quot;
+  }
 }
 </code></pre>
 
@@ -448,7 +464,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>loglevel</strong> - error or debug. Output to console and logfile <code>logs\plugin-saphana.log</code> (debug not sent to console)  
+<p><strong>loglevel</strong> - error or debug. Output to console and logfile <code>logs\plugin-saphana.log</code> (debug not sent to console).  
 </p>
 </li>
 <li>
@@ -456,49 +472,69 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>port</strong> - (**) Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana </p>
-</li>
-<li>
-<p><strong>username</strong> - username used by clients for gateway authentication. For endpoint the username refers to endpoint authentication.  
+<p><strong>port</strong> - (**) Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
 </p>
 </li>
 <li>
-<p><strong>password</strong> - (**) password used by clients for gateway authentication. For endpoint the password refers to endpoint authentication. Note, we set a clear text password and when gateway is started this <strong>password will become encrypted and updated in the configuration file</strong>.  
+<p><strong>auth</strong> - Contains one or more authentication/authorization methods used by clients for for accessing gateway. <strong>Methods are disabled by setting corresponding attributes to null</strong>  
 </p>
 </li>
 <li>
-<p><strong>oauth</strong> - For Azure AD, define access token for OAuth2 bearer token (access token). This will be the password accepted by ScimGateway. Using standard OAuth key/secret/endpoints is not supported.  
+<p><strong>auth.basic</strong> - Basic Authentication with <strong>username<strong>/</strong>password</strong>. Note, we set a clear text password and when gateway is started password will become encrypted and updated in the configuration file.  
+</p>
+</li>
+<li>
+<p><strong>auth.bearer</strong> - Contains misc bearer token methods for authorization of client requests.  
+</p>
+</li>
+<li>
+<p><strong>auth.bearer.token</strong> - Shared token/secret (supported by Azure). Clear text value will become encrypted when gateway is started.  
+</p>
+</li>
+<li>
+<p><strong>auth.bearer.jwt</strong> - Contains misc JSON Web Token (JWT) methods for authorization.  
+</p>
+</li>
+<li>
+<p><strong>auth.bearer.jwt.azure</strong> - JWT used by Azure SyncFabric. <strong>tenantIdGUID</strong> must be set to Azure Active Directory Tenant ID.  
+</p>
+</li>
+<li>
+<p><strong>auth.bearer.jwt.standard</strong> - Standard JWT. Using <strong>secret</strong> or <strong>publicKey</strong> for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in <code>&lt;package-root&gt;\config\certs</code>. Clear text secret will become encrypted when gateway is started. <strong>options.issuer</strong> is mandatory. Other options may also be included according to jsonwebtoken npm package definition.   
 </p>
 </li>
 <li>
 <p><strong>certificate</strong> - If not using SSL/TLS certificate, set &quot;key&quot;, &quot;cert&quot; and &quot;ca&quot; to <strong>null</strong>. When using SSL/TLS, &quot;key&quot; and &quot;cert&quot; have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the <code>&lt;package-root&gt;\config\certs</code> directory e.g:  
 </p>
 <pre><code>&quot;certificate&quot;: {
-    &quot;key&quot;: &quot;key.pem&quot;,
-    &quot;cert&quot;: &quot;cert.pem&quot;,
-    &quot;ca&quot;: null
+  &quot;key&quot;: &quot;key.pem&quot;,
+  &quot;cert&quot;: &quot;cert.pem&quot;,
+  &quot;ca&quot;: null
 }  
 </code></pre>
 
-<p>Example of how to make a self signed certificate:<br />
-<code>openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj &quot;/O=Testing/OU=ScimGateway/CN=&lt;FQDN&gt;&quot;</code></p>
+<p>Example of how to make a self signed certificate:  
+</p>
+<pre><code>openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj &quot;/O=Testing/OU=ScimGateway/CN=&lt;FQDN&gt;&quot; -config &quot;&lt;path&gt;\openssl.cnf&quot;
+</code></pre>
+
 <p><code>&lt;FQDN&gt;</code> is Fully Qualified Domain Name of the host having ScimGateway installed</p>
 <p>Note, when using CA Provisioning, the &quot;certificate authority - CA&quot; also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  
 </p>
 <p>PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: </p>
 <pre><code>&quot;pfx&quot;: {
-    &quot;bundle&quot;: &quot;certbundle.pfx&quot;,
-    &quot;password&quot;: &quot;password&quot;
+  &quot;bundle&quot;: &quot;certbundle.pfx&quot;,
+  &quot;password&quot;: &quot;password&quot;
 }
 </code></pre>
 
 </li>
 <li>
-<p><strong>samlprovider</strong> - SAP Hana specific saml provider name. Users created in SAP Hana needs to have a saml provider defined.  
+<p><strong>endpoint</strong> - Contains endpoint specific configuration according to our plugin code.  
 </p>
 </li>
 </ul>
-<p>(**) Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable <code>SEED</code> will override default password seed. Setting the ScimGateway port in the configuartion file to <code>&quot;process.env.XXX&quot;</code> where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  </p>
+<p>(**) Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable <code>SEED</code> will override default password seed. Setting the ScimGateway port in the configuration file to <code>&quot;process.env.XXX&quot;</code> where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  </p>
 <pre><code>    &quot;scimgateway&quot;: {
         ...
         &quot;port&quot;: &quot;process.env.PORT&quot;,
@@ -565,7 +601,8 @@ cp ./config/docker/* .
 
 <p><strong>docker-compose.yml</strong>   &lt;== Here is where you would set the exposed port and environment<br />
 <strong>Dockerfile</strong>   &lt;== Main dockerfile<br />
-<strong>DataDockerfile</strong>   &lt;== Handles volume mapping   
+<strong>DataDockerfile</strong>   &lt;== Handles volume mapping <br />
+<strong>docker-compose-debug.yml</strong> &lt;== Debugging  
 </p>
 </li>
 <li>
@@ -584,7 +621,7 @@ cp ./config/docker/* .
 </li>
 <li>
 <p>Copy your updated configuration file e.g. scimgateway/config/plugin-loki.json to /home/scimgateway/config.  Use scp to perform the copy.</p>
-<p>NOTE: /home/scimgateway/config is where all of important configuration and loki datastore will reside.  <strong>Outside of the running docker container.  If you upgrade scimgateway you won't loose you configurations and data.</strong></p>
+<p>NOTE: /home/scimgateway/config is where all of important configuration and loki datastore will reside outside of the running docker container.  If you upgrade scimgateway you won't loose you configurations and data.</p>
 </li>
 <li>
 <p>Build docker images and start it up  
@@ -611,6 +648,9 @@ ls loki.db
 <code>docker-compose stop</code></p>
 <p>To restart scimgateway:<br />
 <code>docker-compose start</code></p>
+<p>To debug running container (using Visual Studio Code):<br />
+<code>docker-compose -f docker-compose.yml -f docker-compose-debug.yml up -d</code><br />
+Start Visual Studio Code and follow <a href="https://code.visualstudio.com/docs/nodejs/nodejs-debugging">these</a> debugging instructions  </p>
 <p>To upgrade scimgateway docker image (remove the old stuff before running docker-compose up --build):  </p>
 <pre><code>docker rm scimgateway  
 docker rm $(docker ps -a -q); docker rmi $(docker images -q -f &quot;dangling=true&quot;)  
@@ -746,7 +786,7 @@ displayName mapped to displayName
 </p>
 </li>
 <li>
-<p>Deleting a user i Azure AD sends a modify user <code>{&quot;active&quot;:&quot;False&quot;}</code> which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM &quot;DELETE&quot; method is not used.  
+<p>Deleting a user in Azure AD sends a modify user <code>{&quot;active&quot;:&quot;False&quot;}</code> which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM &quot;DELETE&quot; method seems not to be used.  
 </p>
 </li>
 </ul>
@@ -1014,7 +1054,7 @@ If we do not support groups, callback(null)</li>
 <h2>Known limitations</h2>
 <ul>
 <li>
-<p>Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ingnored unless soap WSSecurityCert functionality is needed in custom plugin code.  
+<p>Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ignored unless soap WSSecurityCert functionality is needed in custom plugin code.  
 </p>
 </li>
 <li>
@@ -1032,6 +1072,36 @@ If we do not support groups, callback(null)</li>
 <h2>License</h2>
 <p>MIT</p>
 <h2>Change log</h2>
+<h3>v0.5.0</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>
+One or more of following authentication/authorization methods are supported:  
+
+<ul>
+<li>Basic Authentication</li>
+<li>Bearer token - shared secret</li>
+<li>Bearer token - Standard JSON Web Token (JWT)</li>
+<li>Bearer token - Azure JSON Web Token (JWT) </li>
+</ul>
+</li>
+</ul>
+<p><strong>[UPGRADE]</strong>  </p>
+<ul>
+<li>
+Configuration files for custom plugins <code>config/plugin-xxx.json</code> needs to be updated regarding the new <code>scimgateway.auth</code> section:  
+
+<ul>
+<li>Copy scimgateway.auth section from one of the example plugins</li>
+<li>Copy existing scimgateway.username value to new auth.basic.username value</li>
+<li>Copy existing scimgateway.password value to new auth.basic.username value</li>
+<li>Copy existing scimgateway.oauth.accesstoken value to new auth.bearer.token value</li>
+<li>Delete scimgateway.username</li>
+<li>Delete scimgateway.password</li>
+<li>Delete scimgateway.oauth</li>
+</ul>
+</li>
+</ul>
 <h3>v0.4.6</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
@@ -1069,8 +1139,8 @@ This plugin now replace previous <code>plugin-testmode</code><br />
 </ul>
 <p><strong>[UPGRADE]</strong>  </p>
 <ul>
-<li>delete depricated <code>lib/plugin-testmode.js</code> and <code>config/plugin-testmode.json</code></li>
-<li>edit index.js, replace tesmode with loki   </li>
+<li>Delete depricated <code>lib/plugin-testmode.js</code> and <code>config/plugin-testmode.json</code></li>
+<li>Edit index.js, replace tesmode with loki   </li>
 </ul>
 <h3>v0.4.2</h3>
 <p>[Fix]  </p>

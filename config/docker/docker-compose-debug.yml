@@ -1,0 +1,6 @@
+version: '2'
+services:
+  scimgateway:
+    ports:
+      - "8880:8880"
+      - "5858:5858"
