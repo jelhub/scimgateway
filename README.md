@@ -9,12 +9,12 @@ Author: Jarle Elshaug
 Validated on:  
 
 - CA Identity Manager
-- Microsoft Azure Active Directory (Early Stage Code)  
+- Microsoft Azure Active Directory  
 
 Latest News:  
 
+- Authentication/Authorization now also includes Standard JSON Web Token (JWT) and Azure JWT
 - Running ScimGateway as a Docker container  
-- Plugin Loki for NoSQL Document-Oriented Database
 
 ## Overview  
  
@@ -139,33 +139,49 @@ Edit specific plugin configuration file according to your needs.
 Below shows an example of config\plugin-saphana.json  
   
 	{
-	    "scimgateway": {
-	        "scimversion": "1.1",
-	        "loglevel": "error",
-	        "localhostonly": false,
-	        "port": 8884,
+	  "scimgateway": {
+	    "scimversion": "1.1",
+	    "loglevel": "debug",
+	    "localhostonly": false,
+	    "port": 8884,
+	    "auth": {
+	      "basic": {
 	        "username": "gwadmin",
-	        "password": "password",
-	        "oauth": {
-                "accesstoken": null
-            },
-	        "certificate": {
-	            "key": null,
-	            "cert": null,
-	            "ca": null,
-	            "pfx": {
-	                "bundle": null,
-	                "password": null
+	        "password": "password"
+	      },
+	      "bearer": {
+	        "token": null,
+	        "jwt": {
+	          "azure": {
+	            "tenantIdGUID": null
+	          },
+	          "standard": {
+	            "secret": null,
+	            "publicKey": null,
+	            "options": {
+	              "issuer": null
 	            }
+	          }
 	        }
+	      }
 	    },
-	    "endpoint": {
-	        "host": "hostname",
-	        "port": 30015,
-	        "username": "username",
-	        "password": "password",
-	        "saml_provider": "saml_provider_name"
+	    "certificate": {
+	      "key": null,
+	      "cert": null,
+	      "ca": null,
+	      "pfx": {
+	        "bundle": null,
+	        "password": null
+	      }
 	    }
+	  },
+	  "endpoint": {
+	    "host": "hostname",
+	    "port": 30015,
+	    "username": "username",
+	    "password": "password",
+	    "saml_provider": "saml_provider_name"
+	  }
 	}
 
 
@@ -177,28 +193,37 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 - **scimversion** - 1.1 or 2.0. Default is 1.1. For Azure AD 2.0 should be used.  
 
-- **loglevel** - error or debug. Output to console and logfile `logs\plugin-saphana.log` (debug not sent to console)  
+- **loglevel** - error or debug. Output to console and logfile `logs\plugin-saphana.log` (debug not sent to console).  
 
 - **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the CA Connector Server).  
 
-- **port** - (**) Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana 
+- **port** - (**) Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
 
-- **username** - username used by clients for gateway authentication. For endpoint the username refers to endpoint authentication.  
+- **auth** - Contains one or more authentication/authorization methods used by clients for for accessing gateway. **Methods are disabled by setting corresponding attributes to null**  
 
-- **password** - (**) password used by clients for gateway authentication. For endpoint the password refers to endpoint authentication. Note, we set a clear text password and when gateway is started this **password will become encrypted and updated in the configuration file**.  
+- **auth.basic** - Basic Authentication with **username**/**password**. Note, we set a clear text password and when gateway is started password will become encrypted and updated in the configuration file.  
 
-- **oauth** - For Azure AD, define access token for OAuth2 bearer token (access token). This will be the password accepted by ScimGateway. Using standard OAuth key/secret/endpoints is not supported.  
+- **auth.bearer** - Contains misc bearer token methods for authorization of client requests.  
+
+- **auth.bearer.token** - Shared token/secret (supported by Azure). Clear text value will become encrypted when gateway is started.  
+
+- **auth.bearer.jwt** - Contains misc JSON Web Token (JWT) methods for authorization.  
+
+- **auth.bearer.jwt.azure** - JWT used by Azure SyncFabric. **tenantIdGUID** must be set to Azure Active Directory Tenant ID.  
+
+- **auth.bearer.jwt.standard** - Standard JWT. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs`. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.   
 
 - **certificate** - If not using SSL/TLS certificate, set "key", "cert" and "ca" to **null**. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the `<package-root>\config\certs` directory e.g:  
   
 		"certificate": {
-			"key": "key.pem",
-			"cert": "cert.pem",
-			"ca": null
+		  "key": "key.pem",
+		  "cert": "cert.pem",
+		  "ca": null
 		}  
   
     Example of how to make a self signed certificate:  
-  `openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj "/O=Testing/OU=ScimGateway/CN=<FQDN>"`
+
+		openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj "/O=Testing/OU=ScimGateway/CN=<FQDN>" -config "<path>\openssl.cnf"
 
     `<FQDN>` is Fully Qualified Domain Name of the host having ScimGateway installed
   
@@ -207,14 +232,15 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
     PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: 
 
         "pfx": {
-            "bundle": "certbundle.pfx",
-            "password": "password"
+          "bundle": "certbundle.pfx",
+          "password": "password"
         }
 
 
-- **samlprovider** - SAP Hana specific saml provider name. Users created in SAP Hana needs to have a saml provider defined.  
+- **endpoint** - Contains endpoint specific configuration according to our plugin code.  
+  
 
-  (**) Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable `SEED` will override default password seed. Setting the ScimGateway port in the configuartion file to `"process.env.XXX"` where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  
+  (**) Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable `SEED` will override default password seed. Setting the ScimGateway port in the configuration file to `"process.env.XXX"` where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  
 
 	    "scimgateway": {
 			...
@@ -775,6 +801,27 @@ MIT
 
 
 ## Change log  
+
+### v0.5.0  
+[ENHANCEMENT]  
+
+- One or more of following authentication/authorization methods are supported:  
+  - Basic Authentication
+  - Bearer token - shared secret
+  - Bearer token - Standard JSON Web Token (JWT)
+  - Bearer token - Azure JSON Web Token (JWT) 
+
+**[UPGRADE]**  
+
+- Configuration files for custom plugins `config/plugin-xxx.json` needs to be updated regarding the new `scimgateway.auth` section:  
+	- Copy scimgateway.auth section from one of the example plugins
+	- Copy existing scimgateway.username value to new auth.basic.username value
+	- Copy existing scimgateway.password value to new auth.basic.username value
+	- Copy existing scimgateway.oauth.accesstoken value to new auth.bearer.token value
+	- Delete scimgateway.username
+	- Delete scimgateway.password
+	- Delete scimgateway.oauth
+
 
 ### v0.4.6  
 [ENHANCEMENT]  

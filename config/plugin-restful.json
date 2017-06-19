@@ -4,10 +4,26 @@
     "loglevel": "debug",
     "localhostonly": false,
     "port": 8886,
-    "username": "gwadmin",
-    "password": "password",
-    "oauth": {
-      "accesstoken": null
+    "auth": {
+      "basic": {
+        "username": "gwadmin",
+        "password": "password"
+      },
+      "bearer": {
+        "token": null,
+        "jwt": {
+          "azure": {
+            "tenantIdGUID": null
+          },
+          "standard": {
+            "secret": null,
+            "publicKey": null,
+            "options": {
+              "issuer": null
+            }
+          }
+        }
+      }
     },
     "certificate": {
       "key": null,
