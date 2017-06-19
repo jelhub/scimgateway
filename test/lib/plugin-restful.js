@@ -293,7 +293,6 @@ describe('plugin-restful tests', () => {
     it('createGroup test', (done) => {
         let newGroup = {
             displayName: 'GoGoRest',
-            id: 'GoGoRest',
             externalId: undefined,
             members: [{
                 value: 'bjensen'

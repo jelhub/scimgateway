@@ -1,36 +1,52 @@
 {
-    "scimgateway": {
-        "scimversion": "1.1",
-        "loglevel": "debug",
-        "localhostonly": false,
-        "port": 8886,
+  "scimgateway": {
+    "scimversion": "1.1",
+    "loglevel": "debug",
+    "localhostonly": false,
+    "port": 8886,
+    "auth": {
+      "basic": {
         "username": "gwadmin",
-        "password": "password",
-        "oauth": {
-            "accesstoken": null
-        },
-        "certificate": {
-            "key": null,
-            "cert": null,
-            "ca": null,
-            "pfx": {
-                "bundle": null,
-                "password": null
+        "password": "password"
+      },
+      "bearer": {
+        "token": null,
+        "jwt": {
+          "azure": {
+            "tenantIdGUID": null
+          },
+          "standard": {
+            "secret": null,
+            "publicKey": null,
+            "options": {
+              "issuer": null
             }
+          }
         }
+      }
     },
-    "endpoint": {
-        "entity": {
-            "undefined": {
-                "baseUrl": "http://localhost:8880",
-                "username": "gwadmin",
-                "password": "password"
-            },
-            "clientA": {
-                "baseUrl": "http://localhost:8880",
-                "username": "gwadmin",
-                "password": "password"
-            }
-        }
+    "certificate": {
+      "key": null,
+      "cert": null,
+      "ca": null,
+      "pfx": {
+        "bundle": null,
+        "password": null
+      }
     }
+  },
+  "endpoint": {
+    "entity": {
+      "undefined": {
+        "baseUrl": "http://localhost:8880",
+        "username": "gwadmin",
+        "password": "password"
+      },
+      "clientA": {
+        "baseUrl": "http://localhost:8880",
+        "username": "gwadmin",
+        "password": "password"
+      }
+    }
+  }
 }

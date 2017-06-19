@@ -1,29 +1,45 @@
 {
-    "scimgateway": {
-        "scimversion": "1.1",
-        "loglevel": "error",
-        "localhostonly": false,
-        "port": 8884,
+  "scimgateway": {
+    "scimversion": "1.1",
+    "loglevel": "debug",
+    "localhostonly": false,
+    "port": 8884,
+    "auth": {
+      "basic": {
         "username": "gwadmin",
-        "password": "password",
-        "oauth": {
-            "accesstoken": null
-        },
-        "certificate": {
-            "key": null,
-            "cert": null,
-            "ca": null,
-            "pfx": {
-                "bundle": null,
-                "password": null
+        "password": "password"
+      },
+      "bearer": {
+        "token": null,
+        "jwt": {
+          "azure": {
+            "tenantIdGUID": null
+          },
+          "standard": {
+            "secret": null,
+            "publicKey": null,
+            "options": {
+              "issuer": null
             }
+          }
         }
+      }
     },
-    "endpoint": {
-        "host": "hostname",
-        "port": 30015,
-        "username": "username",
-        "password": "password",
-        "saml_provider": "saml_provider_name"
+    "certificate": {
+      "key": null,
+      "cert": null,
+      "ca": null,
+      "pfx": {
+        "bundle": null,
+        "password": null
+      }
     }
+  },
+  "endpoint": {
+    "host": "hostname",
+    "port": 30015,
+    "username": "username",
+    "password": "password",
+    "saml_provider": "saml_provider_name"
+  }
 }

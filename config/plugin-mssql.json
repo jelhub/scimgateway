@@ -1,37 +1,53 @@
 {
-    "scimgateway": {
-        "scimversion": "1.1",
-        "loglevel": "debug",
-        "localhostonly": false,
-        "port": 8888,
+  "scimgateway": {
+    "scimversion": "1.1",
+    "loglevel": "debug",
+    "localhostonly": false,
+    "port": 8888,
+    "auth": {
+      "basic": {
         "username": "gwadmin",
-        "password": "password",
-        "oauth": {
-            "accesstoken": null
-        },
-        "certificate": {
-            "key": null,
-            "cert": null,
-            "ca": null,
-            "pfx": {
-                "bundle": null,
-                "password": null
-            }
-        }
-    },
-    "endpoint": {
-        "connection": {
-            "server": "mssql-host",
-            "userName": "sa",
-            "password": "password",
+        "password": "password"
+      },
+      "bearer": {
+        "token": null,
+        "jwt": {
+          "azure": {
+            "tenantIdGUID": null
+          },
+          "standard": {
+            "secret": null,
+            "publicKey": null,
             "options": {
-                "instanceName": null,
-                "port": 1433,
-                "database": "MyDatabase",
-                "useColumnNames": true,
-                "rowCollectionOnRequestCompletion": true,
-                "encrypt": false
+              "issuer": null
             }
+          }
         }
+      }
+    },
+    "certificate": {
+      "key": null,
+      "cert": null,
+      "ca": null,
+      "pfx": {
+        "bundle": null,
+        "password": null
+      }
     }
+  },
+  "endpoint": {
+    "connection": {
+      "server": "mssql-host",
+      "userName": "sa",
+      "password": "password",
+      "options": {
+        "instanceName": null,
+        "port": 1433,
+        "database": "MyDatabase",
+        "useColumnNames": true,
+        "rowCollectionOnRequestCompletion": true,
+        "encrypt": false
+      }
+    }
+  }
 }

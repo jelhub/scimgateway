@@ -297,7 +297,6 @@ describe('plugin-loki tests', () => {
     it('createGroup test', (done) => {
         let newGroup = {
             displayName: 'GoGoLoki',
-            id: 'GoGoLoki',
             externalId: undefined,
             members: [{
                 value: 'bjensen'
