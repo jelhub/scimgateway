@@ -1,0 +1,47 @@
+{
+  "scimgateway": {
+    "scimversion": "1.1",
+    "loglevel": "debug",
+    "localhostonly": false,
+    "port": 8890,
+    "auth": {
+      "basic": {
+        "username": "gwadmin",
+        "password": "password"
+      },
+      "bearer": {
+        "token": null,
+        "jwt": {
+          "azure": {
+            "tenantIdGUID": null
+          },
+          "standard": {
+            "secret": null,
+            "publicKey": null,
+            "options": {
+              "issuer": null
+            }
+          }
+        }
+      }
+    },
+    "certificate": {
+      "key": null,
+      "cert": null,
+      "ca": null,
+      "pfx": {
+        "bundle": null,
+        "password": null
+      }
+    }
+  },
+  "endpoint": {
+    "entity": {
+      "undefined": {
+        "baseUrl": "http://fakerestapi.azurewebsites.net/",
+        "username": "userid",
+        "password": "password"
+      }
+    }
+  }
+}

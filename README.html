@@ -298,7 +298,8 @@ img {
 </ul>
 <p>Latest News:  </p>
 <ul>
-<li>Authentication/Authorization now includes Standard JSON Web Token (JWT) and Azure JWT</li>
+<li>Now also includes api gateway for general none provisioning (becomes what you want it to become)</li>
+<li>Authentication includes Standard JSON Web Token (JWT) and Azure JWT</li>
 <li>Running ScimGateway as a Docker container  </li>
 </ul>
 <h2>Overview</h2>
@@ -342,6 +343,25 @@ Demonstrates user provisioning towards MSSQL database
 <p><strong>SAP HANA</strong> (SAP HANA Database)<br />
 Demonstrates SAP HANA specific user provisioning  
 </p>
+</li>
+<li>
+<p><strong>API</strong> (REST Webservies)<br />
+Demonstrates api gateway functionality<br />
+None SCIM plugin, becomes what you want it to become.<br />
+post/put/patch/get/delete using external REST.<br />
+Endpoint complexity could be put in this plugin, and client could instead communicate through ScimGateway using your own simplified REST specification.<br />
+One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager  
+</p>
+<pre><code>ScimGateway supports following /api methods:  
+GET /api  
+GET /api?queries  
+GET /api/{id}  
+POST /api + body  
+PUT /api/{id} + body  
+PATCH /api/{id} + body  
+DELETE /api/{id}  
+</code></pre>
+
 </li>
 </ul>
 <h2>Installation</h2>
@@ -1093,6 +1113,24 @@ If we do not support groups, callback(null)</li>
 <h2>License</h2>
 <p>MIT</p>
 <h2>Change log</h2>
+<h3>v0.5.3</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>
+Includes api gateway for general none provisioning  
+
+<ul>
+<li>GET /api</li>
+<li>GET /api?queries</li>
+<li>GET /api/{id}</li>
+<li>POST /api + body</li>
+<li>PUT /api/{id} + body</li>
+<li>PATCH /api/{id} + body</li>
+<li>DELETE /api/{id}</li>
+</ul>
+</li>
+<li>plugin-api.js demonstrates api functionallity (becomes what you want it to become) </li>
+</ul>
 <h3>v0.5.2</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>

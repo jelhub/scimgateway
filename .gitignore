@@ -1,4 +1,5 @@
 ﻿.DS_Store
+package-lock.json
 uml.txt
 typings.json
 jsconfig.json
