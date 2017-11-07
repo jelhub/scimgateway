@@ -11,10 +11,10 @@ Validated on:
 - CA Identity Manager
 - Microsoft Azure Active Directory  
 
-Latest News:  
+Latest news:  
 
 - Now also includes api gateway for general none provisioning (becomes what you want it to become)
-- Authentication includes Standard JSON Web Token (JWT) and Azure JWT
+- Authentication includes standard JSON Web Token (JWT) and Azure JWT
 - Running ScimGateway as a Docker container  
 
 ## Overview  
@@ -142,7 +142,7 @@ Upgrade to latest version:
 	// const forwardinc = require('./lib/plugin-forwardinc')
 	// const mssql = require('./lib/plugin-mssql')
 	// const saphana = require('./lib/plugin-saphana')
-
+	// const api = require('./lib/plugin-api')
   
 
 Each endpoint plugin needs a javascript file (.js) and a configuration file (.json). **They both must have the same naming suffix**. For SAP Hana endpoint we have:  
