@@ -13,5 +13,6 @@ const loki = require('./lib/plugin-loki')
 // const restful = require('./lib/plugin-restful')
 // const forwardinc = require('./lib/plugin-forwardinc')
 // const mssql = require('./lib/plugin-mssql')
-// const saphana = require('./lib/plugin-saphana')
+// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb --save
 // const api = require('./lib/plugin-api')
+// const azureAD= require('./lib/plugin-azure-ad')

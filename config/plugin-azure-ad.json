@@ -1,0 +1,48 @@
+{
+  "scimgateway": {
+    "scimversion": "1.1",
+    "loglevel": "debug",
+    "localhostonly": false,
+    "port": 8881,
+    "auth": {
+      "basic": {
+        "username": "gwadmin",
+        "password": "password"
+      },
+      "bearer": {
+        "token": null,
+        "jwt": {
+          "azure": {
+            "tenantIdGUID": null
+          },
+          "standard": {
+            "secret": null,
+            "publicKey": null,
+            "options": {
+              "issuer": null
+            }
+          }
+        }
+      }
+    },
+    "certificate": {
+      "key": null,
+      "cert": null,
+      "ca": null,
+      "pfx": {
+        "bundle": null,
+        "password": null
+      }
+    }
+  },
+  "endpoint": {
+    "entity": {
+      "undefined": {
+        "proxy": null,
+        "tenantIdGUID": "DomanName or DirectoryID (GUID)",
+        "clientId": "Applicatin ID",
+        "clientSecret": "Generated application key value"
+      }
+    }
+  }
+}
