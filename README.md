@@ -13,7 +13,7 @@ Validated on:
 
 Latest news:  
 
-- Implement Azure AD user provisioning including license management e.g. O365 within minutes
+- Azure AD user provisioning including license management (e.g. Office 365) installed and configured within minutes
 - API gateway for general none provisioning (becomes what you want it to become)
 - Authentication includes standard JSON Web Token (JWT) and Azure JWT
 - Running ScimGateway as a Docker container  
@@ -493,7 +493,7 @@ SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provi
 ## Azure Active Directory endpoint details  
 Using plugin-azure-ad we could do user provisioning towards Azure AD including license management e.g. O365  
 
-**Azure AD prerequisites:**  
+**Azure AD prerequisites**  
 
 - Logon to [Azure](https://portal.azure.com) as global administrator  
 - Azure Active Directory - properties
@@ -515,7 +515,7 @@ Using plugin-azure-ad we could do user provisioning towards Azure AD including l
 		- Click "Save"
 		- Copy Key1 **"value"**" (client secret)
 
-**For password management, the application needs to be member of "User Account Administrator" when running behalf of application rather than user:** 
+**Application needs to be member of "User Account Administrator" when running behalf of application rather than user** 
  
 - Start Powershell command window
 - Install the [Azure AD Module](https://docs.microsoft.com/en-us/powershell/msonline/) (if not already installed)  
@@ -548,9 +548,9 @@ For for multi-tenant or multi-endpoint support, see baseEntity description.
 	  }
 	}
 
-Note, clientSecret will become encrypted in this file on first Azure connection.
+Note, clientSecret will become encrypted in this file on the first Azure connection.
 
-**For CA Provisioning, create endpoint type "Azure - ScimGateway":**  
+**For CA Provisioning, create endpoint type "Azure - ScimGateway"**  
 
 - Start ScimGateway
 	- "const azureAD" must be uncomment in `index.js`
@@ -960,7 +960,9 @@ MIT
 
 [ENHANCEMENT]  
 
-- plugin-azure-ad.js for Azure AD user provisioning including Azure license management e.g. O365
+- New plugin-azure-ad.js for Azure AD user provisioning including Azure license management e.g. Office 365
+- Including latest versions of module dependencies
+- Module hdb (for SapHana) and saml is not included by default anymore and have to be manually installed if needed. 
 
 **[UPGRADE]**  
 Method `getGroupMembers` needs to be updated for all custom plugins
