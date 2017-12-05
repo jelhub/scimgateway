@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "0.5.3",
+  "version": "1.0.0",
   "description": "SCIM Gateway",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
   "license": "MIT",
@@ -31,22 +31,22 @@
     "node": "6.8.0"
   },
   "dependencies": {
-    "async": "^2.4.1",
-    "basic-auth": "^1.1.0",
+    "async": "^2.6.0",
+    "basic-auth": "^2.0.0",
     "callsite": "^1.0.0",
-    "dot-object": "^1.5.4",
-    "express": "^4.15.2",
+    "dot-object": "^1.7.0",
+    "express": "^4.16.2",
     "express-bearer-token": "^2.1.0",
-    "jsonwebtoken": "^7.4.1",
-    "lokijs": "^1.5.0",
-    "morgan": "^1.8.1",
-    "node-machine-id": "1.1.4",
-    "passport": "^0.3.2",
-    "passport-azure-ad": "^3.0.6",
+    "jsonwebtoken": "^8.1.0",
+    "lokijs": "^1.5.1",
+    "morgan": "^1.9.0",
+    "node-machine-id": "1.1.9",
+    "passport": "^0.4.0",
+    "passport-azure-ad": "^3.0.8",
     "request": "^2.83.0",
-    "soap": "^0.18.0",
-    "tedious": "^1.15.0",
-    "winston": "^2.3.1"
+    "soap": "^0.23.0",
+    "tedious": "^2.1.5",
+    "winston": "^2.4.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
