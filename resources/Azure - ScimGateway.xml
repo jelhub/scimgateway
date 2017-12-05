@@ -5760,7 +5760,7 @@ function init(FieldContext)
             </metadata>
             <metadata name="connectorMapTo">
                 <value>
-                    <strValue>ServicePlan</strValue>
+                    <strValue>servicePlan</strValue>
                 </value>
             </metadata>
             <metadata name="isDeletable">
