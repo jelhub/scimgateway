@@ -1324,8 +1324,6 @@
         <enum name="AuthenticationMethod">
             <doc></doc>
             <val ordinal="1" displayName="HTTP Basic Authentication">1</val>
-            <val ordinal="2" displayName="OAuth 2.0 with Resource Owner Password">2</val>
-            <val ordinal="3" displayName="OAuth 2.0 with Client Credentials">3</val>
         </enum>
         <enum name="Groups">
             <val displayName="Login">ACCOUNT_LOGIN</val>
@@ -2006,7 +2004,7 @@
             <property name="eTDYNUser">
                 <doc>ScimGateway User Name</doc>
                 <value default="true">
-                    <strValue>gwadmin</strValue>
+                    <strValue></strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
@@ -2078,7 +2076,7 @@
             <property name="eTDYN-str-multi-ca-01">
                 <doc>Authentication method required by the SCIM endpoint - HTTP Basic, OAuth with Resource Owner Password or OAuth with Client Credentials</doc>
                 <value default="true">
-                    <enumValue def="AuthenticationMethod">3</enumValue>
+                    <enumValue def="AuthenticationMethod">1</enumValue>
                 </value>
                 <metadata name="displayName">
                     <value>
@@ -2116,37 +2114,6 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-ca-02">
-                <doc>Endpoint URL</doc>
-                <value>
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Endpoint URL</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>url</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>url</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isConnection">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
             <property name="eTDYN-str-multi-ca-03">
                 <doc>Specifies the URI that ScimGateway will be using to connect to the ScimGateway endpoint</doc>
                 <value>
@@ -2170,195 +2137,6 @@ function init(FieldContext)
                 <metadata name="isRequired">
                     <value>
                         <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isConnection">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-ca-04">
-                <doc>The SCIM OAuth token endpoint URL when OAuth is used</doc>
-                <value>
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>SCIM OAuth Token Endpoint URL</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>oauthURL</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>oauthURL</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isConnection">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-ca-05">
-                <doc>The client ID you receive after you registered your application for OAuth with the OAuth authorization server</doc>
-                <value>
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>SCIM OAuth Client ID</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>clientID</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>clientID</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isConnection">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-ca-06">
-                <doc>The client secret you receive after you registered your application for OAuth with the OAuth authorization server</doc>
-                <value>
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>SCIM OAuth Client Secret</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>clientSecret</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>clientSecret</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isConnection">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isEncrypted">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isWriteOnly">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-ca-07">
-                <doc>The scope of the OAuth access request expressed as a list of space-delimited, case sensitive strings. The value is defined by the authorization server.</doc>
-                <value>
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>SCIM OAuth Scope (optional)</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>oauthScope</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>oauthScope</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isConnection">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-ca-08">
-                <doc>The additional OAuth parameters that are needed by the OAuth endpoint</doc>
-                <value>
-                    <setValue>
-                        <baseType>
-                            <compoundValueClassRef classRef="CustomParameter"></compoundValueClassRef>
-                        </baseType>
-                    </setValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>OAuth Additional Parameters</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>oauthParameters</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>oauthParameters</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isConnection">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-ca-09">
-                <doc>Custom Properties for some endpoints (e.g. ScimGateway endpoints)</doc>
-                <value>
-                    <setValue>
-                        <baseType>
-                            <compoundValueClassRef classRef="CustomParameter"></compoundValueClassRef>
-                        </baseType>
-                    </setValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Custom Properties</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>customProperties</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>customProperties</strValue>
                     </value>
                 </metadata>
                 <metadata name="isConnection">
@@ -2786,7 +2564,7 @@ function init(FieldContext)
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Account ID</strValue>
+                        <strValue>User Principal Name</strValue>
                     </value>
                 </metadata>
                 <metadata name="isNaming">
@@ -2830,29 +2608,19 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-04">
+            <property name="eTDYN-str-multi-09">
                 <doc></doc>
                 <value default="false">
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Department</strValue>
+                        <strValue>Id</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>department</strValue>
-                    </value>
-                </metadata>
-                <metadata name="defaultPolicyValue">
-                    <value>
-                        <strValue>%UDEPT%</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWellKnown">
-                    <value>
-                        <boolValue>true</boolValue>
+                        <strValue>id2</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -2862,7 +2630,12 @@ function init(FieldContext)
                 </metadata>
                 <metadata name="connectorMapTo">
                     <value>
-                        <strValue>department</strValue>
+                        <strValue>id</strValue>
+                    </value>
+                </metadata>
+                <metadata name="writableBy">
+                    <value>
+                        <strValue></strValue>
                     </value>
                 </metadata>
             </property>
@@ -2897,80 +2670,34 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-08">
-                <doc></doc>
-                <value default="false">
-                    <boolValue>false</boolValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Force Change Password Next Login</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>forceChangePasswordNextLogin</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>passwordProfile.forceChangePasswordNextSignIn</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWriteOnly">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isStoreSymbolic">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="boolValues">
-                    <value>
-                        <sequenceValue>
-                            <baseType>
-<strValue></strValue>
-                            </baseType>
-                            <val>
-<strValue>false</strValue>
-                            </val>
-                            <val>
-<strValue>true</strValue>
-                            </val>
-                        </sequenceValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-09">
+            <property name="eTDYN-str-multi-14">
                 <doc></doc>
                 <value default="false">
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Id</strValue>
+                        <strValue>E-mail</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>mail</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>id2</strValue>
+                        <strValue>emailAddress</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
                     <value>
                         <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>id</strValue>
                     </value>
                 </metadata>
                 <metadata name="writableBy">
@@ -2979,19 +2706,44 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-11">
-                <doc></doc>
-                <value default="false">
-                    <flexiStrValue type="DN"></flexiStrValue>
+            <property name="eTSuspended">
+                <doc>A Boolean value indicating the User's administrative status.</doc>
+                <value default="true">
+                    <boolValue>false</boolValue>
                 </value>
+                <metadata name="boolValues">
+                    <value>
+                        <sequenceValue>
+                            <baseType>
+<strValue></strValue>
+                            </baseType>
+                            <val>
+<strValue>true</strValue>
+                            </val>
+                            <val>
+<strValue>false</strValue>
+                            </val>
+                        </sequenceValue>
+                    </value>
+                </metadata>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Manager Id</strValue>
+                        <strValue>Suspended</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>active</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>managermanagerId</strValue>
+                        <strValue>suspended</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -2999,29 +2751,14 @@ function init(FieldContext)
                         <boolValue>false</boolValue>
                     </value>
                 </metadata>
-                <metadata name="connectorMapTo">
+                <metadata name="defaultPolicyValue">
                     <value>
-                        <strValue>manager.managerId</strValue>
+                        <boolValue>false</boolValue>
                     </value>
                 </metadata>
-                <metadata name="DNTestExists">
+                <metadata name="isStoreSymbolic">
                     <value>
                         <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="assocRefObjectClass">
-                    <value>
-                        <strValue>eTDYNAccount</strValue>
-                    </value>
-                </metadata>
-                <metadata name="assocRefKeyAttr">
-                    <value>
-                        <strValue>id</strValue>
-                    </value>
-                </metadata>
-                <metadata name="DNLdapObjectClass">
-                    <value>
-                        <strValue>eTDYNAccount</strValue>
                     </value>
                 </metadata>
             </property>
@@ -3097,6 +2834,42 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
+            <property name="eTDYN-str-multi-12">
+                <doc></doc>
+                <value default="false">
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Full Name</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>displayName</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>fullName</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="defaultPolicyValue">
+                    <value>
+                        <strValue>%UN%</strValue>
+                    </value>
+                </metadata>
+            </property>
             <property name="eTDYN-str-multi-18">
                 <doc></doc>
                 <value default="false">
@@ -3124,7 +2897,7 @@ function init(FieldContext)
                 </metadata>
                 <metadata name="defaultPolicyValue">
                     <value>
-                        <strValue>%UF%%UL%</strValue>
+                        <strValue>%UF%.%UL%</strValue>
                     </value>
                 </metadata>
             </property>
@@ -3174,19 +2947,19 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-19">
+            <property name="eTDYN-str-multi-08">
                 <doc></doc>
                 <value default="false">
-                    <strValue></strValue>
+                    <boolValue>false</boolValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Password Policies</strValue>
+                        <strValue>Force Change Password Next Login</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>passwordPolicies</strValue>
+                        <strValue>forceChangePasswordNextLogin</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -3196,87 +2969,50 @@ function init(FieldContext)
                 </metadata>
                 <metadata name="connectorMapTo">
                     <value>
-                        <strValue>passwordPolicies</strValue>
+                        <strValue>passwordProfile.forceChangePasswordNextSignIn</strValue>
                     </value>
                 </metadata>
-            </property>
-            <property name="eTDYN-str-multi-20">
-                <doc></doc>
-                <value default="false">
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Office Location</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>physicalDeliveryOfficeName</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>officeLocation</strValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-21">
-                <doc></doc>
-                <value default="false">
-                    <enumValue def="Language"></enumValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Preferred Language</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>preferredLanguage</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>preferredLanguage</strValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-25">
-                <doc></doc>
-                <value default="false">
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Job Title</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>jobTitle</strValue>
-                    </value>
-                </metadata>
-                <metadata name="defaultPolicyValue">
-                    <value>
-                        <strValue>%UT%</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWellKnown">
+                <metadata name="isWriteOnly">
                     <value>
                         <boolValue>true</boolValue>
                     </value>
                 </metadata>
+                <metadata name="isStoreSymbolic">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="boolValues">
+                    <value>
+                        <sequenceValue>
+                            <baseType>
+<strValue></strValue>
+                            </baseType>
+                            <val>
+<strValue>false</strValue>
+                            </val>
+                            <val>
+<strValue>true</strValue>
+                            </val>
+                        </sequenceValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-31">
+                <doc>Immutable ID</doc>
+                <value default="false">
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>onPremises Immutable ID</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>immutableId</strValue>
+                    </value>
+                </metadata>
                 <metadata name="isRequired">
                     <value>
                         <boolValue>false</boolValue>
@@ -3284,7 +3020,12 @@ function init(FieldContext)
                 </metadata>
                 <metadata name="connectorMapTo">
                     <value>
-                        <strValue>jobTitle</strValue>
+                        <strValue>onPremisesImmutableId</strValue>
+                    </value>
+                </metadata>
+                <metadata name="writableBy">
+                    <value>
+                        <strValue></strValue>
                     </value>
                 </metadata>
             </property>
@@ -3311,72 +3052,6 @@ function init(FieldContext)
                 <metadata name="connectorMapTo">
                     <value>
                         <strValue>onPremisesSyncEnabled</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isReadOnly">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="writableBy">
-                    <value>
-                        <strValue></strValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-27">
-                <doc>Usage Location</doc>
-                <value default="false">
-                    <enumValue def="CountryCode"></enumValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Usage Location</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>usageLocation</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>usageLocation</strValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-29">
-                <doc>Proxy Addresses</doc>
-                <value>
-                    <setValue>
-                        <baseType>
-                            <strValue></strValue>
-                        </baseType>
-                    </setValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Proxy Addresses</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>proxyAddresses</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>proxyAddresses</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
                     </value>
                 </metadata>
                 <metadata name="isReadOnly">
@@ -3421,19 +3096,19 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-31">
-                <doc>Immutable ID</doc>
+            <property name="eTDYN-str-multi-19">
+                <doc></doc>
                 <value default="false">
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>onPremises Immutable ID</strValue>
+                        <strValue>Password Policies</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>immutableId</strValue>
+                        <strValue>passwordPolicies</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -3443,7 +3118,238 @@ function init(FieldContext)
                 </metadata>
                 <metadata name="connectorMapTo">
                     <value>
-                        <strValue>onPremisesImmutableId</strValue>
+                        <strValue>passwordPolicies</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-21">
+                <doc></doc>
+                <value default="false">
+                    <enumValue def="Language"></enumValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Preferred Language</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>preferredLanguage</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>preferredLanguage</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-27">
+                <doc>Usage Location</doc>
+                <value default="false">
+                    <enumValue def="CountryCode"></enumValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Usage Location</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>usageLocation</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>usageLocation</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-25">
+                <doc></doc>
+                <value default="false">
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Job Title</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>jobTitle</strValue>
+                    </value>
+                </metadata>
+                <metadata name="defaultPolicyValue">
+                    <value>
+                        <strValue>%UT%</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>jobTitle</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-20">
+                <doc></doc>
+                <value default="false">
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Office Location</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>physicalDeliveryOfficeName</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>officeLocation</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-04">
+                <doc></doc>
+                <value default="false">
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Department</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>department</strValue>
+                    </value>
+                </metadata>
+                <metadata name="defaultPolicyValue">
+                    <value>
+                        <strValue>%UDEPT%</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>department</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-11">
+                <doc></doc>
+                <value default="false">
+                    <flexiStrValue type="DN"></flexiStrValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Manager Id</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>managermanagerId</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>manager.managerId</strValue>
+                    </value>
+                </metadata>
+                <metadata name="DNTestExists">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="assocRefObjectClass">
+                    <value>
+                        <strValue>eTDYNAccount</strValue>
+                    </value>
+                </metadata>
+                <metadata name="assocRefKeyAttr">
+                    <value>
+                        <strValue>id</strValue>
+                    </value>
+                </metadata>
+                <metadata name="DNLdapObjectClass">
+                    <value>
+                        <strValue>eTDYNAccount</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-29">
+                <doc>Proxy Addresses</doc>
+                <value>
+                    <setValue>
+                        <baseType>
+                            <strValue></strValue>
+                        </baseType>
+                    </setValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Proxy Addresses</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>proxyAddresses</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>proxyAddresses</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isReadOnly">
+                    <value>
+                        <boolValue>true</boolValue>
                     </value>
                 </metadata>
                 <metadata name="writableBy">
@@ -3507,62 +3413,6 @@ function init(FieldContext)
                     </value>
                 </metadata>
                 <metadata name="DNNameOnly">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTSuspended">
-                <doc>A Boolean value indicating the User's administrative status.</doc>
-                <value default="true">
-                    <boolValue>false</boolValue>
-                </value>
-                <metadata name="boolValues">
-                    <value>
-                        <sequenceValue>
-                            <baseType>
-<strValue></strValue>
-                            </baseType>
-                            <val>
-<strValue>true</strValue>
-                            </val>
-                            <val>
-<strValue>false</strValue>
-                            </val>
-                        </sequenceValue>
-                    </value>
-                </metadata>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Suspended</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>active</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>suspended</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWellKnown">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="defaultPolicyValue">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isStoreSymbolic">
                     <value>
                         <boolValue>true</boolValue>
                     </value>
@@ -3712,42 +3562,6 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-14">
-                <doc></doc>
-                <value default="false">
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>E-mail</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>mail</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>emailAddress</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWellKnown">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="writableBy">
-                    <value>
-                        <strValue></strValue>
-                    </value>
-                </metadata>
-            </property>
             <property name="eTDYN-str-multi-03">
                 <value>
                     <strValue></strValue>
@@ -3871,42 +3685,6 @@ function init(FieldContext)
                 <metadata name="isInterestingToCompliance">
                     <value>
                         <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-12">
-                <doc></doc>
-                <value default="false">
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Full Name</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>displayName</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>fullName</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWellKnown">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="defaultPolicyValue">
-                    <value>
-                        <strValue>%UN%</strValue>
                     </value>
                 </metadata>
             </property>
@@ -4424,11 +4202,11 @@ function init(FieldContext)
             </property>
             <property name="eTDYNAccountName">
                 <value default="true">
-                    <strValue>%AC%</strValue>
+                    <strValue>%UE%</strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Account ID</strValue>
+                        <strValue>User Principal Name</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -4457,28 +4235,28 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-04">
-                <value default="true">
-                    <strValue>%UDEPT%</strValue>
+            <property name="eTDYN-str-multi-09">
+                <value>
+                    <strValue></strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Department</strValue>
+                        <strValue>Id</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>department</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWellKnown">
-                    <value>
-                        <boolValue>true</boolValue>
+                        <strValue>id2</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
                     <value>
                         <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="writableBy">
+                    <value>
+                        <strValue></strValue>
                     </value>
                 </metadata>
             </property>
@@ -4507,43 +4285,23 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-08">
-                <value>
-                    <boolValue>false</boolValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Force Change Password Next Login</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>forceChangePasswordNextLogin</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isWriteOnly">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-09">
+            <property name="eTDYN-str-multi-14">
                 <value>
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Id</strValue>
+                        <strValue>E-mail</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>id2</strValue>
+                        <strValue>emailAddress</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -4557,38 +4315,28 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-11">
-                <value>
-                    <flexiStrValue type="DN"></flexiStrValue>
+            <property name="eTSuspended">
+                <value default="true">
+                    <boolValue>false</boolValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Manager Id</strValue>
+                        <strValue>Suspended</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>managermanagerId</strValue>
+                        <strValue>suspended</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
                     <value>
                         <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="assocRefObjectClass">
-                    <value>
-                        <strValue>eTDYNAccount</strValue>
-                    </value>
-                </metadata>
-                <metadata name="assocRefKeyAttr">
-                    <value>
-                        <strValue>id</strValue>
-                    </value>
-                </metadata>
-                <metadata name="DNLdapObjectClass">
-                    <value>
-                        <strValue>eTDYNAccount</strValue>
                     </value>
                 </metadata>
             </property>
@@ -4642,9 +4390,34 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
+            <property name="eTDYN-str-multi-12">
+                <value default="true">
+                    <strValue>%UN%</strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Full Name</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>fullName</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+            </property>
             <property name="eTDYN-str-multi-18">
                 <value default="true">
-                    <strValue>%UF%%UL%</strValue>
+                    <strValue>%UF%.%UL%</strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
@@ -4692,18 +4465,18 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-19">
+            <property name="eTDYN-str-multi-08">
                 <value>
-                    <strValue></strValue>
+                    <boolValue>false</boolValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Password Policies</strValue>
+                        <strValue>Force Change Password Next Login</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>passwordPolicies</strValue>
+                        <strValue>forceChangePasswordNextLogin</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -4711,69 +4484,34 @@ function init(FieldContext)
                         <boolValue>false</boolValue>
                     </value>
                 </metadata>
-            </property>
-            <property name="eTDYN-str-multi-20">
-                <value>
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Office Location</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>physicalDeliveryOfficeName</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-21">
-                <value>
-                    <enumValue def="Language"></enumValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Preferred Language</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>preferredLanguage</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-25">
-                <value default="true">
-                    <strValue>%UT%</strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Job Title</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>jobTitle</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWellKnown">
+                <metadata name="isWriteOnly">
                     <value>
                         <boolValue>true</boolValue>
                     </value>
                 </metadata>
+            </property>
+            <property name="eTDYN-str-multi-31">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>onPremises Immutable ID</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>immutableId</strValue>
+                    </value>
+                </metadata>
                 <metadata name="isRequired">
                     <value>
                         <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="writableBy">
+                    <value>
+                        <strValue></strValue>
                     </value>
                 </metadata>
             </property>
@@ -4789,60 +4527,6 @@ function init(FieldContext)
                 <metadata name="beanPropertyName">
                     <value>
                         <strValue>dirSyncEnabled</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isReadOnly">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="writableBy">
-                    <value>
-                        <strValue></strValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-27">
-                <value>
-                    <enumValue def="CountryCode"></enumValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Usage Location</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>usageLocation</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-29">
-                <value>
-                    <setValue>
-                        <baseType>
-                            <strValue></strValue>
-                        </baseType>
-                    </setValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Proxy Addresses</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>proxyAddresses</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -4886,18 +4570,18 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-31">
+            <property name="eTDYN-str-multi-19">
                 <value>
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>onPremises Immutable ID</strValue>
+                        <strValue>Password Policies</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>immutableId</strValue>
+                        <strValue>passwordPolicies</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -4905,9 +4589,183 @@ function init(FieldContext)
                         <boolValue>false</boolValue>
                     </value>
                 </metadata>
+            </property>
+            <property name="eTDYN-str-multi-21">
+                <value>
+                    <enumValue def="Language"></enumValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Preferred Language</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>preferredLanguage</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-27">
+                <value>
+                    <enumValue def="CountryCode"></enumValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Usage Location</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>usageLocation</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-25">
+                <value default="true">
+                    <strValue>%UT%</strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Job Title</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>jobTitle</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-20">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Office Location</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>physicalDeliveryOfficeName</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-04">
+                <value default="true">
+                    <strValue>%UDEPT%</strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Department</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>department</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-29">
+                <value>
+                    <setValue>
+                        <baseType>
+                            <strValue></strValue>
+                        </baseType>
+                    </setValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Proxy Addresses</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>proxyAddresses</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isReadOnly">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
                 <metadata name="writableBy">
                     <value>
                         <strValue></strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-11">
+                <value>
+                    <flexiStrValue type="DN"></flexiStrValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Manager Id</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>managermanagerId</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="assocRefObjectClass">
+                    <value>
+                        <strValue>eTDYNAccount</strValue>
+                    </value>
+                </metadata>
+                <metadata name="assocRefKeyAttr">
+                    <value>
+                        <strValue>id</strValue>
+                    </value>
+                </metadata>
+                <metadata name="DNLdapObjectClass">
+                    <value>
+                        <strValue>eTDYNAccount</strValue>
                     </value>
                 </metadata>
             </property>
@@ -4952,31 +4810,6 @@ function init(FieldContext)
                 <metadata name="DNLdapObjectClass">
                     <value>
                         <strValue>eTDYNObject002</strValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTSuspended">
-                <value default="true">
-                    <boolValue>false</boolValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Suspended</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>suspended</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWellKnown">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
                     </value>
                 </metadata>
             </property>
@@ -5080,36 +4913,6 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
-            <property name="eTDYN-str-multi-14">
-                <value>
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>E-mail</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>emailAddress</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWellKnown">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
-                    <value>
-                        <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="writableBy">
-                    <value>
-                        <strValue></strValue>
-                    </value>
-                </metadata>
-            </property>
             <property name="eTDYN-str-multi-03">
                 <value default="true">
                     <strValue>%UCOUNTRY%</strValue>
@@ -5199,31 +5002,6 @@ function init(FieldContext)
                     </value>
                 </metadata>
                 <metadata name="isInterestingToCompliance">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="eTDYN-str-multi-12">
-                <value default="true">
-                    <strValue>%UN%</strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Full Name</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>fullName</strValue>
-                    </value>
-                </metadata>
-                <metadata name="isWellKnown">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isRequired">
                     <value>
                         <boolValue>true</boolValue>
                     </value>

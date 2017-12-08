@@ -93,25 +93,25 @@ Node.js is a prerequisite and have to be installed on the server.
 #### Install ScimGateway  
 
 Open a command window (run as administrator)  
-Create a directory for installation e.g. C:\CA\my-scimgateway and install in this directory
+Create a directory for installation e.g. C:\my-scimgateway and install in this directory
 
-	cd c:\CA\my-scimgateway
+	cd c:\my-scimgateway
 	npm init -y
 	npm install scimgateway --save
 
 Please **ignore any error messages** unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually be installed.
 
 
-**c:\\CA\\my-scimgateway** will now be `<package-root>` 
+**c:\\my-scimgateway** will now be `<package-root>` 
  
-index.js, lib and config directories containing example plugins have been copied from the original scimgateway package located under node_modules.  
+index.js, lib and config directories containing example plugins have been copied to your package from the original scimgateway package located under node_modules.  
 
 If internet connection is blocked, we could install on another machine and copy the scimgateway folder.
 
 
 #### Startup and verify default Loki plugin 
 
-	node c:\CA\my-scimgateway
+	node c:\my-scimgateway
 	
 	Start a browser
 	http://localhost:8880/Users?attributes=userName  
@@ -131,17 +131,17 @@ Not needed after a fresh install
 
 Check if newer versions are available: 
 
-	cd c:\CA\my-scimgateway
+	cd c:\my-scimgateway
 	npm outdated
 
 Lists current, wanted and latest version. No output on screen means we are running the latest version.
 
 Upgrade to latest version:  
 
-	cd c:\CA\my-scimgateway
-	npm update scimgateway
+	cd c:\my-scimgateway
+	npm install scimgateway@latest --save
 
->Note, always backup/copy C:\\CA\\my-scimgateway before update/install. Custom plugins and corresponding configuration files will not be affected.  
+Note, always backup/copy C:\\my-scimgateway before upgrading. Custom plugins and corresponding configuration files will not be affected.  
 
 ## Configuration  
 
@@ -261,7 +261,8 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
           "password": "password"
         }
 
-
+	Note, we should normally use certificate (https) for communcating with ScimGateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
+ 
 - **endpoint** - Contains endpoint specific configuration according to our plugin code.  
   
 
@@ -280,9 +281,9 @@ Gateway can now be started from a command window running in administrative mode
 
 3 ways to start:
 
-	node c:\CA\my-scimgateway
+	node c:\my-scimgateway
 
-	node c:\CA\my-scimgateway\index.js
+	node c:\my-scimgateway\index.js
 
 	<package-root>node .
 
@@ -307,7 +308,7 @@ Start Windows Task Scheduler (taskschd.msc), right click on "Task Scheduler Libr
 	------------
 	Action = Start a program
 	Program/script = c:\Program Files\nodejs\node.exe
-	Arguments = c:\CA\my-scimgateway
+	Arguments = c:\my-scimgateway
 
 	Settings - tab:
 	---------------
@@ -418,7 +419,7 @@ Username, password and port must correspond with plugin configuration file. For 
 http://localhost:8880/clientA  
 http://localhost:8880/clientB
 
-Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-forwardinc.
+Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-forwardinc.json
 
 IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Loki plugin supports pagination. Other plugin may ignore this setting.  
 
@@ -473,7 +474,7 @@ Note:
 
 Postinstallation:  
   
-	cd \CA\my-scimgateway
+	cd c:\my-scimgateway
 	npm install hdb --save  
 
 
@@ -521,10 +522,12 @@ Using plugin-azure-ad we could do user provisioning towards Azure AD including l
 - Install the [Azure AD Module](https://docs.microsoft.com/en-us/powershell/msonline/) (if not already installed)  
 	- Install-Module MSOnline
 - Import-Module MSOnline
-- Connect-MsolService (logon as a user having "Global administrator" role)  
-- Get-MsolServicePrincipal -AppPrincipalId e0bd7bf3-286e-4665-8af1-276c1227257f  
+- Connect-MsolService (logon as a user having "Global administrator" role)   
+- Get-MsolServicePrincipal -AppPrincipalId {Application ID}  
 	- Copy ObjectId
-- List current members of role:
+- List all roles and find "User Account Administrator"  
+	- Get-MsolRole  
+- List current members of this role:
 	- Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1
 - Add application to "User Account Administrator" role:  
 	- Add-MsolRoleMember -RoleName "User Account Administrator" -RoleMemberType ServicePrincipal -RoleMemberObjectId {ObjectIdOfServicePrincipal}  
@@ -534,8 +537,7 @@ Using plugin-azure-ad we could do user provisioning towards Azure AD including l
 **Edit plugin-azure-ad.json**
 
 Update **tenantIdGUID**, **clientID** and **clientSecret** according to Azure AD prerequisites configuration.  
-If using proxy, set proxy to `http://<FQDN-ProxyHost>:<port>` e.g `http://proxy.mycompany.com:3128`  
-For for multi-tenant or multi-endpoint support, see baseEntity description.  
+If using proxy, set proxy to `"http://<FQDN-ProxyHost>:<port>"` e.g `"http://proxy.mycompany.com:3128"`  
 
 	"endpoint": {
 	  "entity": {
@@ -548,7 +550,27 @@ For for multi-tenant or multi-endpoint support, see baseEntity description.
 	  }
 	}
 
-Note, clientSecret will become encrypted in this file on the first Azure connection.
+Note, clientSecret will become encrypted in this file on the first Azure connection.  
+
+For for multi-tenant or multi-endpoint support, you may add several entities:
+
+	"endpoint": {
+	  "entity": {
+	    "undefined": {
+			...
+	    }
+	    "clientA": {
+			...
+	    }
+	    "clientB": {
+			...
+	    }
+	  }
+	}
+
+For additional details, see baseEntity description.  
+
+Note, we should normally use certificate (https) for communcating with ScimGateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
 **For CA Provisioning, create endpoint type "Azure - ScimGateway"**  
 
@@ -560,16 +582,16 @@ Note, clientSecret will become encrypted in this file on the first Azure connect
 	- Add
 	- Layer7 (this is SCIM)
 	- Name = ScimGateway-8881
-	- Base URL = http://localhost:8881 (scimgateway running locally on CS using port 8881)
+	- Base URL = http://localhost:8881 (ScimGateway installed locally on Connector Server)  
 - Add the new "Azure - ScimGateway" endpoint type
 	- Metadata - Import - "my-scimgateway\node_modules\scimgateway\resources\Azure - ScimGateway.xml"
 	- Select the datasource we created - ScimGateway-8881
-	- Enter password for the user defined in datasource (gwadmin/password)  
+	- Enter password for the user defined in datasource (e.g. gwadmin/password)  
 	- On the right - expand Provisioning Servers - your server - and logon
 	- Right Click "Endpoint Types", Create New Endpoint Type
-		- You may use default "Azure - ScimGateway" and click "OK" to create endpoint
+		- You may use default name "Azure - ScimGateway" and click "OK" to create endpoint
 
-Note, metafile "Azure - ScimGateway.xml" is based on CA "Azure - WSL7" with some minor adjustments like using Microsoft Graph attributes instead of Azure AD Graph attributes.
+Note, metafile "Azure - ScimGateway.xml" is based on CA "Azure - WSL7" with some minor adjustments like using Microsoft Graph API attributes instead of Azure AD Graph attributes.
 
 **Using the CA Provisioning Manager we have to configure**  
   
@@ -762,10 +784,10 @@ Plugins should have following initialization:
 	    var ret = {
 	        "Resources": [],
 	        "totalResults": null
-	    };
+	    }
 		...
-		callback(error, ret);
-	});  
+		callback(error, ret)
+	})  
 
 * baseEntity = Optional for multi-tenant or multi-endpoint support (defined in base url e.g. `<baseurl>/client1` gives baseEntity=client1)  
 * startIndex = Pagination - The 1-based index of the first result in the current set of search results  
@@ -781,10 +803,10 @@ ret.totalResults = if supporting pagination attribute should be set to the total
 	    var ret = {
 	        "Resources": [],
 	        "totalResults": null
-	    };
+	    }
 		...
 		callback(error, ret);
-	});  
+	})  
 
 * callback(error, ret):  
 error = null if OK, else error object  
@@ -795,8 +817,8 @@ ret.totalResults = if supporting pagination attribute should be set to the total
 
 	scimgateway.on('getUser', function (baseEntity, userName, attributes, callback) {
 		...
-		callback(error, userObj);
-	});  
+		callback(error, userObj)
+	})  
 
 * userName = user id (eg. bjensen)  
 * attributes = scim attributes to be returned in callback. If no attributes defined, all should will be returned.  
@@ -812,8 +834,8 @@ Note, CA Provisioning use two types of "getUser"
 
 	scimgateway.on('createUser', function (baseEntity, userObj, callback) {
 		...
-		callback(error);
-	}); 
+		callback(error)
+	}) 
 
 * userObj = user object containing userattributes according to scim standard  
 Note, multi-value attributes excluding user attribute 'groups' are customized from array to object based on type  
@@ -823,8 +845,8 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 
 	scimgateway.on('deleteUser', function (baseEntity, id, callback) {
 		...
-		callback(error);
-	}); 
+		callback(error)
+	}) 
 
 * id = user id to be deleted 
 * callback(error): null if OK, else error object  
@@ -833,8 +855,8 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 
 	scimgateway.on('modifyUser', function (baseEntity, id, attrObj, callback) {
 		...
-		callback(error);
-	}); 
+		callback(error)
+	}) 
 
 
 * id = user id  
@@ -846,8 +868,8 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 
 	scimgateway.on('getGroup', function (baseEntity, displayName, attributes, callback) {
 		...
-		callback(error, retObj);
-	}); 
+		callback(error, retObj)
+	}) 
 
 
 * displayName = group name  
@@ -864,14 +886,11 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 
 ### getGroupMembers  
 
-	scimgateway.on('getGroupMembers', function (baseEntity, id, attributes, startIndex, count, callback) {
-	    var ret = {
-    	    "Resources": [],
-    	    "totalResults": null
-    	};
+	scimgateway.on('getGroupMembers', function (baseEntity, id, attributes, callback) {
+	    let arrRet = []
 		...
-		callback(error, ret);
-	});
+		callback(error, arrRet)
+	})
 
 Retrieve all users for a spesific group WHEN **"user member of group"**. This setting is CA IM default scim endpoint configuration. This means Group having multivalue attribute members containing userName.  
 
@@ -891,10 +910,10 @@ e.g [{"displayName":"Admins","members": [{ "value": bjensen}]}, {"displayName":"
 ### getGroupUsers  
 
 	scimgateway.on('getGroupUsers', function (baseEntity, groupName, attributes, callback) {
-    	var arrRet = [];
+    	let arrRet = []
 		...
-    	callback(error, arrRet);
-	});
+    	callback(error, arrRet)
+	})
 
 Retrieve all users for a spesific group WHEN **"group member of user"**. This means user having multivalue attribute groups containing value GroupName  
 
@@ -908,8 +927,8 @@ Retrieve all users for a spesific group WHEN **"group member of user"**. This me
 ### createGroup  
 	scimgateway.on('createGroup', function (baseEntity, groupObj, callback) {
 		...
-	    return callback(error);
-	});
+	    return callback(error)
+	})
 
 * groupObj = group object containing groupattributes according to scim standard  
 groupObj.displayName contains the group name to be created
@@ -920,8 +939,8 @@ groupObj.displayName contains the group name to be created
 
 	scimgateway.on('modifyGroupMembers', function (baseEntity, id, members, callback) {
 		...
-	    return callback(error);
-	});
+	    return callback(error)
+	})
 
 * id = group name (eg. Admins)  
 * members = array of objects containing groupmembers modifications  
@@ -961,11 +980,11 @@ MIT
 [ENHANCEMENT]  
 
 - New plugin-azure-ad.js for Azure AD user provisioning including Azure license management e.g. Office 365
-- Including latest versions of module dependencies
-- Module hdb (for SapHana) and saml is not included by default anymore and have to be manually installed if needed. 
+- Includes latest versions of module dependencies
+- Module hdb (for SapHana) and saml is not included by default anymore and therefore have to be manually installed if needed. 
 
 **[UPGRADE]**  
-Method `getGroupMembers` needs to be updated for all custom plugins
+Method `getGroupMembers` must be updated for all custom plugins
 
 Replace:  
 
