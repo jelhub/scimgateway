@@ -13,7 +13,7 @@ Validated on:
 
 Latest news:  
 
-- Azure AD user provisioning including license management (e.g. Office 365) installed and configured within minutes
+- Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!
 - API gateway for general none provisioning (becomes what you want it to become)
 - Authentication includes standard JSON Web Token (JWT) and Azure JWT
 - Running ScimGateway as a Docker container  
