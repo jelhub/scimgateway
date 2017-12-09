@@ -97,7 +97,7 @@ describe('plugin-restful tests', () => {
               expect(user.name.givenName).to.equal('Barbara')
               expect(user.name.familyName).to.equal('Jensen')
               expect(user.name.formatted).to.equal('Ms. Barbara J Jensen III')
-              expect(user.entitlements).to.equal(null)
+              expect(user.entitlements).to.equal(undefined)
               expect(user.phoneNumbers[0].type).to.equal('work')
               expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8377')
               expect(user.emails[0].type).to.equal('work')
