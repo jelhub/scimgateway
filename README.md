@@ -67,20 +67,10 @@ Includes CA ConnectorXpress metafile for creating "Azure - ScimGateway" endpoint
 
 
 * **API** (REST Webservies)  
-Demonstrates api gateway functionality  
+Demonstrates api gateway functionality using post/put/patch/get/delete  
 None SCIM plugin, becomes what you want it to become.  
-post/put/patch/get/delete using external REST.  
 Endpoint complexity could be put in this plugin, and client could instead communicate through ScimGateway using your own simplified REST specification.  
-One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager  
-
-		ScimGateway supports following methods for api-plugin:  
-		GET /api  
-		GET /api?queries  
-		GET /api/{id}  
-		POST /api + body  
-		PUT /api/{id} + body  
-		PATCH /api/{id} + body  
-		DELETE /api/{id}  
+One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager (from REST to IM SOAP/TEWS).    
 
 ## Installation  
 
@@ -93,8 +83,9 @@ Node.js is a prerequisite and have to be installed on the server.
 #### Install ScimGateway  
 
 Open a command window (run as administrator)  
-Create a directory for installation e.g. C:\my-scimgateway and install in this directory
+Create your own package directory e.g. C:\my-scimgateway and install ScimGateway within this package.
 
+	mkdir c:\my-scimgateway
 	cd c:\my-scimgateway
 	npm init -y
 	npm install scimgateway --save
@@ -139,7 +130,7 @@ Lists current, wanted and latest version. No output on screen means we are runni
 Upgrade to latest version:  
 
 	cd c:\my-scimgateway
-	npm install scimgateway@latest --save
+	npm install scimgateway@latest
 
 Note, always backup/copy C:\\my-scimgateway before upgrading. Custom plugins and corresponding configuration files will not be affected.  
 
@@ -452,7 +443,7 @@ Note:
 - userName (mandatory) = UserID  
 - id (mandatory) = Unique id. Could be set to the same as UserID but don't have to.  
 
-## SAP Hana endpoint details  
+## SAP Hana endpoint  
 
 	Get all users (explore):  
 	select USER_NAME from SYS.USERS where IS_SAML_ENABLED like 'TRUE';
@@ -491,7 +482,7 @@ SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provi
 
 	User Name = %$$TOUPPER(%AC%)%
 
-## Azure Active Directory endpoint details  
+## Azure Active Directory endpoint  
 Using plugin-azure-ad we could do user provisioning towards Azure AD including license management e.g. O365  
 
 **Azure AD prerequisites**  
@@ -683,6 +674,19 @@ Some notes related to Azure AD:
 - Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
 
 - Deleting a user in Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM "DELETE" method seems not to be used.  
+
+## Using api-plugin    
+
+ScimGateway supports following methods for the none SCIM based api-plugin:  
+  
+		GET /api  
+		GET /api?queries  
+		GET /api/{id}  
+		POST /api + body  
+		PUT /api/{id} + body  
+		PATCH /api/{id} + body  
+		DELETE /api/{id}  
+
 
  
 ## How to build your own plugins  

@@ -355,22 +355,11 @@ Includes CA ConnectorXpress metafile for creating &quot;Azure - ScimGateway&quot
 </li>
 <li>
 <p><strong>API</strong> (REST Webservies)<br />
-Demonstrates api gateway functionality<br />
+Demonstrates api gateway functionality using post/put/patch/get/delete<br />
 None SCIM plugin, becomes what you want it to become.<br />
-post/put/patch/get/delete using external REST.<br />
 Endpoint complexity could be put in this plugin, and client could instead communicate through ScimGateway using your own simplified REST specification.<br />
-One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager  
+One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager (from REST to IM SOAP/TEWS).    
 </p>
-<pre><code>ScimGateway supports following methods for api-plugin:  
-GET /api  
-GET /api?queries  
-GET /api/{id}  
-POST /api + body  
-PUT /api/{id} + body  
-PATCH /api/{id} + body  
-DELETE /api/{id}  
-</code></pre>
-
 </li>
 </ul>
 <h2>Installation</h2>
@@ -379,8 +368,9 @@ DELETE /api/{id}
 <p><a href="https://nodejs.org/en/download/">Download</a> the windows installer (.msi 64-bit) and install using default options.  </p>
 <h4>Install ScimGateway</h4>
 <p>Open a command window (run as administrator)<br />
-Create a directory for installation e.g. C:\my-scimgateway and install in this directory</p>
-<pre><code>cd c:\my-scimgateway
+Create your own package directory e.g. C:\my-scimgateway and install ScimGateway within this package.</p>
+<pre><code>mkdir c:\my-scimgateway
+cd c:\my-scimgateway
 npm init -y
 npm install scimgateway --save
 </code></pre>
@@ -414,7 +404,7 @@ npm outdated
 <p>Lists current, wanted and latest version. No output on screen means we are running the latest version.</p>
 <p>Upgrade to latest version:  </p>
 <pre><code>cd c:\my-scimgateway
-npm install scimgateway@latest --save
+npm install scimgateway@latest
 </code></pre>
 
 <p>Note, always backup/copy C:\my-scimgateway before upgrading. Custom plugins and corresponding configuration files will not be affected.  </p>
@@ -737,7 +727,7 @@ Introspect resources and attribute extensions.
 <li>userName (mandatory) = UserID  </li>
 <li>id (mandatory) = Unique id. Could be set to the same as UserID but don't have to.  </li>
 </ul>
-<h2>SAP Hana endpoint details</h2>
+<h2>SAP Hana endpoint</h2>
 <pre><code>Get all users (explore):  
 select USER_NAME from SYS.USERS where IS_SAML_ENABLED like 'TRUE';
 
@@ -773,7 +763,7 @@ npm install hdb --save
 <pre><code>User Name = %$$TOUPPER(%AC%)%
 </code></pre>
 
-<h2>Azure Active Directory endpoint details</h2>
+<h2>Azure Active Directory endpoint</h2>
 <p>Using plugin-azure-ad we could do user provisioning towards Azure AD including license management e.g. O365  </p>
 <p><strong>Azure AD prerequisites</strong>  </p>
 <ul>
@@ -1030,6 +1020,17 @@ displayName mapped to displayName
 </p>
 </li>
 </ul>
+<h2>Using api-plugin</h2>
+<p>ScimGateway supports following methods for the none SCIM based api-plugin:  </p>
+<pre><code>    GET /api  
+    GET /api?queries  
+    GET /api/{id}  
+    POST /api + body  
+    PUT /api/{id} + body  
+    PATCH /api/{id} + body  
+    DELETE /api/{id}  
+</code></pre>
+
 <h2>How to build your own plugins</h2>
 <p>For javascript coding editor you may use <a href="https://code.visualstudio.com/" title="Visual Studio Code">Visual Studio Code</a> </p>
 <p>Preparation:</p>
