@@ -988,8 +988,12 @@ MIT
 
 ## Change log  
 
-### v1.0.0  
+### v1.0.1  
+[FIX]  
 
+- Mocha test script did not terminate after upgrading from 3.x to 4.x of Mocha  
+
+### v1.0.0  
 [ENHANCEMENT]  
 
 - New plugin-azure-ad.js for Azure AD user provisioning including Azure license management e.g. Office 365
