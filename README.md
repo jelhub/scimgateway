@@ -215,7 +215,7 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 - **port** - (**) Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
 
-- **auth** - Contains one or more authentication/authorization methods used by clients for for accessing gateway. **Methods are disabled by setting corresponding attributes to null**  
+- **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway. **Methods are disabled by setting corresponding attributes to null**  
 
 - **auth.basic** - Basic Authentication with **username**/**password**. Note, we set a clear text password and when gateway is started password will become encrypted and updated in the configuration file.  
 
@@ -485,6 +485,8 @@ SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provi
 ## Azure Active Directory endpoint  
 Using plugin-azure-ad we could do user provisioning towards Azure AD including license management e.g. O365  
 
+For testing purposes we could get an Azure free account and in addition the free Office 365 for testing license management through Azure.
+
 **Azure AD prerequisites**  
 
 - Logon to [Azure](https://portal.azure.com) as global administrator  
@@ -525,9 +527,17 @@ Using plugin-azure-ad we could do user provisioning towards Azure AD including l
 - Verify:  
 	- Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1  
 
+**Edit index.js**  
+Uncomment startup of plugin-azure-ad, other plugins could be comment out if not needed
+
+	const azureAD = require('./lib/plugin-azure-ad')
+
 **Edit plugin-azure-ad.json**
 
-Update **tenantIdGUID**, **clientID** and **clientSecret** according to Azure AD prerequisites configuration.  
+`Username` and `password` used to connect the ScimGateway must be defined.
+
+Update `tenantIdGUID`, `clientID` and `clientSecret` according to Azure AD prerequisites configuration.  
+  
 If using proxy, set proxy to `"http://<FQDN-ProxyHost>:<port>"` e.g `"http://proxy.mycompany.com:3128"`  
 
 	"endpoint": {
@@ -543,7 +553,7 @@ If using proxy, set proxy to `"http://<FQDN-ProxyHost>:<port>"` e.g `"http://pro
 
 Note, clientSecret will become encrypted in this file on the first Azure connection.  
 
-For for multi-tenant or multi-endpoint support, you may add several entities:
+For multi-tenant or multi-endpoint support, we may add several entities:
 
 	"endpoint": {
 	  "entity": {
@@ -561,7 +571,7 @@ For for multi-tenant or multi-endpoint support, you may add several entities:
 
 For additional details, see baseEntity description.  
 
-Note, we should normally use certificate (https) for communcating with ScimGateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
+Note, we should normally use certificate (https) for communicating with ScimGateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
 **For CA Provisioning, create endpoint type "Azure - ScimGateway"**  
 
@@ -595,11 +605,10 @@ Endpoint configuration example:
 	Password = password  
 	SCIM Authentication Method = HTTP Basic Authentication  
 	SCIM Based URL = http://localhost:8881  
-	or:  
-	SCIM Based URL = http://localhost:8881/<baseEntity>
-	(if other mandatory fields, use dummy)
+	or  
+	SCIM Based URL = http://localhost:8881/<baseEntity>  
 
-For other details, please see section "CA Provisioningserver - SCIM Endpoint"
+For details, please see section "CA Provisioningserver - SCIM Endpoint"
 
 
 ## Azure Active Directory using ScimGateway  
@@ -675,7 +684,7 @@ Some notes related to Azure AD:
 
 - Deleting a user in Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM "DELETE" method seems not to be used.  
 
-## Using api-plugin    
+## api-plugin    
 
 ScimGateway supports following methods for the none SCIM based api-plugin:  
   
