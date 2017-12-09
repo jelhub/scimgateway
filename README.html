@@ -296,10 +296,11 @@ img {
 <li>CA Identity Manager</li>
 <li>Microsoft Azure Active Directory  </li>
 </ul>
-<p>Latest News:  </p>
+<p>Latest news:  </p>
 <ul>
-<li>Now also includes api gateway for general none provisioning (becomes what you want it to become)</li>
-<li>Authentication includes Standard JSON Web Token (JWT) and Azure JWT</li>
+<li>Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!</li>
+<li>API gateway for general none provisioning (becomes what you want it to become)</li>
+<li>Authentication includes standard JSON Web Token (JWT) and Azure JWT</li>
 <li>Running ScimGateway as a Docker container  </li>
 </ul>
 <h2>Overview</h2>
@@ -345,23 +346,20 @@ Demonstrates SAP HANA specific user provisioning
 </p>
 </li>
 <li>
-<p><strong>API</strong> (REST Webservies)<br />
-Demonstrates api gateway functionality<br />
-None SCIM plugin, becomes what you want it to become.<br />
-post/put/patch/get/delete using external REST.<br />
-Endpoint complexity could be put in this plugin, and client could instead communicate through ScimGateway using your own simplified REST specification.<br />
-One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager  
+<p><strong>Azure AD</strong> (REST Webservices)<br />
+Azure AD user provisioning including Azure license management e.g. O365<br />
+Using Microsoft Graph API<br />
+Using customized SCIM attributes according to Microsoft Graph API<br />
+Includes CA ConnectorXpress metafile for creating &quot;Azure - ScimGateway&quot; endpoint  
 </p>
-<pre><code>ScimGateway supports following /api methods:  
-GET /api  
-GET /api?queries  
-GET /api/{id}  
-POST /api + body  
-PUT /api/{id} + body  
-PATCH /api/{id} + body  
-DELETE /api/{id}  
-</code></pre>
-
+</li>
+<li>
+<p><strong>API</strong> (REST Webservies)<br />
+Demonstrates api gateway functionality using post/put/patch/get/delete<br />
+None SCIM plugin, becomes what you want it to become.<br />
+Endpoint complexity could be put in this plugin, and client could instead communicate through ScimGateway using your own simplified REST specification.<br />
+One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager (from REST to IM SOAP/TEWS).    
+</p>
 </li>
 </ul>
 <h2>Installation</h2>
@@ -370,17 +368,19 @@ DELETE /api/{id}
 <p><a href="https://nodejs.org/en/download/">Download</a> the windows installer (.msi 64-bit) and install using default options.  </p>
 <h4>Install ScimGateway</h4>
 <p>Open a command window (run as administrator)<br />
-Create a directory for installation e.g. C:\CA\scimgateway and install in this directory</p>
-<pre><code>cd C:\CA\scimgateway
-npm install scimgateway
+Create your own package directory e.g. C:\my-scimgateway and install ScimGateway within this package.</p>
+<pre><code>mkdir c:\my-scimgateway
+cd c:\my-scimgateway
+npm init -y
+npm install scimgateway --save
 </code></pre>
 
 <p>Please <strong>ignore any error messages</strong> unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually be installed.</p>
-<p><strong>C:\CA\scimgateway</strong> will now be <code>&lt;package-root&gt;</code> </p>
-<p>index.js, lib and config directories containing example plugins have been copied from the original scimgateway package located under node_modules.  </p>
+<p><strong>c:\my-scimgateway</strong> will now be <code>&lt;package-root&gt;</code> </p>
+<p>index.js, lib and config directories containing example plugins have been copied to your package from the original scimgateway package located under node_modules.  </p>
 <p>If internet connection is blocked, we could install on another machine and copy the scimgateway folder.</p>
 <h4>Startup and verify default Loki plugin</h4>
-<pre><code>node C:\CA\scimgateway
+<pre><code>node c:\my-scimgateway
 
 Start a browser
 http://localhost:8880/Users?attributes=userName  
@@ -397,27 +397,26 @@ Lists all user attributes for specified user
 <h4>Upgrade ScimGateway</h4>
 <p>Not needed after a fresh install  </p>
 <p>Check if newer versions are available: </p>
-<pre><code>cd C:\CA\scimgateway
+<pre><code>cd c:\my-scimgateway
 npm outdated
 </code></pre>
 
 <p>Lists current, wanted and latest version. No output on screen means we are running the latest version.</p>
 <p>Upgrade to latest version:  </p>
-<pre><code>cd C:\CA\scimgateway
-npm update scimgateway
+<pre><code>cd c:\my-scimgateway
+npm install scimgateway@latest
 </code></pre>
 
-<blockquote>
-<p>Note, always backup/copy C:\CA\scimgateway before update/install. Custom plugins and corresponding configuration files will not be affected.  
-</p>
-</blockquote>
+<p>Note, always backup/copy C:\my-scimgateway before upgrading. Custom plugins and corresponding configuration files will not be affected.  </p>
 <h2>Configuration</h2>
 <p><strong>index.js</strong> defines one or more plugins to be started. We could comment out those we do not need. Default configuration only starts the loki plugin.  </p>
 <pre><code>const loki = require('./lib/plugin-loki')
 // const restful = require('./lib/plugin-restful')
 // const forwardinc = require('./lib/plugin-forwardinc')
 // const mssql = require('./lib/plugin-mssql')
-// const saphana = require('./lib/plugin-saphana')
+// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb --save
+// const api = require('./lib/plugin-api')
+// const azureAD = require('./lib/plugin-azure-ad')
 </code></pre>
 
 <p>Each endpoint plugin needs a javascript file (.js) and a configuration file (.json). <strong>They both must have the same naming suffix</strong>. For SAP Hana endpoint we have:  </p>
@@ -495,7 +494,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>auth</strong> - Contains one or more authentication/authorization methods used by clients for for accessing gateway. <strong>Methods are disabled by setting corresponding attributes to null</strong>  
+<p><strong>auth</strong> - Contains one or more authentication/authorization methods used by clients for accessing gateway. <strong>Methods are disabled by setting corresponding attributes to null</strong>  
 </p>
 </li>
 <li>
@@ -547,6 +546,8 @@ Below shows an example of config\plugin-saphana.json  </p>
 }
 </code></pre>
 
+<p>Note, we should normally use certificate (https) for communcating with ScimGateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use <code>http://localhost:port</code> or <code>http://127.0.0.1:port</code> which will not be passed down to the data link layer for transmission. We could then also set {&quot;localhostonly&quot;: true}  
+</p>
 </li>
 <li>
 <p><strong>endpoint</strong> - Contains endpoint specific configuration according to our plugin code.  
@@ -564,9 +565,9 @@ Below shows an example of config\plugin-saphana.json  </p>
 <h2>Manual startup</h2>
 <p>Gateway can now be started from a command window running in administrative mode</p>
 <p>3 ways to start:</p>
-<pre><code>node C:\CA\scimgateway
+<pre><code>node c:\my-scimgateway
 
-node C:\CA\scimgateway\index.js
+node c:\my-scimgateway\index.js
 
 &lt;package-root&gt;node .
 </code></pre>
@@ -587,8 +588,8 @@ Begin the task = At startup
 Actions tab:
 ------------
 Action = Start a program
-Program/script = C:\Program Files\nodejs\node.exe
-Arguments = C:\CA\scimgateway
+Program/script = c:\Program Files\nodejs\node.exe
+Arguments = c:\my-scimgateway
 
 Settings - tab:
 ---------------
@@ -611,8 +612,8 @@ docker-compose</strong></p>
 </li>
 <li>
 <p>Install ScimGateway within your own package and copy provided docker files:</p>
-<pre><code>mkdir /opt/myScimGateway  
-cd /opt/myScimGateway  
+<pre><code>mkdir /opt/my-scimgateway  
+cd /opt/my-scimgateway  
 npm init -y  
 npm install scimgateway --save  
 cp ./config/docker/* .  
@@ -695,7 +696,7 @@ SCIM Based URL = http://localhost:8880/&lt;baseEntity&gt;
 <p>&quot;baseEntity&quot; is optional. This is a parameter used for multi tenant or multi endpoint solutions. We could create several endpoints having same base url with unique baseEntity. e.g:  </p>
 <p>http://localhost:8880/clientA<br />
 http://localhost:8880/clientB</p>
-<p>Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-forwardinc.</p>
+<p>Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-forwardinc.json</p>
 <p>IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Loki plugin supports pagination. Other plugin may ignore this setting.  </p>
 <h2>ScimGateway REST API</h2>
 <pre><code>Create = POST http://example.com:8880/Users  
@@ -726,7 +727,7 @@ Introspect resources and attribute extensions.
 <li>userName (mandatory) = UserID  </li>
 <li>id (mandatory) = Unique id. Could be set to the same as UserID but don't have to.  </li>
 </ul>
-<h2>SAP Hana endpointspecific details</h2>
+<h2>SAP Hana endpoint</h2>
 <pre><code>Get all users (explore):  
 select USER_NAME from SYS.USERS where IS_SAML_ENABLED like 'TRUE';
 
@@ -746,6 +747,11 @@ Modify user (disable user):
 ALTER USER &lt;UserID&gt; DEACTIVATE;  
 </code></pre>
 
+<p>Postinstallation:  </p>
+<pre><code>cd c:\my-scimgateway
+npm install hdb --save  
+</code></pre>
+
 <p>Only SAML users will be explored and managed</p>
 <p>Supported template attributes:  </p>
 <ul>
@@ -757,7 +763,196 @@ ALTER USER &lt;UserID&gt; DEACTIVATE;
 <pre><code>User Name = %$$TOUPPER(%AC%)%
 </code></pre>
 
-<h2>Microsoft Azure Active Directory</h2>
+<h2>Azure Active Directory endpoint</h2>
+<p>Using plugin-azure-ad we could do user provisioning towards Azure AD including license management e.g. O365  </p>
+<p>For testing purposes we could get an Azure free account and in addition the free Office 365 for testing license management through Azure.</p>
+<p><strong>Azure AD prerequisites</strong>  </p>
+<ul>
+<li>Logon to <a href="https://portal.azure.com">Azure</a> as global administrator  </li>
+<li>
+Azure Active Directory - properties
+<ul>
+<li>Copy <strong>&quot;Directory ID&quot;</strong>  
+</li>
+<li>or Azure Active Directory - Custom domain names (copy primary domain name)</li>
+</ul>
+</li>
+<li>
+Azure Active Directory - App registrations - New application registration 
+<ul>
+<li>Name = newApp  
+</li>
+<li>Application type = Web app API</li>
+<li>Sign-on URL = http://localhost (not used)</li>
+<li>Click &quot;Create&quot;</li>
+</ul>
+</li>
+<li>
+Click &quot;newApp&quot;
+<ul>
+<li>Copy <strong>&quot;Application ID&quot;</strong>  
+</li>
+<li>
+Required permissions - Windows Azure Active Directory
+<ul>
+<li>Enable &quot;APPLICATION PERMISSIONS&quot; (all application sub categories enabled)</li>
+<li>Click &quot;Save&quot;</li>
+</ul>
+</li>
+<li>
+Keys
+<ul>
+<li>Key description = Key1</li>
+<li>Duration = Never expires</li>
+<li>Click &quot;Save&quot;</li>
+<li>Copy Key1 <strong>&quot;value&quot;</strong>&quot; (client secret)</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>Application needs to be member of &quot;User Account Administrator&quot; when running behalf of application rather than user</strong> </p>
+<ul>
+<li>Start Powershell command window</li>
+<li>
+Install the <a href="https://docs.microsoft.com/en-us/powershell/msonline/">Azure AD Module</a> (if not already installed)  
+
+<ul>
+<li>Install-Module MSOnline</li>
+</ul>
+</li>
+<li>Import-Module MSOnline</li>
+<li>Connect-MsolService (logon as a user having &quot;Global administrator&quot; role)   </li>
+<li>
+Get-MsolServicePrincipal -AppPrincipalId {Application ID}  
+
+<ul>
+<li>Copy ObjectId</li>
+</ul>
+</li>
+<li>
+List all roles and find &quot;User Account Administrator&quot;  
+
+<ul>
+<li>Get-MsolRole  
+</li>
+</ul>
+</li>
+<li>
+List current members of this role:
+<ul>
+<li>Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1</li>
+</ul>
+</li>
+<li>
+Add application to &quot;User Account Administrator&quot; role:  
+
+<ul>
+<li>Add-MsolRoleMember -RoleName &quot;User Account Administrator&quot; -RoleMemberType ServicePrincipal -RoleMemberObjectId {ObjectIdOfServicePrincipal}  
+</li>
+</ul>
+</li>
+<li>
+Verify:  
+
+<ul>
+<li>Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1  
+</li>
+</ul>
+</li>
+</ul>
+<p><strong>Edit index.js</strong><br />
+Uncomment startup of plugin-azure-ad, other plugins could be comment out if not needed</p>
+<pre><code>const azureAD = require('./lib/plugin-azure-ad')
+</code></pre>
+
+<p><strong>Edit plugin-azure-ad.json</strong></p>
+<p><code>Username</code> and <code>password</code> used to connect the ScimGateway must be defined.</p>
+<p>Update <code>tenantIdGUID</code>, <code>clientID</code> and <code>clientSecret</code> according to Azure AD prerequisites configuration.  </p>
+<p>If using proxy, set proxy to <code>&quot;http://&lt;FQDN-ProxyHost&gt;:&lt;port&gt;&quot;</code> e.g <code>&quot;http://proxy.mycompany.com:3128&quot;</code>  </p>
+<pre><code>&quot;endpoint&quot;: {
+  &quot;entity&quot;: {
+    &quot;undefined&quot;: {
+      &quot;proxy&quot;: null,
+      &quot;tenantIdGUID&quot;: &quot;DomainName or DirectoryID (GUID)&quot;,
+      &quot;clientId&quot;: &quot;Application ID&quot;,
+      &quot;clientSecret&quot;: &quot;Generated application key value&quot;
+    }
+  }
+}
+</code></pre>
+
+<p>Note, clientSecret will become encrypted in this file on the first Azure connection.  </p>
+<p>For multi-tenant or multi-endpoint support, we may add several entities:</p>
+<pre><code>&quot;endpoint&quot;: {
+  &quot;entity&quot;: {
+    &quot;undefined&quot;: {
+        ...
+    }
+    &quot;clientA&quot;: {
+        ...
+    }
+    &quot;clientB&quot;: {
+        ...
+    }
+  }
+}
+</code></pre>
+
+<p>For additional details, see baseEntity description.  </p>
+<p>Note, we should normally use certificate (https) for communicating with ScimGateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use <code>http://localhost:port</code> or <code>http://127.0.0.1:port</code> which will not be passed down to the data link layer for transmission. We could then also set {&quot;localhostonly&quot;: true}  </p>
+<p><strong>For CA Provisioning, create endpoint type &quot;Azure - ScimGateway&quot;</strong>  </p>
+<ul>
+<li>
+Start ScimGateway
+<ul>
+<li>&quot;const azureAD&quot; must be uncomment in <code>index.js</code></li>
+<li>username, password and port defined in <code>plugin-azure-ad.json</code> must also be known </li>
+</ul>
+</li>
+<li>Start ConnectorXpress</li>
+<li>
+Setup Data Sources
+<ul>
+<li>Add</li>
+<li>Layer7 (this is SCIM)</li>
+<li>Name = ScimGateway-8881</li>
+<li>Base URL = http://localhost:8881 (ScimGateway installed locally on Connector Server)  
+</li>
+</ul>
+</li>
+<li>
+Add the new &quot;Azure - ScimGateway&quot; endpoint type
+<ul>
+<li>Metadata - Import - &quot;my-scimgateway\node_modules\scimgateway\resources\Azure - ScimGateway.xml&quot;</li>
+<li>Select the datasource we created - ScimGateway-8881</li>
+<li>Enter password for the user defined in datasource (e.g. gwadmin/password)  
+</li>
+<li>On the right - expand Provisioning Servers - your server - and logon</li>
+<li>
+Right Click &quot;Endpoint Types&quot;, Create New Endpoint Type
+<ul>
+<li>You may use default name &quot;Azure - ScimGateway&quot; and click &quot;OK&quot; to create endpoint</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Note, metafile &quot;Azure - ScimGateway.xml&quot; is based on CA &quot;Azure - WSL7&quot; with some minor adjustments like using Microsoft Graph API attributes instead of Azure AD Graph attributes.</p>
+<p><strong>Using the CA Provisioning Manager we have to configure</strong>  </p>
+<p><code>Endpoint type = Azure - ScimGateway (DYN Endpoint)</code>  </p>
+<p>Endpoint configuration example:</p>
+<pre><code>Endpoint Name = Azure-AD-8881  
+User Name = gwadmin  
+Password = password  
+SCIM Authentication Method = HTTP Basic Authentication  
+SCIM Based URL = http://localhost:8881  
+or  
+SCIM Based URL = http://localhost:8881/&lt;baseEntity&gt;  
+</code></pre>
+
+<p>For details, please see section &quot;CA Provisioningserver - SCIM Endpoint&quot;</p>
+<h2>Azure Active Directory using ScimGateway</h2>
 <p>Azure AD could do automatic user provisioning by synchronizing users towards ScimGateway, and ScimGateway plugins will update endpoints.</p>
 <p>Plugin configuration file must include scimversion &quot;2.0&quot; and either bearer.token or azure.tenantIdGUID (or both):  </p>
 <pre><code>{
@@ -831,6 +1026,17 @@ displayName mapped to displayName
 </p>
 </li>
 </ul>
+<h2>api-plugin</h2>
+<p>ScimGateway supports following methods for the none SCIM based api-plugin:  </p>
+<pre><code>    GET /api  
+    GET /api?queries  
+    GET /api/{id}  
+    POST /api + body  
+    PUT /api/{id} + body  
+    PATCH /api/{id} + body  
+    DELETE /api/{id}  
+</code></pre>
+
 <h2>How to build your own plugins</h2>
 <p>For javascript coding editor you may use <a href="https://code.visualstudio.com/" title="Visual Studio Code">Visual Studio Code</a> </p>
 <p>Preparation:</p>
@@ -912,14 +1118,14 @@ let validScimAttr = []; // empty array - all attrbutes are supported by endpoint
     var ret = {
         &quot;Resources&quot;: [],
         &quot;totalResults&quot;: null
-    };
+    }
     ...
-    callback(error, ret);
-});  
+    callback(error, ret)
+})  
 </code></pre>
 
 <ul>
-<li>baseEntity = Optional for multi tenant or multi endpoint support (defined in base url e.g. <code>&lt;baseurl&gt;/client1</code> gives baseEntity=client1)  </li>
+<li>baseEntity = Optional for multi-tenant or multi-endpoint support (defined in base url e.g. <code>&lt;baseurl&gt;/client1</code> gives baseEntity=client1)  </li>
 <li>startIndex = Pagination - The 1-based index of the first result in the current set of search results  </li>
 <li>count = Pagination - Number of elements to be returned in the current set of search results  </li>
 <li>callback(error, ret):<br />
@@ -932,10 +1138,10 @@ ret.totalResults = if supporting pagination attribute should be set to the total
     var ret = {
         &quot;Resources&quot;: [],
         &quot;totalResults&quot;: null
-    };
+    }
     ...
     callback(error, ret);
-});  
+})  
 </code></pre>
 
 <ul>
@@ -947,8 +1153,8 @@ ret.totalResults = if supporting pagination attribute should be set to the total
 <h3>getUser</h3>
 <pre><code>scimgateway.on('getUser', function (baseEntity, userName, attributes, callback) {
     ...
-    callback(error, userObj);
-});  
+    callback(error, userObj)
+})  
 </code></pre>
 
 <ul>
@@ -964,8 +1170,8 @@ eg:<br />
 <h3>createUser</h3>
 <pre><code>scimgateway.on('createUser', function (baseEntity, userObj, callback) {
     ...
-    callback(error);
-}); 
+    callback(error)
+}) 
 </code></pre>
 
 <ul>
@@ -976,8 +1182,8 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 <h3>deleteUser</h3>
 <pre><code>scimgateway.on('deleteUser', function (baseEntity, id, callback) {
     ...
-    callback(error);
-}); 
+    callback(error)
+}) 
 </code></pre>
 
 <ul>
@@ -987,8 +1193,8 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 <h3>modifyUser</h3>
 <pre><code>scimgateway.on('modifyUser', function (baseEntity, id, attrObj, callback) {
     ...
-    callback(error);
-}); 
+    callback(error)
+}) 
 </code></pre>
 
 <ul>
@@ -1000,8 +1206,8 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 <h3>getGroup</h3>
 <pre><code>scimgateway.on('getGroup', function (baseEntity, displayName, attributes, callback) {
     ...
-    callback(error, retObj);
-}); 
+    callback(error, retObj)
+}) 
 </code></pre>
 
 <ul>
@@ -1019,14 +1225,11 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 </li>
 </ul>
 <h3>getGroupMembers</h3>
-<pre><code>scimgateway.on('getGroupMembers', function (baseEntity, id, attributes, startIndex, count, callback) {
-    var ret = {
-        &quot;Resources&quot;: [],
-        &quot;totalResults&quot;: null
-    };
+<pre><code>scimgateway.on('getGroupMembers', function (baseEntity, id, attributes, callback) {
+    let arrRet = []
     ...
-    callback(error, ret);
-});
+    callback(error, arrRet)
+})
 </code></pre>
 
 <p>Retrieve all users for a spesific group WHEN <strong>&quot;user member of group&quot;</strong>. This setting is CA IM default scim endpoint configuration. This means Group having multivalue attribute members containing userName.  </p>
@@ -1048,10 +1251,10 @@ e.g [{&quot;displayName&quot;:&quot;Admins&quot;,&quot;members&quot;: [{ &quot;v
 </ul>
 <h3>getGroupUsers</h3>
 <pre><code>scimgateway.on('getGroupUsers', function (baseEntity, groupName, attributes, callback) {
-    var arrRet = [];
+    let arrRet = []
     ...
-    callback(error, arrRet);
-});
+    callback(error, arrRet)
+})
 </code></pre>
 
 <p>Retrieve all users for a spesific group WHEN <strong>&quot;group member of user&quot;</strong>. This means user having multivalue attribute groups containing value GroupName  </p>
@@ -1068,8 +1271,8 @@ eg: [{&quot;userName&quot;, &quot;bjensen&quot;}, {&quot;userName&quot;, &quot;j
 <h3>createGroup</h3>
 <pre><code>scimgateway.on('createGroup', function (baseEntity, groupObj, callback) {
     ...
-    return callback(error);
-});
+    return callback(error)
+})
 </code></pre>
 
 <ul>
@@ -1080,8 +1283,8 @@ groupObj.displayName contains the group name to be created</li>
 <h3>modifyGroupMembers</h3>
 <pre><code>scimgateway.on('modifyGroupMembers', function (baseEntity, id, members, callback) {
     ...
-    return callback(error);
-});
+    return callback(error)
+})
 </code></pre>
 
 <ul>
@@ -1113,6 +1316,38 @@ If we do not support groups, callback(null)</li>
 <h2>License</h2>
 <p>MIT</p>
 <h2>Change log</h2>
+<h3>v1.0.0</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>New plugin-azure-ad.js for Azure AD user provisioning including Azure license management e.g. Office 365</li>
+<li>Includes latest versions of module dependencies</li>
+<li>Module hdb (for SapHana) and saml is not included by default anymore and therefore have to be manually installed if needed. </li>
+</ul>
+<p><strong>[UPGRADE]</strong><br />
+Method <code>getGroupMembers</code> must be updated for all custom plugins</p>
+<p>Replace:  </p>
+<pre><code>scimgateway.on('getGroupMembers', function (baseEntity, id, attributes, startIndex, count, callback) {
+...
+let ret = {
+'Resources' : [],
+'totalResults' : null
+}
+...
+ret.Resources.push(userGroup)
+...
+callback(null, ret)
+</code></pre>
+
+<p>With:  </p>
+<pre><code>scimgateway.on('getGroupMembers', function (baseEntity ,id ,attributes, callback) {
+...
+let arrRet = []
+...
+arrRet.push(userGroup)
+...
+callback(null, arrRet)
+</code></pre>
+
 <h3>v0.5.3</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
