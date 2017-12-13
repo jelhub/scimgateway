@@ -3411,6 +3411,11 @@ function init(FieldContext)
                         <boolValue>true</boolValue>
                     </value>
                 </metadata>
+                <metadata name="isPolicySync">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
             </property>
             <property name="eTDYN-str-multi-01">
                 <doc></doc>
@@ -3677,6 +3682,11 @@ function init(FieldContext)
                     </value>
                 </metadata>
                 <metadata name="isInterestingToCompliance">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isPolicySync">
                     <value>
                         <boolValue>true</boolValue>
                     </value>
@@ -4812,6 +4822,11 @@ function init(FieldContext)
                         <strValue>eTDYNObject002</strValue>
                     </value>
                 </metadata>
+                <metadata name="isPolicySync">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
             </property>
             <property name="eTDYN-str-multi-01">
                 <value default="true">
@@ -5002,6 +5017,11 @@ function init(FieldContext)
                     </value>
                 </metadata>
                 <metadata name="isInterestingToCompliance">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isPolicySync">
                     <value>
                         <boolValue>true</boolValue>
                     </value>
@@ -5324,7 +5344,7 @@ function init(FieldContext)
             <property name="eTDYNContainer002Name">
                 <doc></doc>
                 <value default="true">
-                    <strValue>Service Plans</strValue>
+                    <strValue>Licenses</strValue>
                 </value>
                 <metadata name="beanPropertyName">
                     <value>

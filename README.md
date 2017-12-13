@@ -988,6 +988,11 @@ MIT
 
 ## Change log  
 
+### v1.0.2  
+[Fix]  
+
+- License and group defined as capability attributes in metafile used by CA ConnectorXpress regarding plugin-azure-ad     
+
 ### v1.0.1  
 [FIX]  
 
