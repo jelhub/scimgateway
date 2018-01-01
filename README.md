@@ -988,6 +988,11 @@ MIT
 
 ## Change log  
 
+### v1.0.3  
+[Fix]  
+
+- Undefined root url not handled correctly after v1.0.0
+
 ### v1.0.2  
 [Fix]  
 
