@@ -983,7 +983,7 @@ If we do not support groups, callback(null)
 
 ## License  
  
-MIT
+MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
