@@ -585,7 +585,7 @@ Note, we should normally use certificate (https) for communicating with ScimGate
 	- Name = ScimGateway-8881
 	- Base URL = http://localhost:8881 (ScimGateway installed locally on Connector Server)  
 - Add the new "Azure - ScimGateway" endpoint type
-	- Metadata - Import - "my-scimgateway\node_modules\scimgateway\resources\Azure - ScimGateway.xml"
+	- Metadata - Import - "my-scimgateway\node_modules\scimgateway\config\resources\Azure - ScimGateway.xml"
 	- Select the datasource we created - ScimGateway-8881
 	- Enter password for the user defined in datasource (e.g. gwadmin/password)  
 	- On the right - expand Provisioning Servers - your server - and logon
