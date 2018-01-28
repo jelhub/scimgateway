@@ -61,6 +61,7 @@
             <val displayName="Details">ENDPOINT_DETAILS</val>
             <val displayName="Connection Information">ENDPOINT_CONNECTION INFORMATION</val>
             <val displayName="Default Acccount Template">ENDPOINT_DEFAULT ACCCOUNT TEMPLATE</val>
+			<val displayName="Pagination Settings for Explore and Correlate">ENDPOINT_PAGINATION SETTINGS</val>
             <val displayName="Endpoint">ENDPOINT</val>
             <val displayName="Endpoint Settings">ENDPOINT SETTINGS</val>
             <val displayName="Attribute Mapping">ATTRIBUTE MAPPING</val>
@@ -1417,6 +1418,9 @@
     <val>
         <enumValue def="EndpointGroups">ENDPOINT_DEFAULT ACCCOUNT TEMPLATE</enumValue>
     </val>
+    <val>
+        <enumValue def="EndpointGroups">ENDPOINT_PAGINATION SETTINGS</enumValue>
+    </val>
 </sequenceValue>
                             </value>
                         </mapEntry>
@@ -1495,6 +1499,24 @@
     </val>
     <val>
         <strValue>eTDescription</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
+<enumValue def="EndpointGroups">ENDPOINT_PAGINATION SETTINGS</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTDYN-str-multi-ca-10</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-ca-11</strValue>
     </val>
 </sequenceValue>
                             </value>
@@ -2145,6 +2167,68 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
+            <property name="eTDYN-str-multi-ca-10">
+                <doc>This attribute specifies whether pagination feature is enabled for this connector or not. This pagination setting is used while performing explore and correlate operation.</doc>
+                <value default="true">
+                    <boolValue>true</boolValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Enable Pagination</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>enablePagination</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>enablePagination</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isConnection">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-ca-11">
+                <doc> Specifies the number of records needs to be retrieved per request while performing Explore and Correlate task. Default value is 100.</doc>
+                <value default="true">
+                    <intValue>100</intValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Page Count</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>pageCount</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>pageCount</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isConnection">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
+            </property>			
         </class>
         <class name="eTDYNAccount">
             <doc>Maps Provisioning Account object attributes to columns in a table.</doc>
