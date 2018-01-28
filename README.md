@@ -13,6 +13,7 @@ Validated on:
 
 Latest news:  
 
+- Paging for retrieving users and groups now included in Azure AD plugin
 - Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!
 - API gateway for general none provisioning (becomes what you want it to become)
 - Authentication includes standard JSON Web Token (JWT) and Azure JWT
@@ -987,6 +988,15 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v1.0.4  
+[ENHANCEMENT]  
+
+- Plugin for Azure AD now supports paging for retrieving users and groups. Any existing metafile used by CA ConnectorXpress ("Azure - ScimGateway.xml") must be re-deployed.
+
+[Fix]  
+
+- Don't use deprecated existsSync in postinstallation 
 
 ### v1.0.3  
 [Fix]  
