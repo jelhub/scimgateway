@@ -300,8 +300,8 @@ img {
 <ul>
 <li>Paging for retrieving users and groups now included in Azure AD plugin</li>
 <li>Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!</li>
-<li>API gateway for general none provisioning (becomes what you want it to become)</li>
-<li>Authentication includes standard JSON Web Token (JWT) and Azure JWT</li>
+<li>General API plugin for none provisioning (API Gateway)</li>
+<li>Authentication accepting standard JSON Web Token (JWT) and Azure JWT</li>
 <li>Running ScimGateway as a Docker container  </li>
 </ul>
 <h2>Overview</h2>
@@ -348,7 +348,7 @@ Demonstrates SAP HANA specific user provisioning
 </li>
 <li>
 <p><strong>Azure AD</strong> (REST Webservices)<br />
-Azure AD user provisioning including Azure license management e.g. O365<br />
+Azure AD user provisioning including Azure license management e.g. Office 365<br />
 Using Microsoft Graph API<br />
 Using customized SCIM attributes according to Microsoft Graph API<br />
 Includes CA ConnectorXpress metafile for creating &quot;Azure - ScimGateway&quot; endpoint  
@@ -356,7 +356,7 @@ Includes CA ConnectorXpress metafile for creating &quot;Azure - ScimGateway&quot
 </li>
 <li>
 <p><strong>API</strong> (REST Webservies)<br />
-Demonstrates api gateway functionality using post/put/patch/get/delete<br />
+Demonstrates api gateway/plugin functionality using post/put/patch/get/delete<br />
 None SCIM plugin, becomes what you want it to become.<br />
 Endpoint complexity could be put in this plugin, and client could instead communicate through ScimGateway using your own simplified REST specification.<br />
 One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager (from REST to IM SOAP/TEWS).    
@@ -1044,7 +1044,7 @@ displayName mapped to displayName
 <ul>
 <li>Copy &quot;best matching&quot; example plugin e.g. <code>lib\plugin-loki.js</code> and <code>config\plugin-loki.json</code> and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) </li>
 <li>Edit plugin-mine.json and define a unique port number for the scimgateway setting  </li>
-<li>Edit index.js and add a new line for starting your plugin e.g. <code>var mine = require('./lib/plugin-mine');</code>  </li>
+<li>Edit index.js and add a new line for starting your plugin e.g. <code>let mine = require('./lib/plugin-mine');</code>  </li>
 <li>Start ScimGateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  </li>
 </ul>
 <p>Now we are ready for custom coding by editing plugin-mine.js
@@ -1116,7 +1116,7 @@ let validScimAttr = []; // empty array - all attrbutes are supported by endpoint
 
 <h3>exploreUsers</h3>
 <pre><code>scimgateway.on('exploreUsers', function (baseEntity, startIndex, count, callback) {
-    var ret = {
+    let ret = {
         &quot;Resources&quot;: [],
         &quot;totalResults&quot;: null
     }
@@ -1136,7 +1136,7 @@ ret.totalResults = if supporting pagination attribute should be set to the total
 </ul>
 <h3>exploreGroups</h3>
 <pre><code>scimgateway.on('exploreGroups', function (baseEntity, startIndex, count, callback) {
-    var ret = {
+    let ret = {
         &quot;Resources&quot;: [],
         &quot;totalResults&quot;: null
     }
@@ -1317,6 +1317,16 @@ If we do not support groups, callback(null)</li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v1.0.5</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>Supporting GET /Users, GET /Groups, PUT method and delete groups  </li>
+</ul>
+<p>[Fix]  </p>
+<ul>
+<li>Some minor compliance fixes  </li>
+</ul>
+<p><strong>Thanks to ywchuang</strong> </p>
 <h3>v1.0.4</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
@@ -1377,7 +1387,7 @@ callback(null, arrRet)
 <p>[ENHANCEMENT]  </p>
 <ul>
 <li>
-Includes api gateway for general none provisioning  
+Includes api gateway/plugin for general none provisioning  
 
 <ul>
 <li>GET /api</li>
@@ -1395,7 +1405,7 @@ Includes api gateway for general none provisioning
 <p>[ENHANCEMENT]  </p>
 <ul>
 <li>
-One or more of following authentication/authorization methods are supported:  
+One or more of following authentication/authorization methods are accepted:  
 
 <ul>
 <li>Basic Authentication</li>

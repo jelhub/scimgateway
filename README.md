@@ -15,8 +15,8 @@ Latest news:
 
 - Paging for retrieving users and groups now included in Azure AD plugin
 - Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!
-- API gateway for general none provisioning (becomes what you want it to become)
-- Authentication includes standard JSON Web Token (JWT) and Azure JWT
+- General API plugin for none provisioning (API Gateway)
+- Authentication accepting standard JSON Web Token (JWT) and Azure JWT
 - Running ScimGateway as a Docker container  
 
 ## Overview  
@@ -60,7 +60,7 @@ Demonstrates user provisioning towards MSSQL database
 Demonstrates SAP HANA specific user provisioning  
 
 * **Azure AD** (REST Webservices)  
-Azure AD user provisioning including Azure license management e.g. O365  
+Azure AD user provisioning including Azure license management e.g. Office 365  
 Using Microsoft Graph API  
 Using customized SCIM attributes according to Microsoft Graph API  
 Includes CA ConnectorXpress metafile for creating "Azure - ScimGateway" endpoint  
@@ -68,7 +68,7 @@ Includes CA ConnectorXpress metafile for creating "Azure - ScimGateway" endpoint
 
 
 * **API** (REST Webservies)  
-Demonstrates api gateway functionality using post/put/patch/get/delete  
+Demonstrates api gateway/plugin functionality using post/put/patch/get/delete  
 None SCIM plugin, becomes what you want it to become.  
 Endpoint complexity could be put in this plugin, and client could instead communicate through ScimGateway using your own simplified REST specification.  
 One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager (from REST to IM SOAP/TEWS).    
@@ -706,7 +706,7 @@ Preparation:
 
 * Copy "best matching" example plugin e.g. `lib\plugin-loki.js` and `config\plugin-loki.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) 
 * Edit plugin-mine.json and define a unique port number for the scimgateway setting  
-* Edit index.js and add a new line for starting your plugin e.g. `var mine = require('./lib/plugin-mine');`  
+* Edit index.js and add a new line for starting your plugin e.g. `let mine = require('./lib/plugin-mine');`  
 * Start ScimGateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  
 
 Now we are ready for custom coding by editing plugin-mine.js
@@ -795,7 +795,7 @@ Plugins should have following initialization:
 ### exploreUsers  
 
 	scimgateway.on('exploreUsers', function (baseEntity, startIndex, count, callback) {
-	    var ret = {
+	    let ret = {
 	        "Resources": [],
 	        "totalResults": null
 	    }
@@ -814,7 +814,7 @@ ret.totalResults = if supporting pagination attribute should be set to the total
 ### exploreGroups  
 
 	scimgateway.on('exploreGroups', function (baseEntity, startIndex, count, callback) {
-	    var ret = {
+	    let ret = {
 	        "Resources": [],
 	        "totalResults": null
 	    }
@@ -989,6 +989,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v1.0.5  
+[ENHANCEMENT]  
+
+- Supporting GET /Users, GET /Groups, PUT method and delete groups  
+
+[Fix]  
+
+- Some minor compliance fixes  
+
+**Thanks to ywchuang** 
+
 ### v1.0.4  
 [ENHANCEMENT]  
 
@@ -1050,7 +1061,7 @@ With:
 ### v0.5.3  
 [ENHANCEMENT]  
 
-- Includes api gateway for general none provisioning  
+- Includes api gateway/plugin for general none provisioning  
   - GET /api
   - GET /api?queries
   - GET /api/{id}
@@ -1064,7 +1075,7 @@ With:
 ### v0.5.2  
 [ENHANCEMENT]  
 
-- One or more of following authentication/authorization methods are supported:  
+- One or more of following authentication/authorization methods are accepted:  
   - Basic Authentication
   - Bearer token - shared secret
   - Bearer token - Standard JSON Web Token (JWT)
@@ -1128,6 +1139,8 @@ This plugin now replace previous `plugin-testmode`
 - Mocha test scripts for automated testing of plugin-testmode  
 - Automated tests run on Travis-ci.org (click on build badge) 
 - **Thanks to Jeffrey Gilbert**
+
+
   
 [Fix]  
 
