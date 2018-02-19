@@ -384,7 +384,8 @@ npm install scimgateway --save
 <pre><code>node c:\my-scimgateway
 
 Start a browser
-http://localhost:8880/Users?attributes=userName  
+http://localhost:8880/Users  
+(or http://localhost:8880/Users?attributes=userName)  
 
 Logon using gwadmin/password and two users should be listed  
 
@@ -1321,6 +1322,7 @@ If we do not support groups, callback(null)</li>
 <p>[ENHANCEMENT]  </p>
 <ul>
 <li>Supporting GET /Users, GET /Groups, PUT method and delete groups  </li>
+<li>After more than 3 invalid auth attempts, response will be delayed to prevent brute force</li>
 </ul>
 <p>[Fix]  </p>
 <ul>

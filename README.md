@@ -106,7 +106,8 @@ If internet connection is blocked, we could install on another machine and copy 
 	node c:\my-scimgateway
 	
 	Start a browser
-	http://localhost:8880/Users?attributes=userName  
+	http://localhost:8880/Users  
+	(or http://localhost:8880/Users?attributes=userName)  
 
 	Logon using gwadmin/password and two users should be listed  
 
@@ -993,6 +994,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 [ENHANCEMENT]  
 
 - Supporting GET /Users, GET /Groups, PUT method and delete groups  
+- After more than 3 invalid auth attempts, response will be delayed to prevent brute force
 
 [Fix]  
 
