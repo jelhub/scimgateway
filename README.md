@@ -13,7 +13,6 @@ Validated on:
 
 Latest news:  
 
-- Paging for retrieving users and groups now included in Azure AD plugin
 - Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!
 - General API plugin for none provisioning (API Gateway)
 - Authentication accepting standard JSON Web Token (JWT) and Azure JWT
@@ -60,7 +59,7 @@ Demonstrates user provisioning towards MSSQL database
 Demonstrates SAP HANA specific user provisioning  
 
 * **Azure AD** (REST Webservices)  
-Azure AD user provisioning including Azure license management e.g. Office 365  
+Azure AD user provisioning including Azure license management (App Service plans) e.g. Office 365  
 Using Microsoft Graph API  
 Using customized SCIM attributes according to Microsoft Graph API  
 Includes CA ConnectorXpress metafile for creating "Azure - ScimGateway" endpoint  
@@ -107,12 +106,17 @@ If internet connection is blocked, we could install on another machine and copy 
 	
 	Start a browser
 	http://localhost:8880/Users  
-	(or http://localhost:8880/Users?attributes=userName)  
+	http://localhost:8880/Groups
+	or 
+	http://localhost:8880/Users?attributes=userName
+	http://localhost:8880/Groups?attributes=displayName  
 
-	Logon using gwadmin/password and two users should be listed  
+	Logon using gwadmin/password and two users / four groups should be listed  
 
 	http://localhost:8880/Users/bjensen
-	Lists all user attributes for specified user
+	http://localhost:8880/Groups/Admins
+
+	Lists all attributes for specified user/group
 
 	"Ctrl + c" to stop the scimgateway
 
@@ -989,6 +993,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v1.0.6  
+[Fix]  
+
+- Azure AD plugin, failed to create user when licenses (app Service plans) was included  
 
 ### v1.0.5  
 [ENHANCEMENT]  

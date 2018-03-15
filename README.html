@@ -298,7 +298,6 @@ img {
 </ul>
 <p>Latest news:  </p>
 <ul>
-<li>Paging for retrieving users and groups now included in Azure AD plugin</li>
 <li>Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!</li>
 <li>General API plugin for none provisioning (API Gateway)</li>
 <li>Authentication accepting standard JSON Web Token (JWT) and Azure JWT</li>
@@ -348,7 +347,7 @@ Demonstrates SAP HANA specific user provisioning
 </li>
 <li>
 <p><strong>Azure AD</strong> (REST Webservices)<br />
-Azure AD user provisioning including Azure license management e.g. Office 365<br />
+Azure AD user provisioning including Azure license management (App Service plans) e.g. Office 365<br />
 Using Microsoft Graph API<br />
 Using customized SCIM attributes according to Microsoft Graph API<br />
 Includes CA ConnectorXpress metafile for creating &quot;Azure - ScimGateway&quot; endpoint  
@@ -385,12 +384,17 @@ npm install scimgateway --save
 
 Start a browser
 http://localhost:8880/Users  
-(or http://localhost:8880/Users?attributes=userName)  
+http://localhost:8880/Groups
+or 
+http://localhost:8880/Users?attributes=userName
+http://localhost:8880/Groups?attributes=displayName  
 
-Logon using gwadmin/password and two users should be listed  
+Logon using gwadmin/password and two users / four groups should be listed  
 
 http://localhost:8880/Users/bjensen
-Lists all user attributes for specified user
+http://localhost:8880/Groups/Admins
+
+Lists all attributes for specified user/group
 
 &quot;Ctrl + c&quot; to stop the scimgateway
 </code></pre>
@@ -1318,6 +1322,11 @@ If we do not support groups, callback(null)</li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v1.0.6</h3>
+<p>[Fix]  </p>
+<ul>
+<li>Azure AD plugin, failed to create user when licenses (app Service plans) was included  </li>
+</ul>
 <h3>v1.0.5</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
