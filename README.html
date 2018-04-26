@@ -646,7 +646,7 @@ cp ./config/docker/* .
 
 </li>
 <li>
-<p>Copy your updated configuration file e.g. scimgateway/config/plugin-loki.json to /home/scimgateway/config.  Use scp to perform the copy.</p>
+<p>Copy your updated configuration file e.g. /opt/my-scimgateway/config/plugin-loki.json to /home/scimgateway/config.  Use scp to perform the copy.</p>
 <p>NOTE: /home/scimgateway/config is where all of important configuration and loki datastore will reside outside of the running docker container.  If you upgrade scimgateway you won't loose you configurations and data.</p>
 </li>
 <li>
@@ -666,6 +666,10 @@ ls loki.db
 
 </li>
 </ul>
+<p>To list running containers information:<br />
+<code>docker ps</code></p>
+<p>To list available images:<br />
+<code>docker images</code></p>
 <p>To view the logs:<br />
 <code>docker logs scimgateway</code></p>
 <p>To execute command within your running container:<br />
@@ -1322,6 +1326,12 @@ If we do not support groups, callback(null)</li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v1.0.7</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>Docker now using node v.9.10.0 instead of v.6.9.2</li>
+<li>Minor log cosmetics</li>
+</ul>
 <h3>v1.0.6</h3>
 <p>[Fix]  </p>
 <ul>

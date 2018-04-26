@@ -13,7 +13,7 @@
 
 
 # Debian Jessie linux with node user account and group
-FROM node:6.9.2-slim
+FROM node:9.10.0-slim
 
 # Declare who maintains this Dockerfile
 MAINTAINER Charles Watson <cwatsonx@costco.com>
@@ -30,7 +30,7 @@ ENV NODE_HOME /home/scimgateway
 ADD ./package.json $NODE_HOME
 
 # Install npm dependencies (exclude test stuff for dependencies)
-RUN . ~/.bashrc && cd $NODE_HOME && npm install --production 2> npm_output.txt && npm cache clear 2> /dev/null
+RUN . ~/.bashrc && cd $NODE_HOME && npm install --production 2> npm_output.txt && npm cache clear --force 2> /dev/null
 
 # Copy your project's code to your working directory
 COPY . $NODE_HOME

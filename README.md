@@ -349,7 +349,7 @@ docker-compose**
 
 		mkdir /home/scimgateway/config
 
-- Copy your updated configuration file e.g. scimgateway/config/plugin-loki.json to /home/scimgateway/config.  Use scp to perform the copy.
+- Copy your updated configuration file e.g. /opt/my-scimgateway/config/plugin-loki.json to /home/scimgateway/config.  Use scp to perform the copy.
 
 	NOTE: /home/scimgateway/config is where all of important configuration and loki datastore will reside outside of the running docker container.  If you upgrade scimgateway you won't loose you configurations and data.
 
@@ -366,7 +366,12 @@ docker-compose**
 		su scimgateway  
 		cd /home/scimgateway/config  
 		ls loki.db  
-	
+
+To list running containers information:  
+`docker ps`
+
+To list available images:  
+`docker images`
 
 To view the logs:  
 `docker logs scimgateway`
@@ -993,6 +998,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v1.0.7  
+[ENHANCEMENT]  
+
+- Docker now using node v.9.10.0 instead of v.6.9.2
+- Minor log cosmetics
 
 ### v1.0.6  
 [Fix]  
