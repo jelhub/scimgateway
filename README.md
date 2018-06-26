@@ -285,7 +285,7 @@ Gateway can now be started from a command window running in administrative mode
 	<package-root>node .
 
 
-<kbd>Ctrl</kbd>+<kbd>c</kbd> to to stop  
+<kbd>Ctrl</kbd>+<kbd>c</kbd> to stop  
 
 ## Automatic startup - Windows Task Scheduler  
 
