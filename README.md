@@ -13,9 +13,9 @@ Validated on:
 
 Latest news:  
 
+- Health monitoring through "/ping" url
 - Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!
 - General API plugin for none provisioning (API Gateway)
-- Authentication accepting standard JSON Web Token (JWT) and Azure JWT
 - Running ScimGateway as a Docker container  
 
 ## Overview  
@@ -104,19 +104,22 @@ If internet connection is blocked, we could install on another machine and copy 
 
 	node c:\my-scimgateway
 	
-	Start a browser
+	Start a browser (don't use IE - does not support Content-Type application/json)
+
+	http://localhost:8880/ping
+	=> Health check with a "hello" response
+
+
 	http://localhost:8880/Users  
 	http://localhost:8880/Groups
 	or 
 	http://localhost:8880/Users?attributes=userName
 	http://localhost:8880/Groups?attributes=displayName  
-
-	Logon using gwadmin/password and two users / four groups should be listed  
+	=> Logon using gwadmin/password and two users / four groups should be listed  
 
 	http://localhost:8880/Users/bjensen
 	http://localhost:8880/Groups/Admins
-
-	Lists all attributes for specified user/group
+	=> Lists all attributes for specified user/group
 
 	"Ctrl + c" to stop the scimgateway
 
@@ -999,6 +1002,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v1.0.8  
+[ENHANCEMENT]  
+
+- Support health monitoring using the "/ping" url with a "hello" response, e.g. http://localhost:8880/ping. Useful for frontend load balancing/failover functionality    
+ 
 ### v1.0.7  
 [ENHANCEMENT]  
 
