@@ -33,6 +33,19 @@
         "bundle": null,
         "password": null
       }
+    },
+    "emailOnError": {
+      "smtp": {
+        "enabled": false,
+        "host": null,
+        "port": 587,
+        "authenticate": true,
+        "username": null,
+        "password": null,
+        "sendInterval": 15,
+        "to": null,
+        "cc": null
+      }
     }
   },
   "endpoint": {
