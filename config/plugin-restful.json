@@ -39,6 +39,7 @@
         "enabled": false,
         "host": null,
         "port": 587,
+        "proxy": null,
         "authenticate": true,
         "username": null,
         "password": null,
