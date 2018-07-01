@@ -298,9 +298,9 @@ img {
 </ul>
 <p>Latest news:  </p>
 <ul>
+<li>Health monitoring through &quot;/ping&quot; URL, and option for error notifications by email</li>
 <li>Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!</li>
 <li>General API plugin for none provisioning (API Gateway)</li>
-<li>Authentication accepting standard JSON Web Token (JWT) and Azure JWT</li>
 <li>Running ScimGateway as a Docker container  </li>
 </ul>
 <h2>Overview</h2>
@@ -332,7 +332,7 @@ Using plugin &quot;Loki&quot; as a REST endpoint</p>
 <p><strong>Forwardinc</strong> (SOAP Webservice)<br />
 Demonstrates user provisioning towards SOAP-Based endpoint <br />
 Using endpoint Forwardinc that comes with CA IM SDK (SDKWS) - please see <a href="https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements" title="wiki.ca.com">wiki.ca.com</a>  <br />
-Shows how to implement a higly configurable multi tenant or multi endpoint solution using &quot;baseEntity&quot; parameter  
+Shows how to implement a highly configurable multi tenant or multi endpoint solution using &quot;baseEntity&quot; parameter  
 </p>
 </li>
 <li>
@@ -354,7 +354,7 @@ Includes CA ConnectorXpress metafile for creating &quot;Azure - ScimGateway&quot
 </p>
 </li>
 <li>
-<p><strong>API</strong> (REST Webservies)<br />
+<p><strong>API</strong> (REST Webservices)<br />
 Demonstrates api gateway/plugin functionality using post/put/patch/get/delete<br />
 None SCIM plugin, becomes what you want it to become.<br />
 Endpoint complexity could be put in this plugin, and client could instead communicate through ScimGateway using your own simplified REST specification.<br />
@@ -382,19 +382,21 @@ npm install scimgateway --save
 <h4>Startup and verify default Loki plugin</h4>
 <pre><code>node c:\my-scimgateway
 
-Start a browser
+Start a browser (note, IE does not support JSON content)
+
+http://localhost:8880/ping
+=&gt; Health check with a &quot;hello&quot; response
+
 http://localhost:8880/Users  
 http://localhost:8880/Groups
 or 
 http://localhost:8880/Users?attributes=userName
 http://localhost:8880/Groups?attributes=displayName  
-
-Logon using gwadmin/password and two users / four groups should be listed  
+=&gt; Logon using gwadmin/password and two users / four groups should be listed  
 
 http://localhost:8880/Users/bjensen
 http://localhost:8880/Groups/Admins
-
-Lists all attributes for specified user/group
+=&gt; Lists all attributes for specified user/group
 
 &quot;Ctrl + c&quot; to stop the scimgateway
 </code></pre>
@@ -466,6 +468,20 @@ Below shows an example of config\plugin-saphana.json  </p>
       &quot;pfx&quot;: {
         &quot;bundle&quot;: null,
         &quot;password&quot;: null
+      }
+    },
+    &quot;emailOnError&quot;: {
+      &quot;smtp&quot;: {
+        &quot;enabled&quot;: false,
+        &quot;host&quot;: null,
+        &quot;port&quot;: 587,
+        &quot;proxy&quot;: null,
+        &quot;authenticate&quot;: true,
+        &quot;username&quot;: null,
+        &quot;password&quot;: null,
+        &quot;sendInterval&quot;: 15,
+        &quot;to&quot;: null,
+        &quot;cc&quot;: null
       }
     }
   },
@@ -556,7 +572,22 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>endpoint</strong> - Contains endpoint specific configuration according to our plugin code.  
+<p><strong>emailOnError</strong> - Contains configuration for sending error notifications by email. Note, only the first error will be sent until sendInterval have passed </p>
+</li>
+<li><strong>emailOnError.smtp.enabled</strong> - true or false, value set to true will enable email notifications  </li>
+<li><strong>emailOnError.smtp.host</strong> - Mailserver e.g. &quot;smtp.office365.com&quot;  </li>
+<li><strong>emailOnError.smtp.port</strong> - Port used by mailserver e.g. 587, 25 or 465</li>
+<li><strong>emailOnError.smtp.proxy</strong> - If using mailproxy e.g. &quot;http://proxy-host:1234&quot;</li>
+<li><strong>emailOnError.smtp.authenticate</strong> - true or false, set to true will use username/password authentication</li>
+<li><strong>emailOnError.smtp.username</strong> - Mail account for authentication and also the sender of the email, e.g. &quot;user@outlook.com&quot;  </li>
+<li><strong>emailOnError.smtp.password</strong> - Mail account password  </li>
+<li><strong>emailOnError.smtp.sendInterval</strong> - Mail notifications on error are deferred until sendInterval <strong>minutes</strong> have passed since the last notification. Default 15 minutes</li>
+<li><strong>emailOnError.smtp.to</strong> - Comma separated list of recipients email addresses e.g: &quot;someone@example.com&quot;</li>
+<li>
+<p><strong>emailOnError.smtp.cc</strong> - Comma separated list of cc email addresses</p>
+</li>
+<li>
+<p><strong>endpoint</strong> - Contains endpoint specific configuration according to our <strong>plugin code</strong>.  
 </p>
 </li>
 </ul>
@@ -578,7 +609,7 @@ node c:\my-scimgateway\index.js
 &lt;package-root&gt;node .
 </code></pre>
 
-<p><kbd>Ctrl</kbd>+<kbd>c</kbd> to to stop  </p>
+<p><kbd>Ctrl</kbd>+<kbd>c</kbd> to stop  </p>
 <h2>Automatic startup - Windows Task Scheduler</h2>
 <p>Start Windows Task Scheduler (taskschd.msc), right click on &quot;Task Scheduler Library&quot; and choose &quot;Create Task&quot;  </p>
 <pre><code>General tab:  
@@ -1303,7 +1334,7 @@ groupObj.displayName contains the group name to be created</li>
 eg: {&quot;value&quot;:&quot;bjensen&quot;},{&quot;operation&quot;:&quot;delete&quot;,&quot;value&quot;:&quot;jsmith&quot;}<br />
 (adding bjensen and deliting jsmith from group)  </li>
 <li>callback(error): null if OK, else error object<br />
-If we do not support groups, callback(null)</li>
+If we do not support groups, callback(null)  </li>
 </ul>
 <h2>Known limitations</h2>
 <ul>
@@ -1316,16 +1347,21 @@ If we do not support groups, callback(null)</li>
 </p>
 </li>
 <li>
-<p>Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate). </p>
-</li>
-<li>
-<p>Delete groups not supported  
+<p>Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate).  
 </p>
 </li>
 </ul>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v1.0.8</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>Support health monitoring using the &quot;/ping&quot; URL with a &quot;hello&quot; response, e.g. http://localhost:8880/ping. Useful for frontend load balancing/failover functionality  </li>
+<li>Option for error notifications by email  </li>
+</ul>
+<p><strong>[UPGRADE]</strong><br />
+Configuration files for custom plugins must include the <strong>emailOnError</strong> object for enabling error notifications by email. Please see the syntax in provided example plugins and details described in the &quot;Configuration&quot; section of this document.</p>
 <h3>v1.0.7</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>

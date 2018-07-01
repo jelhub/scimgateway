@@ -13,7 +13,7 @@ Validated on:
 
 Latest news:  
 
-- Health monitoring through "/ping" url
+- Health monitoring through "/ping" URL, and option for error notifications by email
 - Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!
 - General API plugin for none provisioning (API Gateway)
 - Running ScimGateway as a Docker container  
@@ -50,7 +50,7 @@ Using plugin "Loki" as a REST endpoint
 * **Forwardinc** (SOAP Webservice)  
 Demonstrates user provisioning towards SOAP-Based endpoint   
 Using endpoint Forwardinc that comes with CA IM SDK (SDKWS) - please see [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com")    
-Shows how to implement a higly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  
+Shows how to implement a highly configurable multi tenant or multi endpoint solution using "baseEntity" parameter  
 
 * **MSSQL** (MSSQL Database)  
 Demonstrates user provisioning towards MSSQL database  
@@ -66,7 +66,7 @@ Includes CA ConnectorXpress metafile for creating "Azure - ScimGateway" endpoint
   
 
 
-* **API** (REST Webservies)  
+* **API** (REST Webservices)  
 Demonstrates api gateway/plugin functionality using post/put/patch/get/delete  
 None SCIM plugin, becomes what you want it to become.  
 Endpoint complexity could be put in this plugin, and client could instead communicate through ScimGateway using your own simplified REST specification.  
@@ -104,11 +104,10 @@ If internet connection is blocked, we could install on another machine and copy 
 
 	node c:\my-scimgateway
 	
-	Start a browser (don't use IE - does not support Content-Type application/json)
+	Start a browser (note, IE does not support JSON content)
 
 	http://localhost:8880/ping
 	=> Health check with a "hello" response
-
 
 	http://localhost:8880/Users  
 	http://localhost:8880/Groups
@@ -198,6 +197,20 @@ Below shows an example of config\plugin-saphana.json
 	        "bundle": null,
 	        "password": null
 	      }
+	    },
+	    "emailOnError": {
+	      "smtp": {
+	        "enabled": false,
+	        "host": null,
+	        "port": 587,
+	        "proxy": null,
+	        "authenticate": true,
+	        "username": null,
+	        "password": null,
+	        "sendInterval": 15,
+	        "to": null,
+	        "cc": null
+	      }
 	    }
 	  },
 	  "endpoint": {
@@ -262,8 +275,21 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
         }
 
 	Note, we should normally use certificate (https) for communcating with ScimGateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
- 
-- **endpoint** - Contains endpoint specific configuration according to our plugin code.  
+
+- **emailOnError** - Contains configuration for sending error notifications by email. Note, only the first error will be sent until sendInterval have passed 
+- **emailOnError.smtp.enabled** - true or false, value set to true will enable email notifications  
+- **emailOnError.smtp.host** - Mailserver e.g. "smtp.office365.com"  
+- **emailOnError.smtp.port** - Port used by mailserver e.g. 587, 25 or 465
+- **emailOnError.smtp.proxy** - If using mailproxy e.g. "http://proxy-host:1234"
+- **emailOnError.smtp.authenticate** - true or false, set to true will use username/password authentication
+- **emailOnError.smtp.username** - Mail account for authentication and also the sender of the email, e.g. "user@outlook.com"  
+- **emailOnError.smtp.password** - Mail account password  
+- **emailOnError.smtp.sendInterval** - Mail notifications on error are deferred until sendInterval **minutes** have passed since the last notification. Default 15 minutes
+- **emailOnError.smtp.to** - Comma separated list of recipients email addresses e.g: "someone@example.com"
+- **emailOnError.smtp.cc** - Comma separated list of cc email addresses
+
+
+- **endpoint** - Contains endpoint specific configuration according to our **plugin code**.  
   
 
   (**) Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable `SEED` will override default password seed. Setting the ScimGateway port in the configuration file to `"process.env.XXX"` where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  
@@ -974,14 +1000,7 @@ groupObj.displayName contains the group name to be created
 eg: {"value":"bjensen"},{"operation":"delete","value":"jsmith"}  
 (adding bjensen and deliting jsmith from group)  
 * callback(error): null if OK, else error object  
-If we do not support groups, callback(null)
-
-
-
-
-
-
-
+If we do not support groups, callback(null)  
 
 
 ## Known limitations  
@@ -990,9 +1009,7 @@ If we do not support groups, callback(null)
 
 * Importing "certificate authority - CA" on the CA Connector Server gives a "Failure" message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  
 
-* Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate). 
-
-* Delete groups not supported  
+* Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate).  
 
 
 ## License  
@@ -1005,7 +1022,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 ### v1.0.8  
 [ENHANCEMENT]  
 
-- Support health monitoring using the "/ping" url with a "hello" response, e.g. http://localhost:8880/ping. Useful for frontend load balancing/failover functionality    
+- Support health monitoring using the "/ping" URL with a "hello" response, e.g. http://localhost:8880/ping. Useful for frontend load balancing/failover functionality  
+- Option for error notifications by email  
+
+**[UPGRADE]**  
+Configuration files for custom plugins must include the **emailOnError** object for enabling error notifications by email. Please see the syntax in provided example plugins and details described in the "Configuration" section of this document.
+  
  
 ### v1.0.7  
 [ENHANCEMENT]  
