@@ -1019,6 +1019,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v1.0.10  
+[Fix]  
+
+- An issue with pagination fixed  
+
 ### v1.0.9  
 [ENHANCEMENT]  
 
