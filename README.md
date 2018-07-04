@@ -90,7 +90,7 @@ Create your own package directory e.g. C:\my-scimgateway and install ScimGateway
 	npm init -y
 	npm install scimgateway --save
 
-Please **ignore any error messages** unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually be installed.
+Please **ignore any error messages** unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually installed.
 
 
 **c:\\my-scimgateway** will now be `<package-root>` 
@@ -1018,6 +1018,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v1.0.9  
+[ENHANCEMENT]  
+
+- Cosmetics, changed emailOnError logic - now emitted by logger
 
 ### v1.0.8  
 [ENHANCEMENT]  

@@ -375,7 +375,7 @@ npm init -y
 npm install scimgateway --save
 </code></pre>
 
-<p>Please <strong>ignore any error messages</strong> unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually be installed.</p>
+<p>Please <strong>ignore any error messages</strong> unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually installed.</p>
 <p><strong>c:\my-scimgateway</strong> will now be <code>&lt;package-root&gt;</code> </p>
 <p>index.js, lib and config directories containing example plugins have been copied to your package from the original scimgateway package located under node_modules.  </p>
 <p>If internet connection is blocked, we could install on another machine and copy the scimgateway folder.</p>
@@ -1354,6 +1354,11 @@ If we do not support groups, callback(null)  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v1.0.9</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>Cosmetics, changed emailOnError logic - now emitted by logger</li>
+</ul>
 <h3>v1.0.8</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
