@@ -1019,6 +1019,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v1.0.11  
+[Fix]  
+
+- plugin-azure-ad: proxy configuration did not work    
+
+
 ### v1.0.10  
 [Fix]  
 
