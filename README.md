@@ -1019,6 +1019,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v1.0.12  
+[Fix]  
+
+- Incorrect logging of Express stream messages (type info) when running multiple plugins    
+
 ### v1.0.11  
 [Fix]  
 
