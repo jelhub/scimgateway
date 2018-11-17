@@ -1019,6 +1019,14 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v1.0.13  
+[Fix]  
+
+- plugin-azure-ad: New version of "Azure - ScimGateway.xml" fixing CA IM RoleDefGenerator problem (related to creating and importing screens in CA IM)  
+
+**[UPGRADE]**  
+Use CA ConnectorXpress, import "Azure - ScimGateway.xml" and deploy/redeploy endpoint
+
 ### v1.0.12  
 [Fix]  
 
