@@ -61,7 +61,7 @@
             <val displayName="Details">ENDPOINT_DETAILS</val>
             <val displayName="Connection Information">ENDPOINT_CONNECTION INFORMATION</val>
             <val displayName="Default Acccount Template">ENDPOINT_DEFAULT ACCCOUNT TEMPLATE</val>
-			<val displayName="Pagination Settings for Explore and Correlate">ENDPOINT_PAGINATION SETTINGS</val>
+            <val displayName="Pagination Settings for Explore and Correlate">ENDPOINT_PAGINATION SETTINGS</val>
             <val displayName="Endpoint">ENDPOINT</val>
             <val displayName="Endpoint Settings">ENDPOINT SETTINGS</val>
             <val displayName="Attribute Mapping">ATTRIBUTE MAPPING</val>
@@ -1534,28 +1534,7 @@
         <strValue>eTDYN-str-multi-ca-03</strValue>
     </val>
     <val>
-        <strValue>eTDYN-str-multi-ca-02</strValue>
-    </val>
-    <val>
         <strValue>eTDYN-str-multi-ca-01</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-ca-04</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-ca-05</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-ca-06</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-ca-07</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-ca-08</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-ca-09</strValue>
     </val>
 </sequenceValue>
                             </value>
@@ -2026,7 +2005,7 @@
             <property name="eTDYNUser">
                 <doc>ScimGateway User Name</doc>
                 <value default="true">
-                    <strValue></strValue>
+                    <strValue>gwadmin</strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
@@ -2228,7 +2207,7 @@ function init(FieldContext)
                         <boolValue>false</boolValue>
                     </value>
                 </metadata>
-            </property>			
+            </property>
         </class>
         <class name="eTDYNAccount">
             <doc>Maps Provisioning Account object attributes to columns in a table.</doc>
@@ -2698,7 +2677,7 @@ function init(FieldContext)
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>id</strValue>
+                        <strValue>id2</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -4340,7 +4319,7 @@ function init(FieldContext)
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>id</strValue>
+                        <strValue>id2</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
