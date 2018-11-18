@@ -1019,6 +1019,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v1.0.14  
+[Fix]  
+
+- Some multiValued attributes not correctly handled (e.g. addresses)  
+   
 ### v1.0.13  
 [Fix]  
 
