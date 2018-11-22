@@ -5,7 +5,8 @@ const expect = require('chai').expect
 const scimgateway = require('../../lib/plugin-api.js')
 const server_8890 = require('supertest').agent('http://localhost:8890') // module request is an alternative
 
-const auth = 'Basic ' + new Buffer('gwadmin:password').toString('base64')
+const auth = 'Basic ' + new Buffer.from('gwadmin:password').toString('base64')
+
 var options = {
   headers: {
     'Content-Type': 'application/json',
