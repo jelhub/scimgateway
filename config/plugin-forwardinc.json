@@ -1,9 +1,12 @@
 {
   "scimgateway": {
     "scimversion": "1.1",
-    "loglevel": "debug",
     "localhostonly": false,
     "port": 8882,
+    "loglevel": {
+      "file": "debug",
+      "console": "error"
+    },
     "auth": {
       "basic": {
         "username": "gwadmin",
