@@ -437,9 +437,12 @@ Below shows an example of config\plugin-saphana.json  </p>
 <pre><code>{
   &quot;scimgateway&quot;: {
     &quot;scimversion&quot;: &quot;1.1&quot;,
-    &quot;loglevel&quot;: &quot;debug&quot;,
     &quot;localhostonly&quot;: false,
     &quot;port&quot;: 8884,
+    &quot;loglevel&quot;: {
+      &quot;file&quot;: &quot;debug&quot;,
+      &quot;console&quot;: &quot;error&quot;
+    },
     &quot;auth&quot;: {
       &quot;basic&quot;: {
         &quot;username&quot;: &quot;gwadmin&quot;,
@@ -504,15 +507,19 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>loglevel</strong> - error or debug. Output to console and logfile <code>logs\plugin-saphana.log</code> (debug not sent to console).  
-</p>
-</li>
-<li>
 <p><strong>localhostonly</strong> - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the CA Connector Server).  
 </p>
 </li>
 <li>
-<p><strong>port</strong> - (**) Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
+<p><strong>port</strong> - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
+</p>
+</li>
+<li>
+<p><strong>loglevel.file</strong> - error or debug. Output to logfile <code>logs\plugin-saphana.log</code>  
+</p>
+</li>
+<li>
+<p><strong>loglevel.console</strong> - error or debug. Output to stdout and errors to stderr.  
 </p>
 </li>
 <li>
@@ -589,16 +596,20 @@ Below shows an example of config\plugin-saphana.json  </p>
 <li>
 <p><strong>endpoint</strong> - Contains endpoint specific configuration according to our <strong>plugin code</strong>.  
 </p>
-</li>
-</ul>
-<p>(**) Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable <code>SEED</code> will override default password seed. Setting the ScimGateway port in the configuration file to <code>&quot;process.env.XXX&quot;</code> where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  </p>
-<pre><code>    &quot;scimgateway&quot;: {
-        ...
-        &quot;port&quot;: &quot;process.env.PORT&quot;,
-        ...
-    }
+<p>Setting environment variable <code>SEED</code> will override default password seeding logic. All configuration can also be set based on environment variables except password, secret and token. Configuration syntax will then be <code>&quot;process.env.XXX&quot;</code> where <code>XXX</code> is the environment variable used. This could be useful in cloud systems e.g:  
+</p>
+<pre><code>&quot;scimgateway&quot;: {
+    ...
+    &quot;port&quot;: &quot;process.env.PORT&quot;,
+    ...
+    &quot;loglevel&quot;: {
+        &quot;file&quot;: &quot;process.env.LOGLEVELFILE&quot;,
+    ...
+}
 </code></pre>
 
+</li>
+</ul>
 <h2>Manual startup</h2>
 <p>Gateway can now be started from a command window running in administrative mode</p>
 <p>3 ways to start:</p>
@@ -1354,6 +1365,31 @@ If we do not support groups, callback(null)  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v1.0.15</h3>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>Loglevel configuration for file and console now separated  </li>
+<li>All configuration can be set based on environment variables except password, secret and token</li>
+</ul>
+<p><strong>[UPGRADE]</strong>  </p>
+<ul>
+<li>
+<p>Configurationfiles for custom plugins must be changed<br />
+  old syntax:  
+</p>
+<pre><code>loglevel: &quot;debug&quot;
+</code></pre>
+
+<p>new syntax:  
+</p>
+<pre><code>&quot;loglevel&quot;: {
+  &quot;file&quot;: &quot;debug&quot;,
+  &quot;console&quot;: &quot;error&quot;
+}
+</code></pre>
+
+</li>
+</ul>
 <h3>v1.0.14</h3>
 <p>[Fix]  </p>
 <ul>
@@ -1364,8 +1400,10 @@ If we do not support groups, callback(null)  </li>
 <ul>
 <li>plugin-azure-ad: New version of &quot;Azure - ScimGateway.xml&quot; fixing CA IM RoleDefGenerator problem (related to creating and importing screens in CA IM)  </li>
 </ul>
-<p><strong>[UPGRADE]</strong><br />
-Use CA ConnectorXpress, import &quot;Azure - ScimGateway.xml&quot; and deploy/redeploy endpoint</p>
+<p><strong>[UPGRADE]</strong>  </p>
+<ul>
+<li>Use CA ConnectorXpress, import &quot;Azure - ScimGateway.xml&quot; and deploy/redeploy endpoint</li>
+</ul>
 <h3>v1.0.12</h3>
 <p>[Fix]  </p>
 <ul>
@@ -1392,8 +1430,10 @@ Use CA ConnectorXpress, import &quot;Azure - ScimGateway.xml&quot; and deploy/re
 <li>Support health monitoring using the &quot;/ping&quot; URL with a &quot;hello&quot; response, e.g. http://localhost:8880/ping. Useful for frontend load balancing/failover functionality  </li>
 <li>Option for error notifications by email  </li>
 </ul>
-<p><strong>[UPGRADE]</strong><br />
-Configuration files for custom plugins must include the <strong>emailOnError</strong> object for enabling error notifications by email. Please see the syntax in provided example plugins and details described in the &quot;Configuration&quot; section of this document.</p>
+<p><strong>[UPGRADE]</strong>  </p>
+<ul>
+<li>Configuration files for custom plugins must include the <strong>emailOnError</strong> object for enabling error notifications by email. Please see the syntax in provided example plugins and details described in the &quot;Configuration&quot; section of this document.</li>
+</ul>
 <h3>v1.0.7</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>

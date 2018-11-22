@@ -165,9 +165,12 @@ Below shows an example of config\plugin-saphana.json
 	{
 	  "scimgateway": {
 	    "scimversion": "1.1",
-	    "loglevel": "debug",
 	    "localhostonly": false,
 	    "port": 8884,
+        "loglevel": {
+          "file": "debug",
+          "console": "error"
+        },
 	    "auth": {
 	      "basic": {
 	        "username": "gwadmin",
@@ -231,11 +234,13 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 - **scimversion** - 1.1 or 2.0. Default is 1.1. For Azure AD 2.0 should be used.  
 
-- **loglevel** - error or debug. Output to console and logfile `logs\plugin-saphana.log` (debug not sent to console).  
-
 - **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the CA Connector Server).  
 
-- **port** - (**) Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
+- **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
+
+- **loglevel.file** - error or debug. Output to logfile `logs\plugin-saphana.log`  
+
+- **loglevel.console** - error or debug. Output to stdout and errors to stderr.  
 
 - **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway. **Methods are disabled by setting corresponding attributes to null**  
 
@@ -290,13 +295,15 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 
 - **endpoint** - Contains endpoint specific configuration according to our **plugin code**.  
-  
-
-  (**) Both port number and password encryption seed may be overridden by setting environment variables before starting the gateway.  Setting environment variable `SEED` will override default password seed. Setting the ScimGateway port in the configuration file to `"process.env.XXX"` where XXX is the environment variable let gateway use environment variable for port configuration. This could be useful in cloud systems e.g:  
+ 
+	Setting environment variable `SEED` will override default password seeding logic. All configuration can also be set based on environment variables except password, secret and token. Configuration syntax will then be `"process.env.XXX"` where `XXX` is the environment variable used. This could be useful in cloud systems e.g:  
 
 	    "scimgateway": {
 			...
 	        "port": "process.env.PORT",
+			...
+			"loglevel": {
+				"file": "process.env.LOGLEVELFILE",
 			...
 		}
 
@@ -1019,6 +1026,27 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v1.0.15  
+[ENHANCEMENT]  
+
+- Loglevel configuration for file and console now separated  
+- All configuration can be set based on environment variables except password, secret and token
+
+**[UPGRADE]**  
+
+- Configurationfiles for custom plugins must be changed  
+  old syntax:  
+
+        loglevel: "debug"
+  new syntax:  
+
+        "loglevel": {
+          "file": "debug",
+          "console": "error"
+        }
+
+
+
 ### v1.0.14  
 [Fix]  
 
@@ -1030,7 +1058,8 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 - plugin-azure-ad: New version of "Azure - ScimGateway.xml" fixing CA IM RoleDefGenerator problem (related to creating and importing screens in CA IM)  
 
 **[UPGRADE]**  
-Use CA ConnectorXpress, import "Azure - ScimGateway.xml" and deploy/redeploy endpoint
+
+- Use CA ConnectorXpress, import "Azure - ScimGateway.xml" and deploy/redeploy endpoint
 
 ### v1.0.12  
 [Fix]  
@@ -1060,7 +1089,8 @@ Use CA ConnectorXpress, import "Azure - ScimGateway.xml" and deploy/redeploy end
 - Option for error notifications by email  
 
 **[UPGRADE]**  
-Configuration files for custom plugins must include the **emailOnError** object for enabling error notifications by email. Please see the syntax in provided example plugins and details described in the "Configuration" section of this document.
+
+- Configuration files for custom plugins must include the **emailOnError** object for enabling error notifications by email. Please see the syntax in provided example plugins and details described in the "Configuration" section of this document.
   
  
 ### v1.0.7  
