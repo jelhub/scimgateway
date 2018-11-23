@@ -1026,6 +1026,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v1.0.16  
+[ENHANCEMENT]  
+
+- Minor loglevel cosmetics
+
 ### v1.0.15  
 [ENHANCEMENT]  
 
