@@ -1029,7 +1029,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 ### v1.0.16  
 [ENHANCEMENT]  
 
-- Minor loglevel cosmetics
+- Minor environment logic cosmetics
 
 ### v1.0.15  
 [ENHANCEMENT]  
