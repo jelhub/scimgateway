@@ -5,7 +5,8 @@
     "port": 8882,
     "loglevel": {
       "file": "debug",
-      "console": "error"
+      "console": "error",
+      "colorize": true
     },
     "auth": {
       "basic": {
