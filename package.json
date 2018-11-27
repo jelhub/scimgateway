@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "description": "SCIM Gateway",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
   "license": "MIT",
@@ -31,27 +31,27 @@
     "node": "6.8.0"
   },
   "dependencies": {
-    "async": "^2.6.0",
-    "basic-auth": "^2.0.0",
+    "async": "^2.6.1",
+    "basic-auth": "^2.0.1",
     "callsite": "^1.0.0",
-    "dot-object": "^1.7.0",
-    "express": "^4.16.2",
-    "express-bearer-token": "^2.1.0",
-    "jsonwebtoken": "^8.1.0",
-    "lokijs": "^1.5.1",
-    "morgan": "^1.9.0",
+    "dot-object": "^1.7.1",
+    "express": "^4.16.4",
+    "express-bearer-token": "^2.2.0",
+    "jsonwebtoken": "^8.4.0",
+    "lokijs": "^1.5.5",
+    "morgan": "^1.9.1",
     "node-machine-id": "1.1.9",
-    "nodemailer": "^4.6.7",
+    "nodemailer": "^4.7.0",
     "passport": "^0.4.0",
-    "passport-azure-ad": "^3.0.8",
-    "request": "^2.83.0",
-    "soap": "^0.23.0",
-    "tedious": "^2.1.5",
-    "winston": "^2.4.0"
+    "passport-azure-ad": "^4.0.0",
+    "request": "^2.88.0",
+    "soap": "^0.25.0",
+    "tedious": "^3.0.1",
+    "winston": "^3.1.0"
   },
   "devDependencies": {
-    "chai": "^4.1.2",
-    "mocha": "^4.0.1",
-    "supertest": "^3.0.0"
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0",
+    "supertest": "^3.3.0"
   }
 }
