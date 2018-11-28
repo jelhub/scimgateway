@@ -13,6 +13,7 @@ Validated on:
 
 Latest news:  
 
+- Supports configuration by environments and external files
 - Health monitoring through "/ping" URL, and option for error notifications by email
 - Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!
 - General API plugin for none provisioning (API Gateway)
@@ -169,7 +170,8 @@ Below shows an example of config\plugin-saphana.json
 	    "port": 8884,
         "loglevel": {
           "file": "debug",
-          "console": "error"
+          "console": "error",
+          "colorize": true
         },
 	    "auth": {
 	      "basic": {
@@ -242,6 +244,8 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 - **loglevel.console** - error or debug. Output to stdout and errors to stderr.  
 
+- **loglevel.colorize** - true or false, false could be useful when redirecting console output.  
+
 - **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway. **Methods are disabled by setting corresponding attributes to null**  
 
 - **auth.basic** - Basic Authentication with **username**/**password**. Note, we set a clear text password and when gateway is started password will become encrypted and updated in the configuration file.  
@@ -294,19 +298,65 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 - **emailOnError.smtp.cc** - Comma separated list of cc email addresses
 
 
-- **endpoint** - Contains endpoint specific configuration according to our **plugin code**.  
+- **endpoint** - Contains endpoint specific configuration according to our **plugin code**.    
  
-	Setting environment variable `SEED` will override default password seeding logic. All configuration can also be set based on environment variables except password, secret and token. Configuration syntax will then be `"process.env.XXX"` where `XXX` is the environment variable used. This could be useful in cloud systems e.g:  
+####Configuration notes
 
-	    "scimgateway": {
-			...
-	        "port": "process.env.PORT",
-			...
-			"loglevel": {
-				"file": "process.env.LOGLEVELFILE",
-			...
+- Setting environment variable `SEED` will override default password seeding logic.  
+- All configuration can be set based on environment variables. Syntax will then be `"process.env.<ENVIRONMENT>"` where `<ENVIRONMENT>` is the environment variable used. E.g. scimgateway.port could have value "process.env.PORT", then using environment variable PORT.
+- All configuration can be set based on corresponding JSON-content in external file using plugin name as parent JSON object (supports also dot notation). Syntax will then be `"process.file.<path>"` where `<path>` is the file used. E.g. endpoint.password could have value "process.file./var/run/vault/secrets.json"  
+
+	Example:  
+
+		{
+		    "scimgateway": {
+				...
+		        "port": "process.env.PORT",
+				...
+				"loglevel": {
+					"file": "process.env.LOG_LEVEL_FILE",
+				...
+				"auth": {
+					"basic": {
+					"username": "process.file./var/run/vault/secrets.json",
+					"password": "process.file./var/run/vault/secrets.json",
+				...
+	      	},
+			"endpoint": {
+				...
+				"username": "process.file./var/run/vault/secrets.json",
+				"password": "process.file./var/run/vault/secrets.json",
+				...
+			}
 		}
 
+
+	secrets.json for plugin-forwardinc - example #1:  
+
+		{
+			"plugin-forwardinc": {
+			    "scimgateway": {
+					"auth": {
+						"basic": {
+						"username": "gwadmin",
+						"password": "password"
+					}
+		      	},
+				"endpoint": {
+					"username": "superuser",
+					"password": "secret"
+				}
+			}
+		}  
+
+	secrets.json for plugin-forwardinc - example #2 (dot notation):  
+
+		{
+		    "plugin-forwardinc.scimgateway.auth.basic.username": "gwadmin",
+			"plugin-forwardinc.scimgateway.auth.basic.password": "password",
+			"plugin-forwardinc.endpoint.username": "superuser",
+			"plugin-forwardinc.endpoint.password": "secret"
+		}  
 
 ## Manual startup    
 
@@ -1026,20 +1076,18 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-### v1.0.16  
+### v1.0.17  
 [ENHANCEMENT]  
 
-- Minor environment logic cosmetics
-
-### v1.0.15  
-[ENHANCEMENT]  
-
-- Loglevel configuration for file and console now separated  
-- All configuration can be set based on environment variables except password, secret and token
+- Includes latest versions of module dependencies
+- Loglevel configuration for file and console now separated
+- Loglevel colorize option (value false could be useful when redirecting console output)  
+- All configuration can be set based on environment variables
+- All configuration can be set based on correspondig json-content in external file (supports also dot notation)
 
 **[UPGRADE]**  
 
-- Configurationfiles for custom plugins must be changed  
+- Configurationfiles for custom plugins should be changed  
   old syntax:  
 
         loglevel: "debug"
@@ -1047,10 +1095,9 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
         "loglevel": {
           "file": "debug",
-          "console": "error"
+          "console": "error",
+          "colorize": true
         }
-
-
 
 ### v1.0.14  
 [Fix]  

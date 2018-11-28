@@ -298,6 +298,7 @@ img {
 </ul>
 <p>Latest news:  </p>
 <ul>
+<li>Supports configuration by environments and external files</li>
 <li>Health monitoring through &quot;/ping&quot; URL, and option for error notifications by email</li>
 <li>Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!</li>
 <li>General API plugin for none provisioning (API Gateway)</li>
@@ -441,7 +442,8 @@ Below shows an example of config\plugin-saphana.json  </p>
     &quot;port&quot;: 8884,
     &quot;loglevel&quot;: {
       &quot;file&quot;: &quot;debug&quot;,
-      &quot;console&quot;: &quot;error&quot;
+      &quot;console&quot;: &quot;error&quot;,
+      &quot;colorize&quot;: true
     },
     &quot;auth&quot;: {
       &quot;basic&quot;: {
@@ -523,6 +525,10 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
+<p><strong>loglevel.colorize</strong> - true or false, false could be useful when redirecting console output.  
+</p>
+</li>
+<li>
 <p><strong>auth</strong> - Contains one or more authentication/authorization methods used by clients for accessing gateway. <strong>Methods are disabled by setting corresponding attributes to null</strong>  
 </p>
 </li>
@@ -594,18 +600,69 @@ Below shows an example of config\plugin-saphana.json  </p>
 <p><strong>emailOnError.smtp.cc</strong> - Comma separated list of cc email addresses</p>
 </li>
 <li>
-<p><strong>endpoint</strong> - Contains endpoint specific configuration according to our <strong>plugin code</strong>.  
+<p><strong>endpoint</strong> - Contains endpoint specific configuration according to our <strong>plugin code</strong>.    
 </p>
-<p>Setting environment variable <code>SEED</code> will override default password seeding logic. All configuration can also be set based on environment variables except password, secret and token. Configuration syntax will then be <code>&quot;process.env.XXX&quot;</code> where <code>XXX</code> is the environment variable used. This could be useful in cloud systems e.g:  
+</li>
+</ul>
+<h4>Configuration notes</h4>
+<ul>
+<li>Setting environment variable <code>SEED</code> will override default password seeding logic.  </li>
+<li>All configuration can be set based on environment variables. Syntax will then be <code>&quot;process.env.&lt;ENVIRONMENT&gt;&quot;</code> where <code>&lt;ENVIRONMENT&gt;</code> is the environment variable used. E.g. scimgateway.port could have value &quot;process.env.PORT&quot;, then using environment variable PORT.</li>
+<li>
+<p>All configuration can be set based on corresponding JSON-content in external file using plugin name as parent JSON object (supports also dot notation). Syntax will then be <code>&quot;process.file.&lt;path&gt;&quot;</code> where <code>&lt;path&gt;</code> is the file used. E.g. endpoint.password could have value &quot;process.file./var/run/vault/secrets.json&quot;  
 </p>
-<pre><code>&quot;scimgateway&quot;: {
-    ...
-    &quot;port&quot;: &quot;process.env.PORT&quot;,
-    ...
-    &quot;loglevel&quot;: {
-        &quot;file&quot;: &quot;process.env.LOGLEVELFILE&quot;,
-    ...
+<p>Example:  
+</p>
+<pre><code>{
+    &quot;scimgateway&quot;: {
+        ...
+        &quot;port&quot;: &quot;process.env.PORT&quot;,
+        ...
+        &quot;loglevel&quot;: {
+            &quot;file&quot;: &quot;process.env.LOG_LEVEL_FILE&quot;,
+        ...
+        &quot;auth&quot;: {
+            &quot;basic&quot;: {
+            &quot;username&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
+            &quot;password&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
+        ...
+    },
+    &quot;endpoint&quot;: {
+        ...
+        &quot;username&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
+        &quot;password&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
+        ...
+    }
 }
+</code></pre>
+
+<p>secrets.json for plugin-forwardinc - example #1:  
+</p>
+<pre><code>{
+    &quot;plugin-forwardinc&quot;: {
+        &quot;scimgateway&quot;: {
+            &quot;auth&quot;: {
+                &quot;basic&quot;: {
+                &quot;username&quot;: &quot;gwadmin&quot;,
+                &quot;password&quot;: &quot;password&quot;
+            }
+        },
+        &quot;endpoint&quot;: {
+            &quot;username&quot;: &quot;superuser&quot;,
+            &quot;password&quot;: &quot;secret&quot;
+        }
+    }
+}  
+</code></pre>
+
+<p>secrets.json for plugin-forwardinc - example #2 (dot notation):  
+</p>
+<pre><code>{
+    &quot;plugin-forwardinc.scimgateway.auth.basic.username&quot;: &quot;gwadmin&quot;,
+    &quot;plugin-forwardinc.scimgateway.auth.basic.password&quot;: &quot;password&quot;,
+    &quot;plugin-forwardinc.endpoint.username&quot;: &quot;superuser&quot;,
+    &quot;plugin-forwardinc.endpoint.password&quot;: &quot;secret&quot;
+}  
 </code></pre>
 
 </li>
@@ -1365,21 +1422,19 @@ If we do not support groups, callback(null)  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
-<h3>v1.0.16</h3>
+<h3>v1.0.17</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
-<li>Minor environment logic cosmetics</li>
-</ul>
-<h3>v1.0.15</h3>
-<p>[ENHANCEMENT]  </p>
-<ul>
-<li>Loglevel configuration for file and console now separated  </li>
-<li>All configuration can be set based on environment variables except password, secret and token</li>
+<li>Includes latest versions of module dependencies</li>
+<li>Loglevel configuration for file and console now separated</li>
+<li>Loglevel colorize option (value false could be useful when redirecting console output)  </li>
+<li>All configuration can be set based on environment variables</li>
+<li>All configuration can be set based on correspondig json-content in external file (supports also dot notation)</li>
 </ul>
 <p><strong>[UPGRADE]</strong>  </p>
 <ul>
 <li>
-<p>Configurationfiles for custom plugins must be changed<br />
+<p>Configurationfiles for custom plugins should be changed<br />
   old syntax:  
 </p>
 <pre><code>loglevel: &quot;debug&quot;
@@ -1389,7 +1444,8 @@ If we do not support groups, callback(null)  </li>
 </p>
 <pre><code>&quot;loglevel&quot;: {
   &quot;file&quot;: &quot;debug&quot;,
-  &quot;console&quot;: &quot;error&quot;
+  &quot;console&quot;: &quot;error&quot;,
+  &quot;colorize&quot;: true
 }
 </code></pre>
 
