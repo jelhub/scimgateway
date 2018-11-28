@@ -300,7 +300,7 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 
 - **endpoint** - Contains endpoint specific configuration according to our **plugin code**.    
  
-####Configuration notes
+#### Configuration notes
 
 - Setting environment variable `SEED` will override default password seeding logic.  
 - All configuration can be set based on environment variables. Syntax will then be `"process.env.<ENVIRONMENT>"` where `<ENVIRONMENT>` is the environment variable used. E.g. scimgateway.port could have value "process.env.PORT", then using environment variable PORT.
@@ -328,8 +328,7 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 				"password": "process.file./var/run/vault/secrets.json",
 				...
 			}
-		}
-
+		}  
 
 	secrets.json for plugin-forwardinc - example #1:  
 
@@ -350,7 +349,7 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 		}  
 
 	secrets.json for plugin-forwardinc - example #2 (dot notation):  
-
+  
 		{
 		    "plugin-forwardinc.scimgateway.auth.basic.username": "gwadmin",
 			"plugin-forwardinc.scimgateway.auth.basic.password": "password",
