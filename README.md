@@ -1075,7 +1075,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-### v1.0.17  
+### v1.0.18  
 [ENHANCEMENT]  
 
 - Includes latest versions of module dependencies
