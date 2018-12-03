@@ -305,7 +305,7 @@ img {
 <li>Running ScimGateway as a Docker container  </li>
 </ul>
 <h2>Overview</h2>
-<p>With ScimGateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.  </p>
+<p>With ScimGateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol. Gateway will then translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete) towards destinations using endpoint specific protocols.  </p>
 <p>ScimGateway is a standalone product, however this document shows how the gateway could be used by products like CA Identity Manager.</p>
 <p>Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the ScimGateway would work like a &quot;CA Connector Server&quot; communicating with endpoints.</p>
 <p><img src="https://jelhub.github.io/images/ScimGateway.svg" /></p>
@@ -1422,6 +1422,11 @@ If we do not support groups, callback(null)  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v1.0.19</h3>
+<p>[Fix]  </p>
+<ul>
+<li>Fix related to external configuration (ref. v1.0.18) when running multiple plugins  </li>
+</ul>
 <h3>v1.0.18</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>

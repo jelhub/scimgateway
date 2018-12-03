@@ -1075,6 +1075,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v1.0.19  
+[Fix]  
+
+- Fix related to external configuration (ref. v1.0.18) when running multiple plugins  
+
 ### v1.0.18  
 [ENHANCEMENT]  
 
