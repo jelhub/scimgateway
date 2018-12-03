@@ -21,7 +21,7 @@ Latest news:
 
 ## Overview  
  
-With ScimGateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) protocol, and the gateway will translate and communicate towards destinations using endpoint specific protocols.  
+With ScimGateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) protocol. Gateway will then translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete) towards destinations using endpoint specific protocols.  
 
 ScimGateway is a standalone product, however this document shows how the gateway could be used by products like CA Identity Manager.
 
@@ -351,7 +351,7 @@ Definitions under "endpoint" are used by endpoint plugin for communicating with 
 	secrets.json for plugin-forwardinc - example #2 (dot notation):  
   
 		{
-		    "plugin-forwardinc.scimgateway.auth.basic.username": "gwadmin",
+			"plugin-forwardinc.scimgateway.auth.basic.username": "gwadmin",
 			"plugin-forwardinc.scimgateway.auth.basic.password": "password",
 			"plugin-forwardinc.endpoint.username": "superuser",
 			"plugin-forwardinc.endpoint.password": "secret"
