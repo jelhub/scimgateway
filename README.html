@@ -1121,9 +1121,6 @@ displayName mapped to displayName
 </p>
 </li>
 <li>
-<p>Use the &quot;<a href="https://manage.windowsazure.com">old Portal</a>&quot; for adding/creating your SCIM application.  Adding an application using the &quot;<a href="https://portal.azure.com">new Portal</a>&quot; will not give an OAuth/JWT compatible app - only bearer token (Secret Token) will be used. After the app have been registered (passing the &quot;Test phase&quot;), we could start using the &quot;new Portal&quot;</p>
-</li>
-<li>
 <p>Azure AD do a regular check for a &quot;none&quot; existing user/group. This check seems to be a &quot;keep alive&quot; to verify connection.</p>
 </li>
 <li>
@@ -1414,14 +1411,19 @@ If we do not support groups, callback(null)  </li>
 <p>Importing &quot;certificate authority - CA&quot; on the CA Connector Server gives a &quot;Failure&quot; message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  
 </p>
 </li>
-<li>
-<p>Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate).  
-</p>
-</li>
 </ul>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v1.0.20</h3>
+<p>[Fix]  </p>
+<ul>
+<li>HTTP status code 200 and totalResults set to value of 0 when using SCIM 2.0 filter user/group and no resulted user/group found. SCIM 1.1 still using  status code 404.</li>
+</ul>
+<p><strong>[UPGRADE]</strong>  </p>
+<ul>
+<li>For custom plugins to be compliant with SCIM 2.0, the <code>getUser</code> and <code>getGroup</code> methods needs to be updated. If user/group not found then return <code>callback(null, null)</code> instead of callback(err)  </li>
+</ul>
 <h3>v1.0.19</h3>
 <p>[Fix]  </p>
 <ul>

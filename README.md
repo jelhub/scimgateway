@@ -772,8 +772,6 @@ Some notes related to Azure AD:
 
 - Azure Active Directory SCIM [documentation](https://docs.microsoft.com/en-us/azure/active-directory/active-directory-scim-provisioning)  
 
-- Use the "[old Portal]( https://manage.windowsazure.com)" for adding/creating your SCIM application.  Adding an application using the "[new Portal](https://portal.azure.com)" will not give an OAuth/JWT compatible app - only bearer token (Secret Token) will be used. After the app have been registered (passing the "Test phase"), we could start using the "new Portal"
-
 - Azure AD do a regular check for a "none" existing user/group. This check seems to be a "keep alive" to verify connection.
 
 - Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
@@ -1065,8 +1063,6 @@ If we do not support groups, callback(null)
 
 * Importing "certificate authority - CA" on the CA Connector Server gives a "Failure" message. Restarting connector shows certificate have been installed and HTTPS communication works fine.  
 
-* Using HTTPS seems to slow down the CA Provisioning - ScimGateway communication. Example: Using Provisioning Manager UI and retrieving an account takes approx. 0.5 sec with HTTP, but same operation with HTTPS takes approx. 1.5 sec. (tested both self-signed and Active Directory signed certificate).  
-
 
 ## License  
  
@@ -1074,6 +1070,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v1.0.20  
+[Fix]  
+
+- HTTP status code 200 and totalResults set to value of 0 when using SCIM 2.0 filter user/group and no resulted user/group found. SCIM 1.1 still using  status code 404.
+
+**[UPGRADE]**  
+
+- For custom plugins to be compliant with SCIM 2.0, the `getUser` and `getGroup` methods needs to be updated. If user/group not found then return `callback(null, null)` instead of callback(err)  
+
+    
 
 ### v1.0.19  
 [Fix]  
