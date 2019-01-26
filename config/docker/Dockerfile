@@ -16,7 +16,7 @@
 FROM node:9.10.0-slim
 
 # Declare who maintains this Dockerfile
-MAINTAINER Charles Watson <cwatsonx@costco.com>
+LABEL maintainer="Charles Watson <cwatsonx@costco.com>"
 
 # Add a Process ID 1 Safety Net.  Specific to debian.
 ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 /usr/local/bin/dumb-init

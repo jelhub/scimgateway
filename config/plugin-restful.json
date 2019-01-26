@@ -56,14 +56,28 @@
   "endpoint": {
     "entity": {
       "undefined": {
-        "baseUrl": "http://localhost:8880",
+        "baseUrls": [
+          "http://localhost:8880"
+        ],
         "username": "gwadmin",
-        "password": "password"
+        "password": "password",
+        "proxy": {
+          "host": null,
+          "username": null,
+          "password": null
+        }
       },
       "clientA": {
-        "baseUrl": "http://localhost:8880",
+        "baseUrls": [
+          "http://localhost:8880"
+        ],
         "username": "gwadmin",
-        "password": "password"
+        "password": "password",
+        "proxy": {
+          "host": null,
+          "username": null,
+          "password": null
+        }
       }
     }
   }

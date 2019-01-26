@@ -56,7 +56,9 @@
   "endpoint": {
     "username": "admin",
     "password": "password",
-    "baseServiceEndpoint": "http://localhost:8089/forwardinc/services",
+    "baseServiceEndpoints": [
+      "http://localhost:8089/forwardinc/services"
+    ],
     "exploreUsers": {
       "service": "UserService",
       "method": "searchUsers"

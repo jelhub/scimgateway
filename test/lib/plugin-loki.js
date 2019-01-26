@@ -108,8 +108,6 @@ describe('plugin-loki tests', () => {
         expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8377')
         expect(user.emails[0].type).to.equal('work')
         expect(user.emails[0].value).to.equal('bjensen@example.com')
-        expect(user.meta.location).to.not.equal(undefined)
-        expect(res.body.schemas).to.not.equal(undefined)
         done()
       })
   })

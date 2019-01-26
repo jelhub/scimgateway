@@ -56,10 +56,14 @@
   "endpoint": {
     "entity": {
       "undefined": {
-        "proxy": null,
         "tenantIdGUID": "DomanName or DirectoryID (GUID)",
         "clientId": "Applicatin ID",
-        "clientSecret": "Generated application key value"
+        "clientSecret": "Generated application key value",
+        "proxy": {
+          "host": null,
+          "username": null,
+          "password": null
+        }
       }
     }
   }

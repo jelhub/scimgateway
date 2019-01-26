@@ -56,9 +56,16 @@
   "endpoint": {
     "entity": {
       "undefined": {
-        "baseUrl": "http://fakerestapi.azurewebsites.net/",
-        "username": "userid",
-        "password": "password"
+        "baseUrls": [
+          "http://fakerestapi.azurewebsites.net/"
+        ],
+        "username": "endpointuser",
+        "password": "password",
+        "proxy": {
+          "host": null,
+          "username": null,
+          "password": null
+        }
       }
     }
   }

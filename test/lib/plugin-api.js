@@ -17,7 +17,7 @@ var options = {
 describe('plugin-api remote tests', () => {
   it('post /api test', (done) => {
     let objApi = {
-      'eventName': 'AsignAccessRoleEvent',
+      'eventName': 'AssignAccessRoleEvent',
       'subjectName': 'RACF_System-B',
       'userID': 'peter01'}
 
@@ -34,7 +34,7 @@ describe('plugin-api remote tests', () => {
 
   it('put /api/1 test', (done) => {
     let objApi = {
-      'eventName': 'AsignAccessRoleEvent',
+      'eventName': 'AssignAccessRoleEvent',
       'subjectName': 'RACF_System-B',
       'userID': 'peter01'}
 
@@ -52,7 +52,7 @@ describe('plugin-api remote tests', () => {
   /*
   it('patch /api/1 test', (done) => {
     let objApi = {
-      'eventName': 'AsignAccessRoleEvent',
+      'eventName': 'AssignAccessRoleEvent',
       'subjectName': 'RACF_System-B',
       'userID': 'peter01'}
 
