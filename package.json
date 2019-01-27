@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "SCIM Gateway",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
   "license": "MIT",

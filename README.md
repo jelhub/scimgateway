@@ -1087,6 +1087,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v2.0.1  
+[Fix]  
+
+- SCIM 2.0 incorrect response for user not found
+
+
 ### v2.0.0  
 **[MAJOR]**  
 
