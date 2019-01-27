@@ -1087,10 +1087,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-### v2.0.1  
+### v2.0.2  
 [Fix]  
 
 - SCIM 2.0 incorrect response for user not found
+- Did not mask logentries ending with newline
 
 
 ### v2.0.0  

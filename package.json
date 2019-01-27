@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "SCIM Gateway",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
   "license": "MIT",
@@ -45,7 +45,7 @@
     "passport-azure-ad": "^4.0.0",
     "soap": "^0.25.0",
     "tedious": "^3.0.1",
-    "winston": "^3.1.0"
+    "winston": "^3.2.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
