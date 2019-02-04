@@ -1,8 +1,11 @@
 {
   "scimgateway": {
-    "scimversion": "1.1",
-    "localhostonly": false,
     "port": 8890,
+    "localhostonly": false,
+    "scim": {
+      "version": "1.1",
+      "customSchema": null
+    },
     "loglevel": {
       "file": "debug",
       "console": "error",
@@ -57,7 +60,7 @@
     "entity": {
       "undefined": {
         "baseUrls": [
-          "http://fakerestapi.azurewebsites.net/"
+          "http://fakerestapi.azurewebsites.net"
         ],
         "username": "endpointuser",
         "password": "password",
