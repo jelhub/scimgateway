@@ -166,9 +166,12 @@ Below shows an example of config\plugin-saphana.json
   
 	{
 	  "scimgateway": {
-	    "scimversion": "1.1",
-	    "localhostonly": false,
 	    "port": 8884,
+	    "localhostonly": false,
+        "scim": {
+            "version": "1.1",
+            "customSchema": null
+        },
         "loglevel": {
           "file": "debug",
           "console": "error",
@@ -235,11 +238,13 @@ Definitions in `scimgateway` object have fixed attributes but values can be modi
 
 Definitions in `endpoint` object are customized according to our plugin code. Plugin typically need this information for communicating with endpoint  
 
-- **scimversion** - 1.1 or 2.0. Default is 1.1. For Azure AD 2.0 should be used.  
+- **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
 
 - **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the CA Connector Server).  
 
-- **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
+- **scim.version** - "1.1" or "2.0". Default is "1.1". For Azure AD as IdP "2.0" should be used.  
+
+- **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes  
 
 - **loglevel.file** - error, info or debug. Output to logfile `logs\plugin-saphana.log`  
 
@@ -357,6 +362,64 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 			"plugin-forwardinc.endpoint.username": "superuser",
 			"plugin-forwardinc.endpoint.password": "secret"
 		}  
+- Custom schema attributes can be added by plugin configuration `scim.customSchema` having value set to filename of a JSON schema-file located in `<package-root>/config/schemas` e.g:  
+
+		"scim": {
+			"version": "1.1",
+			"customSchema": "plugin-forwardinc-schema.json"
+		},
+
+
+	JSON file have following syntax:  
+
+		[
+		  { 
+		    "name": "User",
+		    "attributes": [...]
+		  },
+		  { 
+		    "name": "Group",
+		    "attributes": [...]
+		  }
+		]
+
+	Where array `attributes` contains custom attribute objects according to SCIM 1.1 or 2.0 spesification e.g:  
+
+		"attributes": [
+			{
+				"name": "musicPreference",
+				"type": "string",
+				"multiValued": false,
+				"description": "Music Preferences",
+				"readOnly": false,
+				"required": false,
+				"caseExact": false
+			},
+			{
+				"name": "populations",
+				"type": "complex",
+				"multiValued": true,
+				"multiValuedAttributeChildName": "population",
+				"description": "Population array",
+				"readOnly": false,
+				"required": false,
+				"caseExact": false,
+				"subAttributes": [
+					{
+						"name": "value",
+						"type": "string",
+						"multiValued": false,
+						"description": "Population value",
+						"readOnly": false,
+						"required": true,
+						"caseExact": false
+					}
+				]
+			}
+		]
+
+	Note, custom schema attributes will be merged into core:1.0/2.0 schema, and names must not conflict with standard SCIM attribute names.
+
 
 ## Manual startup    
 
@@ -1086,6 +1149,26 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v2.1.0  
+[ENHANCEMENT] 
+
+- Custom schema attributes can be added by plugin configuration `scim.customSchema` having value set to filename of a JSON schema-file located in `<package-root>/config/schemas`
+
+**[UPGRADE]**  
+
+- Configurationfiles for custom plugins should be changed  
+  old syntax:  
+
+        "scimversion": "1.1",  
+  new syntax:  
+
+		"scim": {
+	      "version": "1.1",
+	      "customSchema": null
+	    },
+Note, "1.1" is default, if using "2.0" the new syntax must be used.
+
 
 ### v2.0.2  
 [Fix]  
