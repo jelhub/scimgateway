@@ -438,9 +438,12 @@ config\plugin-saphana.json</p>
 Below shows an example of config\plugin-saphana.json  </p>
 <pre><code>{
   &quot;scimgateway&quot;: {
-    &quot;scimversion&quot;: &quot;1.1&quot;,
-    &quot;localhostonly&quot;: false,
     &quot;port&quot;: 8884,
+    &quot;localhostonly&quot;: false,
+    &quot;scim&quot;: {
+        &quot;version&quot;: &quot;1.1&quot;,
+        &quot;customSchema&quot;: null
+    },
     &quot;loglevel&quot;: {
       &quot;file&quot;: &quot;debug&quot;,
       &quot;console&quot;: &quot;error&quot;,
@@ -506,7 +509,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 <p>Definitions in <code>endpoint</code> object are customized according to our plugin code. Plugin typically need this information for communicating with endpoint  </p>
 <ul>
 <li>
-<p><strong>scimversion</strong> - 1.1 or 2.0. Default is 1.1. For Azure AD 2.0 should be used.  
+<p><strong>port</strong> - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
 </p>
 </li>
 <li>
@@ -514,7 +517,11 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>port</strong> - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
+<p><strong>scim.version</strong> - &quot;1.1&quot; or &quot;2.0&quot;. Default is &quot;1.1&quot;. For Azure AD as IdP &quot;2.0&quot; should be used.  
+</p>
+</li>
+<li>
+<p><strong>scim.customSchema</strong> - filename of JSON file located in <code>&lt;package-root&gt;\config\schemas</code> containing custom schema attributes, see configuration notes  
 </p>
 </li>
 <li>
@@ -666,6 +673,67 @@ Below shows an example of config\plugin-saphana.json  </p>
 }  
 </code></pre>
 
+</li>
+<li>
+<p>Custom schema attributes can be added by plugin configuration <code>scim.customSchema</code> having value set to filename of a JSON schema-file located in <code>&lt;package-root&gt;/config/schemas</code> e.g:  
+</p>
+<pre><code>&quot;scim&quot;: {
+    &quot;version&quot;: &quot;1.1&quot;,
+    &quot;customSchema&quot;: &quot;plugin-forwardinc-schema.json&quot;
+},
+</code></pre>
+
+<p>JSON file have following syntax:  
+</p>
+<pre><code>[
+  { 
+    &quot;name&quot;: &quot;User&quot;,
+    &quot;attributes&quot;: [...]
+  },
+  { 
+    &quot;name&quot;: &quot;Group&quot;,
+    &quot;attributes&quot;: [...]
+  }
+]
+</code></pre>
+
+<p>Where array <code>attributes</code> contains custom attribute objects according to SCIM 1.1 or 2.0 spesification e.g:  
+</p>
+<pre><code>&quot;attributes&quot;: [
+    {
+        &quot;name&quot;: &quot;musicPreference&quot;,
+        &quot;type&quot;: &quot;string&quot;,
+        &quot;multiValued&quot;: false,
+        &quot;description&quot;: &quot;Music Preferences&quot;,
+        &quot;readOnly&quot;: false,
+        &quot;required&quot;: false,
+        &quot;caseExact&quot;: false
+    },
+    {
+        &quot;name&quot;: &quot;populations&quot;,
+        &quot;type&quot;: &quot;complex&quot;,
+        &quot;multiValued&quot;: true,
+        &quot;multiValuedAttributeChildName&quot;: &quot;population&quot;,
+        &quot;description&quot;: &quot;Population array&quot;,
+        &quot;readOnly&quot;: false,
+        &quot;required&quot;: false,
+        &quot;caseExact&quot;: false,
+        &quot;subAttributes&quot;: [
+            {
+                &quot;name&quot;: &quot;value&quot;,
+                &quot;type&quot;: &quot;string&quot;,
+                &quot;multiValued&quot;: false,
+                &quot;description&quot;: &quot;Population value&quot;,
+                &quot;readOnly&quot;: false,
+                &quot;required&quot;: true,
+                &quot;caseExact&quot;: false
+            }
+        ]
+    }
+]
+</code></pre>
+
+<p>Note, custom schema attributes will be merged into core:1.0/2.0 schema, and names must not conflict with standard SCIM attribute names.</p>
 </li>
 </ul>
 <h2>Manual startup</h2>
@@ -1434,6 +1502,31 @@ If we do not support groups, then return null  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v2.1.0</h3>
+<p>[ENHANCEMENT] </p>
+<ul>
+<li>Custom schema attributes can be added by plugin configuration <code>scim.customSchema</code> having value set to filename of a JSON schema-file located in <code>&lt;package-root&gt;/config/schemas</code></li>
+</ul>
+<p><strong>[UPGRADE]</strong>  </p>
+<ul>
+<li>
+<p>Configurationfiles for custom plugins should be changed<br />
+  old syntax:  
+</p>
+<pre><code>&quot;scimversion&quot;: &quot;1.1&quot;,  
+</code></pre>
+
+<p>new syntax:  
+</p>
+<pre><code>&quot;scim&quot;: {
+  &quot;version&quot;: &quot;1.1&quot;,
+  &quot;customSchema&quot;: null
+},
+</code></pre>
+
+<p>Note, &quot;1.1&quot; is default, if using &quot;2.0&quot; the new syntax must be used.</p>
+</li>
+</ul>
 <h3>v2.0.2</h3>
 <p>[Fix]  </p>
 <ul>

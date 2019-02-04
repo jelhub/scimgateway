@@ -1,8 +1,11 @@
 {
   "scimgateway": {
-    "scimversion": "1.1",
-    "localhostonly": false,
     "port": 8884,
+    "localhostonly": false,
+    "scim": {
+      "version": "1.1",
+      "customSchema": null
+    },
     "loglevel": {
       "file": "debug",
       "console": "error",
