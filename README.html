@@ -291,10 +291,11 @@ img {
 <p><a href="https://travis-ci.org/jelhub/scimgateway"><img src="https://travis-ci.org/jelhub/scimgateway.svg" alt="Build Status" /></a> <a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&amp;label=latest" alt="npm Version" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a> <a href="https://elshaug.xyz/md/scimgateway#disqus_thread"><img src="https://jelhub.github.io/images/chat.svg" alt="chat disqus" /></a> <a href="https://github.com/jelhub/scimgateway"><img src="https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&amp;label=Fork" alt="GitHub forks" /></a>  </p>
 <hr />
 <p>Author: Jarle Elshaug  </p>
-<p>Validated through:  </p>
+<p>Validated through IdP's:  </p>
 <ul>
 <li>CA Identity Manager</li>
 <li>Microsoft Azure Active Directory  </li>
+<li>OneLogin</li>
 </ul>
 <p>Latest news:  </p>
 <ul>
@@ -1502,6 +1503,12 @@ If we do not support groups, then return null  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v2.1.1</h3>
+<p>[Fix]  </p>
+<ul>
+<li>SCIM 2.0 (e.g. Azure) may use Operations.value or Operation.value[] for PATCH syntax of the name object</li>
+<li>plugin-loki failed to modify a none existing object, e.g name object not included in Create User </li>
+</ul>
 <h3>v2.1.0</h3>
 <p>[ENHANCEMENT] </p>
 <ul>

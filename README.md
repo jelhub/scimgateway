@@ -6,10 +6,11 @@
 ---  
 Author: Jarle Elshaug  
 
-Validated through:  
+Validated through IdP's:  
 
 - CA Identity Manager
 - Microsoft Azure Active Directory  
+- OneLogin
 
 Latest news:  
 
@@ -362,13 +363,13 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 			"plugin-forwardinc.endpoint.username": "superuser",
 			"plugin-forwardinc.endpoint.password": "secret"
 		}  
+
 - Custom schema attributes can be added by plugin configuration `scim.customSchema` having value set to filename of a JSON schema-file located in `<package-root>/config/schemas` e.g:  
 
 		"scim": {
 			"version": "1.1",
 			"customSchema": "plugin-forwardinc-schema.json"
 		},
-
 
 	JSON file have following syntax:  
 
@@ -1149,6 +1150,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v2.1.1  
+[Fix]  
+
+- SCIM 2.0 (e.g. Azure) may use Operations.value or Operation.value[] for PATCH syntax of the name object
+- plugin-loki failed to modify a none existing object, e.g name object not included in Create User 
 
 ### v2.1.0  
 [ENHANCEMENT] 
