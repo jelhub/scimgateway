@@ -287,7 +287,7 @@ img {
 </style>
 </head>
 <body>
-<h1>ScimGateway</h1>
+<h1>SCIM Gateway</h1>
 <p><a href="https://travis-ci.org/jelhub/scimgateway"><img src="https://travis-ci.org/jelhub/scimgateway.svg" alt="Build Status" /></a> <a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&amp;label=latest" alt="npm Version" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a> <a href="https://elshaug.xyz/md/scimgateway#disqus_thread"><img src="https://jelhub.github.io/images/chat.svg" alt="chat disqus" /></a> <a href="https://github.com/jelhub/scimgateway"><img src="https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&amp;label=Fork" alt="GitHub forks" /></a>  </p>
 <hr />
 <p>Author: Jarle Elshaug  </p>
@@ -304,25 +304,25 @@ img {
 <li>Health monitoring through &quot;/ping&quot; URL, and option for error notifications by email</li>
 <li>Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!</li>
 <li>General API plugin for none provisioning (API Gateway)</li>
-<li>Running ScimGateway as a Docker container  </li>
+<li>Running SCIM Gateway as a Docker container  </li>
 </ul>
 <h2>Overview</h2>
-<p>With ScimGateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol. Gateway will then translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols.  </p>
-<p>ScimGateway is a standalone product, however this document shows how the gateway could be used by products like CA Identity Manager.</p>
-<p>Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the ScimGateway would work like a &quot;CA Connector Server&quot; communicating with endpoints.</p>
+<p>With SCIM Gateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol. Gateway will then translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols.  </p>
+<p>SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like CA Identity Manager.</p>
+<p>Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the SCIM Gateway would work like a &quot;CA Connector Server&quot; communicating with endpoints.</p>
 <p><img src="https://jelhub.github.io/images/ScimGateway.svg" /></p>
-<p>Instead of using IM-SDK for building our own integration for none supported endpoints, we can now build new integration based on ScimGateway plugins. ScimGateway works with IM as long as IM supports SCIM.</p>
-<p>ScimGateway is based on the popular asynchronous event driven framework <a href="https://nodejs.org/en/about/">Node.js</a> using JavaScript. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.</p>
+<p>Instead of using IM-SDK for building our own integration for none supported endpoints, we can now build new integration based on SCIM Gateway plugins. SCIM Gateway works with IM as long as IM supports SCIM.</p>
+<p>SCIM Gateway is based on the popular asynchronous event driven framework <a href="https://nodejs.org/en/about/">Node.js</a> using JavaScript. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.</p>
 <p><strong>Following example plugins are included:</strong></p>
 <ul>
 <li>
 <p><strong>Loki</strong> (NoSQL Document-Oriented Database)<br />
-Gives a SCIM endpoint located on ScimGateway<br />
+Gives a SCIM endpoint located on SCIM Gateway<br />
 Demonstrates user provisioning towards document-oriented database<br />
 Using <a href="http://lokijs.org">LokiJS</a> for a fast, in-memory document-oriented database (much like MongoDB/PouchDB)<br />
 Default gives two predefined test users loaded using in-memory only (no persistence)<br />
 Setting <code>{&quot;persistence&quot;: true}</code> gives persistence file store (no test users)<br />
-Example of a fully functional ScimGateway plugin  
+Example of a fully functional SCIM Gateway plugin  
 </p>
 </li>
 <li>
@@ -359,7 +359,7 @@ Includes CA ConnectorXpress metafile for creating CA IM &quot;Azure - ScimGatewa
 <p><strong>API</strong> (REST Webservices)<br />
 Demonstrates api gateway/plugin functionality using post/put/patch/get/delete<br />
 None SCIM plugin, becomes what you want it to become.<br />
-Endpoint complexity could be put in this plugin, and client could instead communicate through ScimGateway using your own simplified REST specification.<br />
+Endpoint complexity could be put in this plugin, and client could instead communicate through SCIM Gateway using your own simplified REST specification.<br />
 One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager.    
 </p>
 </li>
@@ -368,9 +368,9 @@ One example of usage could be creation of tickets in ServiceDesk/HelpDesk and al
 <h4>Install Node.js</h4>
 <p>Node.js is a prerequisite and have to be installed on the server.  </p>
 <p><a href="https://nodejs.org/en/download/">Download</a> the windows installer (.msi 64-bit) and install using default options.  </p>
-<h4>Install ScimGateway</h4>
+<h4>Install SCIM Gateway</h4>
 <p>Open a command window (run as administrator)<br />
-Create your own package directory e.g. C:\my-scimgateway and install ScimGateway within this package.</p>
+Create your own package directory e.g. C:\my-scimgateway and install SCIM Gateway within this package.</p>
 <pre><code>mkdir c:\my-scimgateway
 cd c:\my-scimgateway
 npm init -y
@@ -400,11 +400,11 @@ http://localhost:8880/Users/bjensen
 http://localhost:8880/Groups/Admins
 =&gt; Lists all attributes for specified user/group
 
-&quot;Ctrl + c&quot; to stop the scimgateway
+&quot;Ctrl + c&quot; to stop the SCIM Gateway
 </code></pre>
 
 <p>For more functionality using browser (post/patch/delete) a REST extension/add-on is needed. 	</p>
-<h4>Upgrade ScimGateway</h4>
+<h4>Upgrade SCIM Gateway</h4>
 <p>Not needed after a fresh install  </p>
 <p>Check if newer versions are available: </p>
 <pre><code>cd c:\my-scimgateway
@@ -442,8 +442,12 @@ Below shows an example of config\plugin-saphana.json  </p>
     &quot;port&quot;: 8884,
     &quot;localhostonly&quot;: false,
     &quot;scim&quot;: {
-        &quot;version&quot;: &quot;1.1&quot;,
-        &quot;customSchema&quot;: null
+      &quot;version&quot;: &quot;1.1&quot;,
+      &quot;customSchema&quot;: null,
+      &quot;customUniqueAttrMapping&quot; : {
+        &quot;userName&quot; : null,
+        &quot;displayName&quot;: null
+      }
     },
     &quot;loglevel&quot;: {
       &quot;file&quot;: &quot;debug&quot;,
@@ -506,7 +510,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 </code></pre>
 
 <p>Configuration file have two main JSON objects: <code>scimgateway</code> and <code>endpoint</code>  </p>
-<p>Definitions in <code>scimgateway</code> object have fixed attributes but values can be modified. This object is used by the core functionality of the ScimGateway.  </p>
+<p>Definitions in <code>scimgateway</code> object have fixed attributes but values can be modified. This object is used by the core functionality of the SCIM Gateway.  </p>
 <p>Definitions in <code>endpoint</code> object are customized according to our plugin code. Plugin typically need this information for communicating with endpoint  </p>
 <ul>
 <li>
@@ -524,6 +528,16 @@ Below shows an example of config\plugin-saphana.json  </p>
 <li>
 <p><strong>scim.customSchema</strong> - filename of JSON file located in <code>&lt;package-root&gt;\config\schemas</code> containing custom schema attributes, see configuration notes  
 </p>
+</li>
+<li>
+<p><strong>scim.customUniqueAttrMapping</strong> - Option for replacing mandatory userName/displayName if IdP use other attributes  
+</p>
+</li>
+<li>
+<p><strong>scim.customUniqueAttrMapping.userName</strong> - attribute replacing userName (User object)</p>
+</li>
+<li>
+<p><strong>scim.customUniqueAttrMapping.displayName</strong> - attribute replacing displayName (Group object)</p>
 </li>
 <li>
 <p><strong>loglevel.file</strong> - error, info or debug. Output to logfile <code>logs\plugin-saphana.log</code>  
@@ -577,10 +591,10 @@ Below shows an example of config\plugin-saphana.json  </p>
 
 <p>Example of how to make a self signed certificate:  
 </p>
-<pre><code>openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj &quot;/O=Testing/OU=ScimGateway/CN=&lt;FQDN&gt;&quot; -config &quot;&lt;path&gt;\openssl.cnf&quot;
+<pre><code>openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj &quot;/O=Testing/OU=SCIM Gateway/CN=&lt;FQDN&gt;&quot; -config &quot;&lt;path&gt;\openssl.cnf&quot;
 </code></pre>
 
-<p><code>&lt;FQDN&gt;</code> is Fully Qualified Domain Name of the host having ScimGateway installed</p>
+<p><code>&lt;FQDN&gt;</code> is Fully Qualified Domain Name of the host having SCIM Gateway installed</p>
 <p>Note, when using CA Provisioning, the &quot;certificate authority - CA&quot; also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  
 </p>
 <p>PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: </p>
@@ -590,7 +604,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 }
 </code></pre>
 
-<p>Note, we should normally use certificate (https) for communicating with ScimGateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use <code>http://localhost:port</code> or <code>http://127.0.0.1:port</code> which will not be passed down to the data link layer for transmission. We could then also set {&quot;localhostonly&quot;: true}  
+<p>Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use <code>http://localhost:port</code> or <code>http://127.0.0.1:port</code> which will not be passed down to the data link layer for transmission. We could then also set {&quot;localhostonly&quot;: true}  
 </p>
 </li>
 <li>
@@ -623,24 +637,24 @@ Below shows an example of config\plugin-saphana.json  </p>
 <p>Example:  
 </p>
 <pre><code>{
-    &quot;scimgateway&quot;: {
-        ...
-        &quot;port&quot;: &quot;process.env.PORT&quot;,
-        ...
-        &quot;loglevel&quot;: {
-            &quot;file&quot;: &quot;process.env.LOG_LEVEL_FILE&quot;,
-        ...
-        &quot;auth&quot;: {
-            &quot;basic&quot;: {
-            &quot;username&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
-            &quot;password&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
-        ...
+  &quot;scimgateway&quot;: {
+    ...
+    &quot;port&quot;: &quot;process.env.PORT&quot;,
+    ...
+    &quot;loglevel&quot;: {
+      &quot;file&quot;: &quot;process.env.LOG_LEVEL_FILE&quot;,
+      ...
+      &quot;auth&quot;: {
+        &quot;basic&quot;: {
+          &quot;username&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
+          &quot;password&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
+          ...
     },
     &quot;endpoint&quot;: {
-        ...
-        &quot;username&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
-        &quot;password&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
-        ...
+      ...
+      &quot;username&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
+      &quot;password&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
+      ...
     }
 }  
 </code></pre>
@@ -648,29 +662,30 @@ Below shows an example of config\plugin-saphana.json  </p>
 <p>secrets.json for plugin-forwardinc - example #1:  
 </p>
 <pre><code>{
-    &quot;plugin-forwardinc&quot;: {
-        &quot;scimgateway&quot;: {
-            &quot;auth&quot;: {
-                &quot;basic&quot;: {
-                &quot;username&quot;: &quot;gwadmin&quot;,
-                &quot;password&quot;: &quot;password&quot;
-            }
-        },
-        &quot;endpoint&quot;: {
-            &quot;username&quot;: &quot;superuser&quot;,
-            &quot;password&quot;: &quot;secret&quot;
-        }
+  &quot;plugin-forwardinc&quot;: {
+    &quot;scimgateway&quot;: {
+      &quot;auth&quot;: {
+        &quot;basic&quot;: {
+          &quot;username&quot;: &quot;gwadmin&quot;,
+          &quot;password&quot;: &quot;password&quot;
+        } 
+      }
+    },
+    &quot;endpoint&quot;: {
+      &quot;username&quot;: &quot;superuser&quot;,
+      &quot;password&quot;: &quot;secret&quot;
     }
+  }
 }  
 </code></pre>
 
 <p>secrets.json for plugin-forwardinc - example #2 (dot notation):  
 </p>
 <pre><code>{
-    &quot;plugin-forwardinc.scimgateway.auth.basic.username&quot;: &quot;gwadmin&quot;,
-    &quot;plugin-forwardinc.scimgateway.auth.basic.password&quot;: &quot;password&quot;,
-    &quot;plugin-forwardinc.endpoint.username&quot;: &quot;superuser&quot;,
-    &quot;plugin-forwardinc.endpoint.password&quot;: &quot;secret&quot;
+  &quot;plugin-forwardinc.scimgateway.auth.basic.username&quot;: &quot;gwadmin&quot;,
+  &quot;plugin-forwardinc.scimgateway.auth.basic.password&quot;: &quot;password&quot;,
+  &quot;plugin-forwardinc.endpoint.username&quot;: &quot;superuser&quot;,
+  &quot;plugin-forwardinc.endpoint.password&quot;: &quot;secret&quot;
 }  
 </code></pre>
 
@@ -679,8 +694,8 @@ Below shows an example of config\plugin-saphana.json  </p>
 <p>Custom schema attributes can be added by plugin configuration <code>scim.customSchema</code> having value set to filename of a JSON schema-file located in <code>&lt;package-root&gt;/config/schemas</code> e.g:  
 </p>
 <pre><code>&quot;scim&quot;: {
-    &quot;version&quot;: &quot;1.1&quot;,
-    &quot;customSchema&quot;: &quot;plugin-forwardinc-schema.json&quot;
+  &quot;version&quot;: &quot;1.1&quot;,
+  &quot;customSchema&quot;: &quot;plugin-forwardinc-schema.json&quot;
 },
 </code></pre>
 
@@ -701,36 +716,36 @@ Below shows an example of config\plugin-saphana.json  </p>
 <p>Where array <code>attributes</code> contains custom attribute objects according to SCIM 1.1 or 2.0 spesification e.g:  
 </p>
 <pre><code>&quot;attributes&quot;: [
-    {
-        &quot;name&quot;: &quot;musicPreference&quot;,
+  {
+    &quot;name&quot;: &quot;musicPreference&quot;,
+    &quot;type&quot;: &quot;string&quot;,
+    &quot;multiValued&quot;: false,
+    &quot;description&quot;: &quot;Music Preferences&quot;,
+    &quot;readOnly&quot;: false,
+    &quot;required&quot;: false,
+    &quot;caseExact&quot;: false
+  },
+  {
+    &quot;name&quot;: &quot;populations&quot;,
+    &quot;type&quot;: &quot;complex&quot;,
+    &quot;multiValued&quot;: true,
+    &quot;multiValuedAttributeChildName&quot;: &quot;population&quot;,
+    &quot;description&quot;: &quot;Population array&quot;,
+    &quot;readOnly&quot;: false,
+    &quot;required&quot;: false,
+    &quot;caseExact&quot;: false,
+    &quot;subAttributes&quot;: [
+      {
+        &quot;name&quot;: &quot;value&quot;,
         &quot;type&quot;: &quot;string&quot;,
         &quot;multiValued&quot;: false,
-        &quot;description&quot;: &quot;Music Preferences&quot;,
+        &quot;description&quot;: &quot;Population value&quot;,
         &quot;readOnly&quot;: false,
-        &quot;required&quot;: false,
+        &quot;required&quot;: true,
         &quot;caseExact&quot;: false
-    },
-    {
-        &quot;name&quot;: &quot;populations&quot;,
-        &quot;type&quot;: &quot;complex&quot;,
-        &quot;multiValued&quot;: true,
-        &quot;multiValuedAttributeChildName&quot;: &quot;population&quot;,
-        &quot;description&quot;: &quot;Population array&quot;,
-        &quot;readOnly&quot;: false,
-        &quot;required&quot;: false,
-        &quot;caseExact&quot;: false,
-        &quot;subAttributes&quot;: [
-            {
-                &quot;name&quot;: &quot;value&quot;,
-                &quot;type&quot;: &quot;string&quot;,
-                &quot;multiValued&quot;: false,
-                &quot;description&quot;: &quot;Population value&quot;,
-                &quot;readOnly&quot;: false,
-                &quot;required&quot;: true,
-                &quot;caseExact&quot;: false
-            }
-        ]
-    }
+      }
+    ]
+  }
 ]
 </code></pre>
 
@@ -752,7 +767,7 @@ node c:\my-scimgateway\index.js
 <p>Start Windows Task Scheduler (taskschd.msc), right click on &quot;Task Scheduler Library&quot; and choose &quot;Create Task&quot;  </p>
 <pre><code>General tab:  
 -----------
-Name = ScimGateway
+Name = SCIM Gateway
 User account = SYSTEM
 Run with highest privileges
 
@@ -773,12 +788,12 @@ Stop the task if runs longer than = Disabled (greyed out)
 
 <p>Verification:</p>
 <ul>
-<li>Right click task - <strong>Run</strong>, verify process node.exe (ScimGateway) can be found in the task manager (not the same as task scheduler). Also verify logfiles <code>&lt;pakage-root&gt;\logs</code>  </li>
+<li>Right click task - <strong>Run</strong>, verify process node.exe (SCIM Gateway) can be found in the task manager (not the same as task scheduler). Also verify logfiles <code>&lt;pakage-root&gt;\logs</code>  </li>
 <li>Right click task - <strong>End</strong>, verify process node.exe have been terminated and disappeared from task manager   </li>
-<li><strong>Reboot</strong> server and verify ScimGateway have been automatically started</li>
+<li><strong>Reboot</strong> server and verify SCIM Gateway have been automatically started</li>
 </ul>
 <h2>Running as a isolated virtual Docker container</h2>
-<p>On Linux systems we may also run ScimGateway as a Docker image (using docker-compose)  </p>
+<p>On Linux systems we may also run SCIM Gateway as a Docker image (using docker-compose)  </p>
 <ul>
 <li>
 <p>Docker Pre-requisites:<br />
@@ -786,7 +801,7 @@ Stop the task if runs longer than = Disabled (greyed out)
 docker-compose</strong></p>
 </li>
 <li>
-<p>Install ScimGateway within your own package and copy provided docker files:</p>
+<p>Install SCIM Gateway within your own package and copy provided docker files:</p>
 <pre><code>mkdir /opt/my-scimgateway  
 cd /opt/my-scimgateway  
 npm init -y  
@@ -871,13 +886,13 @@ SCIM Based URL = http://localhost:8880/&lt;baseEntity&gt;
 </code></pre>
 
 <p>Username, password and port must correspond with plugin configuration file. For &quot;Loki&quot; plugin it will be <code>config\plugin-loki.json</code>  </p>
-<p>&quot;SCIM Based URL&quot; refer to the FQDN (or localhost) having ScimGateway installed. Portnumber must be included. Use HTTPS instead of HTTP if ScimGateway-configuration includes certificates. </p>
+<p>&quot;SCIM Based URL&quot; refer to the FQDN (or localhost) having SCIM Gateway installed. Portnumber must be included. Use HTTPS instead of HTTP if SCIM Gateway configuration includes certificates. </p>
 <p>&quot;baseEntity&quot; is optional. This is a parameter used for multi tenant or multi endpoint solutions. We could create several endpoints having same base url with unique baseEntity. e.g:  </p>
 <p>http://localhost:8880/clientA<br />
 http://localhost:8880/clientB</p>
 <p>Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-forwardinc.json</p>
 <p>IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Loki plugin supports pagination. Other plugin may ignore this setting.  </p>
-<h2>ScimGateway REST API</h2>
+<h2>SCIM Gateway REST API</h2>
 <pre><code>Create = POST http://example.com:8880/Users  
 (body contains the user information)
 
@@ -1046,7 +1061,7 @@ Uncomment startup of plugin-azure-ad, other plugins could be comment out if not 
 </code></pre>
 
 <p><strong>Edit plugin-azure-ad.json</strong></p>
-<p><code>Username</code> and <code>password</code> used to connect the ScimGateway must be defined.</p>
+<p><code>Username</code> and <code>password</code> used to connect the SCIM Gateway must be defined.</p>
 <p>Update <code>tenantIdGUID</code>, <code>clientID</code> and <code>clientSecret</code> according to Azure AD prerequisites configuration.  </p>
 <p>If using proxy, set proxy.host to <code>&quot;http://&lt;FQDN-ProxyHost&gt;:&lt;port&gt;&quot;</code> e.g <code>&quot;http://proxy.mycompany.com:3128&quot;</code>  </p>
 <pre><code>&quot;endpoint&quot;: {
@@ -1083,11 +1098,11 @@ Uncomment startup of plugin-azure-ad, other plugins could be comment out if not 
 </code></pre>
 
 <p>For additional details, see baseEntity description.  </p>
-<p>Note, we should normally use certificate (https) for communicating with ScimGateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use <code>http://localhost:port</code> or <code>http://127.0.0.1:port</code> which will not be passed down to the data link layer for transmission. We could then also set {&quot;localhostonly&quot;: true}  </p>
+<p>Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install gateway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use <code>http://localhost:port</code> or <code>http://127.0.0.1:port</code> which will not be passed down to the data link layer for transmission. We could then also set {&quot;localhostonly&quot;: true}  </p>
 <p><strong>For CA Provisioning, create endpoint type &quot;Azure - ScimGateway&quot;</strong>  </p>
 <ul>
 <li>
-Start ScimGateway
+Start SCIM Gateway
 <ul>
 <li>&quot;const azureAD&quot; must be uncomment in <code>index.js</code></li>
 <li>username, password and port defined in <code>plugin-azure-ad.json</code> must also be known </li>
@@ -1099,8 +1114,8 @@ Setup Data Sources
 <ul>
 <li>Add</li>
 <li>Layer7 (this is SCIM)</li>
-<li>Name = ScimGateway-8881</li>
-<li>Base URL = http://localhost:8881 (ScimGateway installed locally on Connector Server)  
+<li>Name = SCIM Gateway-8881</li>
+<li>Base URL = http://localhost:8881 (SCIM Gateway installed locally on Connector Server)  
 </li>
 </ul>
 </li>
@@ -1108,7 +1123,7 @@ Setup Data Sources
 Add the new &quot;Azure - ScimGateway&quot; endpoint type
 <ul>
 <li>Metadata - Import - &quot;my-scimgateway\node_modules\scimgateway\config\resources\Azure - ScimGateway.xml&quot;</li>
-<li>Select the datasource we created - ScimGateway-8881</li>
+<li>Select the datasource we created - SCIM Gateway-8881</li>
 <li>Enter password for the user defined in datasource (e.g. gwadmin/password)  
 </li>
 <li>On the right - expand Provisioning Servers - your server - and logon</li>
@@ -1135,8 +1150,8 @@ SCIM Based URL = http://localhost:8881/&lt;baseEntity&gt;
 </code></pre>
 
 <p>For details, please see section &quot;CA Provisioningserver - SCIM Endpoint&quot;</p>
-<h2>Azure Active Directory using ScimGateway</h2>
-<p>Azure AD could do automatic user provisioning by synchronizing users towards ScimGateway, and ScimGateway plugins will update endpoints.</p>
+<h2>Azure Active Directory using SCIM Gateway</h2>
+<p>Azure AD could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.</p>
 <p>Plugin configuration file must include scimversion &quot;2.0&quot; and either bearer.token or azure.tenantIdGUID (or both):  </p>
 <pre><code>{
   &quot;scimversion&quot;: &quot;2.0&quot;,
@@ -1168,7 +1183,7 @@ Note, when &quot;Secret Token&quot; is left blank, Azure will use JWT (tenantIdG
 userName mapped to userPrincipalName  
 </code></pre>
 
-<p>ScimGateway accepts externalId (as matching precedence) instead of  userName, but <code>userName and externalId must be mapped to the same AD attribute</code> e.g:</p>
+<p>SCIM Gateway accepts externalId (as matching precedence) instead of  userName, but <code>userName and externalId must be mapped to the same AD attribute</code> e.g:</p>
 <pre><code>externalId mapped to mailNickname (matching precedence #1)  
 userName mapped to mailNickname  
 
@@ -1183,7 +1198,7 @@ userName mapped to userPrincipalName
 displayName mapped to mailNickname  
 </code></pre>
 
-<p>ScimGateway accepts externalId (as matching precedence) instead of displayName, but <code>displayName and externalId must then be mapped to the same AD attribute</code> e.g:  </p>
+<p>SCIM Gateway accepts externalId (as matching precedence) instead of displayName, but <code>displayName and externalId must then be mapped to the same AD attribute</code> e.g:  </p>
 <pre><code>externalId mapped to displayName (matching precedence #1)
 displayName mapped to displayName
 </code></pre>
@@ -1210,7 +1225,7 @@ displayName mapped to displayName
 </li>
 </ul>
 <h2>api-plugin</h2>
-<p>ScimGateway supports following methods for the none SCIM based api-plugin:  </p>
+<p>SCIM Gateway supports following methods for the none SCIM based api-plugin:  </p>
 <pre><code>    GET /api  
     GET /api?queries  
     GET /api/{id}  
@@ -1225,9 +1240,9 @@ displayName mapped to displayName
 <p>Preparation:</p>
 <ul>
 <li>Copy &quot;best matching&quot; example plugin e.g. <code>lib\plugin-loki.js</code> and <code>config\plugin-loki.json</code> and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) </li>
-<li>Edit plugin-mine.json and define a unique port number for the scimgateway setting  </li>
+<li>Edit plugin-mine.json and define a unique port number for the gateway setting  </li>
 <li>Edit index.js and add a new line for starting your plugin e.g. <code>let mine = require('./lib/plugin-mine');</code>  </li>
-<li>Start ScimGateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  </li>
+<li>Start SCIM Gateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  </li>
 </ul>
 <p>Now we are ready for custom coding by editing plugin-mine.js
 Coding should be done step by step and each step should be verified and tested before starting the next (they are all highlighted by comments in existing code).  </p>
@@ -1253,7 +1268,7 @@ Please see callback definitions in plugin-saphana that do not use groups.</li>
 <p>For project setup:  </p>
 <ul>
 <li>Datasource =  Layer7 (CA API) - this is SCIM  </li>
-<li>Layer7 Base URL = ScimGateway url and port (SCIM Base URL)  </li>
+<li>Layer7 Base URL = SCIM Gateway url and port (SCIM Base URL)  </li>
 <li>Authentication = Basic Authentication<br />
 (connect using gwadmin/password defined in plugin config-file)</li>
 </ul>
@@ -1503,10 +1518,20 @@ If we do not support groups, then return null  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v2.1.2</h3>
+<p>[Fix]  </p>
+<ul>
+<li>SCIM 2.0 may use Operations.value as array and none array (issue #16) </li>
+</ul>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>Option for replacing mandatory userName/displayName attribute by configuring customUniqueAttrMapping  </li>
+<li>Includes latest versions of module dependencies</li>
+</ul>
 <h3>v2.1.1</h3>
 <p>[Fix]  </p>
 <ul>
-<li>SCIM 2.0 (e.g. Azure) may use Operations.value or Operation.value[] for PATCH syntax of the name object</li>
+<li>SCIM 2.0 may use Operations.value or Operation.value[] for PATCH syntax of the name object (issue #14)</li>
 <li>plugin-loki failed to modify a none existing object, e.g name object not included in Create User </li>
 </ul>
 <h3>v2.1.0</h3>
@@ -1779,7 +1804,7 @@ Configuration files for custom plugins <code>config/plugin-xxx.json</code> needs
 <h3>v0.4.6</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
-<li>Document updated on how to run ScimGateway as a Docker container  </li>
+<li>Document updated on how to run SCIM Gateway as a Docker container  </li>
 <li><code>config\docker</code> includes docker configuration examples<br />
 <strong>Thanks to Charley Watson and Jeffrey Gilbert</strong>  </li>
 </ul>
@@ -1787,7 +1812,7 @@ Configuration files for custom plugins <code>config/plugin-xxx.json</code> needs
 <p>[ENHANCEMENT]  </p>
 <ul>
 <li>Environment variable <code>SEED</code> overrides default password seeding  </li>
-<li>Setting ScimGateway port to <code>&quot;process.env.XXX&quot;</code> lets environment variable XXX define the port  </li>
+<li>Setting SCIM Gateway port to <code>&quot;process.env.XXX&quot;</code> lets environment variable XXX define the port  </li>
 <li>Don't validate config-file port number for numeric value (Azure AD - iisnode using a name pipe for communication) </li>
 </ul>
 <p><strong>[UPGRADE]</strong>  </p>
@@ -1797,7 +1822,7 @@ Configuration files for custom plugins <code>config/plugin-xxx.json</code> needs
 
 <ul>
 <li>Encrypted passwords needs to be reset to clear text passwords</li>
-<li>Start ScimGateway and passwords will become encrypted  
+<li>Start SCIM Gateway and passwords will become encrypted  
 </li>
 </ul>
 </li>
@@ -1855,7 +1880,7 @@ This plugin now replace previous <code>plugin-testmode</code><br />
 <h3>v0.3.6</h3>
 <p>[ENHANCEMENT]  </p>
 <ul>
-<li>ScimGateway used by Microsoft Azure Active Directory is supported</li>
+<li>SCIM Gateway used by Microsoft Azure Active Directory is supported</li>
 <li>SCIM version 2.0 is supported</li>
 <li>Create group is supported  </li>
 </ul>
