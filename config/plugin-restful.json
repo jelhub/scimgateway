@@ -12,8 +12,7 @@
     },
     "loglevel": {
       "file": "debug",
-      "console": "error",
-      "colorize": true
+      "console": "error"
     },
     "auth": {
       "basic": {
