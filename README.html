@@ -299,20 +299,20 @@ img {
 </ul>
 <p>Latest news:  </p>
 <ul>
-<li>Codebase moved from callback of ... to the the promise(d) land of async/await</li>
+<li>Codebase moved from callback of h... to the the promise(d) land of async/await</li>
 <li>Supports configuration by environments and external files</li>
 <li>Health monitoring through &quot;/ping&quot; URL, and option for error notifications by email</li>
 <li>Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!</li>
-<li>General API plugin for none provisioning (API Gateway)</li>
+<li>Includes API Gateway for none SCIM/provisioning (becomes what you want it to become)   </li>
 <li>Running SCIM Gateway as a Docker container  </li>
 </ul>
 <h2>Overview</h2>
-<p>With SCIM Gateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol. Gateway will then translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols.  </p>
+<p>With SCIM Gateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> protocol. Gateway will then translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  </p>
 <p>SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like CA Identity Manager.</p>
 <p>Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the SCIM Gateway would work like a &quot;CA Connector Server&quot; communicating with endpoints.</p>
 <p><img src="https://jelhub.github.io/images/ScimGateway.svg" /></p>
 <p>Instead of using IM-SDK for building our own integration for none supported endpoints, we can now build new integration based on SCIM Gateway plugins. SCIM Gateway works with IM as long as IM supports SCIM.</p>
-<p>SCIM Gateway is based on the popular asynchronous event driven framework <a href="https://nodejs.org/en/about/">Node.js</a> using JavaScript. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.</p>
+<p>SCIM Gateway is based on the popular asynchronous event driven framework <a href="https://nodejs.dev/">Node.js</a> using JavaScript. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.</p>
 <p><strong>Following example plugins are included:</strong></p>
 <ul>
 <li>
@@ -357,9 +357,9 @@ Includes CA ConnectorXpress metafile for creating CA IM &quot;Azure - ScimGatewa
 </li>
 <li>
 <p><strong>API</strong> (REST Webservices)<br />
-Demonstrates api gateway/plugin functionality using post/put/patch/get/delete<br />
+Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete<br />
 None SCIM plugin, becomes what you want it to become.<br />
-Endpoint complexity could be put in this plugin, and client could instead communicate through SCIM Gateway using your own simplified REST specification.<br />
+Endpoint complexity could be put in this plugin, and client could instead communicate through Gateway using your own simplified REST specification.<br />
 One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager.    
 </p>
 </li>
@@ -451,8 +451,7 @@ Below shows an example of config\plugin-saphana.json  </p>
     },
     &quot;loglevel&quot;: {
       &quot;file&quot;: &quot;debug&quot;,
-      &quot;console&quot;: &quot;error&quot;,
-      &quot;colorize&quot;: true
+      &quot;console&quot;: &quot;error&quot;
     },
     &quot;auth&quot;: {
       &quot;basic&quot;: {
@@ -544,11 +543,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>loglevel.console</strong> - error, info or debug. Output to stdout and errors to stderr.  
-</p>
-</li>
-<li>
-<p><strong>loglevel.colorize</strong> - true or false, false could be useful when redirecting console output.  
+<p><strong>loglevel.console</strong> - error, info or debug. Output to stdout and errors to stderr.    
 </p>
 </li>
 <li>
@@ -1518,6 +1513,13 @@ If we do not support groups, then return null  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v2.1.3</h3>
+<p>[Fix] </p>
+<ul>
+<li>Standardized the API Gateway response (not SCIM related)</li>
+<li>Not allowing plugins to return password</li>
+<li>Colorize option now automatically turned off when using stdout/stderr redirect (configuration file <code>loglevel.colorize</code> is not needed)</li>
+</ul>
 <h3>v2.1.2</h3>
 <p>[Fix]  </p>
 <ul>

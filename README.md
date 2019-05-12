@@ -14,16 +14,16 @@ Validated through IdP's:
 
 Latest news:  
 
-- Codebase moved from callback of ... to the the promise(d) land of async/await
+- Codebase moved from callback of h... to the the promise(d) land of async/await
 - Supports configuration by environments and external files
 - Health monitoring through "/ping" URL, and option for error notifications by email
 - Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!
-- General API plugin for none provisioning (API Gateway)
+- Includes API Gateway for none SCIM/provisioning (becomes what you want it to become)   
 - Running SCIM Gateway as a Docker container  
 
 ## Overview  
  
-With SCIM Gateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) protocol. Gateway will then translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols.  
+With SCIM Gateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) protocol. Gateway will then translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  
 
 SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like CA Identity Manager.
 
@@ -33,7 +33,7 @@ Using CA Identity Manager, we could setup one or more endpoints of type SCIM poi
 
 Instead of using IM-SDK for building our own integration for none supported endpoints, we can now build new integration based on SCIM Gateway plugins. SCIM Gateway works with IM as long as IM supports SCIM.
 
-SCIM Gateway is based on the popular asynchronous event driven framework [Node.js](https://nodejs.org/en/about/) using JavaScript. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.
+SCIM Gateway is based on the popular asynchronous event driven framework [Node.js](https://nodejs.dev/) using JavaScript. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.
 
 **Following example plugins are included:**
 
@@ -68,9 +68,9 @@ Includes CA ConnectorXpress metafile for creating CA IM "Azure - ScimGateway" en
   
 
 * **API** (REST Webservices)  
-Demonstrates api gateway/plugin functionality using post/put/patch/get/delete  
+Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete  
 None SCIM plugin, becomes what you want it to become.  
-Endpoint complexity could be put in this plugin, and client could instead communicate through SCIM Gateway using your own simplified REST specification.  
+Endpoint complexity could be put in this plugin, and client could instead communicate through Gateway using your own simplified REST specification.  
 One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager.    
 
 ## Installation  
@@ -179,8 +179,7 @@ Below shows an example of config\plugin-saphana.json
         },
         "loglevel": {
           "file": "debug",
-          "console": "error",
-          "colorize": true
+          "console": "error"
         },
 	    "auth": {
 	      "basic": {
@@ -259,9 +258,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **loglevel.file** - error, info or debug. Output to logfile `logs\plugin-saphana.log`  
 
-- **loglevel.console** - error, info or debug. Output to stdout and errors to stderr.  
-
-- **loglevel.colorize** - true or false, false could be useful when redirecting console output.  
+- **loglevel.console** - error, info or debug. Output to stdout and errors to stderr.    
 
 - **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway. **Methods are disabled by setting corresponding attributes to null**  
 
@@ -1161,6 +1158,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v2.1.3  
+[Fix] 
+
+- Standardized the API Gateway response (not SCIM related)
+- Not allowing plugins to return password
+- Colorize option now automatically turned off when using stdout/stderr redirect (configuration file `loglevel.colorize` is not needed)
 
 ### v2.1.2  
 [Fix]  
