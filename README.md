@@ -788,10 +788,13 @@ For details, please see section "CA Provisioningserver - SCIM Endpoint"
 
 Azure AD could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.
 
-Plugin configuration file must include scimversion "2.0" and either bearer.token or azure.tenantIdGUID (or both):  
+Plugin configuration file must include SCIM Version 2.0 (_scim.version_)  and either Bearer Token (_auth.bearer.token_) or Azure Tenant ID GUID (_auth.bearer.jwt.azure.tenantIdGUID_) or both:  
 
 	{
-	  "scimversion": "2.0",
+	  "scim": {
+	    "version": "2.0",
+	    ...
+	  },
 	  ...
 	  "auth": {
 	    ...
