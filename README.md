@@ -552,7 +552,7 @@ To upgrade scimgateway docker image (remove the old stuff before running docker-
 	docker rm scimgateway  
 	docker rm $(docker ps -a -q); docker rmi $(docker images -q -f "dangling=true")  
 
-## CA Provisioningserver - SCIM Endpoint  
+## CA Identity Manager as IdP using SCIM Gateway  
 
 Using the CA Provisioning Manager we have to configure  
   
@@ -781,17 +781,20 @@ Endpoint configuration example:
 	or  
 	SCIM Based URL = http://localhost:8881/<baseEntity>  
 
-For details, please see section "CA Provisioningserver - SCIM Endpoint"
+For details, please see section "CA Identity Manager as IdP using SCIM Gateway"
 
 
-## Azure Active Directory using SCIM Gateway  
+## Azure Active Directory as IdP using SCIM Gateway  
 
 Azure AD could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.
 
-Plugin configuration file must include scimversion "2.0" and either bearer.token or azure.tenantIdGUID (or both):  
+Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.bearer.token) or **Azure Tenant ID GUID** (scimgateway.azure.tenantIdGUID) or both:  
 
-	{
-	  "scimversion": "2.0",
+	scimgateway: {
+	  "scim": {
+		version": "2.0",
+		...
+	  },
 	  ...
 	  "auth": {
 	    ...
@@ -857,9 +860,11 @@ Some notes related to Azure AD:
 
 - Deleting a user in Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM "DELETE" method seems not to be used.  
 
-## api-plugin    
+## API Gateway    
 
-SCIM Gateway supports following methods for the none SCIM based api-plugin:  
+Gateway also works as an API Gateway when using url `/api` or `/<baseEntity>/api`  
+
+Following methods for the none SCIM based api-plugin are supported:  
   
 		GET /api  
 		GET /api?queries  
@@ -869,6 +874,8 @@ SCIM Gateway supports following methods for the none SCIM based api-plugin:
 		PATCH /api/{id} + body  
 		DELETE /api/{id}  
 
+
+Please see example plugin: **plugin-api.js**
 
  
 ## How to build your own plugins  
@@ -1158,6 +1165,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v2.1.4  
+[Fix] 
+
+- Incorrect SCIM 2.0 error handling after v2.1.0
+- For duplicate key error, setting `err.name = 'DuplicateKeyError'` now gives correct status code 409 instead of defult 500 (see plugin-loki.js)  
 
 ### v2.1.3  
 [Fix] 
