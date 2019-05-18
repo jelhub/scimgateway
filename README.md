@@ -10,7 +10,8 @@ Validated through IdP's:
 
 - CA Identity Manager
 - Microsoft Azure Active Directory  
-- OneLogin
+- OneLogin  
+- Okta  
 
 Latest news:  
 
