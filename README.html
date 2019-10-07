@@ -296,7 +296,11 @@ img {
 <li>CA Identity Manager</li>
 <li>Microsoft Azure Active Directory  </li>
 <li>OneLogin  </li>
-<li>Okta  </li>
+<li>
+<p>Okta  
+</p>
+<p>Please let me know when you have deployed SCIM Gateway with your preffered IdP so list can be updated</p>
+</li>
 </ul>
 <p>Latest news:  </p>
 <ul>
@@ -304,7 +308,7 @@ img {
 <li>Supports configuration by environments and external files</li>
 <li>Health monitoring through &quot;/ping&quot; URL, and option for error notifications by email</li>
 <li>Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!</li>
-<li>Includes API Gateway for none SCIM/provisioning (becomes what you want it to become)   </li>
+<li>Includes API Gateway for none SCIM/provisioning - becomes what you want it to become   </li>
 <li>Running SCIM Gateway as a Docker container  </li>
 </ul>
 <h2>Overview</h2>
@@ -1148,10 +1152,10 @@ SCIM Based URL = http://localhost:8881/&lt;baseEntity&gt;
 <p>For details, please see section &quot;CA Identity Manager as IdP using SCIM Gateway&quot;</p>
 <h2>Azure Active Directory as IdP using SCIM Gateway</h2>
 <p>Azure AD could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.</p>
-<p>Plugin configuration file must include <strong>SCIM Version &quot;2.0&quot;</strong> (scimgateway.scim.version) and either <strong>Bearer Token</strong> (scimgateway.bearer.token) or <strong>Azure Tenant ID GUID</strong> (scimgateway.azure.tenantIdGUID) or both:  </p>
+<p>Plugin configuration file must include <strong>SCIM Version &quot;2.0&quot;</strong> (scimgateway.scim.version) and either <strong>Bearer Token</strong> (scimgateway.auth.bearer.token) or <strong>Azure Tenant ID GUID</strong> (scimgateway.auth.bearer.jwt.azure.tenantIdGUID) or both:  </p>
 <pre><code>scimgateway: {
   &quot;scim&quot;: {
-    version&quot;: &quot;2.0&quot;,
+    &quot;version&quot;: &quot;2.0&quot;,
     ...
   },
   ...
@@ -1162,9 +1166,11 @@ SCIM Based URL = http://localhost:8881/&lt;baseEntity&gt;
       &quot;jwt&quot;: {
         &quot;azure&quot;: {
           &quot;tenantIdGUID&quot;: &quot;xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;
-        },
+        }
+      ...
+    }
     ...
-  },
+  }
   ...
 }
 </code></pre>
@@ -1519,6 +1525,15 @@ If we do not support groups, then return null  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v2.1.5</h3>
+<p>[Fix] </p>
+<ul>
+<li>plugin-azure-ad did not return correct error code (<code>err.name = 'DuplicateKeyError'</code>) when failing on creating a duplicate user</li>
+</ul>
+<p>[ENHANCEMENT]  </p>
+<ul>
+<li>Includes latest versions of module dependencies</li>
+</ul>
 <h3>v2.1.4</h3>
 <p>[Fix] </p>
 <ul>

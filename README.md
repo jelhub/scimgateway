@@ -13,13 +13,15 @@ Validated through IdP's:
 - OneLogin  
 - Okta  
 
+    Please let me know when you have deployed SCIM Gateway with your preffered IdP so list can be updated
+
 Latest news:  
 
 - Codebase moved from callback of h... to the the promise(d) land of async/await
 - Supports configuration by environments and external files
 - Health monitoring through "/ping" URL, and option for error notifications by email
 - Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!
-- Includes API Gateway for none SCIM/provisioning (becomes what you want it to become)   
+- Includes API Gateway for none SCIM/provisioning - becomes what you want it to become   
 - Running SCIM Gateway as a Docker container  
 
 ## Overview  
@@ -789,12 +791,12 @@ For details, please see section "CA Identity Manager as IdP using SCIM Gateway"
 
 Azure AD could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.
 
-Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.bearer.token) or **Azure Tenant ID GUID** (scimgateway.azure.tenantIdGUID) or both:  
+Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.auth.bearer.token) or **Azure Tenant ID GUID** (scimgateway.auth.bearer.jwt.azure.tenantIdGUID) or both:  
 
 	scimgateway: {
 	  "scim": {
-		version": "2.0",
-		...
+	    "version": "2.0",
+	    ...
 	  },
 	  ...
 	  "auth": {
@@ -804,10 +806,12 @@ Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.
           "jwt": {
             "azure": {
               "tenantIdGUID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            },
+            }
+	      ...
+        }
 	    ...
-      },
-	  ...
+      }
+      ...
 	}
 
 `bearer.token` configuration must correspond with "Secret Token" defined in Azure AD  
@@ -1166,6 +1170,15 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v2.1.5  
+[Fix] 
+
+- plugin-azure-ad did not return correct error code (`err.name = 'DuplicateKeyError'`) when failing on creating a duplicate user
+
+[ENHANCEMENT]  
+
+- Includes latest versions of module dependencies
 
 ### v2.1.4  
 [Fix] 

@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "SCIM Gateway",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
   "license": "MIT",
@@ -32,20 +32,20 @@
   },
   "dependencies": {
     "callsite": "^1.0.0",
-    "dot-object": "^1.7.1",
-    "https-proxy-agent": "^2.2.1",
-    "jsonwebtoken": "^8.5.0",
-    "koa": "^2.7.0",
+    "dot-object": "^1.9.0",
+    "https-proxy-agent": "^2.2.2",
+    "jsonwebtoken": "^8.5.1",
+    "koa": "^2.8.2",
     "koa-bodyparser": "^4.2.1",
     "koa-router": "^7.4.0",
-    "lokijs": "^1.5.6",
+    "lokijs": "^1.5.7",
     "node-machine-id": "1.1.9",
     "nodemailer": "^5.1.1",
     "passport": "^0.4.0",
-    "passport-azure-ad": "^4.0.0",
+    "passport-azure-ad": "^4.1.0",
     "soap": "^0.26.0",
     "tedious": "^5.0.3",
-    "winston": "^3.2.0"
+    "winston": "^3.2.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",
