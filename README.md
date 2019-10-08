@@ -6,14 +6,14 @@
 ---  
 Author: Jarle Elshaug  
 
+
 Validated through IdP's:  
 
 - CA Identity Manager
 - Microsoft Azure Active Directory  
 - OneLogin  
 - Okta  
-
-    Please let me know when you have deployed SCIM Gateway with your preffered IdP so list can be updated
+  Please let me know when you have deployed SCIM Gateway with your preffered IdP so list can be updated  
 
 Latest news:  
 
@@ -1171,7 +1171,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-### v2.1.5  
+### v2.1.6  
 [Fix] 
 
 - plugin-azure-ad did not return correct error code (`err.name = 'DuplicateKeyError'`) when failing on creating a duplicate user
