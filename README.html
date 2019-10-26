@@ -432,7 +432,7 @@ npm install scimgateway
 // const azureAD = require('./lib/plugin-azure-ad')
 </code></pre>
 
-<p>Each endpoint plugin needs a JavaScript file (.js) and a configuration file (.json). <strong>They both must have the same naming suffix</strong>. For SAP Hana endpoint we have:  </p>
+<p>Each endpoint plugin needs a JavaScript file (.js) and a configuration file (.json). <strong>They both must have the same naming prefix</strong>. For SAP Hana endpoint we have:  </p>
 <blockquote>
 <p>lib\plugin-saphana.js<br />
 config\plugin-saphana.json</p>
@@ -1522,6 +1522,14 @@ If we do not support groups, then return null  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v2.1.7</h3>
+<p>[Fix] </p>
+<ul>
+<li>Validates content-type when body is included</li>
+<li>Case insensitive log-masking</li>
+<li>Plugins now don't using deprecated <code>url.parse</code></li>
+<li>Misc cosmetics e.g. using const instead of let when not reassigned</li>
+</ul>
 <h3>v2.1.6</h3>
 <p>[Fix] </p>
 <ul>
