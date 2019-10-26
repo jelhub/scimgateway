@@ -160,7 +160,7 @@ To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compabilit
 	// const api = require('./lib/plugin-api')
 	// const azureAD = require('./lib/plugin-azure-ad')
 
-Each endpoint plugin needs a JavaScript file (.js) and a configuration file (.json). **They both must have the same naming suffix**. For SAP Hana endpoint we have:  
+Each endpoint plugin needs a JavaScript file (.js) and a configuration file (.json). **They both must have the same naming prefix**. For SAP Hana endpoint we have:  
 >lib\plugin-saphana.js  
 >config\plugin-saphana.json
 
@@ -1170,6 +1170,14 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v2.1.7  
+[Fix] 
+
+- Validates content-type when body is included
+- Case insensitive log-masking
+- Plugins now don't using deprecated `url.parse`
+- Misc cosmetics e.g. using const instead of let when not reassigned
 
 ### v2.1.6  
 [Fix] 
