@@ -1171,6 +1171,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v2.1.8  
+[Fix] 
+
+- plugin-mssql not correctly ported to v2.x, and some config syntax for this plugin have also changed in newer releases of dependencies.
+
 ### v2.1.7  
 [Fix] 
 

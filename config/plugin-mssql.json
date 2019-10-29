@@ -61,11 +61,16 @@
   },
   "endpoint": {
     "connection": {
-      "server": "mssql-host",
-      "userName": "sa",
-      "password": "password",
+      "server": "MySqlHost",
+      "authentication": {
+        "type": "default",
+        "options": {
+          "userName": "sa",
+          "password": "password"
+        }
+      },
       "options": {
-        "instanceName": null,
+        "instanceName": "",
         "port": 1433,
         "database": "MyDatabase",
         "useColumnNames": true,
