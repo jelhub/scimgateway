@@ -1171,6 +1171,16 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v2.1.9  
+[Fix] 
+
+- AAD as IdP broken after content-type validation introduced in v2.1.7
+- AAD as IdP, none gallery app support
+- Incorrect SCIM 2.0 multivalue converting
+- plugin-saphana not correctly ported to v2.x  
+
+**Thanks to Luca Moretto**  
+
 ### v2.1.8  
 [Fix] 
 
