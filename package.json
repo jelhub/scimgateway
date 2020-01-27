@@ -3,6 +3,7 @@
   "version": "2.1.9",
   "description": "SCIM Gateway",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
+  "homepage": "https://elshaug.xyz",
   "license": "MIT",
   "main": "lib/scimgateway.js",
   "scripts": {
@@ -22,7 +23,6 @@
     "gateway",
     "proxy",
     "azure",
-    "ca",
     "identity",
     "manager",
     "provisioning"

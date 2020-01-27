@@ -12,9 +12,9 @@ Validated through IdP's:
 - CA Identity Manager
 - Microsoft Azure Active Directory  
 - OneLogin  
-- Okta  
-  Please let me know when you have deployed SCIM Gateway with your preffered IdP so list can be updated  
-
+- Okta 
+- Omada 
+  
 Latest news:  
 
 - Codebase moved from callback of h... to the the promise(d) land of async/await
@@ -26,7 +26,7 @@ Latest news:
 
 ## Overview  
  
-With SCIM Gateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) protocol. Gateway will then translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  
+With SCIM Gateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) 1.1 or 2.0 protocol. Gateway will translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  
 
 SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like CA Identity Manager.
 
