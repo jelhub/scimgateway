@@ -10,9 +10,12 @@
         "displayName": null
       }
     },
-    "loglevel": {
-      "file": "debug",
-      "console": "error"
+    "log": {
+      "loglevel": {
+        "file": "debug",
+        "console": "error"
+      },
+      "customMasking": []
     },
     "auth": {
       "basic": {
