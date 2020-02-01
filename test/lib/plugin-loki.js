@@ -5,11 +5,11 @@ const expect = require('chai').expect
 const scimgateway = require('../../lib/plugin-loki.js')
 const server_8880 = require('supertest').agent('http://localhost:8880') // module request is an alternative
 
-const auth = 'Basic ' + new Buffer.from('gwadmin:password').toString('base64')
-let options = {
+const auth = 'Basic ' + Buffer.from('gwadmin:password').toString('base64')
+const options = {
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': auth
+    Authorization: auth
   }
 }
 
@@ -20,7 +20,7 @@ describe('plugin-loki tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
-        let users = res.body
+        const users = res.body
         expect(res.statusCode).to.equal(200)
         expect(users.totalResults).to.equal(2)
         expect(users.itemsPerPage).to.equal(2)
@@ -40,7 +40,7 @@ describe('plugin-loki tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
-        let groups = res.body
+        const groups = res.body
         expect(res.statusCode).to.equal(200)
         expect(groups.totalResults).to.be.above(3)
         expect(groups.itemsPerPage).to.be.above(3)
@@ -67,7 +67,7 @@ describe('plugin-loki tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
-        let user = res.body
+        const user = res.body
         expect(res.statusCode).to.equal(200)
         expect(user).to.not.equal(undefined)
         expect(user.id).to.equal('bjensen')
@@ -117,7 +117,7 @@ describe('plugin-loki tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
-        let group = res.body
+        const group = res.body
         expect(res.statusCode).to.equal(200)
         expect(group).to.not.equal(undefined)
         expect(group.schemas).to.not.equal(undefined)
@@ -136,7 +136,7 @@ describe('plugin-loki tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
-        let groups = res.body
+        const groups = res.body
         expect(res.statusCode).to.equal(200)
         expect(groups).to.not.equal(undefined)
         expect(groups.schemas).to.not.equal(undefined)
@@ -154,7 +154,7 @@ describe('plugin-loki tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
-        let groupMembers = res.body
+        const groupMembers = res.body
         expect(res.statusCode).to.equal(200)
         expect(groupMembers).to.not.equal('undefined')
         expect(groupMembers.Resources[0].displayName).to.equal('Admins')
@@ -165,7 +165,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('createUser test', (done) => {
-    let newUser = {
+    const newUser = {
       userName: 'jgilber',
       active: true,
       password: 'secretpassword',
@@ -176,8 +176,8 @@ describe('plugin-loki tests', () => {
       },
       title: 'test title',
       emails: [{
-        'value': 'jgilber@example.com',
-        'type': 'work'
+        value: 'jgilber@example.com',
+        type: 'work'
       }],
       phoneNumbers: [{
         value: 'tel:555-555-8376',
@@ -205,7 +205,7 @@ describe('plugin-loki tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
-        let user = res.body
+        const user = res.body
         expect(res.statusCode).to.equal(200)
         expect(user).to.not.equal(undefined)
         expect(user.id).to.equal('jgilber')
@@ -257,20 +257,20 @@ describe('plugin-loki tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
-        let user = res.body
+        const user = res.body
         expect(res.statusCode).to.equal(200)
         expect(user).to.not.equal(undefined)
         expect(user.id).to.equal('jgilber')
-        expect(user.active).to.equal(false)                        // modified
-        expect(user.name.givenName).to.equal('Jeff-Modified')      // modified
-        expect(user.name.familyName).to.equal(undefined)           // cleared
+        expect(user.active).to.equal(false) // modified
+        expect(user.name.givenName).to.equal('Jeff-Modified') // modified
+        expect(user.name.familyName).to.equal(undefined) // cleared
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert')
         expect(user.title).to.equal('test title')
-        expect(user.emails).to.equal(undefined)                    // deleted
+        expect(user.emails).to.equal(undefined) // deleted
         expect(user.entitlements[0].type).to.equal('company')
         expect(user.entitlements[0].value).to.equal('Test Company')
         expect(user.phoneNumbers[0].type).to.equal('work')
-        expect(user.phoneNumbers[0].value).to.equal('tel:123')     // modiied
+        expect(user.phoneNumbers[0].value).to.equal('tel:123') // modiied
         done()
       })
   })
@@ -286,7 +286,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('createGroup test', (done) => {
-    let newGroup = {
+    const newGroup = {
       displayName: 'GoGoLoki',
       externalId: undefined,
       members: [{
@@ -310,7 +310,7 @@ describe('plugin-loki tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
-        let group = res.body
+        const group = res.body
         expect(res.statusCode).to.equal(200)
         expect(group).to.not.equal('undefined')
         expect(group.displayName).to.equal('GoGoLoki')
@@ -322,7 +322,7 @@ describe('plugin-loki tests', () => {
   it('modifyGroupMembers test', (done) => {
     server_8880.patch('/Groups/GoGoLoki')
       .set(options.headers)
-      .send({ 'members': [{ 'value': 'xman' }, { 'value': 'zperson' }], 'schemas': ['urn:scim:schemas:core:1.0'] })
+      .send({ members: [{ value: 'xman' }, { value: 'zperson' }], schemas: ['urn:scim:schemas:core:1.0'] })
       .end(function (err, res) {
         expect(err).to.equal(null)
         expect(res.statusCode).to.equal(200)
@@ -335,7 +335,7 @@ describe('plugin-loki tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
-        let group = res.body
+        const group = res.body
         expect(res.statusCode).to.equal(200)
         expect(group).to.not.equal('undefined')
         expect(group.displayName).to.equal('GoGoLoki')

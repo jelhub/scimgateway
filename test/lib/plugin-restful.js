@@ -5,11 +5,11 @@ const expect = require('chai').expect
 const scimgateway = require('../../lib/plugin-restful.js')
 const server_8886 = require('supertest').agent('http://localhost:8886') // module request is an alternative
 
-const auth = 'Basic ' + new Buffer.from('gwadmin:password').toString('base64')
+const auth = 'Basic ' + Buffer.from('gwadmin:password').toString('base64')
 var options = {
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': auth
+    Authorization: auth
   }
 }
 
@@ -20,7 +20,7 @@ describe('plugin-restful tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) {}
-        let users = res.body
+        const users = res.body
         expect(res.statusCode).to.equal(200)
         expect(users.totalResults).to.equal(2)
         expect(users.itemsPerPage).to.equal(2)
@@ -40,7 +40,7 @@ describe('plugin-restful tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) {}
-        let groups = res.body
+        const groups = res.body
         expect(res.statusCode).to.equal(200)
         expect(groups.totalResults).to.be.above(3)
         expect(groups.itemsPerPage).to.be.above(3)
@@ -67,7 +67,7 @@ describe('plugin-restful tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) {}
-        let user = res.body
+        const user = res.body
         expect(res.statusCode).to.equal(200)
         expect(user).to.not.equal(undefined)
         expect(user.id).to.equal('bjensen')
@@ -115,7 +115,7 @@ describe('plugin-restful tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) {}
-        let group = res.body
+        const group = res.body
         expect(res.statusCode).to.equal(200)
         expect(group).to.not.equal(undefined)
         expect(group.schemas).to.not.equal(undefined)
@@ -133,7 +133,8 @@ describe('plugin-restful tests', () => {
       '?filter=displayName eq "Admins"&attributes=externalId,id,members.value,displayName')
       .set(options.headers)
       .end(function (err, res) {
-        let groups = res.body
+        if (err) {}
+        const groups = res.body
         expect(res.statusCode).to.equal(200)
         expect(groups).to.not.equal(undefined)
         expect(groups.schemas).to.not.equal(undefined)
@@ -151,7 +152,7 @@ describe('plugin-restful tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) {}
-        let groupMembers = res.body
+        const groupMembers = res.body
         expect(res.statusCode).to.equal(200)
         expect(groupMembers).to.not.equal('undefined')
         expect(groupMembers.Resources[0].displayName).to.equal('Admins')
@@ -162,7 +163,7 @@ describe('plugin-restful tests', () => {
   })
 
   it('createUser test', (done) => {
-    let newUser = {
+    const newUser = {
       userName: 'jgilber',
       active: true,
       password: 'secretpassword',
@@ -173,8 +174,8 @@ describe('plugin-restful tests', () => {
       },
       title: 'test title',
       emails: [{
-        'value': 'jgilber@example.com',
-        'type': 'work'
+        value: 'jgilber@example.com',
+        type: 'work'
       }],
       phoneNumbers: [{
         value: 'tel:555-555-8376',
@@ -201,7 +202,8 @@ describe('plugin-restful tests', () => {
     server_8886.get('/Users/jgilber')
       .set(options.headers)
       .end(function (err, res) {
-        let user = res.body
+        if (err) {}
+        const user = res.body
         expect(res.statusCode).to.equal(200)
         expect(user).to.not.equal(undefined)
         expect(user.id).to.equal('jgilber')
@@ -253,19 +255,19 @@ describe('plugin-restful tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) {}
-        let user = res.body
+        const user = res.body
         expect(res.statusCode).to.equal(200)
         expect(user).to.not.equal(undefined)
         expect(user.id).to.equal('jgilber')
-        expect(user.active).to.equal(false)                        // modified
-        expect(user.name.givenName).to.equal('Jeff-Modified')      // modified
-        expect(user.name.familyName).to.equal('')                   // cleared
+        expect(user.active).to.equal(false) // modified
+        expect(user.name.givenName).to.equal('Jeff-Modified') // modified
+        expect(user.name.familyName).to.equal('') // cleared
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert')
         expect(user.title).to.equal('test title')
-        expect(user.emails).to.equal(null)                         // deleted
+        expect(user.emails).to.equal(null) // deleted
         expect(user.entitlements[0].value).to.equal('Test Company')
         expect(user.entitlements[0].type).to.equal('company')
-        expect(user.phoneNumbers[0].value).to.equal('tel:123')     // modiied
+        expect(user.phoneNumbers[0].value).to.equal('tel:123') // modiied
         expect(user.phoneNumbers[0].type).to.equal('work')
         done()
       })
@@ -282,7 +284,7 @@ describe('plugin-restful tests', () => {
   })
 
   it('createGroup test', (done) => {
-    let newGroup = {
+    const newGroup = {
       displayName: 'GoGoRest',
       externalId: undefined,
       members: [{
@@ -306,7 +308,7 @@ describe('plugin-restful tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) {}
-        let group = res.body
+        const group = res.body
         expect(res.statusCode).to.equal(200)
         expect(group).to.not.equal('undefined')
         expect(group.displayName).to.equal('GoGoRest')
@@ -318,7 +320,7 @@ describe('plugin-restful tests', () => {
   it('modifyGroupMembers test', (done) => {
     server_8886.patch('/Groups/GoGoRest')
       .set(options.headers)
-      .send({ 'members': [{ 'value': 'xman' }, { 'value': 'zperson' }], 'schemas': ['urn:scim:schemas:core:1.0'] })
+      .send({ members: [{ value: 'xman' }, { value: 'zperson' }], schemas: ['urn:scim:schemas:core:1.0'] })
       .end(function (err, res) {
         expect(err).to.equal(null)
         expect(res.statusCode).to.equal(200)
@@ -331,7 +333,7 @@ describe('plugin-restful tests', () => {
       .set(options.headers)
       .end(function (err, res) {
         if (err) {}
-        let group = res.body
+        const group = res.body
         expect(res.statusCode).to.equal(200)
         expect(group).to.not.equal('undefined')
         expect(group.displayName).to.equal('GoGoRest')
@@ -352,5 +354,4 @@ describe('plugin-restful tests', () => {
         done()
       })
   })
-
 })
