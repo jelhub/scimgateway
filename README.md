@@ -9,7 +9,7 @@ Author: Jarle Elshaug
 
 Validated through IdP's:  
 
-- CA Identity Manager
+- Broadcom/CA Identity Manager
 - Microsoft Azure Active Directory  
 - OneLogin  
 - Okta 
@@ -28,9 +28,9 @@ Latest news:
  
 With SCIM Gateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) 1.1 or 2.0 protocol. Gateway will translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  
 
-SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like CA Identity Manager.
+SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like Broadcom/CA Identity Manager.
 
-Using CA Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the SCIM Gateway would work like a "CA Connector Server" communicating with endpoints.
+Using Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the SCIM Gateway would work like a "CA Connector Server" communicating with endpoints.
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
 
@@ -54,7 +54,7 @@ Using plugin "Loki" as a REST endpoint
 
 * **Forwardinc** (SOAP Webservice)  
 Demonstrates user provisioning towards SOAP-Based endpoint   
-Using endpoint Forwardinc that comes with CA IM SDK (SDKWS) - [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com")    
+Using endpoint Forwardinc that comes with Broadcom/CA IM SDK (SDKWS) - [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com")    
 Shows how to implement a highly configurable multi tenant or multi endpoint solution using `baseEntity` parameter  
 
 * **MSSQL** (MSSQL Database)  
@@ -126,7 +126,10 @@ If internet connection is blocked, we could install on another machine and copy 
 
 	"Ctrl + c" to stop the SCIM Gateway
 
-For more functionality using browser (post/patch/delete) a REST extension/add-on is needed. 	
+For more functionality using browser (post/patch/delete) a REST extension/add-on is needed. 
+
+>Tip, take a look at mocha test scripts located in folder `node_modules\scimgateway\test\lib`  
+
 
 #### Upgrade SCIM Gateway  
 
@@ -180,9 +183,12 @@ Below shows an example of config\plugin-saphana.json
             "displayName": null
           }
         },
-        "loglevel": {
-          "file": "debug",
-          "console": "error"
+        "log": {
+          "loglevel": {
+            "file": "debug",
+            "console": "error"
+          },
+          "customMasking": []
         },
 	    "auth": {
 	      "basic": {
@@ -259,9 +265,11 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **scim.customUniqueAttrMapping.displayName** - attribute replacing displayName (Group object)
 
-- **loglevel.file** - error, info or debug. Output to logfile `logs\plugin-saphana.log`  
+- **log.loglevel.file** - error, info or debug. Output to logfile `logs\plugin-saphana.log`  
 
-- **loglevel.console** - error, info or debug. Output to stdout and errors to stderr.    
+- **log.loglevel.console** - error, info or debug. Output to stdout and errors to stderr.   
+
+- **log.customMasking** - array of attributes to be masked e.g. `"customMaskin": ["SSN", "weight"]`. By default SCIM Gateway includes masking of standard attributes like password.  
 
 - **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway. **Methods are disabled by setting corresponding attributes to null**  
 
@@ -291,7 +299,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
     `<FQDN>` is Fully Qualified Domain Name of the host having SCIM Gateway installed
   
-    Note, when using CA Provisioning, the "certificate authority - CA" also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  
+    Note, when using Broadcom/CA Provisioning, the "certificate authority - CA" also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  
 
     PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: 
 
@@ -557,7 +565,7 @@ To upgrade scimgateway docker image (remove the old stuff before running docker-
 
 ## CA Identity Manager as IdP using SCIM Gateway  
 
-Using the CA Provisioning Manager we have to configure  
+Using the Broadcom/CA Provisioning Manager we have to configure  
   
 `Endpoint type = SCIM (DYN Endpoint)`  
 
@@ -749,7 +757,7 @@ For additional details, see baseEntity description.
 
 Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install gateway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
-**For CA Provisioning, create endpoint type "Azure - ScimGateway"**  
+**For Broadcom/CA Provisioning, create endpoint type "Azure - ScimGateway"**  
 
 - Start SCIM Gateway
 	- "const azureAD" must be uncomment in `index.js`
@@ -770,7 +778,7 @@ Note, we should normally use certificate (https) for communicating with SCIM Gat
 
 Note, metafile "Azure - ScimGateway.xml" is based on CA "Azure - WSL7" with some minor adjustments like using Microsoft Graph API attributes instead of Azure AD Graph attributes.
 
-**Using the CA Provisioning Manager we have to configure**  
+**Using the Broadcom/CA Provisioning Manager we have to configure**  
   
 `Endpoint type = Azure - ScimGateway (DYN Endpoint)`  
 
@@ -1171,8 +1179,32 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v2.1.10  
+[Added] 
+
+- Log masking of custom defined attributes.  
+  customMasking may include an array of attributes to be masked  
+  e.g. `"customMaskin": ["SSN", "weight"]`
+- Note, configurationfiles must be changed (old syntax still supported)  
+  old syntax:  
+
+        "loglevel": {
+          "file": "debug",
+          "console": "error"
+        },
+  new syntax:  
+
+        "log": {
+          "loglevel": {
+            "file": "debug",
+            "console": "error"
+          },
+          "customMasking": []
+        },
+  By default SCIM Gateway includes masking of standard attributes like password
+
 ### v2.1.9  
-[Fix] 
+[Fixed] 
 
 - AAD as IdP broken after content-type validation introduced in v2.1.7
 - AAD as IdP, none gallery app support
@@ -1182,12 +1214,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 **Thanks to Luca Moretto**  
 
 ### v2.1.8  
-[Fix] 
+[Fixed] 
 
 - plugin-mssql not correctly ported to v2.x, and some config syntax for this plugin have also changed in newer releases of dependencies.
 
 ### v2.1.7  
-[Fix] 
+[Fixed] 
 
 - Validates content-type when body is included
 - Case insensitive log-masking
@@ -1195,45 +1227,45 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 - Misc cosmetics e.g. using const instead of let when not reassigned
 
 ### v2.1.6  
-[Fix] 
+[Fixed] 
 
 - plugin-azure-ad did not return correct error code (`err.name = 'DuplicateKeyError'`) when failing on creating a duplicate user
 
-[ENHANCEMENT]  
+[Added]  
 
 - Includes latest versions of module dependencies
 
 ### v2.1.4  
-[Fix] 
+[Fixed] 
 
 - Incorrect SCIM 2.0 error handling after v2.1.0
 - For duplicate key error, setting `err.name = 'DuplicateKeyError'` now gives correct status code 409 instead of defult 500 (see plugin-loki.js)  
 
 ### v2.1.3  
-[Fix] 
+[Fixed] 
 
 - Standardized the API Gateway response (not SCIM related)
 - Not allowing plugins to return password
 - Colorize option now automatically turned off when using stdout/stderr redirect (configuration file `loglevel.colorize` is not needed)
 
 ### v2.1.2  
-[Fix]  
+[Fixed]  
 
 - SCIM 2.0 may use Operations.value as array and none array (issue #16) 
 
-[ENHANCEMENT]  
+[Added]  
 
 - Option for replacing mandatory userName/displayName attribute by configuring customUniqueAttrMapping  
 - Includes latest versions of module dependencies
 
 ### v2.1.1  
-[Fix]  
+[Fixed]  
 
 - SCIM 2.0 may use Operations.value or Operation.value[] for PATCH syntax of the name object (issue #14)
 - plugin-loki failed to modify a none existing object, e.g name object not included in Create User 
 
 ### v2.1.0  
-[ENHANCEMENT] 
+[Added] 
 
 - Custom schema attributes can be added by plugin configuration `scim.customSchema` having value set to filename of a JSON schema-file located in `<package-root>/config/schemas`
 
@@ -1253,7 +1285,7 @@ Note, "1.1" is default, if using "2.0" the new syntax must be used.
 
 
 ### v2.0.2  
-[Fix]  
+[Fixed]  
 
 - SCIM 2.0 incorrect response for user not found
 - Did not mask logentries ending with newline
@@ -1285,7 +1317,7 @@ Custom plugins needs some changes (please see included example plugins)
 
 
 ### v1.0.20  
-[Fix]  
+[Fixed]  
 
 - HTTP status code 200 and totalResults set to value of 0 when using SCIM 2.0 filter user/group and no resulted user/group found. SCIM 1.1 still using  status code 404.
 
@@ -1295,12 +1327,12 @@ Custom plugins needs some changes (please see included example plugins)
 
 
 ### v1.0.19  
-[Fix]  
+[Fixed]  
 
 - Fix related to external configuration (ref. v1.0.18) when running multiple plugins  
 
 ### v1.0.18  
-[ENHANCEMENT]  
+[Added]  
 
 - Includes latest versions of module dependencies
 - Loglevel configuration for file and console now separated
@@ -1323,12 +1355,12 @@ Custom plugins needs some changes (please see included example plugins)
         }
 
 ### v1.0.14  
-[Fix]  
+[Fixed]  
 
 - Some multiValued attributes not correctly handled (e.g. addresses)  
    
 ### v1.0.13  
-[Fix]  
+[Fixed]  
 
 - plugin-azure-ad: New version of "Azure - ScimGateway.xml" fixing CA IM RoleDefGenerator problem (related to creating and importing screens in CA IM)  
 
@@ -1337,28 +1369,28 @@ Custom plugins needs some changes (please see included example plugins)
 - Use CA ConnectorXpress, import "Azure - ScimGateway.xml" and deploy/redeploy endpoint
 
 ### v1.0.12  
-[Fix]  
+[Fixed]  
 
 - Incorrect logging of Express stream messages (type info) when running multiple plugins    
 
 ### v1.0.11  
-[Fix]  
+[Fixed]  
 
 - plugin-azure-ad: proxy configuration did not work    
 
 
 ### v1.0.10  
-[Fix]  
+[Fixed]  
 
 - An issue with pagination fixed  
 
 ### v1.0.9  
-[ENHANCEMENT]  
+[Added]  
 
 - Cosmetics, changed emailOnError logic - now emitted by logger
 
 ### v1.0.8  
-[ENHANCEMENT]  
+[Added]  
 
 - Support health monitoring using the "/ping" URL with a "hello" response, e.g. http://localhost:8880/ping. Useful for frontend load balancing/failover functionality  
 - Option for error notifications by email  
@@ -1369,54 +1401,54 @@ Custom plugins needs some changes (please see included example plugins)
   
  
 ### v1.0.7  
-[ENHANCEMENT]  
+[Added]  
 
 - Docker now using node v.9.10.0 instead of v.6.9.2
 - Minor log cosmetics
 
 ### v1.0.6  
-[Fix]  
+[Fixed]  
 
 - Azure AD plugin, failed to create user when licenses (app Service plans) was included  
 
 ### v1.0.5  
-[ENHANCEMENT]  
+[Added]  
 
 - Supporting GET /Users, GET /Groups, PUT method and delete groups  
 - After more than 3 invalid auth attempts, response will be delayed to prevent brute force
 
-[Fix]  
+[Fixed]  
 
 - Some minor compliance fixes  
 
 **Thanks to ywchuang** 
 
 ### v1.0.4  
-[ENHANCEMENT]  
+[Added]  
 
 - Plugin for Azure AD now supports paging for retrieving users and groups. Any existing metafile used by CA ConnectorXpress ("Azure - ScimGateway.xml") must be re-deployed.
 
-[Fix]  
+[Fixed]  
 
 - Don't use deprecated existsSync in postinstallation 
 
 ### v1.0.3  
-[Fix]  
+[Fixed]  
 
 - Undefined root url not handled correctly after v1.0.0
 
 ### v1.0.2  
-[Fix]  
+[Fixed]  
 
 - License and group defined as capability attributes in metafile used by CA ConnectorXpress regarding plugin-azure-ad     
 
 ### v1.0.1  
-[FIX]  
+[Fixed]  
 
 - Mocha test script did not terminate after upgrading from 3.x to 4.x of Mocha  
 
 ### v1.0.0  
-[ENHANCEMENT]  
+[Added]  
 
 - New plugin-azure-ad.js for Azure AD user provisioning including Azure license management e.g. Office 365
 - Includes latest versions of module dependencies
@@ -1450,7 +1482,7 @@ With:
 	callback(null, arrRet)
 
 ### v0.5.3  
-[ENHANCEMENT]  
+[Added]  
 
 - Includes api gateway/plugin for general none provisioning  
   - GET /api
@@ -1464,7 +1496,7 @@ With:
 
 
 ### v0.5.2  
-[ENHANCEMENT]  
+[Added]  
 
 - One or more of following authentication/authorization methods are accepted:  
   - Basic Authentication
@@ -1485,7 +1517,7 @@ With:
 
 
 ### v0.4.6  
-[ENHANCEMENT]  
+[Added]  
 
 - Document updated on how to run SCIM Gateway as a Docker container  
 - `config\docker` includes docker configuration examples  
@@ -1493,7 +1525,7 @@ With:
 
 
 ### v0.4.5  
-[ENHANCEMENT]  
+[Added]  
 
 - Environment variable `SEED` overrides default password seeding  
 - Setting SCIM Gateway port to `"process.env.XXX"` lets environment variable XXX define the port  
@@ -1506,7 +1538,7 @@ With:
 	- Start SCIM Gateway and passwords will become encrypted  
 
 ### v0.4.4  
-[ENHANCEMENT]  
+[Added]  
 
 - NoSQL Document-Oriented Database plugin: `plugin-loki`  
 This plugin now replace previous `plugin-testmode`  
@@ -1520,12 +1552,12 @@ This plugin now replace previous `plugin-testmode`
 - Edit index.js, replace tesmode with loki   
 
 ### v0.4.2
-[Fix]  
+[Fixed]  
 
 - plugin-restful minor adjustments to multivalue and cleared attributes logic introduced in v0.4.0  
 
 ### v0.4.1
-[ENHANCEMENT]  
+[Added]  
 
 - Mocha test scripts for automated testing of plugin-testmode  
 - Automated tests run on Travis-ci.org (click on build badge) 
@@ -1533,12 +1565,12 @@ This plugin now replace previous `plugin-testmode`
 
 
   
-[Fix]  
+[Fixed]  
 
 - Minor adjustments to multi-value logic introduced in v0.4.0
 
 ### v0.4.0  
-[ENHANCEMENT]  
+[Added]  
 
 - Not using the SCIM standard for handling multivalue attributes and cleared attributes. Changed from array to object based on type. This simplifies plugin-coding for multivalue attributes like emails, phoneNumbers, entitlements, ...
 - Module dependencies updated to latest versions  
@@ -1548,17 +1580,17 @@ This plugin now replace previous `plugin-testmode`
 - Custom plugins using multivalue attributes needs to be updated regarding methods createUser and modifyUser. Please see example plugins for details.
 
 ### v0.3.8  
-[Fix]  
+[Fixed]  
 
 - Minor changes related to SCIM specification
 
 ### v0.3.7  
-[ENHANCEMENT]  
+[Added]  
 
 - PFX / PKCS#12 certificate bundle is supported
 
 ### v0.3.6  
-[ENHANCEMENT]  
+[Added]  
 
 - SCIM Gateway used by Microsoft Azure Active Directory is supported
 - SCIM version 2.0 is supported
@@ -1571,23 +1603,23 @@ This plugin now replace previous `plugin-testmode`
 
 
 ### v0.3.5  
-[Fix]  
+[Fixed]  
 
 - plugin-mssql not included in postinstall  
 
 ### v0.3.4  
-[ENHANCEMENT]  
+[Added]  
 
 - MSSQL example plugin: `plugin-mssql` 
 - Changed multivalue logic in example plugins, now using `scimgateway.getArrayObject`  
 
-[Fix]  
+[Fixed]  
 
 - Minor changes related to SCIM specification
 
 
 ### v0.3.3  
-[Fix]  
+[Fixed]  
 
 - Logic for handling incorrect pagination request to avoid endless loop conditions (there is a pagination bug in CA Identity Manager v.14)  
 - Pagination now supported on getGroupMembers  
@@ -1597,17 +1629,17 @@ This plugin now replace previous `plugin-testmode`
 - Custom plugins needs to be updated regarding listener method `scimgateway.on('getGroupMembers',...` New arguments have been added "startIndex" and "count". Also a new return variable "ret". Please see example plugins for details.
 
 ### v0.3.2  
-[Fix]  
+[Fixed]  
 
 - Minor changes related to SCIM specification
 
 ### v0.3.1  
-[ENHANCEMENT]  
+[Added]  
 
 - REST Webservices example plugin: `plugin-restful` 
 
 ### v0.3.0  
-[ENHANCEMENT]  
+[Added]  
 
 - Preferred installation method changed from "global" to "local"
 - `<Base URL>/[baseEntity]` for multi tenant or multi endpoint flexibility  
@@ -1626,7 +1658,7 @@ This plugin now replace previous `plugin-testmode`
 - Minor readme changes and version bumps
 
 ### v0.2.1
-[Fix]
+[Fixed]
 
 - plugin-forwardinc explore of empty endpoint
 
