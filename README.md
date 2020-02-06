@@ -269,7 +269,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **log.loglevel.console** - error, info or debug. Output to stdout and errors to stderr.   
 
-- **log.customMasking** - array of attributes to be masked e.g. `"customMaskin": ["SSN", "weight"]`. By default SCIM Gateway includes masking of standard attributes like password.  
+- **log.customMasking** - array of attributes to be masked e.g. `"customMasking": ["SSN", "weight"]`. By default SCIM Gateway includes masking of standard attributes like password.  
 
 - **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway. **Methods are disabled by setting corresponding attributes to null**  
 
@@ -1179,12 +1179,18 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v2.1.11  
+[Fixed] 
+
+- Log masking of xml (SOAP) messages.  
+
+
 ### v2.1.10  
 [Added] 
 
 - Log masking of custom defined attributes.  
   customMasking may include an array of attributes to be masked  
-  e.g. `"customMaskin": ["SSN", "weight"]`
+  e.g. `"customMasking": ["SSN", "weight"]`
 - Note, configurationfiles must be changed (old syntax still supported)  
   old syntax:  
 

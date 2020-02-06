@@ -556,7 +556,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>log.customMasking</strong> - array of attributes to be masked e.g. <code>&quot;customMaskin&quot;: [&quot;SSN&quot;, &quot;weight&quot;]</code>. By default SCIM Gateway includes masking of standard attributes like password.  
+<p><strong>log.customMasking</strong> - array of attributes to be masked e.g. <code>&quot;customMasking&quot;: [&quot;SSN&quot;, &quot;weight&quot;]</code>. By default SCIM Gateway includes masking of standard attributes like password.  
 </p>
 </li>
 <li>
@@ -1533,12 +1533,17 @@ If we do not support groups, then return null  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v2.1.11</h3>
+<p>[Fixed] </p>
+<ul>
+<li>Log masking of xml (SOAP) messages.  </li>
+</ul>
 <h3>v2.1.10</h3>
 <p>[Added] </p>
 <ul>
 <li>Log masking of custom defined attributes.<br />
   customMasking may include an array of attributes to be masked<br />
-  e.g. <code>&quot;customMaskin&quot;: [&quot;SSN&quot;, &quot;weight&quot;]</code></li>
+  e.g. <code>&quot;customMasking&quot;: [&quot;SSN&quot;, &quot;weight&quot;]</code></li>
 <li>
 <p>Note, configurationfiles must be changed (old syntax still supported)<br />
   old syntax:  
