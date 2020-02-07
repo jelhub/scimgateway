@@ -1179,6 +1179,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v2.1.12  
+[Fixed] 
+
+- Plugin configuration referring to an external configuration file having array did not work.  
+
 ### v2.1.11  
 [Fixed] 
 
