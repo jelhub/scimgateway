@@ -27,9 +27,9 @@ describe('plugin-restful tests', () => {
         expect(users.startIndex).to.equal(1)
         expect(users).to.not.equal('undefined')
         expect(users.Resources[0].userName).to.equal('bjensen')
-        expect(users.Resources[0].id).to.equal('bjensen')
+        expect(users.Resources[0].id).to.equal(undefined)
         expect(users.Resources[1].userName).to.equal('jsmith')
-        expect(users.Resources[1].id).to.equal('jsmith')
+        expect(users.Resources[1].id).to.equal(undefined)
         done()
       })
   })
@@ -75,7 +75,7 @@ describe('plugin-restful tests', () => {
         expect(user.name.givenName).to.equal('Barbara')
         expect(user.name.familyName).to.equal('Jensen')
         expect(user.name.formatted).to.equal('Ms. Barbara J Jensen, III')
-        expect(user.entitlements).to.equal(null)
+        expect(user.entitlements).to.equal(undefined)
         expect(user.phoneNumbers[0].type).to.equal('work')
         expect(user.phoneNumbers[0].value).to.equal('555-555-5555')
         expect(user.emails[0].type).to.equal('work')
@@ -106,6 +106,26 @@ describe('plugin-restful tests', () => {
         expect(user.phoneNumbers[0].value).to.equal('555-555-5555')
         expect(user.emails[0].type).to.equal('work')
         expect(user.emails[0].value).to.equal('bjensen@example.com')
+        done()
+      })
+  })
+
+  it('getUser test (3)', function (done) {
+    server_8886.get('/Users' +
+      '?filter=emails.value eq "bjensen@example.com"&attributes=emails,id,name.givenName')
+      .set(options.headers)
+      .end(function (err, res) {
+        if (err) { }
+        let user = res.body
+        user = user.Resources[0]
+        expect(res.statusCode).to.equal(200)
+        expect(user).to.not.equal(undefined)
+        expect(user.emails[0].value).to.equal('bjensen@example.com')
+        expect(user.id).to.equal('bjensen')
+        expect(user.name.givenName).to.equal('Barbara')
+        expect(user.active).to.equal(undefined)
+        expect(user.entitlements).to.equal(undefined)
+        expect(user.phoneNumbers).to.equal(undefined)
         done()
       })
   })
@@ -264,7 +284,7 @@ describe('plugin-restful tests', () => {
         expect(user.name.familyName).to.equal('') // cleared
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert')
         expect(user.title).to.equal('test title')
-        expect(user.emails).to.equal(null) // deleted
+        expect(user.emails).to.equal(undefined) // deleted
         expect(user.entitlements[0].value).to.equal('Test Company')
         expect(user.entitlements[0].type).to.equal('company')
         expect(user.phoneNumbers[0].value).to.equal('tel:123') // modiied
@@ -355,3 +375,5 @@ describe('plugin-restful tests', () => {
       })
   })
 })
+
+

@@ -27,9 +27,9 @@ describe('plugin-loki tests', () => {
         expect(users.startIndex).to.equal(1)
         expect(users).to.not.equal('undefined')
         expect(users.Resources[0].userName).to.equal('bjensen')
-        expect(users.Resources[0].id).to.equal('bjensen')
+        expect(users.Resources[0].id).to.equal(undefined)
         expect(users.Resources[1].userName).to.equal('jsmith')
-        expect(users.Resources[1].id).to.equal('jsmith')
+        expect(users.Resources[1].id).to.equal(undefined)
         done()
       })
   })
@@ -89,7 +89,7 @@ describe('plugin-loki tests', () => {
 
   it('getUser test (2)', function (done) {
     server_8880.get('/Users' +
-      '?filter=userName eq "bjensen"&attributes=attributes=ims,locale,name.givenName,externalId,preferredLanguage,userType,id,title,timezone,name.middleName,name.familyName,nickName,name.formatted,meta.location,userName,name.honorificSuffix,meta.version,meta.lastModified,meta.created,name.honorificPrefix,emails,phoneNumbers,photos,x509Certificates.value,profileUrl,roles,active,addresses,displayName,entitlements')
+      '?filter=userName eq "bjensen"&attributes=ims,locale,name.givenName,externalId,preferredLanguage,userType,id,title,timezone,name.middleName,name.familyName,nickName,name.formatted,meta.location,userName,name.honorificSuffix,meta.version,meta.lastModified,meta.created,name.honorificPrefix,emails,phoneNumbers,photos,x509Certificates.value,profileUrl,roles,active,addresses,displayName,entitlements')
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
@@ -108,6 +108,26 @@ describe('plugin-loki tests', () => {
         expect(user.phoneNumbers[0].value).to.equal('555-555-5555')
         expect(user.emails[0].type).to.equal('work')
         expect(user.emails[0].value).to.equal('bjensen@example.com')
+        done()
+      })
+  })
+
+  it('getUser test (3)', function (done) {
+    server_8880.get('/Users' +
+      '?filter=emails.value eq "bjensen@example.com"&attributes=emails,id,name.givenName')
+      .set(options.headers)
+      .end(function (err, res) {
+        if (err) { }
+        let user = res.body
+        user = user.Resources[0]
+        expect(res.statusCode).to.equal(200)
+        expect(user).to.not.equal(undefined)
+        expect(user.emails[0].value).to.equal('bjensen@example.com')
+        expect(user.id).to.equal('bjensen')
+        expect(user.name.givenName).to.equal('Barbara')
+        expect(user.active).to.equal(undefined)
+        expect(user.entitlements).to.equal(undefined)
+        expect(user.phoneNumbers).to.equal(undefined)
         done()
       })
   })

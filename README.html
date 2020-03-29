@@ -293,7 +293,7 @@ img {
 <p>Author: Jarle Elshaug  </p>
 <p>Validated through IdP's:  </p>
 <ul>
-<li>Broadcom/CA Identity Manager</li>
+<li>Symantec/Broadcom/CA Identity Manager</li>
 <li>Microsoft Azure Active Directory  </li>
 <li>OneLogin  </li>
 <li>Okta </li>
@@ -301,6 +301,7 @@ img {
 </ul>
 <p>Latest news:  </p>
 <ul>
+<li>getUser/getGroup having more flexibility. Auth methods allowing more than one user including option for readOnly</li>
 <li>Codebase moved from callback of h... to the the promise(d) land of async/await</li>
 <li>Supports configuration by environments and external files</li>
 <li>Health monitoring through &quot;/ping&quot; URL, and option for error notifications by email</li>
@@ -310,7 +311,7 @@ img {
 </ul>
 <h2>Overview</h2>
 <p>With SCIM Gateway we could do user management by using REST based <a href="http://www.simplecloud.info/">SCIM</a> 1.1 or 2.0 protocol. Gateway will translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  </p>
-<p>SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like Broadcom/CA Identity Manager.</p>
+<p>SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like Symatec/Broadcom/CA Identity Manager.</p>
 <p>Using Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the SCIM Gateway would work like a &quot;CA Connector Server&quot; communicating with endpoints.</p>
 <p><img src="https://jelhub.github.io/images/ScimGateway.svg" /></p>
 <p>Instead of using IM-SDK for building our own integration for none supported endpoints, we can now build new integration based on SCIM Gateway plugins. SCIM Gateway works with IM as long as IM supports SCIM.</p>
@@ -386,7 +387,7 @@ npm install scimgateway --save
 <h4>Startup and verify default Loki plugin</h4>
 <pre><code>node c:\my-scimgateway
 
-Start a browser (note, IE does not support JSON content)
+Start a browser
 
 http://localhost:8880/ping
 =&gt; Health check with a &quot;hello&quot; response
@@ -402,12 +403,16 @@ http://localhost:8880/Users/bjensen
 http://localhost:8880/Groups/Admins
 =&gt; Lists all attributes for specified user/group
 
+http://localhost:8880/Users?filter=userName eq &quot;bjensen&quot;&amp;attributes=userName,id,name.givenName
+http://localhost:8880/Users?filter=emails.value eq &quot;bjensen@example.com&quot;&amp;attributes=userName,phoneNumbers
+=&gt; Filtering supporting operator 'eq' returning unique object with attributes specified
+
 &quot;Ctrl + c&quot; to stop the SCIM Gateway
 </code></pre>
 
 <p>For more functionality using browser (post/patch/delete) a REST extension/add-on is needed. </p>
 <blockquote>
-<p>Tip, take a look at mocha test scripts located in folder <code>node_modules\scimgateway\test\lib</code>  
+<p>Tip, take a look at mocha test scripts located in <code>node_modules\scimgateway\test\lib</code>  
 </p>
 </blockquote>
 <h4>Upgrade SCIM Gateway</h4>
@@ -463,25 +468,34 @@ Below shows an example of config\plugin-saphana.json  </p>
       &quot;customMasking&quot;: []
     },
     &quot;auth&quot;: {
-      &quot;basic&quot;: {
-        &quot;username&quot;: &quot;gwadmin&quot;,
-        &quot;password&quot;: &quot;password&quot;
-      },
-      &quot;bearer&quot;: {
-        &quot;token&quot;: null,
-        &quot;jwt&quot;: {
-          &quot;azure&quot;: {
-            &quot;tenantIdGUID&quot;: null
-          },
-          &quot;standard&quot;: {
-            &quot;secret&quot;: null,
-            &quot;publicKey&quot;: null,
-            &quot;options&quot;: {
-              &quot;issuer&quot;: null
-            }
-          }
+      &quot;basic&quot;: [
+        {
+          &quot;username&quot;: &quot;gwadmin&quot;,
+          &quot;password&quot;: &quot;password&quot;,
+          &quot;readOnly&quot;: false
         }
-      }
+      ],
+      &quot;bearerToken&quot;: [
+        {
+          &quot;token&quot;: null,
+          &quot;readOnly&quot;: false
+        }
+      ],
+      &quot;bearerJwtAzure&quot;: [
+        {
+          &quot;tenantIdGUID&quot;: null
+        }
+      ],
+      &quot;bearerJwt&quot;: [
+        {
+          &quot;secret&quot;: null,
+          &quot;publicKey&quot;: null,
+          &quot;options&quot;: {
+            &quot;issuer&quot;: null
+           },
+          &quot;readOnly&quot;: false
+        }
+      ]
     },
     &quot;certificate&quot;: {
       &quot;key&quot;: null,
@@ -538,21 +552,11 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>scim.customUniqueAttrMapping</strong> - Option for replacing mandatory userName/displayName if IdP use other attributes  
+<p><strong>log.loglevel.file</strong> - off, error, info, or debug. Output to plugin-logfile <code>logs\plugin-saphana.log</code>  
 </p>
 </li>
 <li>
-<p><strong>scim.customUniqueAttrMapping.userName</strong> - attribute replacing userName (User object)</p>
-</li>
-<li>
-<p><strong>scim.customUniqueAttrMapping.displayName</strong> - attribute replacing displayName (Group object)</p>
-</li>
-<li>
-<p><strong>log.loglevel.file</strong> - error, info or debug. Output to logfile <code>logs\plugin-saphana.log</code>  
-</p>
-</li>
-<li>
-<p><strong>log.loglevel.console</strong> - error, info or debug. Output to stdout and errors to stderr.   
+<p><strong>log.loglevel.console</strong> - off, error, info, or debug. Output to stdout and errors to stderr.   
 </p>
 </li>
 <li>
@@ -560,31 +564,22 @@ Below shows an example of config\plugin-saphana.json  </p>
 </p>
 </li>
 <li>
-<p><strong>auth</strong> - Contains one or more authentication/authorization methods used by clients for accessing gateway. <strong>Methods are disabled by setting corresponding attributes to null</strong>  
+<p><strong>auth</strong> - Contains one or more authentication/authorization methods used by clients for accessing gateway. <strong>Methods are disabled by setting corresponding attributes to null or remove methods not used</strong>. Methods having user/object set to <code>&quot;readOnly&quot;: true</code> gives read only access (only allowing <code>GET</code> requests for corresponding Admin user). </p>
+</li>
+<li>
+<p><strong>auth.basic</strong> - Array of one ore more basic authentication objects - Basic Authentication with <strong>username<strong>/</strong>password</strong>. Note, we set a clear text password that will become encrypted when gateway is started.  
 </p>
 </li>
 <li>
-<p><strong>auth.basic</strong> - Basic Authentication with <strong>username<strong>/</strong>password</strong>. Note, we set a clear text password and when gateway is started password will become encrypted and updated in the configuration file.  
+<p><strong>auth.bearerToken</strong> - Array of one or more bearer token objects - Shared token/secret (supported by Azure). Clear text value will become encrypted when gateway is started.  
 </p>
 </li>
 <li>
-<p><strong>auth.bearer</strong> - Contains misc bearer token methods for authorization of client requests.  
+<p><strong>auth.bearerJwtAzure</strong> - Array of one or more JWT used by Azure SyncFabric. <strong>tenantIdGUID</strong> must be set to Azure Active Directory Tenant ID.  
 </p>
 </li>
 <li>
-<p><strong>auth.bearer.token</strong> - Shared token/secret (supported by Azure). Clear text value will become encrypted when gateway is started.  
-</p>
-</li>
-<li>
-<p><strong>auth.bearer.jwt</strong> - Contains misc JSON Web Token (JWT) methods for authorization.  
-</p>
-</li>
-<li>
-<p><strong>auth.bearer.jwt.azure</strong> - JWT used by Azure SyncFabric. <strong>tenantIdGUID</strong> must be set to Azure Active Directory Tenant ID.  
-</p>
-</li>
-<li>
-<p><strong>auth.bearer.jwt.standard</strong> - Standard JWT. Using <strong>secret</strong> or <strong>publicKey</strong> for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in <code>&lt;package-root&gt;\config\certs</code>. Clear text secret will become encrypted when gateway is started. <strong>options.issuer</strong> is mandatory. Other options may also be included according to jsonwebtoken npm package definition.   
+<p><strong>auth.bearerJwt</strong> - Array of one or more standard JWT objects. Using <strong>secret</strong> or <strong>publicKey</strong> for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in <code>&lt;package-root&gt;\config\certs</code>. Clear text secret will become encrypted when gateway is started. <strong>options.issuer</strong> is mandatory. Other options may also be included according to jsonwebtoken npm package definition.   
 </p>
 </li>
 <li>
@@ -640,7 +635,7 @@ Below shows an example of config\plugin-saphana.json  </p>
 <li>Setting environment variable <code>SEED</code> will override default password seeding logic.  </li>
 <li>All configuration can be set based on environment variables. Syntax will then be <code>&quot;process.env.&lt;ENVIRONMENT&gt;&quot;</code> where <code>&lt;ENVIRONMENT&gt;</code> is the environment variable used. E.g. scimgateway.port could have value &quot;process.env.PORT&quot;, then using environment variable PORT.</li>
 <li>
-<p>All configuration can be set based on corresponding JSON-content in external file using plugin name as parent JSON object (supports also dot notation). Syntax will then be <code>&quot;process.file.&lt;path&gt;&quot;</code> where <code>&lt;path&gt;</code> is the file used. E.g. endpoint.password could have value &quot;process.file./var/run/vault/secrets.json&quot;  
+<p>All configuration can be set based on corresponding JSON-content (dot notation) in external file using plugin name as parent JSON object. Syntax will then be <code>&quot;process.file.&lt;path&gt;&quot;</code> where <code>&lt;path&gt;</code> is the file used. E.g. endpoint.password could have value &quot;process.file./var/run/vault/secrets.json&quot;  
 </p>
 <p>Example:  
 </p>
@@ -652,46 +647,30 @@ Below shows an example of config\plugin-saphana.json  </p>
     &quot;loglevel&quot;: {
       &quot;file&quot;: &quot;process.env.LOG_LEVEL_FILE&quot;,
       ...
-      &quot;auth&quot;: {
-        &quot;basic&quot;: {
+    &quot;auth&quot;: {
+      &quot;basic&quot;: [
+        {
           &quot;username&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
-          &quot;password&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
-          ...
-    },
-    &quot;endpoint&quot;: {
+          &quot;password&quot;: &quot;process.file./var/run/vault/secrets.json&quot;
+        },
+        ...
+      ],
       ...
-      &quot;username&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
-      &quot;password&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
-      ...
-    }
-}  
-</code></pre>
-
-<p>secrets.json for plugin-forwardinc - example #1:  
-</p>
-<pre><code>{
-  &quot;plugin-forwardinc&quot;: {
-    &quot;scimgateway&quot;: {
-      &quot;auth&quot;: {
-        &quot;basic&quot;: {
-          &quot;username&quot;: &quot;gwadmin&quot;,
-          &quot;password&quot;: &quot;password&quot;
-        } 
-      }
     },
-    &quot;endpoint&quot;: {
-      &quot;username&quot;: &quot;superuser&quot;,
-      &quot;password&quot;: &quot;secret&quot;
-    }
+  &quot;endpoint&quot;: {
+    ...
+    &quot;username&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
+    &quot;password&quot;: &quot;process.file./var/run/vault/secrets.json&quot;,
+    ...
   }
 }  
 </code></pre>
 
-<p>secrets.json for plugin-forwardinc - example #2 (dot notation):  
+<p>secrets.json for plugin-forwardinc - example (dot notation):  
 </p>
 <pre><code>{
-  &quot;plugin-forwardinc.scimgateway.auth.basic.username&quot;: &quot;gwadmin&quot;,
-  &quot;plugin-forwardinc.scimgateway.auth.basic.password&quot;: &quot;password&quot;,
+  &quot;plugin-forwardinc.scimgateway.auth.basic[0].username&quot;: &quot;gwadmin&quot;,
+  &quot;plugin-forwardinc.scimgateway.auth.basic[0].password&quot;: &quot;password&quot;,
   &quot;plugin-forwardinc.endpoint.username&quot;: &quot;superuser&quot;,
   &quot;plugin-forwardinc.endpoint.password&quot;: &quot;secret&quot;
 }  
@@ -1190,30 +1169,14 @@ SCIM Based URL = http://localhost:8881/&lt;baseEntity&gt;
 Note, when &quot;Secret Token&quot; is left blank, Azure will use JWT (tenantIdGUID)</p>
 <p><code>Azure-Azure Active Directory-Properties-Directory ID</code></p>
 <p>User mappings attributes between AD and SCIM also needs to be configured  </p>
-<p><code>Azure-Azure Active Directory-Enterprise Application-&lt;My Application&gt;-Provisioning-Mappings</code></p>
-<p>Azure AD default SCIM attribute mapping for <strong>USER</strong> have:  </p>
-<pre><code>externalId mapped to mailNickname (matching precedence #1)  
-userName mapped to userPrincipalName  
+<p><code>Azure-Azure Active Directory-Enterprise Application-&lt;My Application&gt;-Provisioning-Attribute Mapping</code></p>
+<p>Azure AD default SCIM attribute mapping for <strong>USER</strong> must have:  </p>
+<pre><code>userPrincipalName mapped to userName (matching precedence #1)  
 </code></pre>
 
-<p>SCIM Gateway accepts externalId (as matching precedence) instead of  userName, but <code>userName and externalId must be mapped to the same AD attribute</code> e.g:</p>
-<pre><code>externalId mapped to mailNickname (matching precedence #1)  
-userName mapped to mailNickname  
-
-or:  
-
-externalId mapped to userPrincipalName (matching precedence #1)  
-userName mapped to userPrincipalName  
-</code></pre>
-
-<p>Azure AD default SCIM attribute mapping for <strong>GROUP</strong> have:  </p>
-<pre><code>externalId mapped to displayName (matching precedence #1)  
-displayName mapped to mailNickname  
-</code></pre>
-
-<p>SCIM Gateway accepts externalId (as matching precedence) instead of displayName, but <code>displayName and externalId must then be mapped to the same AD attribute</code> e.g:  </p>
-<pre><code>externalId mapped to displayName (matching precedence #1)
-displayName mapped to displayName
+<p>Azure AD default SCIM attribute mapping for <strong>GROUP</strong> must have:  </p>
+<pre><code>displayName mapped to displayName (matching precedence #1)  
+members mapped to members  
 </code></pre>
 
 <p>Some notes related to Azure AD:  </p>
@@ -1344,7 +1307,7 @@ config = scimgateway.processExtConfig(pluginName, config)
 <li>startIndex = Pagination - The 1-based index of the first result in the current set of search results  </li>
 <li>count = Pagination - Number of elements to be returned in the current set of search results  </li>
 <li>ret: <br />
-ret.Resources = array filled with objects containing userName and id (userName and id set to the same value) e.g [{&quot;userName&quot;:&quot;bjensen&quot;,&quot;id&quot;:&quot;bjensen&quot;}, &quot;userName&quot;:&quot;jsmith&quot;,&quot;id&quot;:&quot;jsmith&quot;}]<br />
+ret.Resources = array filled with user objects containing user attributes where userName is mandatory e.g [{&quot;userName&quot;:&quot;bjensen&quot;}, {&quot;userName&quot;:&quot;jsmith&quot;}]<br />
 ret.totalResults = if supporting pagination, then attribute should be set to the total numbers of elements (users) at the endpoint, else set to null</li>
 </ul>
 <h3>exploreGroups</h3>
@@ -1360,26 +1323,26 @@ ret.totalResults = if supporting pagination, then attribute should be set to the
 
 <ul>
 <li>ret:<br />
-ret.Resources = array filled with objects containing group displayName and id (displayName and id set to the same value) e.g [{&quot;displayName&quot;:&quot;Admins&quot;,&quot;id&quot;:&quot;Admins&quot;}, &quot;displayName&quot;:&quot;Employees&quot;,&quot;id&quot;:&quot;Employees&quot;}]<br />
+ret.Resources = array filled with group objects containing group attributes where displayName is mandatory e.g [{&quot;displayName&quot;:&quot;Admins&quot;}, {&quot;displayName&quot;:&quot;Employees&quot;}]<br />
 ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (groups) at the endpoint else set to null</li>
 </ul>
 <h3>getUser</h3>
-<pre><code>scimgateway.getUser = async (baseEntity, userName, attributes) =&gt; {
+<pre><code>scimgateway.getUser = async (baseEntity, getObj, attributes) =&gt; {
     ...
     return userObj
 }  
 </code></pre>
 
 <ul>
-<li>userName = user id (eg. bjensen)  </li>
+<li>getObj = <code>{ filter: &lt;filterAttribute&gt;, identifier: &lt;identifier&gt; }</code><br />
+e.g: getObj = { &quot;filter&quot;: &quot;userName&quot;, &quot;identifier&quot;: &quot;bjensen&quot;}<br />
+filter: <strong>userName</strong> and <strong>id</strong> must be supported  </li>
 <li>attributes = scim attributes to be returned. If no attributes defined, all should be returned.  </li>
 <li>return userObj: userObj containing scim userattributes/values
 eg:<br />
 {&quot;id&quot;:&quot;bjensen&quot;,&quot;name&quot;:{&quot;formatted&quot;:&quot;Ms. Barbara J Jensen III&quot;,&quot;familyName&quot;:&quot;Jensen&quot;,&quot;givenName&quot;:&quot;Barbara&quot;}}</li>
 </ul>
-<p>Note, CA Provisioning use two types of &quot;getUser&quot;<br />
-1. Check if user exist: attributes=userName and/or id<br />
-2. Retrive user: attributes=list of all attributes</p>
+<p>Note, the value of the <strong>id</strong> attribute returned will be used by modifyUser and deleteUser</p>
 <h3>createUser</h3>
 <pre><code>scimgateway.createUser = async (baseEntity, userObj) =&gt; {
     ...
@@ -1417,15 +1380,17 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 <li>return null: null if OK, else throw error</li>
 </ul>
 <h3>getGroup</h3>
-<pre><code>scimgateway.getGroup = async (baseEntity, displayName, attributes) =&gt; {
+<pre><code>scimgateway.getGroup = async (baseEntity, getObj, attributes) =&gt; {
     ...
     return retObj
 } 
 </code></pre>
 
 <ul>
-<li>displayName = group name  </li>
-<li>attributes  = scim attributes to be returned in callback (displayName and members is mandatory)  </li>
+<li>getObj = <code>{ filter: &lt;filterAttribute&gt;, identifier: &lt;identifier&gt; }</code><br />
+e.g: getObj = { &quot;filter&quot;: &quot;displayName&quot;, &quot;identifier&quot;: &quot;GroupA&quot; } 
+filter: <strong>displayName</strong> and <strong>id</strong> must be supported  </li>
+<li>attributes  = scim attributes to be returned. If no attributes defined, all should be returned.  </li>
 <li>
 <p>return retObj: retObj containing group displayName and id (+ members if using default &quot;users are member of group&quot;)  
 </p>
@@ -1504,8 +1469,8 @@ groupObj.displayName contains the group name to be created</li>
 <li>id = group name (eg. Admins) to be deleted</li>
 <li>return null: null if OK, else throw error </li>
 </ul>
-<h3>modifyGroupMembers</h3>
-<pre><code>scimgateway.modifyGroupMembers = async (baseEntity, id, members) =&gt; {
+<h3>modifyGroup</h3>
+<pre><code>scimgateway.modifyGroup = async (baseEntity, id, attrObj) =&gt; {
     ...
     return null
 }
@@ -1513,7 +1478,8 @@ groupObj.displayName contains the group name to be created</li>
 
 <ul>
 <li>id = group name (eg. Admins)  </li>
-<li>members = array of objects containing groupmembers modifications<br />
+<li>attrObj = object containing groupattributes to be modified according to scim standard<br />
+<strong>attrObj.members</strong> (must be supported) = array of objects containing groupmembers modifications<br />
 eg: {&quot;value&quot;:&quot;bjensen&quot;},{&quot;operation&quot;:&quot;delete&quot;,&quot;value&quot;:&quot;jsmith&quot;}<br />
 (adding bjensen and deliting jsmith from group)  </li>
 <li>return null: null if OK, else throw error<br />
@@ -1526,13 +1492,56 @@ If we do not support groups, then return null  </li>
 </p>
 </li>
 <li>
-<p>Importing &quot;certificate authority - CA&quot; on the CA Connector Server gives a &quot;Failure&quot; message. After restarting the connector it will show certificate have been installed and HTTPS communication works fine.  
-</p>
+<p>SCIM filtering only supports operator 'eq' returning unique object only, example:<br />
+  /Users?<strong>filter</strong>=userName <strong>eq</strong> &quot;bjensen&quot;&amp;attributes=userName,id,name.givenName<br />
+  /Users?<strong>filter</strong>=emails.value <strong>eq</strong> &quot;bjensen@example.com&quot;&amp;attributes=userName,phoneNumbers</p>
 </li>
 </ul>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v3.0.0</h3>
+<p><strong>[Added]</strong>  </p>
+<ul>
+<li>getUser/getGroup now using parameter getObj giving more flexibility  </li>
+<li>deprecated modifyGroupMembers - now using modifyGroup</li>
+<li>deprecated configuration <code>scimgateway.scim.customUniqueAttrMapping</code> - replaced by getObj logic</li>
+<li>loglevel=off turns of logging</li>
+<li>Auth methods allowing more than one user/object including option for readOnly</li>
+<li>Includes latest versions of module dependencies </li>
+</ul>
+<p><strong>[UPGRADE]</strong>  </p>
+<p>Note, this is a major upgrade (^2.x.x =&gt; ^3.x.x) that will brake compatibility with any existing custom plugins. To force a major upgrade, suffix <code>@latest</code> must be include in the npm install command, but it's recommended to do a fresh install and copy any custom plugins instead of upgrading an existing package  </p>
+<p>Old syntax:  </p>
+<pre><code>scimgateway.getUser = async (baseEntity, userName, attributes) =&gt; {
+scimgateway.getGroup = async (baseEntity, displayName, attributes) =&gt; {
+scimgateway.modifyGroupMembers = async (baseEntity, id, members) =&gt; {
+</code></pre>
+
+<p>New syntax:  </p>
+<pre><code>scimgateway.getUser = async (baseEntity, getObj, attributes) =&gt; {
+  const userName = getObj.identifier // gives v2.x compatibility
+
+scimgateway.getGroup = async (baseEntity, getObj, attributes) =&gt; {
+  const displayName = getObj.identifier // gives v2.x compatibility
+
+scimgateway.modifyGroup = async (baseEntity, id, attrObj) =&gt; {
+  // attrObj.members corresponds to members in deprecated modifyGroupMembers
+</code></pre>
+
+<p>getUser comments:<br />
+getObj = <code>{ filter: &lt;filterAttribute&gt;, identifier: &lt;identifier&gt; }</code><br />
+e.g: getObj = <code>{ filter: 'userName', identifier: 'bjensen'}</code><br />
+filter: userName and id must be supported  </p>
+<p>getGroup comments:<br />
+getObj = <code>{ filter: &lt;filterAttribute&gt;, identifier: &lt;identifier&gt; }</code><br />
+e.g: getObj = <code>{ filter: 'displayName', identifier: 'GroupA' }</code><br />
+filter: displayName and id must be supported  </p>
+<p><strong>Please see provided example plugins</strong>  </p>
+<p>Using the new getObj parameter gives more flexibility in the way of lookup a user e.g:<br />
+<code>http://localhost:8880/Users?filter=emails.value eq &quot;jsmith@example.com&quot;&amp;attributes=userName,name.givenName</code><br />
+getObj = <code>{ filter: 'emails.value', identifier: 'jsmith@example.com'}</code><br />
+attributes = <code>'userName,name.givenName'</code></p>
 <h3>v2.1.13</h3>
 <p>[Fixed] </p>
 <ul>

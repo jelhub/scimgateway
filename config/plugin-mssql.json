@@ -4,39 +4,44 @@
     "localhostonly": false,
     "scim": {
       "version": "1.1",
-      "customSchema": null,
-      "customUniqueAttrMapping": {
-        "userName": null,
-        "displayName": null
-      }
+      "customSchema": null
     },
     "log": {
       "loglevel": {
         "file": "debug",
         "console": "error"
       },
-      "customMasking": []
+      "customMasking": null
     },
     "auth": {
-      "basic": {
-        "username": "gwadmin",
-        "password": "password"
-      },
-      "bearer": {
-        "token": null,
-        "jwt": {
-          "azure": {
-            "tenantIdGUID": null
-          },
-          "standard": {
-            "secret": null,
-            "publicKey": null,
-            "options": {
-              "issuer": null
-            }
-          }
+      "basic": [
+        {
+          "username": "gwadmin",
+          "password": "password",
+          "readOnly": false
         }
-      }
+      ],
+      "bearerToken": [
+        {
+          "token": null,
+          "readOnly": false
+        }
+      ],
+      "bearerJwtAzure": [
+        {
+          "tenantIdGUID": null
+        }
+      ],
+      "bearerJwt": [
+        {
+          "secret": null,
+          "publicKey": null,
+          "options": {
+            "issuer": null
+          },
+          "readOnly": false
+        }
+      ]
     },
     "certificate": {
       "key": null,
