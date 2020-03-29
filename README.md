@@ -1208,6 +1208,41 @@ Using the new getObj parameter gives more flexibility in the way of lookup a use
 getObj = `{ filter: 'emails.value', identifier: 'jsmith@example.com'}`  
 attributes = `'userName,name.givenName'`
 
+Configuration file, auth settings have changed and now using arrays allowing more than one user/object to be set. `"readOnly": true` can also be set for allowing read only access for a spesific user (does not apply to bearerJwtAzure).
+
+New syntax is:
+
+    "auth": {
+      "basic": [
+        {
+          "username": "gwadmin",
+          "password": "password",
+          "readOnly": false
+        }
+      ],
+      "bearerToken": [
+        {
+          "token": null,
+          "readOnly": false
+        }
+      ],
+      "bearerJwtAzure": [
+        {
+          "tenantIdGUID": null
+        }
+      ],
+      "bearerJwt": [
+        {
+          "secret": null,
+          "publicKey": null,
+          "options": {
+            "issuer": null
+          },
+          "readOnly": false
+        }
+      ]
+    }
+
 
 ### v2.1.13  
 [Fixed] 

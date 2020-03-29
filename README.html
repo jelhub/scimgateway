@@ -1542,6 +1542,40 @@ filter: displayName and id must be supported  </p>
 <code>http://localhost:8880/Users?filter=emails.value eq &quot;jsmith@example.com&quot;&amp;attributes=userName,name.givenName</code><br />
 getObj = <code>{ filter: 'emails.value', identifier: 'jsmith@example.com'}</code><br />
 attributes = <code>'userName,name.givenName'</code></p>
+<p>Configuration file, auth settings have changed and now using arrays allowing more than one user/object to be set. <code>&quot;readOnly&quot;: true</code> can also be set for allowing read only access for a spesific user (does not apply to bearerJwtAzure).</p>
+<p>New syntax is:</p>
+<pre><code>&quot;auth&quot;: {
+  &quot;basic&quot;: [
+    {
+      &quot;username&quot;: &quot;gwadmin&quot;,
+      &quot;password&quot;: &quot;password&quot;,
+      &quot;readOnly&quot;: false
+    }
+  ],
+  &quot;bearerToken&quot;: [
+    {
+      &quot;token&quot;: null,
+      &quot;readOnly&quot;: false
+    }
+  ],
+  &quot;bearerJwtAzure&quot;: [
+    {
+      &quot;tenantIdGUID&quot;: null
+    }
+  ],
+  &quot;bearerJwt&quot;: [
+    {
+      &quot;secret&quot;: null,
+      &quot;publicKey&quot;: null,
+      &quot;options&quot;: {
+        &quot;issuer&quot;: null
+      },
+      &quot;readOnly&quot;: false
+    }
+  ]
+}
+</code></pre>
+
 <h3>v2.1.13</h3>
 <p>[Fixed] </p>
 <ul>
