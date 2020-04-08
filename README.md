@@ -17,7 +17,8 @@ Validated through IdP's:
   
 Latest news:  
 
-- getUser/getGroup having more flexibility. Auth methods allowing more than one user including option for readOnly
+- [PlugSSO](https://elshaug.xyz/md/plugsso) using SCIM Gateway for authorization and JIT provisioning
+- getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
 - Supports configuration by environments and external files
 - Health monitoring through "/ping" URL, and option for error notifications by email
@@ -789,7 +790,7 @@ For details, please see section "CA Identity Manager as IdP using SCIM Gateway"
 
 Azure AD could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.
 
-Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.auth.bearer.token) or **Azure Tenant ID GUID** (scimgateway.auth.bearer.jwt.azure.tenantIdGUID) or both:  
+Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.auth.bearerToken[x].token) or **Azure Tenant ID GUID** (scimgateway.auth.bearerJwtAzure[x].tenantIdGUID) or both:  
 
 	scimgateway: {
 	  "scim": {
@@ -798,21 +799,21 @@ Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.
 	  },
 	  ...
 	  "auth": {
-	    ...
-        "bearer": {
-          "token": "shared-secret",
-          "jwt": {
-            "azure": {
-              "tenantIdGUID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            }
-	      ...
-        }
-	    ...
+        "bearerToken": [
+          {
+            "token": "shared-secret"
+          }
+        ],
+        "bearerJwtAzure": [
+          {
+            "tenantIdGUID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          }
+        ]
       }
       ...
 	}
 
-`bearer.token` configuration must correspond with "Secret Token" defined in Azure AD  
+`token` configuration must correspond with "Secret Token" defined in Azure AD  
 `tenantIdGUID` configuration must correspond with Azure Active Directory Tenant ID  
 
 In Azure Portal:
@@ -1159,8 +1160,22 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.0.1  
+[Added] 
+
+- getApi supports body (apiObj).
+
+	Old syntax:  
+	
+	    scimgateway.getApi = async (baseEntity, id, apiQuery) => {
+	
+	New syntax:  
+	
+	    scimgateway.getApi = async (baseEntity, id, apiQuery, apiObj) => {
+
+
 ### v3.0.0  
-**[Added]**  
+**[MAJOR]**  
 
 - getUser/getGroup now using parameter getObj giving more flexibility  
 - deprecated modifyGroupMembers - now using modifyGroup

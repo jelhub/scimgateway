@@ -301,7 +301,8 @@ img {
 </ul>
 <p>Latest news:  </p>
 <ul>
-<li>getUser/getGroup having more flexibility. Auth methods allowing more than one user including option for readOnly</li>
+<li><a href="https://elshaug.xyz/md/plugsso">PlugSSO</a> using SCIM Gateway for authorization and JIT provisioning</li>
+<li>getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly</li>
 <li>Codebase moved from callback of h... to the the promise(d) land of async/await</li>
 <li>Supports configuration by environments and external files</li>
 <li>Health monitoring through &quot;/ping&quot; URL, and option for error notifications by email</li>
@@ -1139,7 +1140,7 @@ SCIM Based URL = http://localhost:8881/&lt;baseEntity&gt;
 <p>For details, please see section &quot;CA Identity Manager as IdP using SCIM Gateway&quot;</p>
 <h2>Azure Active Directory as IdP using SCIM Gateway</h2>
 <p>Azure AD could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.</p>
-<p>Plugin configuration file must include <strong>SCIM Version &quot;2.0&quot;</strong> (scimgateway.scim.version) and either <strong>Bearer Token</strong> (scimgateway.auth.bearer.token) or <strong>Azure Tenant ID GUID</strong> (scimgateway.auth.bearer.jwt.azure.tenantIdGUID) or both:  </p>
+<p>Plugin configuration file must include <strong>SCIM Version &quot;2.0&quot;</strong> (scimgateway.scim.version) and either <strong>Bearer Token</strong> (scimgateway.auth.bearerToken[x].token) or <strong>Azure Tenant ID GUID</strong> (scimgateway.auth.bearerJwtAzure[x].tenantIdGUID) or both:  </p>
 <pre><code>scimgateway: {
   &quot;scim&quot;: {
     &quot;version&quot;: &quot;2.0&quot;,
@@ -1147,22 +1148,22 @@ SCIM Based URL = http://localhost:8881/&lt;baseEntity&gt;
   },
   ...
   &quot;auth&quot;: {
-    ...
-    &quot;bearer&quot;: {
-      &quot;token&quot;: &quot;shared-secret&quot;,
-      &quot;jwt&quot;: {
-        &quot;azure&quot;: {
-          &quot;tenantIdGUID&quot;: &quot;xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;
-        }
-      ...
-    }
-    ...
+    &quot;bearerToken&quot;: [
+      {
+        &quot;token&quot;: &quot;shared-secret&quot;
+      }
+    ],
+    &quot;bearerJwtAzure&quot;: [
+      {
+        &quot;tenantIdGUID&quot;: &quot;xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;
+      }
+    ]
   }
   ...
 }
 </code></pre>
 
-<p><code>bearer.token</code> configuration must correspond with &quot;Secret Token&quot; defined in Azure AD<br />
+<p><code>token</code> configuration must correspond with &quot;Secret Token&quot; defined in Azure AD<br />
 <code>tenantIdGUID</code> configuration must correspond with Azure Active Directory Tenant ID  </p>
 <p>In Azure Portal:
 <code>Azure-Azure Active Directory-Enterprise Application-&lt;My Application&gt;-Provisioning-Secret Token</code><br />
@@ -1500,8 +1501,25 @@ If we do not support groups, then return null  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v3.0.1</h3>
+<p>[Added] </p>
+<ul>
+<li>
+<p>getApi supports body (apiObj).</p>
+<p>Old syntax:  
+</p>
+<pre><code>scimgateway.getApi = async (baseEntity, id, apiQuery) =&gt; {
+</code></pre>
+
+<p>New syntax:  
+</p>
+<pre><code>scimgateway.getApi = async (baseEntity, id, apiQuery, apiObj) =&gt; {
+</code></pre>
+
+</li>
+</ul>
 <h3>v3.0.0</h3>
-<p><strong>[Added]</strong>  </p>
+<p><strong>[MAJOR]</strong>  </p>
 <ul>
 <li>getUser/getGroup now using parameter getObj giving more flexibility  </li>
 <li>deprecated modifyGroupMembers - now using modifyGroup</li>
