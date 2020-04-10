@@ -1160,6 +1160,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.0.2  
+[Fixed] 
+
+- SCIM v2.0 PUT did not work.
+
 ### v3.0.1  
 [Added] 
 
