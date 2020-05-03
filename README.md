@@ -1,11 +1,9 @@
-
 # SCIM Gateway  
 
-[![Build Status](https://travis-ci.org/jelhub/scimgateway.svg)](https://travis-ci.org/jelhub/scimgateway) [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/md/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
+[![Build Status](https://travis-ci.org/jelhub/scimgateway.svg)](https://travis-ci.org/jelhub/scimgateway) [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/docs/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
 
 ---  
 Author: Jarle Elshaug  
-
 
 Validated through IdP's:  
 
@@ -17,7 +15,7 @@ Validated through IdP's:
   
 Latest news:  
 
-- [PlugSSO](https://elshaug.xyz/md/plugsso) using SCIM Gateway for authorization and JIT provisioning
+- [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway for authorization and JIT provisioning
 - getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
 - Supports configuration by environments and external files
@@ -683,7 +681,12 @@ For testing purposes we could get an Azure free account and in addition the free
 **Application needs to be member of "User Account Administrator" when running behalf of application rather than user** 
  
 - Start Powershell command window
-- Install the [Azure AD Module](https://docs.microsoft.com/en-us/powershell/msonline/) (if not already installed)  
+- Install the [Azure AD Module](https:/
+- 
+- 
+- 
+- 
+- .microsoft.com/en-us/powershell/msonline/) (if not already installed)  
 	- Install-Module MSOnline
 - Import-Module MSOnline
 - Connect-MsolService (logon as a user having "Global administrator" role)   
@@ -1159,6 +1162,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v3.0.3  
+[Fixed] 
+
+- GET /Users?startIndex=1&count=100 with no attributes filter included did not work
 
 ### v3.0.2  
 [Fixed] 

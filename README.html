@@ -288,7 +288,7 @@ img {
 </head>
 <body>
 <h1>SCIM Gateway</h1>
-<p><a href="https://travis-ci.org/jelhub/scimgateway"><img src="https://travis-ci.org/jelhub/scimgateway.svg" alt="Build Status" /></a> <a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&amp;label=latest" alt="npm Version" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a> <a href="https://elshaug.xyz/md/scimgateway#disqus_thread"><img src="https://jelhub.github.io/images/chat.svg" alt="chat disqus" /></a> <a href="https://github.com/jelhub/scimgateway"><img src="https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&amp;label=Fork" alt="GitHub forks" /></a>  </p>
+<p><a href="https://travis-ci.org/jelhub/scimgateway"><img src="https://travis-ci.org/jelhub/scimgateway.svg" alt="Build Status" /></a> <a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&amp;label=latest" alt="npm Version" /></a><a href="https://www.npmjs.com/package/scimgateway"><img src="https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square" alt="npm Downloads" /></a> <a href="https://elshaug.xyz/docs/scimgateway#disqus_thread"><img src="https://jelhub.github.io/images/chat.svg" alt="chat disqus" /></a> <a href="https://github.com/jelhub/scimgateway"><img src="https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&amp;label=Fork" alt="GitHub forks" /></a>  </p>
 <hr />
 <p>Author: Jarle Elshaug  </p>
 <p>Validated through IdP's:  </p>
@@ -301,7 +301,7 @@ img {
 </ul>
 <p>Latest news:  </p>
 <ul>
-<li><a href="https://elshaug.xyz/md/plugsso">PlugSSO</a> using SCIM Gateway for authorization and JIT provisioning</li>
+<li><a href="https://elshaug.xyz/docs/plugsso">PlugSSO</a> using SCIM Gateway for authorization and JIT provisioning</li>
 <li>getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly</li>
 <li>Codebase moved from callback of h... to the the promise(d) land of async/await</li>
 <li>Supports configuration by environments and external files</li>
@@ -996,53 +996,24 @@ Keys
 <p><strong>Application needs to be member of &quot;User Account Administrator&quot; when running behalf of application rather than user</strong> </p>
 <ul>
 <li>Start Powershell command window</li>
-<li>
-Install the <a href="https://docs.microsoft.com/en-us/powershell/msonline/">Azure AD Module</a> (if not already installed)  
-
-<ul>
-<li>Install-Module MSOnline</li>
 </ul>
-</li>
-<li>Import-Module MSOnline</li>
-<li>Connect-MsolService (logon as a user having &quot;Global administrator&quot; role)   </li>
-<li>
-Get-MsolServicePrincipal -AppPrincipalId {Application ID}  
-
-<ul>
-<li>Copy ObjectId</li>
-</ul>
-</li>
-<li>
-List all roles and find &quot;User Account Administrator&quot;  
-
-<ul>
-<li>Get-MsolRole  
-</li>
-</ul>
-</li>
-<li>
-List current members of this role:
-<ul>
-<li>Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1</li>
-</ul>
-</li>
-<li>
-Add application to &quot;User Account Administrator&quot; role:  
-
-<ul>
-<li>Add-MsolRoleMember -RoleName &quot;User Account Administrator&quot; -RoleMemberType ServicePrincipal -RoleMemberObjectId {ObjectIdOfServicePrincipal}  
-</li>
-</ul>
-</li>
-<li>
-Verify:  
-
-<ul>
-<li>Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1  
-</li>
-</ul>
-</li>
-</ul>
+<h2>- Install the [Azure AD Module](https:/</h2>
+<h2>- </h2>
+<p>- 
+- .microsoft.com/en-us/powershell/msonline/) (if not already installed)<br />
+	- Install-Module MSOnline
+- Import-Module MSOnline
+- Connect-MsolService (logon as a user having &quot;Global administrator&quot; role) <br />
+- Get-MsolServicePrincipal -AppPrincipalId {Application ID}<br />
+	- Copy ObjectId
+- List all roles and find &quot;User Account Administrator&quot;<br />
+	- Get-MsolRole<br />
+- List current members of this role:
+	- Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1
+- Add application to &quot;User Account Administrator&quot; role:<br />
+	- Add-MsolRoleMember -RoleName &quot;User Account Administrator&quot; -RoleMemberType ServicePrincipal -RoleMemberObjectId {ObjectIdOfServicePrincipal}<br />
+- Verify:<br />
+	- Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1  </p>
 <p><strong>Edit index.js</strong><br />
 Uncomment startup of plugin-azure-ad, other plugins could be comment out if not needed</p>
 <pre><code>const azureAD = require('./lib/plugin-azure-ad')
@@ -1501,6 +1472,11 @@ If we do not support groups, then return null  </li>
 <h2>License</h2>
 <p>MIT © <a href="https://www.elshaug.xyz">Jarle Elshaug</a></p>
 <h2>Change log</h2>
+<h3>v3.0.3</h3>
+<p>[Fixed] </p>
+<ul>
+<li>GET /Users?startIndex=1&amp;count=100 with no attributes filter included did not work</li>
+</ul>
 <h3>v3.0.2</h3>
 <p>[Fixed] </p>
 <ul>
