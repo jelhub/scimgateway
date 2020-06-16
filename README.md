@@ -15,7 +15,7 @@ Validated through IdP's:
   
 Latest news:  
 
-- [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway for authorization and JIT provisioning
+- [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
 - getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
 - Supports configuration by environments and external files
@@ -181,11 +181,7 @@ Below shows an example of config\plugin-saphana.json
 	    "localhostonly": false,
         "scim": {
           "version": "1.1",
-          "customSchema": null,
-          "customUniqueAttrMapping" : {
-            "userName" : null,
-            "displayName": null
-          }
+          "customSchema": null
         },
         "log": {
           "loglevel": {
@@ -260,11 +256,11 @@ Below shows an example of config\plugin-saphana.json
 
 Configuration file have two main JSON objects: `scimgateway` and `endpoint`  
 
-Definitions in `scimgateway` object have fixed attributes but values can be modified. This object is used by the core functionality of the SCIM Gateway.  
+Definitions in `scimgateway` object have fixed attributes, but values can be modified. This object is used by the core functionality of the SCIM Gateway.  
 
 Definitions in `endpoint` object are customized according to our plugin code. Plugin typically need this information for communicating with endpoint  
 
-- **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway. For endpoint the port is the port number used by plugin for communicating with SAP Hana.  
+- **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway.  
 
 - **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the CA Connector Server).  
 
@@ -1162,6 +1158,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v3.0.4  
+[Added] 
+
+- Pagination request having startIndex but no count, now sets count to default 200 and may be overridden by plugin.
 
 ### v3.0.3  
 [Fixed] 
