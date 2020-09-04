@@ -1159,8 +1159,8 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-### v3.0.5  
-[Added] 
+### v3.0.6  
+[Fix] 
 - Dependencies bump
 
 ### v3.0.4  
