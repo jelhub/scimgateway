@@ -677,12 +677,7 @@ For testing purposes we could get an Azure free account and in addition the free
 **Application needs to be member of "User Account Administrator" when running behalf of application rather than user** 
  
 - Start Powershell command window
-- Install the [Azure AD Module](https:/
-- 
-- 
-- 
-- 
-- .microsoft.com/en-us/powershell/msonline/) (if not already installed)  
+- Install the [Azure AD Module](https://docs.microsoft.com/en-us/powershell/msonline/) (if not already installed)  
 	- Install-Module MSOnline
 - Import-Module MSOnline
 - Connect-MsolService (logon as a user having "Global administrator" role)   
