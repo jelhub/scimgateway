@@ -1154,6 +1154,10 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.0.7  
+[Fix] 
+- Using proxy configuration broken in v3.x
+
 ### v3.0.6  
 [Fix] 
 - Dependencies bump
