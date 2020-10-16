@@ -1154,12 +1154,19 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.0.8  
+[Fixed]  
+
+- plugin-azure-ad delete account fails in v3.x
+
 ### v3.0.7  
-[Fix] 
+[Fixed]  
+
 - Using proxy configuration broken in v3.x
 
 ### v3.0.6  
-[Fix] 
+[Fixed]   
+
 - Dependencies bump
 
 ### v3.0.4  
