@@ -15,7 +15,7 @@ Validated through IdP's:
   
 Latest news:  
 
-- General ldap user provisioning configured for Active Directory. Pre and post actions onAddGroups/onRemoveGroups  
+- General LDAP provisioning configured for Active Directory. Pre and post actions onAddGroups/onRemoveGroups for additional logic  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
 - getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
@@ -71,9 +71,9 @@ Using customized SCIM attributes according to Microsoft Graph API
 Includes CA ConnectorXpress metafile for creating CA IM "Azure - ScimGateway" endpoint type  
 
 * **LDAP** (Directory)  
-Fully functional LDAP plugin
-Using endpointMapper logic (like plugin-azure-ad) for attribute flexibility  
+Fully functional LDAP plugin  
 Pre-configured for Microsoft Active Directory  
+Using endpointMapper (like plugin-azure-ad) for attribute flexibility  
 
 * **API** (REST Webservices)  
 Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete  
@@ -1179,7 +1179,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 ### v3.1.0  
 [Added]  
 
-- plugin-ldap a genaral LDAP plugin pre-configured for Microsoft Active Directory. Using endpointMapper logic (like plugin-azure-ad) for attribute flexibility   
+- plugin-ldap a general LDAP plugin pre-configured for Microsoft Active Directory. Using endpointMapper logic (like plugin-azure-ad) for attribute flexibility   
 - Pre and post actions onAddGroups/onRemoveGroups can be configured and needed logic to be  defined in plugin method `pre_post_Action`  
 - Dependencies bump  
 
