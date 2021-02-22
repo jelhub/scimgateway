@@ -65,6 +65,16 @@
         "to": null,
         "cc": null
       }
+    },
+    "actions": {
+      "preAction": {
+        "onAddGroups": [],
+        "onRemoveGroups": []
+      },
+      "postAction": {
+        "onAddGroups": [],
+        "onRemoveGroups": []
+      }
     }
   },
   "endpoint": {

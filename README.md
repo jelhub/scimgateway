@@ -15,6 +15,7 @@ Validated through IdP's:
   
 Latest news:  
 
+- General ldap user provisioning configured for Active Directory. Pre and post actions onAddGroups/onRemoveGroups  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
 - getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
@@ -67,15 +68,20 @@ Demonstrates SAP HANA specific user provisioning
 Azure AD user provisioning including Azure license management (App Service plans) e.g. Office 365  
 Using Microsoft Graph API  
 Using customized SCIM attributes according to Microsoft Graph API  
-Includes CA ConnectorXpress metafile for creating CA IM "Azure - ScimGateway" endpoint type    
-  
+Includes CA ConnectorXpress metafile for creating CA IM "Azure - ScimGateway" endpoint type  
+
+* **LDAP** (Directory)  
+Fully functional LDAP plugin
+Using endpointMapper logic (like plugin-azure-ad) for attribute flexibility  
+Pre-configured for Microsoft Active Directory  
 
 * **API** (REST Webservices)  
 Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete  
 None SCIM plugin, becomes what you want it to become.  
 Endpoint complexity could be put in this plugin, and client could instead communicate through Gateway using your own simplified REST specification.  
-One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager.    
+One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager.  
 
+    
 ## Installation  
 
 #### Install Node.js  
@@ -166,6 +172,7 @@ To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compabilit
 	// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb --save
 	// const api = require('./lib/plugin-api')
 	// const azureAD = require('./lib/plugin-azure-ad')
+	// const ldap = require('./lib/plugin-ldap')
 
 Each endpoint plugin needs a JavaScript file (.js) and a configuration file (.json). **They both must have the same naming prefix**. For SAP Hana endpoint we have:  
 >lib\plugin-saphana.js  
@@ -241,6 +248,16 @@ Below shows an example of config\plugin-saphana.json
 	        "sendInterval": 15,
 	        "to": null,
 	        "cc": null
+	      }
+	    },
+	    "actions": {
+	      "preAction": {
+	        "onAddGroups": [],
+	        "onRemoveGroups": []
+	      },
+	      "postAction": {
+	        "onAddGroups": [],
+	        "onRemoveGroups": []
 	      }
 	    }
 	  },
@@ -320,7 +337,11 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **emailOnError.smtp.sendInterval** - Mail notifications on error are deferred until sendInterval **minutes** have passed since the last notification. Default 15 minutes
 - **emailOnError.smtp.to** - Comma separated list of recipients email addresses e.g: "someone@example.com"
 - **emailOnError.smtp.cc** - Comma separated list of cc email addresses
-
+- **actions** - Pre and post actions onAddGroups/onRemoveGroups. Needed logic to be defined in plugin method `pre_post_Action`
+- **actions.preAction.onAddGroups** - Array of groups e.g. ["Admins", "Employees"]
+- **actions.preAction.onRemoveGroups** - Array of groups e.g. ["Admins", "Employees"]
+- **actions.postAction.onAddGroups** - Array of groups e.g. ["Admins", "Employees"]
+- **actions.postAction.onRemoveGroups** - Array of groups e.g. ["Admins", "Employees"]
 
 - **endpoint** - Contains endpoint specific configuration according to our **plugin code**.    
  
@@ -910,6 +931,7 @@ Using Connector Xpress based on the original SCIM endpoint.
 
 Delete defaults:  
 Group - Associations - with User Account  
+Group - Attributes - members  
 User Account - Attributes - Group Membership
 
 Create new attribute:  
@@ -922,10 +944,10 @@ User Account - Accociations - with Group
 Note, "Include a Reverse Association" - not needed if we don't need Group object functionality e.g list/add/remove group members
 
 User Attribute = **Physical Attribute = Groups**  
-Match Group = By Attribute = Name
+Match Group = By Attribute = ID
 
 Objects Must Exist  
-Use DNs in Attribute = deactivated (toggled off)  
+Use DNs in Attribute = activated (toggled on)  
 
 Include a Reverse Association (if needed)  
 Group Attribute = **Virtual Attribute = User Membership**  
@@ -1153,6 +1175,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v3.1.0  
+[Added]  
+
+- plugin-ldap a genaral LDAP plugin pre-configured for Microsoft Active Directory. Using endpointMapper logic (like plugin-azure-ad) for attribute flexibility   
+- Pre and post actions onAddGroups/onRemoveGroups can be configured and needed logic to be  defined in plugin method `pre_post_Action`  
+- Dependencies bump  
 
 ### v3.0.8  
 [Fixed]  

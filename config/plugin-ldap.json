@@ -1,0 +1,210 @@
+{
+  "scimgateway": {
+    "port": 8883,
+    "localhostonly": false,
+    "scim": {
+      "version": "1.1",
+      "customSchema": null
+    },
+    "log": {
+      "loglevel": {
+        "file": "debug",
+        "console": "error"
+      },
+      "customMasking": null
+    },
+    "auth": {
+      "basic": [
+        {
+          "username": "gwadmin",
+          "password": "password",
+          "readOnly": false
+        }
+      ],
+      "bearerToken": [
+        {
+          "token": null,
+          "readOnly": false
+        }
+      ],
+      "bearerJwtAzure": [
+        {
+          "tenantIdGUID": null
+        }
+      ],
+      "bearerJwt": [
+        {
+          "secret": null,
+          "publicKey": null,
+          "options": {
+            "issuer": null
+          },
+          "readOnly": false
+        }
+      ]
+    },
+    "certificate": {
+      "key": null,
+      "cert": null,
+      "ca": null,
+      "pfx": {
+        "bundle": null,
+        "password": null
+      }
+    },
+    "emailOnError": {
+      "smtp": {
+        "enabled": false,
+        "host": null,
+        "port": 587,
+        "proxy": null,
+        "authenticate": true,
+        "username": null,
+        "password": null,
+        "sendInterval": 15,
+        "to": null,
+        "cc": null
+      }
+    },
+    "actions": {
+      "preAction": {
+        "onAddGroups": [],
+        "onRemoveGroups": []
+      },
+      "postAction": {
+        "onAddGroups": [],
+        "onRemoveGroups": []
+      }
+    }
+  },
+  "endpoint": {
+    "entity": {
+      "undefined": {
+        "baseUrls": [
+          "ldaps://dc1.test.com:636",
+          "ldaps://dc2.test.com:636"
+        ],
+        "username": "CN=Administrator,CN=Users,DC=test,DC=com",
+        "password": "password",
+        "ldap": {
+          "userBase": "CN=Users,DC=test,DC=com",
+          "groupBase": "OU=Groups,DC=test,DC=com",
+          "userNamingAttr": "CN",
+          "groupNamingAttr": "CN",
+          "userObjectClasses": ["user", "person", "organizationalPerson", "top"],
+          "groupObjectClasses": ["group", "top"]
+        }
+      }
+    },
+    "map": {
+      "group": {
+        "dn": {
+          "mapTo": "id",
+          "type": "string"
+        },
+        "cn": {
+          "mapTo": "displayName",
+          "type": "string"
+        },
+        "member": {
+          "mapTo": "members.value",
+          "type": "array"
+        }
+      },
+      "user": {
+        "dn": {
+          "mapTo": "id",
+          "type": "string"
+        },
+        "sAMAccountName": {
+          "mapTo": "userName",
+          "type": "string"
+        },
+        "userAccountControl": {
+          "mapTo": "active",
+          "type": "integer"
+        },
+        "unicodePwd": {
+          "mapTo": "password",
+          "type": "string"
+        },
+        "memberOf": {
+          "mapTo": "groups.value",
+          "type": "array"
+        },
+        "givenName": {
+          "mapTo": "name.givenName",
+          "type": "string"
+        },
+        "sn": {
+          "mapTo": "name.familyName",
+          "type": "string"
+        },
+        "displayName": {
+          "mapTo": "name.formatted",
+          "type": "string"
+        },
+        "title": {
+          "mapTo": "title",
+          "type": "string"
+        },
+        "mail": {
+          "mapTo": "emails.work.value",
+          "type": "string"
+        },
+        "mobile": {
+          "mapTo": "phoneNumbers.work.value",
+          "type": "string"
+        },
+        "homePhone": {
+          "mapTo": "phoneNumbers.home.value",
+          "type": "string"
+        },
+        "postalCode": {
+          "mapTo": "addresses.work.postalCode",
+          "type": "string"
+        },
+        "streetAddress": {
+          "mapTo": "addresses.work.streetAddress",
+          "type": "string"
+        },
+        "l": {
+          "mapTo": "addresses.work.locality",
+          "type": "string"
+        },
+        "st": {
+          "mapTo": "addresses.work.region",
+          "type": "string"
+        },
+        "co": {
+          "mapTo": "addresses.work.country",
+          "type": "string"
+        },
+        "description": {
+          "mapTo": "entitlements.description.value",
+          "type": "string"
+        },
+        "lastLogonTimestamp": {
+          "mapTo": "entitlements.lastLogonTimestamp.value",
+          "type": "string"
+        },
+        "homeDirectory": {
+          "mapTo": "entitlements.homeDirectory.value",
+          "type": "string"
+        },
+        "homeDrive": {
+          "mapTo": "entitlements.homeDrive.value",
+          "type": "string"
+        },
+        "telephoneNumber": {
+          "mapTo": "entitlements.telephoneNumber.value",
+          "type": "string"
+        },
+        "physicalDeliveryOfficeName": {
+          "mapTo": "entitlements.physicalDeliveryOfficeName.value",
+          "type": "string"
+        }
+      }
+    }
+  }
+}
