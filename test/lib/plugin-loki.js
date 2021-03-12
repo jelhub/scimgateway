@@ -206,6 +206,11 @@ describe('plugin-loki tests', () => {
       entitlements: [{
         value: 'Test Company',
         type: 'company'
+      }],
+      addresses: [{
+        type: 'work',
+        streetAddress: 'City Plaza',
+        postalCode: '9559'
       }]
     }
 
@@ -240,26 +245,90 @@ describe('plugin-loki tests', () => {
         expect(user.entitlements[0].value).to.equal('Test Company')
         expect(user.phoneNumbers[0].type).to.equal('work')
         expect(user.phoneNumbers[0].value).to.equal('tel:555-555-8376')
+        expect(user.addresses[0].type).to.equal('work')
+        expect(user.addresses[0].streetAddress).to.equal('City Plaza')
+        expect(user.addresses[0].postalCode).to.equal('9559')
         done()
       })
   })
 
+  // scim v1.1
+  /*
   it('modifyUser test', (done) => {
     var user = {
       name: {
         givenName: 'Jeff-Modified'
       },
       active: false,
+      title: 'New title',
       phoneNumbers: [{
-        value: 'tel:123',
-        type: 'work'
+        type: 'work',
+        value: 'tel:123'
+      }],
+      entitlements: [{
+        type: 'company',
+        value: 'New Company'
       }],
       emails: [{
         operation: 'delete',
-        value: 'jgilber@example.com',
-        type: 'work'
+        type: 'work',
+        value: 'jgilber@example.com'
+      }],
+      addresses: [{
+        type: 'work',
+        streetAddress: 'New Address',
+        postalCode: '1111'
       }],
       meta: { attributes: ['name.familyName'] }
+    }
+  */
+
+  it('modifyUser test', (done) => {
+    var user = {
+      Operations: [
+        {
+          op: 'replace',
+          path: 'name.givenName',
+          value: [{
+            value: 'Jeff-Modified'
+          }]
+        },
+        {
+          op: 'replace',
+          path: 'active',
+          value: [{
+            value: false
+          }]
+        },
+        {
+          op: 'replace',
+          path: 'phoneNumbers[type eq \"work\"].value',
+          value: 'tel:123'
+        },
+        {
+          op: 'replace',
+          value: {
+            title: 'New title',
+            entitlements: [{
+              value: 'New Company',
+              type: 'company'
+            }]
+          }
+        },
+        {
+          op: 'remove',
+          path: 'emails[type eq \"work\"].value'
+        },
+        {
+          op: 'replace',
+          path: 'addresses[type eq \"work\"]',
+          value: {
+            type: 'work',
+            streetAddress: 'New Address',
+            postalCode: '1111'
+          }
+        }
+      ]
     }
 
     server_8880.patch('/Users/jgilber')
@@ -283,14 +352,17 @@ describe('plugin-loki tests', () => {
         expect(user.id).to.equal('jgilber')
         expect(user.active).to.equal(false) // modified
         expect(user.name.givenName).to.equal('Jeff-Modified') // modified
-        expect(user.name.familyName).to.equal(undefined) // cleared
+        // expect(user.name.familyName).to.equal(undefined) // cleared - scim 1.1
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert')
-        expect(user.title).to.equal('test title')
+        expect(user.title).to.equal('New title') // modified
         expect(user.emails).to.equal(undefined) // deleted
         expect(user.entitlements[0].type).to.equal('company')
-        expect(user.entitlements[0].value).to.equal('Test Company')
+        expect(user.entitlements[0].value).to.equal('New Company') // modified
         expect(user.phoneNumbers[0].type).to.equal('work')
         expect(user.phoneNumbers[0].value).to.equal('tel:123') // modiied
+        expect(user.addresses[0].type).to.equal('work')
+        expect(user.addresses[0].streetAddress).to.equal('New Address') // modified
+        expect(user.addresses[0].postalCode).to.equal('1111') // modified
         done()
       })
   })
@@ -342,7 +414,26 @@ describe('plugin-loki tests', () => {
   it('modifyGroupMembers test', (done) => {
     server_8880.patch('/Groups/GoGoLoki')
       .set(options.headers)
-      .send({ members: [{ value: 'xman' }, { value: 'zperson' }], schemas: ['urn:scim:schemas:core:1.0'] })
+      // .send({ members: [{ value: 'xman' }, { value: 'zperson' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
+      .send({ 
+        Operations: [
+          {
+            op: 'add',
+            path: 'members',
+            value: [
+              { value: 'xman' },
+              { value: 'zperson' }
+            ]
+          },
+          {
+            op: 'remove',
+            path: 'members',
+            value: [
+              { value: 'bjensen' }
+            ]
+          }
+        ]
+      })
       .end(function (err, res) {
         expect(err).to.equal(null)
         expect(res.statusCode).to.equal(200)
@@ -360,9 +451,9 @@ describe('plugin-loki tests', () => {
         expect(group).to.not.equal('undefined')
         expect(group.displayName).to.equal('GoGoLoki')
         expect(group.id).to.equal('GoGoLoki')
-        expect(group.members.length).to.equal(3)
-        expect(group.members[1].value).to.equal('xman')
-        expect(group.members[2].value).to.equal('zperson')
+        expect(group.members.length).to.equal(2) // bjensen removed
+        expect(group.members[0].value).to.equal('xman') // added
+        expect(group.members[1].value).to.equal('zperson') // added
         done()
       })
   })

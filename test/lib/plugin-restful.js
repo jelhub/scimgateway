@@ -242,6 +242,8 @@ describe('plugin-restful tests', () => {
       })
   })
 
+  // scim v1.1
+  /*
   it('modifyUser test', (done) => {
     var user = {
       name: {
@@ -249,15 +251,56 @@ describe('plugin-restful tests', () => {
       },
       active: false,
       phoneNumbers: [{
-        value: 'tel:123',
-        type: 'work'
+        type: 'work',
+        value: 'tel:123'
       }],
       emails: [{
         operation: 'delete',
-        value: 'jgilber@example.com',
-        type: 'work'
+        type: 'work',
+        value: 'jgilber@example.com'
       }],
       meta: { attributes: ['name.familyName'] }
+    }
+
+    server_8886.patch('/Users/jgilber')
+      .set(options.headers)
+      .send(user)
+      .end(function (err, res) {
+        expect(err).to.equal(null)
+        expect(res.statusCode).to.equal(200)
+        done()
+      })
+  })
+  */
+
+  it('modifyUser test', (done) => {
+    var user = {
+      Operations: [
+        {
+          op: 'replace',
+          value: {
+            name: {
+              givenName: 'Jeff-Modified',
+              familyName: ''
+            },
+            active: false,
+            phoneNumbers: [{
+              type: 'work',
+              value: 'tel:123'
+            }]
+            /* alternative to below
+            emails: [{
+              type: 'work',
+              value: ''
+            }]
+            */
+          }
+        },
+        {
+          op: 'remove',
+          path: 'emails[type eq \"work\"].value'
+        }
+      ]
     }
 
     server_8886.patch('/Users/jgilber')
@@ -281,7 +324,7 @@ describe('plugin-restful tests', () => {
         expect(user.id).to.equal('jgilber')
         expect(user.active).to.equal(false) // modified
         expect(user.name.givenName).to.equal('Jeff-Modified') // modified
-        expect(user.name.familyName).to.equal('') // cleared
+        expect(user.name.familyName).to.equal('')
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert')
         expect(user.title).to.equal('test title')
         expect(user.emails).to.equal(undefined) // deleted
@@ -340,7 +383,26 @@ describe('plugin-restful tests', () => {
   it('modifyGroupMembers test', (done) => {
     server_8886.patch('/Groups/GoGoRest')
       .set(options.headers)
-      .send({ members: [{ value: 'xman' }, { value: 'zperson' }], schemas: ['urn:scim:schemas:core:1.0'] })
+      // .send({ members: [{ value: 'xman' }, { value: 'zperson' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
+      .send({
+        Operations: [
+          {
+            op: 'add',
+            path: 'members',
+            value: [
+              { value: 'xman' },
+              { value: 'zperson' }
+            ]
+          },
+          {
+            op: 'remove',
+            path: 'members',
+            value: [
+              { value: 'bjensen' }
+            ]
+          }
+        ]
+      })
       .end(function (err, res) {
         expect(err).to.equal(null)
         expect(res.statusCode).to.equal(200)
@@ -375,5 +437,3 @@ describe('plugin-restful tests', () => {
       })
   })
 })
-
-
