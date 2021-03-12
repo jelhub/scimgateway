@@ -15,6 +15,7 @@ Validated through IdP's:
   
 Latest news:  
 
+- ipAllowList configuration for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
 - General LDAP provisioning configured for Active Directory. Pre and post actions onAddGroups/onRemoveGroups for additional logic  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
 - getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly
@@ -170,9 +171,9 @@ To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compabilit
 	// const forwardinc = require('./lib/plugin-forwardinc')
 	// const mssql = require('./lib/plugin-mssql')
 	// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb --save
-	// const api = require('./lib/plugin-api')
 	// const azureAD = require('./lib/plugin-azure-ad')
 	// const ldap = require('./lib/plugin-ldap')
+	// const api = require('./lib/plugin-api')
 
 Each endpoint plugin needs a JavaScript file (.js) and a configuration file (.json). **They both must have the same naming prefix**. For SAP Hana endpoint we have:  
 >lib\plugin-saphana.js  
@@ -187,7 +188,7 @@ Below shows an example of config\plugin-saphana.json
 	    "port": 8884,
 	    "localhostonly": false,
         "scim": {
-          "version": "1.1",
+          "version": "2.0",
           "customSchema": null
         },
         "log": {
@@ -236,6 +237,7 @@ Below shows an example of config\plugin-saphana.json
 	        "password": null
 	      }
 	    },
+	    "ipAllowList": [],
 	    "emailOnError": {
 	      "smtp": {
 	        "enabled": false,
@@ -281,7 +283,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the CA Connector Server).  
 
-- **scim.version** - "1.1" or "2.0". Default is "1.1". For Azure AD as IdP "2.0" should be used.  
+- **scim.version** - "1.1" or "2.0". Default is "2.0". For Symantec/Broadcom/CA Identity Manager "1.1" should be used.  
 
 - **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes  
 
@@ -326,14 +328,24 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 	Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
-- **emailOnError** - Contains configuration for sending error notifications by email. Note, only the first error will be sent until sendInterval have passed 
-- **emailOnError.smtp.enabled** - true or false, value set to true will enable email notifications  
-- **emailOnError.smtp.host** - Mailserver e.g. "smtp.office365.com"  
+- **ipAllowList** - Array of one or more IPv4/IPv6 subnets (CIDR) allowed for incoming traffic.  E.g. using Azure AD as IdP, we would like to restrict access to IP addresses used by Azure AD. Azure IP-range can be downloaded from: [https://azureipranges.azurewebsites.net](https://azureipranges.azurewebsites.net), enter **AzureActiveDirectory** in the search list and select JSON download. Copy the "addressPrefixes" array content and paste into ipAllowList array. CDIR single IP-host entry is a.b.c.d/32. Note, front-end HTTP proxy or a load balancer must include the **X-Forwarded-For** header. Configuration example:  
+
+        "ipAllowList": [
+          "13.66.60.119/32",
+          "13.66.143.220/30",
+          ...
+          "2603:1056:2000::/48",
+          "2603:1057:2::/48"
+        ]
+
+- **emailOnError** - Contains configuration for sending error notifications by email. Note, only the first error will be sent until sendInterval have passed
+- **emailOnError.smtp.enabled** - true or false, value set to true will enable email notifications
+- **emailOnError.smtp.host** - Mailserver e.g. "smtp.office365.com"
 - **emailOnError.smtp.port** - Port used by mailserver e.g. 587, 25 or 465
 - **emailOnError.smtp.proxy** - If using mailproxy e.g. "http://proxy-host:1234"
 - **emailOnError.smtp.authenticate** - true or false, set to true will use username/password authentication
-- **emailOnError.smtp.username** - Mail account for authentication and also the sender of the email, e.g. "user@outlook.com"  
-- **emailOnError.smtp.password** - Mail account password  
+- **emailOnError.smtp.username** - Mail account for authentication and also the sender of the email, e.g. "user@outlook.com"
+- **emailOnError.smtp.password** - Mail account password
 - **emailOnError.smtp.sendInterval** - Mail notifications on error are deferred until sendInterval **minutes** have passed since the last notification. Default 15 minutes
 - **emailOnError.smtp.to** - Comma separated list of recipients email addresses e.g: "someone@example.com"
 - **emailOnError.smtp.cc** - Comma separated list of cc email addresses
@@ -571,13 +583,18 @@ To upgrade scimgateway docker image (remove the old stuff before running docker-
 
 ## CA Identity Manager as IdP using SCIM Gateway  
 
-Using the Broadcom/CA Provisioning Manager we have to configure  
-  
+Using Symantec/Broadcom/CA Identity Manger, plugin configuration file must include **SCIM Version "1.1"** (scimgateway.scim.version).  
+
+In the Provisioning Manager we have to use  
+
+
 `Endpoint type = SCIM (DYN Endpoint)`  
+
+or create our own custom endpoint type based on this one  
 
 SCIM endpoint configuration example for Loki plugin (plugin-loki)
 
-	Endpoint Name = Loki  
+	Endpoint Name = Loki-8880  
 	User Name = gwadmin  
 	Password = password  
 	SCIM Authentication Method = HTTP Basic Authentication  
@@ -749,10 +766,10 @@ For multi-tenant or multi-endpoint support, we may add several entities:
 	  "entity": {
 	    "undefined": {
 			...
-	    }
+	    },
 	    "clientA": {
 			...
-	    }
+	    },
 	    "clientB": {
 			...
 	    }
@@ -1175,6 +1192,25 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v3.2.0  
+[Added]  
+
+- ipAllowList configuration for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
+- Example plugins now configured for SCIM v2.0 instead of v1.1  
+
+	New configuration:  
+	
+	    "scim": {
+            "version": "2.0"
+	    }
+	
+	Old configuration:  
+	
+	    "scim": {
+            "version": "1.1"
+	    }
+
 
 ### v3.1.0  
 [Added]  
