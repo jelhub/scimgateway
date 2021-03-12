@@ -153,6 +153,10 @@ Check if newer versions are available:
 
 Lists current, wanted and latest version. No output on screen means we are running the latest version.
 
+The best and easiest way to upgrade is renaming existing scimgateway package folder, create a new one and do a fresh installation. After the installation you copy `index.js, config and lib folder` (your customized plugins) from your previous installation to the new installation. You should also read the version history to see if your custom plugins needs to be updated.
+
+Alternatives are:  
+
 Upgrade to latest minor version:  
 
 	cd c:\my-scimgateway
