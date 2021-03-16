@@ -383,15 +383,14 @@ describe('plugin-restful tests', () => {
   it('modifyGroupMembers test', (done) => {
     server_8886.patch('/Groups/GoGoRest')
       .set(options.headers)
-      // .send({ members: [{ value: 'xman' }, { value: 'zperson' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
+      // .send({ members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
       .send({
         Operations: [
           {
             op: 'add',
             path: 'members',
             value: [
-              { value: 'xman' },
-              { value: 'zperson' }
+              { value: 'jsmith' }
             ]
           },
           {
@@ -420,9 +419,8 @@ describe('plugin-restful tests', () => {
         expect(group).to.not.equal('undefined')
         expect(group.displayName).to.equal('GoGoRest')
         expect(group.id).to.equal('GoGoRest')
-        expect(group.members.length).to.equal(2)
-        expect(group.members[0].value).to.equal('xman')
-        expect(group.members[1].value).to.equal('zperson')
+        expect(group.members.length).to.equal(1)
+        expect(group.members[0].value).to.equal('jsmith')
         done()
       })
   })
