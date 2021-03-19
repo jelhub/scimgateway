@@ -267,7 +267,7 @@ describe('plugin-restful tests', () => {
       .send(user)
       .end(function (err, res) {
         expect(err).to.equal(null)
-        expect(res.statusCode).to.equal(200)
+        expect(res.statusCode).to.equal(204)
         done()
       })
   })
@@ -308,7 +308,7 @@ describe('plugin-restful tests', () => {
       .send(user)
       .end(function (err, res) {
         expect(err).to.equal(null)
-        expect(res.statusCode).to.equal(200)
+        expect(res.statusCode).to.equal(204)
         done()
       })
   })
@@ -404,7 +404,7 @@ describe('plugin-restful tests', () => {
       })
       .end(function (err, res) {
         expect(err).to.equal(null)
-        expect(res.statusCode).to.equal(200)
+        expect(res.statusCode).to.equal(204)
         done()
       })
   })
