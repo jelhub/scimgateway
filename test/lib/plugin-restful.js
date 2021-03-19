@@ -381,7 +381,7 @@ describe('plugin-restful tests', () => {
   })
 
   it('modifyGroupMembers test', (done) => {
-    server_8886.patch('/Groups/GoGoRest')
+    server_8886.patch('/Groups/GoGoRest?attributes=displayName')
       .set(options.headers)
       // .send({ members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
       .send({
@@ -403,8 +403,10 @@ describe('plugin-restful tests', () => {
         ]
       })
       .end(function (err, res) {
+        const group = res.body
         expect(err).to.equal(null)
-        expect(res.statusCode).to.equal(204)
+        expect(res.statusCode).to.equal(200)
+        expect(group.displayName).to.equal('GoGoRest')
         done()
       })
   })

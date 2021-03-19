@@ -412,7 +412,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('modifyGroupMembers test', (done) => {
-    server_8880.patch('/Groups/GoGoLoki')
+    server_8880.patch('/Groups/GoGoLoki?attributes=displayName')
       .set(options.headers)
       // .send({ members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
       .send({ 
@@ -434,8 +434,10 @@ describe('plugin-loki tests', () => {
         ]
       })
       .end(function (err, res) {
+        const group = res.body
         expect(err).to.equal(null)
-        expect(res.statusCode).to.equal(204)
+        expect(res.statusCode).to.equal(200)
+        expect(group.displayName).to.equal('GoGoLoki')
         done()
       })
   })
