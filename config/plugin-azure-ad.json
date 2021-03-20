@@ -4,8 +4,7 @@
     "localhostonly": false,
     "scim": {
       "version": "1.1",
-      "customSchema": null,
-      "skipCoreMapping": true
+      "customSchema": null
     },
     "log": {
       "loglevel": {
