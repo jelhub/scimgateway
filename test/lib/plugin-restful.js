@@ -81,7 +81,7 @@ describe('plugin-restful tests', () => {
         expect(user.emails[0].type).to.equal('work')
         expect(user.emails[0].value).to.equal('bjensen@example.com')
         expect(user.meta.location).to.not.equal(undefined)
-        expect(user.schemas).to.not.equal(undefined)
+        expect(user.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:User')
         done()
       })
   })
@@ -381,7 +381,7 @@ describe('plugin-restful tests', () => {
   })
 
   it('modifyGroupMembers test', (done) => {
-    server_8886.patch('/Groups/GoGoRest?attributes=displayName')
+    server_8886.patch('/Groups/GoGoRest?attributes=members')
       .set(options.headers)
       // .send({ members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
       .send({
@@ -406,7 +406,8 @@ describe('plugin-restful tests', () => {
         const group = res.body
         expect(err).to.equal(null)
         expect(res.statusCode).to.equal(200)
-        expect(group.displayName).to.equal('GoGoRest')
+        expect(group.members).to.not.equal('undefined')
+        expect(group.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:Group')
         done()
       })
   })

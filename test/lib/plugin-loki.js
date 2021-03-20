@@ -81,8 +81,10 @@ describe('plugin-loki tests', () => {
         expect(user.phoneNumbers[0].value).to.equal('555-555-5555')
         expect(user.emails[0].type).to.equal('work')
         expect(user.emails[0].value).to.equal('bjensen@example.com')
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager.value).to.equal('jsmith')
         expect(user.meta.location).to.not.equal(undefined)
-        expect(user.schemas).to.not.equal(undefined)
+        expect(user.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:User')
+        expect(user.schemas[1]).to.equal('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User')
         done()
       })
   })
@@ -211,7 +213,10 @@ describe('plugin-loki tests', () => {
         type: 'work',
         streetAddress: 'City Plaza',
         postalCode: '9559'
-      }]
+      }],
+      'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
+        employeeNumber: '123456'
+      }
     }
 
     server_8880.post('/Users')
@@ -248,6 +253,9 @@ describe('plugin-loki tests', () => {
         expect(user.addresses[0].type).to.equal('work')
         expect(user.addresses[0].streetAddress).to.equal('City Plaza')
         expect(user.addresses[0].postalCode).to.equal('9559')
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal('123456')
+        expect(user.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:User')
+        expect(user.schemas[1]).to.equal('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User')
         done()
       })
   })
@@ -327,6 +335,20 @@ describe('plugin-loki tests', () => {
             streetAddress: 'New Address',
             postalCode: '1111'
           }
+        },
+        {
+          op: 'remove',
+          path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber'
+        },
+        {
+          op: 'add',
+          path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department',
+          value: 'Top Floor'
+        },
+        {
+          op: 'add',
+          path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager',
+          value: 'bjensen'
         }
       ]
     }
@@ -363,6 +385,9 @@ describe('plugin-loki tests', () => {
         expect(user.addresses[0].type).to.equal('work')
         expect(user.addresses[0].streetAddress).to.equal('New Address') // modified
         expect(user.addresses[0].postalCode).to.equal('1111') // modified
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal(undefined) // deleted
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].department).to.equal('Top Floor') // added
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager.value).to.equal('bjensen') // added
         done()
       })
   })
@@ -412,7 +437,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('modifyGroupMembers test', (done) => {
-    server_8880.patch('/Groups/GoGoLoki?attributes=displayName')
+    server_8880.patch('/Groups/GoGoLoki?attributes=members')
       .set(options.headers)
       // .send({ members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
       .send({ 
@@ -437,7 +462,8 @@ describe('plugin-loki tests', () => {
         const group = res.body
         expect(err).to.equal(null)
         expect(res.statusCode).to.equal(200)
-        expect(group.displayName).to.equal('GoGoLoki')
+        expect(group.members).to.not.equal('undefined')
+        expect(group.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:Group')
         done()
       })
   })
