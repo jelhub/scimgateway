@@ -215,7 +215,9 @@ describe('plugin-loki tests', () => {
         postalCode: '9559'
       }],
       'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
-        employeeNumber: '123456'
+        employeeNumber: '123456',
+        test1: 'xxx',
+        test2: 'yyy'
       }
     }
 
@@ -254,6 +256,8 @@ describe('plugin-loki tests', () => {
         expect(user.addresses[0].streetAddress).to.equal('City Plaza')
         expect(user.addresses[0].postalCode).to.equal('9559')
         expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal('123456')
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).to.equal('xxx')
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).to.equal('yyy')
         expect(user.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:User')
         expect(user.schemas[1]).to.equal('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User')
         done()
@@ -349,6 +353,14 @@ describe('plugin-loki tests', () => {
           op: 'add',
           path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager',
           value: 'bjensen'
+        },
+        {
+          op: 'replace',
+          path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User',
+          value: {
+            test1: 'test1-value',
+            test2: 'test2-value'
+          }
         }
       ]
     }
@@ -388,6 +400,8 @@ describe('plugin-loki tests', () => {
         expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal(undefined) // deleted
         expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].department).to.equal('Top Floor') // added
         expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager.value).to.equal('bjensen') // added
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).to.equal('test1-value') // modified
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).to.equal('test2-value') // modified
         done()
       })
   })
