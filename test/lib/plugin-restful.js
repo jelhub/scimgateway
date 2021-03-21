@@ -1,6 +1,5 @@
 'use strict'
 
-// Natural language-like assertions
 const expect = require('chai').expect
 const scimgateway = require('../../lib/plugin-restful.js')
 const server_8886 = require('supertest').agent('http://localhost:8886') // module request is an alternative

@@ -1,6 +1,5 @@
 'use strict'
 
-// Natural language-like assertions
 const expect = require('chai').expect
 const scimgateway = require('../../lib/plugin-loki.js')
 const server_8880 = require('supertest').agent('http://localhost:8880') // module request is an alternative
@@ -351,7 +350,7 @@ describe('plugin-loki tests', () => {
         },
         {
           op: 'add',
-          path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager',
+          path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.value',
           value: 'bjensen'
         },
         {
