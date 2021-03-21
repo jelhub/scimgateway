@@ -15,8 +15,8 @@ Validated through IdP's:
   
 Latest news:  
 
-- ipAllowList configuration for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
-- General LDAP provisioning configured for Active Directory. Pre and post actions onAddGroups/onRemoveGroups for additional logic  
+- ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
+- General LDAP plugin configured for Active Directory. Pre and post actions onAddGroups/onRemoveGroups for additional logic  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
 - getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
@@ -289,7 +289,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **scim.version** - "1.1" or "2.0". Default is "2.0". For Symantec/Broadcom/CA Identity Manager "1.1" should be used.  
 
-- **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes  
+- **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes 
 
 - **log.loglevel.file** - off, error, info, or debug. Output to plugin-logfile `logs\plugin-saphana.log`  
 
@@ -332,7 +332,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 	Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
-- **ipAllowList** - Array of one or more IPv4/IPv6 subnets (CIDR) allowed for incoming traffic.  E.g. using Azure AD as IdP, we would like to restrict access to IP addresses used by Azure AD. Azure IP-range can be downloaded from: [https://azureipranges.azurewebsites.net](https://azureipranges.azurewebsites.net), enter **AzureActiveDirectory** in the search list and select JSON download. Copy the "addressPrefixes" array content and paste into ipAllowList array. CDIR single IP-host entry is a.b.c.d/32. Note, front-end HTTP proxy or a load balancer must include the **X-Forwarded-For** header. Configuration example:  
+- **ipAllowList** - Array of one or more IPv4/IPv6 subnets (CIDR) allowed for incoming traffic.  E.g. using Azure AD as IdP, we would like to restrict access to IP addresses used by Azure AD. Azure IP-range can be downloaded from: [https://azureipranges.azurewebsites.net](https://azureipranges.azurewebsites.net), enter **AzureActiveDirectory** in the search list and select JSON download. Copy the "addressPrefixes" array content and paste into ipAllowList array. CIDR single IP-host syntax is a.b.c.d/32. Note, front-end HTTP proxy or a load balancer must include the **X-Forwarded-For** header. Configuration example:  
 
         "ipAllowList": [
           "13.66.60.119/32",
@@ -408,7 +408,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - Custom schema attributes can be added by plugin configuration `scim.customSchema` having value set to filename of a JSON schema-file located in `<package-root>/config/schemas` e.g:  
 
 		"scim": {
-		  "version": "1.1",
+		  "version": "2.0",
 		  "customSchema": "plugin-forwardinc-schema.json"
 		},
 
@@ -694,45 +694,74 @@ Using plugin-azure-ad we could do user provisioning towards Azure AD including l
 
 For testing purposes we could get an Azure free account and in addition the free Office 365 for testing license management through Azure.
 
-**Azure AD prerequisites**  
+There are two alternative ways of configuring Azure AD. Alternative #1 is probably best and easiest  
+
+
+### Azure AD configuration 
 
 - Logon to [Azure](https://portal.azure.com) as global administrator  
-- Azure Active Directory - properties
-	- Copy **"Directory ID"**  
-	- or Azure Active Directory - Custom domain names (copy primary domain name)
-- Azure Active Directory - App registrations - New application registration 
-	- Name = newApp  
-	- Application type = Web app API
-	- Sign-on URL = http://localhost (not used)
-	- Click "Create"
-- Click "newApp"
-	- Copy **"Application ID"**  
-	- Required permissions - Windows Azure Active Directory
-		-   Enable "APPLICATION PERMISSIONS" (all application sub categories enabled)
-		-   Click "Save"
-	-   Keys
-		- Key description = Key1
-		- Duration = Never expires
-		- Click "Save"
-		- Copy Key1 **"value"**" (client secret)
+- Azure Active Directory - Enterprise applications - New application
+	-  Create your own application
+	-  Name = SCIM Gateway Inbound
+	-  Select: Integrate any other application you don't find in the gallery (Non-gallery)
+	-  Click "Create"
+	
+- Azure Active Directory - App registrations
+	- Click "New registration"
+	- Name = SCIM Gateway Inbound
+	- Select: Accounts in this organizational directory only
+	- Click "Register"
+	- Overview:
+		- Copy "Application (client) ID"
+		- Copy "Directory (tentant) ID"
+	- Certificates & secrets:
+		- Click "New client secret"
+		- Description = SCIM Gateway Inbound secret#1
+		- Select an appropriate "Expires"
+		- Click "Add"
+		- Copy "Value" of the new secret that was created
+	- API permissions: - Add a permission - Microsoft Graph - Application permissions
+		- Optionally remove any defaults included e.g. User.Read		
+		- Click "Add a permission"
+		- Microsoft Graph
+		- Application permissions
+		- Directory - Directory.ReadWriteAll
+		- Organization - Organization.ReadWrite.All
+		- Click "Add permissions"  
+		Note, we also have to go to Enterprise application to grant these consents  
+- Azure Active Directory - Enterprise applications - SCIM Gateway Inbound
+	- Permissions:
+		- Click "Grant admin consent for [tenant name]"
+		- In the logon dialog, logon as global administrator
+		- In permissions request dialog, click "Accept"
+		- Click "Refresh", directory and organization permissions are now listed and OK
 
-**Application needs to be member of "User Account Administrator" when running behalf of application rather than user** 
+
+**For some odd reasons Application needs to be member of "User Administrator" for having privileges to manage office/mobile phone on users that is member of any administrator roles** 
+
+Also note, enable/disable user (accountEnabled - through Graph API) will fail if user have an "Administrator" role other than above mentioned "User Administrator" e.g. "Group Administrator"/"Application Administrator". To be sure we can enable/disable all users,  Application needs to be member of **"Company Administrator"** - 62e90394-69f5-4237-9190-012177145e10. Configuration below using "User Administrator"  
  
 - Start Powershell command window
 - Install the [Azure AD Module](https://docs.microsoft.com/en-us/powershell/msonline/) (if not already installed)  
 	- Install-Module MSOnline
 - Import-Module MSOnline
-- Connect-MsolService (logon as a user having "Global administrator" role)   
+- Connect-MsolService  
+  logon as a user having "Global administrator" role   
 - Get-MsolServicePrincipal -AppPrincipalId {Application ID}  
 	- Copy ObjectId
-- List all roles and find "User Account Administrator"  
+- List all roles and find "User Administrator"  
 	- Get-MsolRole  
 - List current members of this role:
 	- Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1
-- Add application to "User Account Administrator" role:  
-	- Add-MsolRoleMember -RoleName "User Account Administrator" -RoleMemberType ServicePrincipal -RoleMemberObjectId {ObjectIdOfServicePrincipal}  
+- Add application to "User Administrator" role:  
+	- Add-MsolRoleMember -RoleName "User Administrator" -RoleMemberType ServicePrincipal -RoleMemberObjectId {ObjectIdOfServicePrincipal}  
 - Verify:  
 	- Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1  
+- If you need to remove/rollback: 
+	- Remove-MsolRoleMember -RoleName "User Administrator" -RoleMemberType ServicePrincipal -RoleMemberObjectId {ObjectIdOfServicePrincipal}
+
+
+### SCIM Gateway configuration  
 
 **Edit index.js**  
 Uncomment startup of plugin-azure-ad, other plugins could be comment out if not needed
@@ -741,9 +770,25 @@ Uncomment startup of plugin-azure-ad, other plugins could be comment out if not 
 
 **Edit plugin-azure-ad.json**
 
-`Username` and `password` used to connect the SCIM Gateway must be defined.
+Note, for Symantec/Broadcom/CA Provisioning we have to use SCIM version 1.1 
+ 
+	scimgateway: {
+	  "scim": {
+	    "version": "1.1"
+	  },
 
-Update `tenantIdGUID`, `clientID` and `clientSecret` according to Azure AD prerequisites configuration.  
+`username` and `password` used to connect the SCIM Gateway must be defined.  
+
+        "auth": {
+          "basic": [
+            {
+              "username": "gwadmin",
+              "password": "password",
+              "readOnly": false
+            }
+          ],
+
+Update `tenantIdGUID`, `clientID` and `clientSecret` according to what you copied from the previous Azure AD configuration.  
   
 If using proxy, set proxy.host to `"http://<FQDN-ProxyHost>:<port>"` e.g `"http://proxy.mycompany.com:3128"`  
 
@@ -784,7 +829,8 @@ For additional details, see baseEntity description.
 
 Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install gateway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
-**For Broadcom/CA Provisioning, create endpoint type "Azure - ScimGateway"**  
+### Using Symantec/Broadcom/CA Provisioning   
+Create a new endpoint type "Azure - ScimGateway"  
 
 - Start SCIM Gateway
 	- "const azureAD" must be uncomment in `index.js`
@@ -805,13 +851,13 @@ Note, we should normally use certificate (https) for communicating with SCIM Gat
 
 Note, metafile "Azure - ScimGateway.xml" is based on CA "Azure - WSL7" with some minor adjustments like using Microsoft Graph API attributes instead of Azure AD Graph attributes.
 
-**Using the Broadcom/CA Provisioning Manager we have to configure**  
+**Provisioning Manager configuration**  
   
 `Endpoint type = Azure - ScimGateway (DYN Endpoint)`  
 
 Endpoint configuration example:
 
-	Endpoint Name = Azure-AD-8881  
+	Endpoint Name = AzureAD-8881  
 	User Name = gwadmin  
 	Password = password  
 	SCIM Authentication Method = HTTP Basic Authentication  
@@ -856,11 +902,11 @@ In Azure Portal:
 `Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Secret Token`  
 Note, when "Secret Token" is left blank, Azure will use JWT (tenantIdGUID)
 
-`Azure-Azure Active Directory-Properties-Directory ID`
+`Azure-Azure Active Directory-Overview-Tenant ID`
 
 User mappings attributes between AD and SCIM also needs to be configured  
 
-`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Attribute Mapping`
+`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Edit attribute mappings-Mappings`
 
 Azure AD default SCIM attribute mapping for **USER** must have:  
 
@@ -878,13 +924,13 @@ Some notes related to Azure AD:
 
 - Azure Active Directory SCIM [documentation](https://docs.microsoft.com/en-us/azure/active-directory/active-directory-scim-provisioning)  
 
-- Use the "[old Portal]( https://manage.windowsazure.com)" for adding/creating your SCIM application.  Adding an application using the "[new Portal](https://portal.azure.com)" will not give an OAuth/JWT compatible app - only bearer token (Secret Token) will be used. After the app have been registered (passing the "Test phase"), we could start using the "new Portal"
+- For using OAuth/JWT credentials, Azure configuration "Secret Token" (bearer token) should be blank. Plugin configuration must then include bearerJwtAzure.tenantIdGUID. Click "Test Connection" in Azure to verify
 
 - Azure AD do a regular check for a "none" existing user/group. This check seems to be a "keep alive" to verify connection.
 
 - Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
 
-- Deleting a user in Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is configured in attribute mappings. Standard SCIM "DELETE" method seems not to be used.  
+- Deleting a user in Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is default set in attribute mappings expression rule `Switch([IsSoftDeleted], , "False", "True", "True", "False")`. Standard SCIM "DELETE" method seems not to be used.  
 
 ## API Gateway    
 
@@ -1197,10 +1243,32 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.2.1  
+[Fix]  
+
+- plugin-azure-ad updating businessPhones (Office phone) broken after v3.2.0  
+- plugin-azure-ad listing groups for user did also include Azure roles  
+- SCIM v2.0 none core schema attributes handling
+- response not always including correct schemas   
+
+[Added]  
+
+- roles now using array instead of objects based on type. **Note, this may break your custom plugins if roles logic are in use**
+
 ### v3.2.0  
 [Added]  
 
-- ipAllowList configuration for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
+- ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
+	Configuration example:  
+	
+        "ipAllowList": [
+          "13.66.60.119/32",
+          "13.66.143.220/30",
+          ...
+          "2603:1056:2000::/48",
+          "2603:1057:2::/48"
+        ]
+
 - Example plugins now configured for SCIM v2.0 instead of v1.1  
 
 	New configuration:  
