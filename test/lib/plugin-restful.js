@@ -13,12 +13,40 @@ var options = {
 }
 
 describe('plugin-restful tests', () => {
-  it('exploreUsers test', function (done) {
+  it('exploreUsers test (1)', function (done) {
+    server_8886.get('/Users' +
+      '?startIndex=1&count=100')
+      .set(options.headers)
+      .end(function (err, res) {
+        if (err) { }
+        const users = res.body
+        expect(res.statusCode).to.equal(200)
+        expect(users.totalResults).to.equal(2)
+        expect(users.itemsPerPage).to.equal(2)
+        expect(users.startIndex).to.equal(1)
+        expect(users).to.not.equal('undefined')
+        expect(users.Resources[0].userName).to.equal('bjensen')
+        expect(users.Resources[0].id).to.equal('bjensen')
+        expect(users.Resources[0].name.givenName).to.equal('Barbara')
+        expect(users.Resources[0].groups[0].value).to.equal('Admins')
+        expect(users.Resources[0].groups[0].display).to.equal('Admins')
+        expect(users.Resources[0].groups[0].type).to.equal('direct')
+        expect(users.Resources[1].userName).to.equal('jsmith')
+        expect(users.Resources[1].id).to.equal('jsmith')
+        expect(users.Resources[1].name.givenName).to.equal('John')
+        expect(users.Resources[1].groups[0].value).to.equal('Employees')
+        expect(users.Resources[1].groups[0].display).to.equal('Employees')
+        expect(users.Resources[1].groups[0].type).to.equal('direct')
+        done()
+      })
+  })
+
+  it('exploreUsers test (2)', function (done) {
     server_8886.get('/Users' +
       '?attributes=userName&startIndex=1&count=100')
       .set(options.headers)
       .end(function (err, res) {
-        if (err) {}
+        if (err) { }
         const users = res.body
         expect(res.statusCode).to.equal(200)
         expect(users.totalResults).to.equal(2)
@@ -27,8 +55,10 @@ describe('plugin-restful tests', () => {
         expect(users).to.not.equal('undefined')
         expect(users.Resources[0].userName).to.equal('bjensen')
         expect(users.Resources[0].id).to.equal(undefined)
+        expect(users.Resources[0].groups).to.equal(undefined)
         expect(users.Resources[1].userName).to.equal('jsmith')
         expect(users.Resources[1].id).to.equal(undefined)
+        expect(users.Resources[1].groups).to.equal(undefined)
         done()
       })
   })
@@ -41,22 +71,16 @@ describe('plugin-restful tests', () => {
         if (err) {}
         const groups = res.body
         expect(res.statusCode).to.equal(200)
-        expect(groups.totalResults).to.be.above(3)
-        expect(groups.itemsPerPage).to.be.above(3)
+        expect(groups.totalResults).to.equal(2)
+        expect(groups.itemsPerPage).to.equal(2)
         expect(groups.startIndex).to.equal(1)
-        expect(groups).to.not.equal('undefined')
+        expect(groups).to.not.equal(undefined)
         expect(groups.Resources[0].displayName).to.equal('Admins')
-        expect(groups.Resources[0].id).to.equal('Admins')
-        expect(groups.Resources[0].externalId).to.equal('Admins')
+        expect(groups.Resources[0].id).to.equal(undefined)
+        expect(groups.Resources[0].externalId).to.equal(undefined)
         expect(groups.Resources[1].displayName).to.equal('Employees')
-        expect(groups.Resources[1].id).to.equal('Employees')
-        expect(groups.Resources[1].externalId).to.equal('Employees')
-        expect(groups.Resources[2].displayName).to.equal('UserGroup-1')
-        expect(groups.Resources[2].id).to.equal('UserGroup-1')
-        expect(groups.Resources[2].externalId).to.equal('UserGroup-1')
-        expect(groups.Resources[3].displayName).to.equal('UserGroup-2')
-        expect(groups.Resources[3].id).to.equal('UserGroup-2')
-        expect(groups.Resources[3].externalId).to.equal('UserGroup-2')
+        expect(groups.Resources[1].id).to.equal(undefined)
+        expect(groups.Resources[1].externalId).to.equal(undefined)
         done()
       })
   })
@@ -79,6 +103,9 @@ describe('plugin-restful tests', () => {
         expect(user.phoneNumbers[0].value).to.equal('555-555-5555')
         expect(user.emails[0].type).to.equal('work')
         expect(user.emails[0].value).to.equal('bjensen@example.com')
+        expect(user.groups[0].value).to.equal('Admins')
+        expect(user.groups[0].display).to.equal('Admins')
+        expect(user.groups[0].type).to.equal('direct')
         expect(user.meta.location).to.not.equal(undefined)
         expect(user.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:User')
         done()
@@ -105,6 +132,7 @@ describe('plugin-restful tests', () => {
         expect(user.phoneNumbers[0].value).to.equal('555-555-5555')
         expect(user.emails[0].type).to.equal('work')
         expect(user.emails[0].value).to.equal('bjensen@example.com')
+        expect(user.groups).to.equal(undefined)
         done()
       })
   })

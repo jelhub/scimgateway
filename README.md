@@ -16,13 +16,13 @@ Validated through IdP's:
 Latest news:  
 
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
-- General LDAP plugin configured for Active Directory. Pre and post actions onAddGroups/onRemoveGroups for additional logic  
+- General LDAP plugin configured for Active Directory.  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
 - getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
 - Supports configuration by environments and external files
 - Health monitoring through "/ping" URL, and option for error notifications by email
-- Azure AD user provisioning including license management (e.g. Office 365), installed and configured within minutes!
+- Azure AD user provisioning including license management e.g. Office 365, installed and configured within minutes!
 - Includes API Gateway for none SCIM/provisioning - becomes what you want it to become   
 - Running SCIM Gateway as a Docker container  
 
@@ -79,6 +79,7 @@ Using endpointMapper (like plugin-azure-ad) for attribute flexibility
 * **API** (REST Webservices)  
 Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete  
 None SCIM plugin, becomes what you want it to become.  
+Methods listed can also be used in standard SCIM plugins  
 Endpoint complexity could be put in this plugin, and client could instead communicate through Gateway using your own simplified REST specification.  
 One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager.  
 
@@ -125,7 +126,7 @@ If internet connection is blocked, we could install on another machine and copy 
 	or 
 	http://localhost:8880/Users?attributes=userName
 	http://localhost:8880/Groups?attributes=displayName  
-	=> Logon using gwadmin/password and two users / four groups should be listed  
+	=> Logon using gwadmin/password and two users and groups should be listed  
 
 	http://localhost:8880/Users/bjensen
 	http://localhost:8880/Groups/Admins
@@ -255,16 +256,6 @@ Below shows an example of config\plugin-saphana.json
 	        "to": null,
 	        "cc": null
 	      }
-	    },
-	    "actions": {
-	      "preAction": {
-	        "onAddGroups": [],
-	        "onRemoveGroups": []
-	      },
-	      "postAction": {
-	        "onAddGroups": [],
-	        "onRemoveGroups": []
-	      }
 	    }
 	  },
 	  "endpoint": {
@@ -291,13 +282,13 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes 
 
-- **log.loglevel.file** - off, error, info, or debug. Output to plugin-logfile `logs\plugin-saphana.log`  
+- **log.loglevel.file** - off, error, info, or debug. Output to plugin-logfile e.g. `logs\plugin-saphana.log`  
 
 - **log.loglevel.console** - off, error, info, or debug. Output to stdout and errors to stderr.   
 
-- **log.customMasking** - array of attributes to be masked e.g. `"customMasking": ["SSN", "weight"]`. By default SCIM Gateway includes masking of standard attributes like password.  
+- **log.customMasking** - array of attributes to be masked e.g. `"customMasking": ["SSN", "weight"]`. By default SCIM Gateway includes masking of some standard attributes like password.  
 
-- **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway. **Methods are disabled by setting corresponding attributes to null or remove methods not used**. Methods having user/object set to `"readOnly": true` gives read only access (only allowing `GET` requests for corresponding Admin user). 
+- **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway. **Methods are disabled by setting corresponding attributes to null or remove methods not used**. Methods having user/object set to `"readOnly": true` gives read only access (only allowing `GET` requests for corresponding admin user). 
 
 - **auth.basic** - Array of one ore more basic authentication objects - Basic Authentication with **username**/**password**. Note, we set a clear text password that will become encrypted when gateway is started.  
 
@@ -1160,37 +1151,43 @@ filter: **displayName** and **id** must be supported
 		return arrRet
 	}
 
-Retrieve all users for a spesific group WHEN **"user member of group"**. This setting is CA IM default scim endpoint configuration. This means Group having multivalue attribute members containing userName.  
+
+Retrieve all groups for user id WHEN **"user member of groups"**. This setting is default SCIM behaviour. This means Group having multivalue attribute members containing id of users.  
 
 * id = user id (eg. bjensen)  
-* attributes = attributes to be returned in callback (we only return the name of groups - displayName and current user as member)  
-* startIndex = Pagination - The 1-based index of the first result in the current set of search results  
-* count = Pagination - Number of elements to be returned in the current set of search results  
-* return ret:  
-ret.Resources = array to be filled with objects containing groups with current user as member  
-e.g [{"displayName":"Admins","members": [{ "value": bjensen}]}, {"displayName":"Employees", "members": [{ "value": bjensen}]}]  
+* attributes = scim attributes to be returned as object in array
+* arrRet = array containing the objects of id, displayName and members where members value only include current user id on the format:  
+{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }
 
-	ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (group members) at the endpoint else set to null  
-  
-	If we do not support groups (or "user member of group"), callback(null, [])  
+	[  
+	{"id": "Admins", "displayName: "Admins", "members": [{"value": "bjensen"}]},  
+	{"id": "Employees", "displayName: "Employees", "members": [{"value": "bjensen"}]}  
+	]
+
+	If "user member of groups" not supported, then return []  
+
 
 
 ### getGroupUsers  
 
-	scimgateway.getGroupUsers = async (baseEntity, groupName, attributes) => {
+	scimgateway.getGroupUsers = async (baseEntity, id, attributes) => {
     	let arrRet = []
 		...
     	return arrRet
 	}
 
-Retrieve all users for a spesific group WHEN **"group member of user"**. This means user having multivalue attribute groups containing value GroupName  
+Retrieve all users for a spesific group id WHEN **"group member of users"**. This means user having multivalue attribute groups having value set to group id  
 
-* groupName = group name (eg. UserGroup-1)  
-* attributes = scim attributes to be returned in callback  
-* return arrRet: arrRet = array containing the userName's'
-	e.g: [{"userName", "bjensen"}, {"userName", "jsmith"}]
+* id = group id (eg. UserGroup-1)  
+* attributes = scim attributes to be returned as object in array 
+* arrRet = array containing the objects of userName and groups.value e.g:
 
-	If we do not support groups (or "group member of user"), then return []  
+	[  
+	{"userName", "bjensen": [{"value": "UserGroup-1"}]},  
+	{"userName", "jsmith"}: [{"value": "UserGroup-1"}]}  
+	]
+
+	If "group member of users" not supported, then return []  
 
 ### createGroup  
 	scimgateway.createGroup = async (baseEntity, groupObj) => {
@@ -1243,6 +1240,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.2.2  
+[Fix]  
+
+- plugins missing logic for handling the virtual readOnly user attribute `groups` (when `"user member of groups"`) e.g. GET /Users/bjensen should return all user attributes including the virtual `groups` attribute. Now this user attribute will be automatically handled by scimgateway if not included in the plugin response.  
+- Pre and post actions onAddGroups/onRemoveGroups introduced in v.3.2.0 has been withdrawn  
+
+[Added]  
+
+- scimgateway will do plugin response filtering according to requested attributes/excludedAttributes  
+
+
 ### v3.2.1  
 [Fix]  
 
@@ -1253,7 +1261,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 [Added]  
 
-- roles now using array instead of objects based on type. **Note, this may break your custom plugins if roles logic are in use**
+- roles now using array instead of objects based on type. **Note, this may break your custom plugins if roles logic are in use**  
 
 ### v3.2.0  
 [Added]  
