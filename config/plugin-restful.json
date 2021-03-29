@@ -66,16 +66,6 @@
         "to": null,
         "cc": null
       }
-    },
-    "actions": {
-      "preAction": {
-        "onAddGroups": [],
-        "onRemoveGroups": []
-      },
-      "postAction": {
-        "onAddGroups": [],
-        "onRemoveGroups": []
-      }
     }
   },
   "endpoint": {
@@ -84,6 +74,7 @@
         "baseUrls": [
           "http://localhost:8880"
         ],
+        "scimVersion": "2.0",
         "username": "gwadmin",
         "password": "password",
         "proxy": {
@@ -96,6 +87,7 @@
         "baseUrls": [
           "http://localhost:8880"
         ],
+        "scimVersion": "2.0",
         "username": "gwadmin",
         "password": "password",
         "proxy": {
