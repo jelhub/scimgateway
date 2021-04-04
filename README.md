@@ -1240,6 +1240,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.2.3  
+[Fix]  
+
+- PUT was not according to the SCIM specification  
+- plugin-mssql broken after dependencies bump v3.1.0  
+- plugin-loki getUser using `find` instead of `findOne` to ensure returning unique user    
+
 ### v3.2.2  
 [Fix]  
 
