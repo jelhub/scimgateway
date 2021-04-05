@@ -1240,6 +1240,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.2.4  
+[Fix]  
+
+- plugin-loki some code cleanup  
+
 ### v3.2.3  
 [Fix]  
 
