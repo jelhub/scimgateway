@@ -194,7 +194,8 @@ Below shows an example of config\plugin-saphana.json
 	    "localhostonly": false,
         "scim": {
           "version": "2.0",
-          "customSchema": null
+          "customSchema": null,
+          "skipTypeConvert" : false
         },
         "log": {
           "loglevel": {
@@ -281,6 +282,23 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **scim.version** - "1.1" or "2.0". Default is "2.0". For Symantec/Broadcom/CA Identity Manager "1.1" should be used.  
 
 - **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes 
+
+- **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included, and also for the endpointMapper (used by plugin-ldap and plugin-azure-ad), e.g.: 
+
+		"emails": {
+		  "work": {"value": "jsmith@company.com", "type": "work"},
+		  "home": {"value": "", "type": "home", "operation": "delete"},
+		  "undefined": {"value": "jsmith@hotmail.com"}
+		}  
+
+        skipTypeConvert set to true gives array and also allows duplicate types or multiple blank types:
+  
+		"emails": [
+		  {"value": "jsmith@company.com", "type": "work"},
+		  {"value": "", "type": "home", "operation": "delete"},
+		  {"value": "jsmith@hotmail.com"}
+		]  
+
 
 - **log.loglevel.file** - off, error, info, or debug. Output to plugin-logfile e.g. `logs\plugin-saphana.log`  
 
@@ -983,7 +1001,7 @@ For project setup:
 * Authentication = Basic Authentication  
 (connect using gwadmin/password defined in plugin config-file)
 
-### How to change "user member of groups" to "groups member of user"  
+### How to change "user member of groups" to "group member of users"  
 
 Using Connector Xpress based on the original SCIM endpoint.
 
@@ -1240,20 +1258,37 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.2.5  
+[Fixed]  
+
+- default "type converted object" logic may fail on requests that includes a mix of type and blank type. Now blank type will be converted to type "undefined", and all types must be unique within the same request. "type converted object" logic can be turned off by configuration `scim.skipTypeConvert = true`  
+- plugin-loki supporting type = "undefined"
+
+[Added]  
+
+- new configuration `scim.skipTypeConvert` allowing overriding the default behaviour "type converted object" when set to true. See attribute list for details  
+- `scimgateway.isMultivalue` used by plugin-loki have been changed, and **custom plugins using this method must be updated**    
+ 
+        old syntax:
+        scimgateway.isMultivalue('User', key)
+
+        new syntax:
+        scimgateway.isMultiValueTypes(key) 
+
 ### v3.2.4  
-[Fix]  
+[Fixed]  
 
 - plugin-loki some code cleanup  
 
 ### v3.2.3  
-[Fix]  
+[Fixed]  
 
 - PUT was not according to the SCIM specification  
 - plugin-mssql broken after dependencies bump v3.1.0  
 - plugin-loki getUser using `find` instead of `findOne` to ensure returning unique user    
 
 ### v3.2.2  
-[Fix]  
+[Fixed]  
 
 - plugins missing logic for handling the virtual readOnly user attribute `groups` (when `"user member of groups"`) e.g. GET /Users/bjensen should return all user attributes including the virtual `groups` attribute. Now this user attribute will be automatically handled by scimgateway if not included in the plugin response.  
 - Pre and post actions onAddGroups/onRemoveGroups introduced in v.3.2.0 has been withdrawn  
@@ -1264,7 +1299,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ### v3.2.1  
-[Fix]  
+[Fixed]  
 
 - plugin-azure-ad updating businessPhones (Office phone) broken after v3.2.0  
 - plugin-azure-ad listing groups for user did also include Azure roles  

@@ -329,16 +329,12 @@ describe('plugin-loki tests', () => {
         {
           op: 'replace',
           path: 'name.givenName',
-          value: [{
-            value: 'Jeff-Modified'
-          }]
+          value: 'Jeff-Modified'
         },
         {
           op: 'replace',
           path: 'active',
-          value: [{
-            value: false
-          }]
+          value: false
         },
         {
           op: 'replace',
@@ -369,7 +365,7 @@ describe('plugin-loki tests', () => {
           }
         },
         {
-          op: 'remove',
+          op: 'Remove',
           path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber'
         },
         {
@@ -434,6 +430,59 @@ describe('plugin-loki tests', () => {
       })
   })
 
+  it('modifyUser PUT test', (done) => {
+    const putUser = {
+      name: {
+        formatted: 'Mr. Jeff Gilbert-2',
+        familyName: 'Gilbert-2',
+        givenName: 'Jeff-2'
+      },
+      emails: [{
+        value: 'jgilber-2@example.com',
+        type: 'work'
+      }],
+      phoneNumbers: [{
+        value: 'tel:555-555-8376',
+        type: 'home'
+      }],
+      addresses: [{
+        type: 'work',
+        streetAddress: 'City Plaza-2',
+        postalCode: '9559-2'
+      }],
+      'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
+        employeeNumber: '1111'
+      }
+    }
+
+    server_8880.put('/Users/jgilber')
+      .set(options.headers)
+      .send(putUser)
+      .end(function (err, res) {
+        if (err) { }
+        const user = res.body
+        expect(err).to.equal(null)
+        expect(res.statusCode).to.equal(200)
+        expect(user).to.not.equal(undefined)
+        expect(user.id).to.equal('jgilber')
+        expect(user.active).to.equal(false)
+        expect(user.name.givenName).to.equal('Jeff-2') // modified
+        expect(user.name.formatted).to.equal('Mr. Jeff Gilbert-2') // modified
+        expect(user.title).to.equal(undefined) // deleted
+        expect(user.emails[0].type).to.equal('work')
+        expect(user.emails[0].value).to.equal('jgilber-2@example.com') // modified
+        expect(user.entitlements).to.equal(undefined) // deleted
+        expect(user.addresses[0].streetAddress).to.equal('City Plaza-2') // modified
+        expect(user.addresses[0].postalCode).to.equal('9559-2') // modified
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal('1111') // modified
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].department).to.equal(undefined) // deleted
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager).to.equal(undefined) // deleted
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).to.equal(undefined) // deleted
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).to.equal(undefined) // deleted
+        done()
+      })
+  })
+
   it('deleteUser test', (done) => {
     server_8880.delete('/Users/jgilber')
       .set(options.headers)
@@ -482,7 +531,7 @@ describe('plugin-loki tests', () => {
     server_8880.patch('/Groups/GoGoLoki?attributes=members')
       .set(options.headers)
       // .send({ members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
-      .send({ 
+      .send({
         Operations: [
           {
             op: 'add',
