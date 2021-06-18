@@ -283,19 +283,19 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes 
 
-- **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included, and also for the endpointMapper (used by plugin-ldap and plugin-azure-ad), e.g.: 
+- **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included and also for the endpointMapper method (used by plugin-ldap and plugin-azure-ad), e.g.: 
 
 		"emails": {
-		  "work": {"value": "jsmith@company.com", "type": "work"},
+		  "work": {"value": "jsmith@example.com", "type": "work"},
 		  "home": {"value": "", "type": "home", "operation": "delete"},
 		  "undefined": {"value": "jsmith@hotmail.com"}
 		}  
 
-        skipTypeConvert set to true gives array and also allows duplicate types or multiple blank types:
+        skipTypeConvert set to true gives attribute "as-is": array, allow duplicate types including blank, but values to be deleted have been marked with "operation": "delete"
   
 		"emails": [
-		  {"value": "jsmith@company.com", "type": "work"},
-		  {"value": "", "type": "home", "operation": "delete"},
+		  {"value": "jsmith@example.com", "type": "work"},
+		  {"value": "john.smith.org", "type": "home", "operation": "delete"},
 		  {"value": "jsmith@hotmail.com"}
 		]  
 
@@ -341,7 +341,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 	Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
-- **ipAllowList** - Array of one or more IPv4/IPv6 subnets (CIDR) allowed for incoming traffic.  E.g. using Azure AD as IdP, we would like to restrict access to IP addresses used by Azure AD. Azure IP-range can be downloaded from: [https://azureipranges.azurewebsites.net](https://azureipranges.azurewebsites.net), enter **AzureActiveDirectory** in the search list and select JSON download. Copy the "addressPrefixes" array content and paste into ipAllowList array. CIDR single IP-host syntax is a.b.c.d/32. Note, front-end HTTP proxy or a load balancer must include the **X-Forwarded-For** header. Configuration example:  
+- **ipAllowList** - Array of one or more IPv4/IPv6 subnets (CIDR) allowed for incoming traffic.  E.g. using Azure AD as IdP, we would like to restrict access to IP addresses used by Azure AD. Azure IP-range can be downloaded from: [https://azureipranges.azurewebsites.net](https://azureipranges.azurewebsites.net), enter **AzureActiveDirectory** in the search list and select JSON download. Copy the "addressPrefixes" array content and paste into ipAllowList array. CIDR single IP-host syntax is a.b.c.d/32. Note, front-end HTTP proxy or a load balancer must include **X-Forwarded-For** header. Configuration example:  
 
         "ipAllowList": [
           "13.66.60.119/32",
@@ -632,26 +632,26 @@ IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transfe
 
 ## SCIM Gateway REST API 
       
-	Create = POST http://example.com:8880/Users  
+	Create = POST http://localhost:8880/Users  
 	(body contains the user information)
 	
-	Update = PATCH http://example.com:8880/Users/<id>
+	Update = PATCH http://localhost:8880/Users/<id>
 	(body contains the attributes to be updated)
 	
-	Search/Read = GET http://example.com:8880/Users?userName eq 
+	Search/Read = GET http://localhost:8880/Users?userName eq 
 	"userID"&attributes=<comma separated list of scim-schema defined attributes>
 	
 	Search/explore all users:
-	GET http://example.com:8880/Users?attributes=userName
+	GET http://localhost:8880/Users?attributes=userName
 	
-	Delete = DELETE http://example.com:8880/Users/<id>
+	Delete = DELETE http://localhost:8880/Users/<id>
 
 Discovery:
 
-	GET http://example.com:8880/ServiceProviderConfigs
+	GET http://localhost:8880/ServiceProviderConfigs
 	Specification compliance, authentication schemes, data models.
 	
-	GET http://example.com:8880/Schemas
+	GET http://localhost:8880/Schemas
 	Introspect resources and attribute extensions.
 
 Note:  
@@ -1258,6 +1258,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.2.6  
+[Fixed]  
+
+- bearerJwt authentication missing public key handling
+- plugin-azure-ad getGroup did not return all members when group had more than 100 members (Azure page size is 100). getGroup now using paging 
+
 ### v3.2.5  
 [Fixed]  
 
@@ -1605,7 +1611,8 @@ Note, "1.1" is default, if using "2.0" the new syntax must be used.
 - Koa replacing Express  
 - Some log enhancements  
 - Deprecated cipher methods have been replaced  
-- Plugin restful (REST) and forwardinc (SOAP) includes failover logic based on endpoints defined in array baseUrls/baseServiceEndpoints. 
+- Plugin restful (REST) and 
+- forwardinc (SOAP) includes failover logic based on endpoints defined in array baseUrls/baseServiceEndpoints. 
 
 **[UPGRADE]**  
 
