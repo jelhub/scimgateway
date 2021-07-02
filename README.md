@@ -1253,7 +1253,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 - Return 500 on GET handler error instead of 404  
   **Thanks to Nipun Dayanath**
-- createUser response includes id retrieved by getUser instead of using posted userName value
+- createUser/createRole response now includes id retrieved by getUser/getRole instead of using posted userName/displayName value
 
 ### v3.2.6  
 [Fixed]  
