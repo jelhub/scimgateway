@@ -1,6 +1,6 @@
 # SCIM Gateway  
 
-[![Build Status](https://travis-ci.org/jelhub/scimgateway.svg)](https://travis-ci.org/jelhub/scimgateway) [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/docs/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
+[![Build Status](https://travis-ci.com/jelhub/scimgateway.svg)](https://travis-ci.com/jelhub/scimgateway) [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/docs/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
 
 ---  
 Author: Jarle Elshaug  
@@ -709,12 +709,6 @@ There are two alternative ways of configuring Azure AD. Alternative #1 is probab
 ### Azure AD configuration 
 
 - Logon to [Azure](https://portal.azure.com) as global administrator  
-- Azure Active Directory - Enterprise applications - New application
-	-  Create your own application
-	-  Name = SCIM Gateway Inbound
-	-  Select: Integrate any other application you don't find in the gallery (Non-gallery)
-	-  Click "Create"
-	
 - Azure Active Directory - App registrations
 	- Click "New registration"
 	- Name = SCIM Gateway Inbound
@@ -746,29 +740,15 @@ There are two alternative ways of configuring Azure AD. Alternative #1 is probab
 		- Click "Refresh", directory and organization permissions are now listed and OK
 
 
-**For some odd reasons Application needs to be member of "User Administrator" for having privileges to manage office/mobile phone on users that is member of any administrator roles** 
+**For some odd reasons Application needs to be member of "User administrator" for having privileges to manage office/mobile phone on users that is member of any administrator roles** 
 
-Also note, enable/disable user (accountEnabled - through Graph API) will fail if user have an "Administrator" role other than above mentioned "User Administrator" e.g. "Group Administrator"/"Application Administrator". To be sure we can enable/disable all users,  Application needs to be member of **"Company Administrator"** - 62e90394-69f5-4237-9190-012177145e10. Configuration below using "User Administrator"  
+Also note, enable/disable user (accountEnabled - through Graph API) will fail if user have an "Administrator" role other than above mentioned "User Administrator" e.g. "Group Administrator"/"Application Administrator". To be sure we can enable/disable all users,  application needs to be member of **"Global administrator"** - 62e90394-69f5-4237-9190-012177145e10.  
  
-- Start Powershell command window
-- Install the [Azure AD Module](https://docs.microsoft.com/en-us/powershell/msonline/) (if not already installed)  
-	- Install-Module MSOnline
-- Import-Module MSOnline
-- Connect-MsolService  
-  logon as a user having "Global administrator" role   
-- Get-MsolServicePrincipal -AppPrincipalId {Application ID}  
-	- Copy ObjectId
-- List all roles and find "User Administrator"  
-	- Get-MsolRole  
-- List current members of this role:
-	- Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1
-- Add application to "User Administrator" role:  
-	- Add-MsolRoleMember -RoleName "User Administrator" -RoleMemberType ServicePrincipal -RoleMemberObjectId {ObjectIdOfServicePrincipal}  
-- Verify:  
-	- Get-MsOlRoleMember -RoleObjectId fe930be7-5e62-47db-91af-98c3a49a38b1  
-- If you need to remove/rollback: 
-	- Remove-MsolRoleMember -RoleName "User Administrator" -RoleMemberType ServicePrincipal -RoleMemberObjectId {ObjectIdOfServicePrincipal}
-
+- Azure Active Directory - Roles and administration
+	- Click on role **"User administrator"**
+	- Click "Add assignments"
+	- Search: SCIM Gateway Inbound (application name)
+	- Select the application that shows up and click "Add"
 
 ### SCIM Gateway configuration  
 
@@ -1257,6 +1237,23 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v3.2.7  
+[Added] 
+
+- plugin-ldap supports using Active Directory `objectGUID` instead of `dn` mapped to `id`  
+  configuration example:
+        
+        "objectGUID": {
+          "mapTo": "id",
+          "type": "string"
+        }
+
+[Fixed]  
+
+- Return 500 on GET handler error instead of 404  
+  **Thanks to Nipun Dayanath**
+- createUser response includes id retrieved by getUser instead of using posted userName value
 
 ### v3.2.6  
 [Fixed]  
