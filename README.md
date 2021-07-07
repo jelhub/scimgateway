@@ -1238,6 +1238,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v3.2.8  
+[Fixed] 
+
+- plugin-ldap `objectGUID` introduced in v.3.2.7 had some missing logic   
+
 ### v3.2.7  
 [Added] 
 
