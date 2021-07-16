@@ -1,9 +1,19 @@
 # SCIM Gateway  
+ 
+ Author: KEEP SOLUTIONS
+
+This is a fork of the original SCIM Gateway developed by Jarle Elshaug.
+
+Differences include:
+
+- Support for MongoDB
+
+ --- 
 
 [![Build Status](https://travis-ci.com/jelhub/scimgateway.svg)](https://travis-ci.com/jelhub/scimgateway) [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/docs/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
 
 ---  
-Author: Jarle Elshaug  
+Original author: Jarle Elshaug  
 
 Validated through IdP's:  
 

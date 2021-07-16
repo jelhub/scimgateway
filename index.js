@@ -1,19 +1,9 @@
-#!/usr/bin/env node
-
-//
-// ScimGateway plugin startup
-// One or more plugin could be started (must be listening on unique ports)
-//
-// Could use forman module for running in separate environments
-// PM2 module for vertical clustering/loadbalancing among cpu's'
-// node-http-proxy for horizontal loadbalancing among hosts (or use nginx)
-//
-
-const loki = require('./lib/plugin-loki')
-// const restful = require('./lib/plugin-restful')
-// const forwardinc = require('./lib/plugin-forwardinc')
-// const mssql = require('./lib/plugin-mssql')
-// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb --save
-// const azureAD = require('./lib/plugin-azure-ad')
-// const ldap = require('./lib/plugin-ldap')
-// const api = require('./lib/plugin-api')
+module.exports.loki = require("./lib/plugin-loki");
+module.exports.restful = require("./lib/plugin-restful");
+module.exports.forwardinc = require("./lib/plugin-forwardinc");
+module.exports.mssql = require("./lib/plugin-mssql");
+module.exports.saphana = require("./lib/plugin-saphana"); // prereq: npm install hdb --save
+module.exports.azureAD = require("./lib/plugin-azure-ad");
+module.exports.ldap = require("./lib/plugin-ldap");
+module.exports.api = require("./lib/plugin-api");
+module.exports.mongodb = require("../lib/plugin-mongodb");

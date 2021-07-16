@@ -1,0 +1,73 @@
+{
+    "scimgateway": {
+        "port": 8880,
+        "localhostonly": false,
+        "scim": {
+            "version": "2.0",
+            "customSchema": null,
+            "skipTypeConvert": false
+        },
+        "log": {
+            "loglevel": {
+                "file": "debug",
+                "console": "error"
+            },
+            "customMasking": null
+        },
+        "auth": {
+            "basic": [{
+                "username": "gwadmin",
+                "password": "ZTYxMGI1MGY4OTU1MWRiZTU4MjljMmQ3ZjY3NjRlYjE6Njg4YTc0OWM5ZGE2MjJiNjRjNjAwYzVjOTM1YTdjNzY=",
+                "readOnly": false
+            }],
+            "bearerToken": [{
+                "token": null,
+                "readOnly": false
+            }],
+            "bearerJwtAzure": [{
+                "tenantIdGUID": null
+            }],
+            "bearerJwt": [{
+                "secret": null,
+                "publicKey": null,
+                "options": {
+                    "issuer": null
+                },
+                "readOnly": false
+            }]
+        },
+        "certificate": {
+            "key": null,
+            "cert": null,
+            "ca": null,
+            "pfx": {
+                "bundle": null,
+                "password": null
+            }
+        },
+        "ipAllowList": [],
+        "emailOnError": {
+            "smtp": {
+                "enabled": false,
+                "host": null,
+                "port": 587,
+                "proxy": null,
+                "authenticate": true,
+                "username": null,
+                "password": null,
+                "sendInterval": 15,
+                "to": null,
+                "cc": null
+            }
+        }
+    },
+    "endpoint": {
+        "connection": {
+            "hostname": "localhost",
+            "port": 27017,
+            "dbname": "scim",
+            "username": "scim",
+            "password": "scim"
+        }
+    }
+}
