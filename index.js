@@ -1,9 +1,3 @@
-module.exports.loki = require("./lib/plugin-loki");
-module.exports.restful = require("./lib/plugin-restful");
-module.exports.forwardinc = require("./lib/plugin-forwardinc");
-module.exports.mssql = require("./lib/plugin-mssql");
-module.exports.saphana = require("./lib/plugin-saphana"); // prereq: npm install hdb --save
-module.exports.azureAD = require("./lib/plugin-azure-ad");
-module.exports.ldap = require("./lib/plugin-ldap");
-module.exports.api = require("./lib/plugin-api");
-module.exports.mongodb = require("../lib/plugin-mongodb");
+module.exports.load = function load(pluginName) {
+  return require(path.join("lib", pluginName));
+};
