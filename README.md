@@ -109,7 +109,7 @@ Please **ignore any error messages** unless soap WSSecurityCert functionality is
  
 index.js, lib and config directories containing example plugins have been copied to your package from the original scimgateway package located under node_modules.  
 
-If internet connection is blocked, we could install on another machine and copy the scimgateway folder.
+If internet connection is blocked, we could install on another machine and copy the `<package-root>` folder.
 
 
 #### Startup and verify default Loki plugin 
@@ -1237,6 +1237,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v3.2.9  
+[Fixed] 
+
+- plugin-loki pagination fix
 
 ### v3.2.8  
 [Fixed] 
