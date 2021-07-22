@@ -9,9 +9,10 @@
 // node-http-proxy for horizontal loadbalancing among hosts (or use nginx)
 //
 
-const loki = require('./lib/plugin-loki')
-const restful = require('./lib/plugin-restful')
+//const loki = require('./lib/plugin-loki')
+const loki = require('./lib/plugin-mongodb')
+//const restful = require('./lib/plugin-restful')
 // const forwardinc  = require('./lib/plugin-forwardinc')
 // const mssql = require('./lib/plugin-mssql')
 // const saphana   = require('./lib/plugin-saphana')
-const api = require('./lib/plugin-api')
+//const api = require('./lib/plugin-api')
