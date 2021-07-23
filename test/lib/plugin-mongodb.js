@@ -28,15 +28,15 @@ describe('plugin-mongodb tests', () => {
         expect(users.Resources[0].userName).to.equal('bjensen')
         expect(users.Resources[0].id).to.equal('bjensen')
         expect(users.Resources[0].name.givenName).to.equal('Barbara')
-        // expect(users.Resources[0].groups[0].value).to.equal('Admins')
-        // expect(users.Resources[0].groups[0].display).to.equal('Admins')
-        // expect(users.Resources[0].groups[0].type).to.equal('direct')
+        expect(users.Resources[0].groups[0].value).to.equal('Admins')
+        expect(users.Resources[0].groups[0].display).to.equal('Admins')
+        expect(users.Resources[0].groups[0].type).to.equal('direct')
         expect(users.Resources[1].userName).to.equal('jsmith')
         expect(users.Resources[1].id).to.equal('jsmith')
         expect(users.Resources[1].name.givenName).to.equal('John')
-        // expect(users.Resources[1].groups[0].value).to.equal('Employees')
-        // expect(users.Resources[1].groups[0].display).to.equal('Employees')
-        // expect(users.Resources[1].groups[0].type).to.equal('direct')
+        expect(users.Resources[1].groups[0].value).to.equal('Employees')
+        expect(users.Resources[1].groups[0].display).to.equal('Employees')
+        expect(users.Resources[1].groups[0].type).to.equal('direct')
         done()
       })
   })
@@ -104,13 +104,13 @@ describe('plugin-mongodb tests', () => {
         expect(user.phoneNumbers[0].value).to.equal('555-555-5555')
         expect(user.emails[0].type).to.equal('work')
         expect(user.emails[0].value).to.equal('bjensen@example.com')
-        // expect(user.groups[0].value).to.equal('Admins')
-        // expect(user.groups[0].display).to.equal('Admins')
-        // expect(user.groups[0].type).to.equal('direct')
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager.value).to.equal('jsmith')
+        expect(user.groups[0].value).to.equal('Admins')
+        expect(user.groups[0].display).to.equal('Admins')
+        expect(user.groups[0].type).to.equal('direct')
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager.value).to.equal('jsmith')
         expect(user.meta.location).to.not.equal(undefined)
-        // expect(user.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:User')
-        // expect(user.schemas[1]).to.equal('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User')
+        expect(user.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:User')
+        expect(user.schemas[1]).to.equal('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User')
         done()
       })
   })
@@ -175,14 +175,14 @@ describe('plugin-mongodb tests', () => {
         expect(group.displayName).to.equal('Admins')
         expect(group.id).to.equal('Admins')
         expect(group.members[0].value).to.equal('bjensen')
-        // expect(group.members[0].display).to.equal('bjensen');
+        expect(group.members[0].display).to.equal('bjensen');
         done()
       })
   })
 
   it('getGroup test (2)', function (done) {
     server_8880.get('/Groups' +
-      '?filter=displayName eq "Admins"&attributes=externalId,id,members.value,displayName')
+      '?filter=displayName eq "Admins"&attributes=externalId,id,members.value,members.display,displayName')
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
@@ -193,7 +193,7 @@ describe('plugin-mongodb tests', () => {
         expect(groups.Resources[0].displayName).to.equal('Admins')
         expect(groups.Resources[0].id).to.equal('Admins')
         expect(groups.Resources[0].members[0].value).to.equal('bjensen')
-        // expect(groups.Resources[0].members[0].display).to.equal('bjensen');
+        expect(groups.Resources[0].members[0].display).to.equal('bjensen');
         done()
       })
   })
@@ -206,10 +206,10 @@ describe('plugin-mongodb tests', () => {
         if (err) { }
         const groupMembers = res.body
         expect(res.statusCode).to.equal(200)
-        // expect(groupMembers).to.not.equal('undefined')
-        // expect(groupMembers.Resources[0].displayName).to.equal('Admins')
-        // expect(groupMembers.Resources[0].members[0].value).to.equal('bjensen')
-        // expect(groupMembers.Resources[0].totalResults).to.equal(groupMembers.Resources[0].members[0].length)
+        expect(groupMembers).to.not.equal('undefined')
+        expect(groupMembers.Resources[0].displayName).to.equal('Admins')
+        expect(groupMembers.Resources[0].members[0].value).to.equal('bjensen')
+        expect(groupMembers.Resources[0].totalResults).to.equal(groupMembers.Resources[0].members[0].length)
         done()
       })
   })
@@ -241,12 +241,16 @@ describe('plugin-mongodb tests', () => {
         type: 'work',
         streetAddress: 'City Plaza',
         postalCode: '9559'
-      }]
-      // 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
-      //   employeeNumber: '123456',
-      //   test1: 'xxx',
-      //   test2: 'yyy'
-      // }
+      }],
+      'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
+        employeeNumber: '123456',
+        test1: 'xxx',
+        test2: 'yyy'
+      },
+      meta: {
+        "created": "2021-07-21T13:44:33.945Z",
+        "version": 0
+      }
     }
 
     server_8880.post('/Users')
@@ -283,11 +287,11 @@ describe('plugin-mongodb tests', () => {
         expect(user.addresses[0].type).to.equal('work')
         expect(user.addresses[0].streetAddress).to.equal('City Plaza')
         expect(user.addresses[0].postalCode).to.equal('9559')
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal('123456')
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).to.equal('xxx')
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).to.equal('yyy')
-        // expect(user.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:User')
-        // expect(user.schemas[1]).to.equal('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User')
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal('123456')
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).to.equal('xxx')
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).to.equal('yyy')
+        expect(user.schemas[0]).to.equal('urn:ietf:params:scim:schemas:core:2.0:User')
+        expect(user.schemas[1]).to.equal('urn:ietf:params:scim:schemas:extension:enterprise:2.0:User')
         done()
       })
   })
@@ -363,29 +367,29 @@ describe('plugin-mongodb tests', () => {
             streetAddress: 'New Address',
             postalCode: '1111'
           }
+        },
+        {
+          op: 'Remove',
+          path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber'
+        },
+        {
+          op: 'add',
+          path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department',
+          value: 'Top Floor'
+        },
+        {
+          op: 'add',
+          path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.value',
+          value: 'bjensen'
+        },
+        {
+          op: 'replace',
+          path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User',
+          value: {
+            test1: 'test1-value',
+            test2: 'test2-value'
+          }
         }
-        // {
-        //   op: 'Remove',
-        //   path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:employeeNumber'
-        // },
-        // {
-        //   op: 'add',
-        //   path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department',
-        //   value: 'Top Floor'
-        // },
-        // {
-        //   op: 'add',
-        //   path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.value',
-        //   value: 'bjensen'
-        // },
-        // {
-        //   op: 'replace',
-        //   path: 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User',
-        //   value: {
-        //     test1: 'test1-value',
-        //     test2: 'test2-value'
-        //   }
-        // }
       ]
     }
 
@@ -410,7 +414,7 @@ describe('plugin-mongodb tests', () => {
         expect(user.id).to.equal('jgilber')
         expect(user.active).to.equal(false) // modified
         expect(user.name.givenName).to.equal('Jeff-Modified') // modified
-        // expect(user.name.familyName).to.equal(undefined) // cleared - scim 1.1
+        //expect(user.name.familyName).to.equal(undefined) // cleared - scim 1.1
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert')
         expect(user.title).to.equal('New title') // modified
         expect(user.emails).to.equal(undefined) // deleted
@@ -421,11 +425,11 @@ describe('plugin-mongodb tests', () => {
         expect(user.addresses[0].type).to.equal('work')
         expect(user.addresses[0].streetAddress).to.equal('New Address') // modified
         expect(user.addresses[0].postalCode).to.equal('1111') // modified
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal(undefined) // deleted
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].department).to.equal('Top Floor') // added
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager.value).to.equal('bjensen') // added
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).to.equal('test1-value') // modified
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).to.equal('test2-value') // modified
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal(undefined) // deleted
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].department).to.equal('Top Floor') // added
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager.value).to.equal('bjensen') // added
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).to.equal('test1-value') // modified
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).to.equal('test2-value') // modified
         done()
       })
   })
@@ -449,10 +453,10 @@ describe('plugin-mongodb tests', () => {
         type: 'work',
         streetAddress: 'City Plaza-2',
         postalCode: '9559-2'
-      }]
-      // 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
-      //   employeeNumber: '1111'
-      // }
+      }],
+      'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
+        employeeNumber: '1111'
+      }
     }
 
     server_8880.put('/Users/jgilber')
@@ -474,11 +478,11 @@ describe('plugin-mongodb tests', () => {
         expect(user.entitlements).to.equal(undefined) // deleted
         expect(user.addresses[0].streetAddress).to.equal('City Plaza-2') // modified
         expect(user.addresses[0].postalCode).to.equal('9559-2') // modified
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal('1111') // modified
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].department).to.equal(undefined) // deleted
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager).to.equal(undefined) // deleted
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).to.equal(undefined) // deleted
-        // expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).to.equal(undefined) // deleted
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].employeeNumber).to.equal('1111') // modified
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].department).to.equal(undefined) // deleted
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager).to.equal(undefined) // deleted
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).to.equal(undefined) // deleted
+        expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).to.equal(undefined) // deleted
         done()
       })
   })
@@ -569,8 +573,8 @@ describe('plugin-mongodb tests', () => {
         expect(group).to.not.equal('undefined')
         expect(group.displayName).to.equal('GoGomongodb')
         expect(group.id).to.equal('GoGomongodb')
-        // expect(group.members.length).to.equal(1) // bjensen removed
-        // expect(group.members[0].value).to.equal('jsmith') // added
+        expect(group.members.length).to.equal(1) // bjensen removed
+        expect(group.members[0].value).to.equal('jsmith') // added
         done()
       })
   })
