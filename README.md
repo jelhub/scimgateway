@@ -147,6 +147,9 @@ If internet connection is blocked, we could install on another machine and copy 
     http://localhost:8880/Users?filter=emails.value eq "bjensen@example.com"&attributes=userName,phoneNumbers
     => Filtering supporting operator 'eq' returning unique object with attributes specified
 
+	http://localhost:8880/Users?op=meta.created gte "2010-01-01T00:00:00"&attributes=userName,id,name.givenName
+    => Filtering supporting operator 'eq' returning unique object with attributes specified
+
 	"Ctrl + c" to stop the SCIM Gateway
 
 For more functionality using browser (post/patch/delete) a REST extension/add-on is needed. 
