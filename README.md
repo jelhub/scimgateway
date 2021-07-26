@@ -148,7 +148,7 @@ If internet connection is blocked, we could install on another machine and copy 
     => Filtering supporting operator 'eq' returning unique object with attributes specified
 
 	http://localhost:8880/Users?op=meta.created gte "2010-01-01T00:00:00"&attributes=userName,id,name.givenName
-    => Filtering supporting operator 'eq' returning unique object with attributes specified
+    => Supporting operator 'gte' returning multiple objects with attributes specified
 
 	"Ctrl + c" to stop the SCIM Gateway
 
