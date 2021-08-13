@@ -28,7 +28,7 @@ Latest news:
 
 ## Overview  
  
-With SCIM Gateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) 1.1 or 2.0 protocol. Gateway will translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  
+With SCIM Gateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) 1.1 or 2.0 protocol. Gateway will translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. In other words, none SCIM-endpoints will become SCIM-endpoints. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  
 
 SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like Symatec/Broadcom/CA Identity Manager.
 
@@ -101,9 +101,6 @@ Create your own package directory e.g. C:\my-scimgateway and install SCIM Gatewa
 	cd c:\my-scimgateway
 	npm init -y
 	npm install scimgateway --save
-
-Please **ignore any error messages** unless soap WSSecurityCert functionality is needed in your custom plugin code. Module soap installation of optional dependency 'ursa' that also includes 'node-gyp' then needs misc. prerequisites to bee manually installed.
-
 
 **c:\\my-scimgateway** will now be `<package-root>` 
  
@@ -362,11 +359,6 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **emailOnError.smtp.sendInterval** - Mail notifications on error are deferred until sendInterval **minutes** have passed since the last notification. Default 15 minutes
 - **emailOnError.smtp.to** - Comma separated list of recipients email addresses e.g: "someone@example.com"
 - **emailOnError.smtp.cc** - Comma separated list of cc email addresses
-- **actions** - Pre and post actions onAddGroups/onRemoveGroups. Needed logic to be defined in plugin method `pre_post_Action`
-- **actions.preAction.onAddGroups** - Array of groups e.g. ["Admins", "Employees"]
-- **actions.preAction.onRemoveGroups** - Array of groups e.g. ["Admins", "Employees"]
-- **actions.postAction.onAddGroups** - Array of groups e.g. ["Admins", "Employees"]
-- **actions.postAction.onRemoveGroups** - Array of groups e.g. ["Admins", "Employees"]
 
 - **endpoint** - Contains endpoint specific configuration according to our **plugin code**.    
  
@@ -1224,8 +1216,6 @@ If we do not support groups, then return null
 
 ## Known limitations  
 
-* Installation gives error messages related to the module soap optional dependency to 'ursa' that also includes 'node-gyp'. These error messages can be ignored unless soap WSSecurityCert functionality is needed in custom plugin code.  
-
 * SCIM filtering only supports operator 'eq' returning unique object only, example:  
   /Users?**filter**=userName **eq** "bjensen"&attributes=userName,id,name.givenName  
   /Users?**filter**=emails.value **eq** "bjensen@example.com"&attributes=userName,phoneNumbers
@@ -1237,6 +1227,14 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v3.2.10  
+[Fixed] 
+
+- for SCIM 2.0 exploreUsers/exploreGroups now includes schemas/resourceType on each object in the Resources response. This may be required by som IdP's.  
+
+[Added]
+- Dependencies bump  
 
 ### v3.2.9  
 [Fixed] 
