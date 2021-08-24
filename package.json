@@ -1,6 +1,6 @@
 {
     "name": "@keepsolutions/scimgateway",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "description": "Using SCIM protocol as a gateway for user provisioning to other endpoints",
     "author": "Filipe Ribeiro <fribeiro@keep.pt> (https://www.keep.pt)",
     "homepage": "https://www.keep.pt",
