@@ -16,10 +16,11 @@ Validated through IdP's:
   
 Latest news:  
 
+- Now using new getUsers/getGroups and deprecating following: getUser/getGroup/exploreUsers/exploreGroups/getGroupMembers/getGroupUsers. No filtering or sorting limitations. New plugin MongoDB.  
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
 - General LDAP plugin configured for Active Directory.  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
-- getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly
+- Authentication configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
 - Supports configuration by environments and external files
 - Health monitoring through "/ping" URL, and option for error notifications by email
@@ -46,7 +47,7 @@ SCIM Gateway is based on the popular asynchronous event driven framework [Node.j
 * **Loki** (NoSQL Document-Oriented Database)  
 Gives a SCIM endpoint located on SCIM Gateway  
 Demonstrates user provisioning towards document-oriented database  
-Using [LokiJS](http://lokijs.org) for a fast, in-memory document-oriented database (much like MongoDB/PouchDB)  
+Using [LokiJS](https://github.com/techfort/LokiJS) for a fast, in-memory document-oriented database (much like MongoDB/PouchDB)  
 Default gives two predefined test users loaded using in-memory only (no persistence)  
 Setting `{"persistence": true}` gives persistence file store (no test users)  
 Example of a fully functional SCIM Gateway plugin  

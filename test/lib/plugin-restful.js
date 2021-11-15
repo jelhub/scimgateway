@@ -351,7 +351,7 @@ describe('plugin-restful tests', () => {
         expect(user.id).to.equal('jgilber')
         expect(user.active).to.equal(false) // modified
         expect(user.name.givenName).to.equal('Jeff-Modified') // modified
-        expect(user.name.familyName).to.equal('')
+        expect(user.name.familyName).to.equal(undefined) // deleted by ''
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert')
         expect(user.title).to.equal('test title')
         expect(user.emails).to.equal(undefined) // deleted

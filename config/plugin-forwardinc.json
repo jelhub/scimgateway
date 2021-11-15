@@ -72,9 +72,7 @@
   "endpoint": {
     "username": "admin",
     "password": "password",
-    "baseServiceEndpoints": [
-      "http://localhost:8089/forwardinc/services"
-    ],
+    "baseServiceEndpoint": "http://localhost:8089/forwardinc/services",
     "exploreUsers": {
       "service": "UserService",
       "method": "searchUsers"
@@ -116,14 +114,19 @@
       "method": "N/A"
     },
     "entity": {
-      "clientA": {
-        "userId": "1111",
+      "undefined": {
+        "userId": "user1",
         "key": "clientA.key",
         "cert": "clientA.cert"
       },
-      "clientB": {
-        "userId": "2222",
+      "clientA": {
+        "userId": "user2",
         "key": "clientB.key",
+        "cert": "clientB.cert"
+      },
+      "clientB": {
+        "userId": "user3",
+        "key": "clientC.key",
         "cert": "clientC.cert"
       }
     }
