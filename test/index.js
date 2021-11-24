@@ -11,7 +11,5 @@
 
 const loki = require('./lib/plugin-loki')
 const restful = require('./lib/plugin-restful')
-// const forwardinc  = require('./lib/plugin-forwardinc')
-// const mssql = require('./lib/plugin-mssql')
-// const saphana   = require('./lib/plugin-saphana')
 const api = require('./lib/plugin-api')
+// const mongodb = require('./lib/plugin-mongodb')

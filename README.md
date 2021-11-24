@@ -16,10 +16,11 @@ Validated through IdP's:
   
 Latest news:  
 
+- New major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be limited to specific baseEntities. New MongoDB plugin  
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
-- General LDAP plugin configured for Active Directory.  
+- General LDAP plugin configured for Active Directory  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
-- getUser/getGroup having more flexibility. Auth configuration allowing more than one admin user including option for readOnly
+- Authentication configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
 - Supports configuration by environments and external files
 - Health monitoring through "/ping" URL, and option for error notifications by email
@@ -44,12 +45,16 @@ SCIM Gateway is based on the popular asynchronous event driven framework [Node.j
 **Following example plugins are included:**
 
 * **Loki** (NoSQL Document-Oriented Database)  
-Gives a SCIM endpoint located on SCIM Gateway  
+SCIM Gateway becomes a standalone SCIM endpoint  
 Demonstrates user provisioning towards document-oriented database  
-Using [LokiJS](http://lokijs.org) for a fast, in-memory document-oriented database (much like MongoDB/PouchDB)  
+Using [LokiJS](https://github.com/techfort/LokiJS) for a fast, in-memory document-oriented database (much like MongoDB/PouchDB)  
 Default gives two predefined test users loaded using in-memory only (no persistence)  
 Setting `{"persistence": true}` gives persistence file store (no test users)  
 Example of a fully functional SCIM Gateway plugin  
+
+* **MongoDB** (NoSQL Document-Oriented Database)  
+Same as plugin "Loki" but using MongoDB  
+Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL
 
 * **RESTful** (REST Webservice)  
 Demonstrates user provisioning towards REST-Based endpoint   
@@ -58,7 +63,7 @@ Using plugin "Loki" as a REST endpoint
 * **Forwardinc** (SOAP Webservice)  
 Demonstrates user provisioning towards SOAP-Based endpoint   
 Using endpoint Forwardinc that comes with Broadcom/CA IM SDK (SDKWS) - [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com")    
-Shows how to implement a highly configurable multi tenant or multi endpoint solution using `baseEntity` parameter  
+Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL  
 
 * **MSSQL** (MSSQL Database)  
 Demonstrates user provisioning towards MSSQL database  
@@ -70,7 +75,7 @@ Demonstrates SAP HANA specific user provisioning
 Azure AD user provisioning including Azure license management (App Service plans) e.g. Office 365  
 Using Microsoft Graph API  
 Using customized SCIM attributes according to Microsoft Graph API  
-Includes CA ConnectorXpress metafile for creating CA IM "Azure - ScimGateway" endpoint type  
+Includes Symantec/Broadcom/CA ConnectorXpress metafile for creating provisioning "Azure - ScimGateway" endpoint type  
 
 * **LDAP** (Directory)  
 Fully functional LDAP plugin  
@@ -101,7 +106,7 @@ Create your own package directory e.g. C:\my-scimgateway and install SCIM Gatewa
 	mkdir c:\my-scimgateway
 	cd c:\my-scimgateway
 	npm init -y
-	npm install scimgateway --save
+	npm install scimgateway
 
 **c:\\my-scimgateway** will now be `<package-root>` 
  
@@ -130,9 +135,12 @@ If internet connection is blocked, we could install on another machine and copy 
 	http://localhost:8880/Groups/Admins
 	=> Lists all attributes for specified user/group
 
+    http://localhost:8880/Groups?filter=displayName eq "Admins"&excludedAttributes=members
     http://localhost:8880/Users?filter=userName eq "bjensen"&attributes=userName,id,name.givenName
-    http://localhost:8880/Users?filter=emails.value eq "bjensen@example.com"&attributes=userName,phoneNumbers
-    => Filtering supporting operator 'eq' returning unique object with attributes specified
+    http://localhost:8880/Users?filter=meta.created gte "2010-01-01T00:00:00Z"&attributes=userName,name.familyName,meta.created
+    http://localhost:8880/Users?filter=emails.value co "@example.com"&attributes=userName,name.familyName,emails&sortBy=name.familyName&sortOrder=descending
+    => Filtering examples
+
 
 	"Ctrl + c" to stop the SCIM Gateway
 
@@ -170,10 +178,11 @@ To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compabilit
 **index.js** defines one or more plugins to be started. We could comment out those we do not need. Default configuration only starts the loki plugin.  
   
 	const loki = require('./lib/plugin-loki')
+	// const mongodb = require('./lib/plugin-mongodb')
 	// const restful = require('./lib/plugin-restful')
 	// const forwardinc = require('./lib/plugin-forwardinc')
 	// const mssql = require('./lib/plugin-mssql')
-	// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb --save
+	// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb
 	// const azureAD = require('./lib/plugin-azure-ad')
 	// const ldap = require('./lib/plugin-ldap')
 	// const api = require('./lib/plugin-api')
@@ -207,18 +216,22 @@ Below shows an example of config\plugin-saphana.json
             {
               "username": "gwadmin",
               "password": "password",
-              "readOnly": false
+              "readOnly": false,
+              "baseEntities": []
             }
           ],
           "bearerToken": [
             {
               "token": null,
-              "readOnly": false
+              "readOnly": false,
+              "baseEntities": []
             }
           ],
           "bearerJwtAzure": [
             {
-              "tenantIdGUID": null
+              "tenantIdGUID": null,
+              "readOnly": false,
+              "baseEntities": []
             }
           ],
           "bearerJwt": [
@@ -228,7 +241,8 @@ Below shows an example of config\plugin-saphana.json
               "options": {
                 "issuer": null
                },
-              "readOnly": false
+              "readOnly": false,
+              "baseEntities": []
             }
           ]
         },
@@ -304,7 +318,10 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **log.customMasking** - array of attributes to be masked e.g. `"customMasking": ["SSN", "weight"]`. By default SCIM Gateway includes masking of some standard attributes like password.  
 
-- **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway. **Methods are disabled by setting corresponding attributes to null or remove methods not used**. Methods having user/object set to `"readOnly": true` gives read only access (only allowing `GET` requests for corresponding admin user). 
+- **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway - may also include:
+  - **auth.xx.readOnly** - true/false, true gives read only access - only allowing `GET` requests for corresponding admin user
+  - **auth.xx.baseEntities** - array containing one or more `baseEntity` allowed for this user e.g. ["client-a"] - empty array allowing all.  
+  **Methods are disabled by setting corresponding admin user to null or remove methods not used**  
 
 - **auth.basic** - Array of one ore more basic authentication objects - Basic Authentication with **username**/**password**. Note, we set a clear text password that will become encrypted when gateway is started.  
 
@@ -524,7 +541,7 @@ docker-compose**
 		mkdir /opt/my-scimgateway  
 		cd /opt/my-scimgateway  
 		npm init -y  
-		npm install scimgateway --save  
+		npm install scimgateway  
 		cp ./config/docker/* .  
 
 	**docker-compose.yml**   <== Here is where you would set the exposed port and environment  
@@ -587,6 +604,71 @@ To upgrade scimgateway docker image (remove the old stuff before running docker-
 	docker rm scimgateway  
 	docker rm $(docker ps -a -q); docker rmi $(docker images -q -f "dangling=true")  
 
+## Azure Active Directory as IdP using SCIM Gateway  
+
+Azure AD could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.
+
+Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.auth.bearerToken[x].token) or **Azure Tenant ID GUID** (scimgateway.auth.bearerJwtAzure[x].tenantIdGUID) or both:  
+
+	scimgateway: {
+	  "scim": {
+	    "version": "2.0",
+	    ...
+	  },
+	  ...
+	  "auth": {
+        "bearerToken": [
+          {
+            "token": "shared-secret"
+          }
+        ],
+        "bearerJwtAzure": [
+          {
+            "tenantIdGUID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+          }
+        ]
+      }
+      ...
+	}
+
+`token` configuration must correspond with "Secret Token" defined in Azure AD  
+`tenantIdGUID` configuration must correspond with Azure Active Directory Tenant ID  
+
+In Azure Portal:
+`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Secret Token`  
+Note, when "Secret Token" is left blank, Azure will use JWT (tenantIdGUID)
+
+`Azure-Azure Active Directory-Overview-Tenant ID`
+
+User mappings attributes between AD and SCIM also needs to be configured  
+
+`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Edit attribute mappings-Mappings`
+
+Azure AD default SCIM attribute mapping for **USER** must have:  
+
+	userPrincipalName mapped to userName (matching precedence #1)  
+
+
+Azure AD default SCIM attribute mapping for **GROUP** must have:  
+
+	displayName mapped to displayName (matching precedence #1)  
+	members mapped to members  
+
+
+
+Some notes related to Azure AD:  
+
+- Azure Active Directory SCIM [documentation](https://docs.microsoft.com/en-us/azure/active-directory/active-directory-scim-provisioning)  
+
+- For using OAuth/JWT credentials, Azure configuration "Secret Token" (bearer token) should be blank. Plugin configuration must then include bearerJwtAzure.tenantIdGUID. Click "Test Connection" in Azure to verify
+
+- Azure AD do a regular check for a "none" existing user/group. This check seems to be a "keep alive" to verify connection.
+
+- Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
+
+- Deleting a user in Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is default set in attribute mappings expression rule `Switch([IsSoftDeleted], , "False", "True", "True", "False")`. Standard SCIM "DELETE" method seems not to be used.  
+
+
 ## CA Identity Manager as IdP using SCIM Gateway  
 
 Using Symantec/Broadcom/CA Identity Manger, plugin configuration file must include **SCIM Version "1.1"** (scimgateway.scim.version).  
@@ -616,82 +698,15 @@ Username, password and port must correspond with plugin configuration file. For 
 
 "baseEntity" is optional. This is a parameter used for multi tenant or multi endpoint solutions. We could create several endpoints having same base url with unique baseEntity. e.g:  
 
-http://localhost:8880/clientA  
-http://localhost:8880/clientB
+http://localhost:8880/client-a  
+http://localhost:8880/client-b
 
 Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-forwardinc.json
 
 IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Loki plugin supports pagination. Other plugin may ignore this setting.  
 
-## SCIM Gateway REST API 
-      
-	Create = POST http://localhost:8880/Users  
-	(body contains the user information)
-	
-	Update = PATCH http://localhost:8880/Users/<id>
-	(body contains the attributes to be updated)
-	
-	Search/Read = GET http://localhost:8880/Users?userName eq 
-	"userID"&attributes=<comma separated list of scim-schema defined attributes>
-	
-	Search/explore all users:
-	GET http://localhost:8880/Users?attributes=userName
-	
-	Delete = DELETE http://localhost:8880/Users/<id>
 
-Discovery:
-
-	GET http://localhost:8880/ServiceProviderConfigs
-	Specification compliance, authentication schemes, data models.
-	
-	GET http://localhost:8880/Schemas
-	Introspect resources and attribute extensions.
-
-Note:  
-
-- userName (mandatory) = UserID  
-- id (mandatory) = Unique id. Could be set to the same as UserID but don't have to.  
-
-## SAP Hana endpoint  
-
-	Get all users (explore):  
-	select USER_NAME from SYS.USERS where IS_SAML_ENABLED like 'TRUE';
-	
-	Get a specific user:  
-	select USER_NAME, USER_DEACTIVATED from SYS.USERS where USER_NAME like '<UserID>';
-	
-	Create User:  
-	CREATE USER <UserID> WITH IDENTITY '<UserID>' FOR SAML PROVIDER <SamlProvider>;
-	
-	Delete user:  
-	DROP USER <UserID>;
-	
-	Modify user (enable user):  
-	ALTER USER <UserID> ACTIVATE;
-	
-	Modify user (disable user):  
-	ALTER USER <UserID> DEACTIVATE;  
-
-Postinstallation:  
-  
-	cd c:\my-scimgateway
-	npm install hdb --save  
-
-
-Only SAML users will be explored and managed
-
-Supported template attributes:  
-
-- User Name (UserID)
-- Suspended (Enabled/Disabled)  
-
-Currently no other attributes needed. Trying to update other attributes will then give an error message.  **The SCIM Provisioning template should therefore not include any other global user attribute references.**
-
-SAP Hana converts UserID to uppercase. Provisioning use default lowercase. Provisioning template should therefore also convert to uppercase.
-
-	User Name = %$$TOUPPER(%AC%)%
-
-## Azure Active Directory endpoint  
+## Azure Active Directory provisioning  
 Using plugin-azure-ad we could do user provisioning towards Azure AD including license management e.g. O365  
 
 For testing purposes we could get an Azure free account and in addition the free Office 365 for testing license management through Azure.
@@ -766,7 +781,8 @@ Note, for Symantec/Broadcom/CA Provisioning we have to use SCIM version 1.1
             {
               "username": "gwadmin",
               "password": "password",
-              "readOnly": false
+              "readOnly": false,
+              "baseEntities": []
             }
           ],
 
@@ -798,10 +814,10 @@ For multi-tenant or multi-endpoint support, we may add several entities:
 	    "undefined": {
 			...
 	    },
-	    "clientA": {
+	    "client-a": {
 			...
 	    },
-	    "clientB": {
+	    "client-b": {
 			...
 	    }
 	  }
@@ -849,74 +865,39 @@ Endpoint configuration example:
 
 For details, please see section "CA Identity Manager as IdP using SCIM Gateway"
 
+## SCIM Gateway REST API 
+      
+	Create = POST http://localhost:8880/Users  
+	(body contains the user information)
+	
+	Update = PATCH http://localhost:8880/Users/<id>
+	(body contains the attributes to be updated)
+	
+	Search/Read = GET http://localhost:8880/Users?userName eq 
+	"userID"&attributes=<comma separated list of scim-schema defined attributes>
+	
+	Search/explore all users:
+	GET http://localhost:8880/Users?attributes=userName
+	
+	Delete = DELETE http://localhost:8880/Users/<id>
 
-## Azure Active Directory as IdP using SCIM Gateway  
+Discovery:
 
-Azure AD could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.
+	GET http://localhost:8880/ServiceProviderConfigs
+	Specification compliance, authentication schemes, data models.
+	
+	GET http://localhost:8880/Schemas
+	Introspect resources and attribute extensions.
 
-Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.auth.bearerToken[x].token) or **Azure Tenant ID GUID** (scimgateway.auth.bearerJwtAzure[x].tenantIdGUID) or both:  
+Note:  
 
-	scimgateway: {
-	  "scim": {
-	    "version": "2.0",
-	    ...
-	  },
-	  ...
-	  "auth": {
-        "bearerToken": [
-          {
-            "token": "shared-secret"
-          }
-        ],
-        "bearerJwtAzure": [
-          {
-            "tenantIdGUID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-          }
-        ]
-      }
-      ...
-	}
+- userName (mandatory) = UserID  
+- id (mandatory) = Unique id. Could be set to the same as UserID but don't have to.  
 
-`token` configuration must correspond with "Secret Token" defined in Azure AD  
-`tenantIdGUID` configuration must correspond with Azure Active Directory Tenant ID  
-
-In Azure Portal:
-`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Secret Token`  
-Note, when "Secret Token" is left blank, Azure will use JWT (tenantIdGUID)
-
-`Azure-Azure Active Directory-Overview-Tenant ID`
-
-User mappings attributes between AD and SCIM also needs to be configured  
-
-`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Edit attribute mappings-Mappings`
-
-Azure AD default SCIM attribute mapping for **USER** must have:  
-
-	userPrincipalName mapped to userName (matching precedence #1)  
-
-
-Azure AD default SCIM attribute mapping for **GROUP** must have:  
-
-	displayName mapped to displayName (matching precedence #1)  
-	members mapped to members  
-
-
-
-Some notes related to Azure AD:  
-
-- Azure Active Directory SCIM [documentation](https://docs.microsoft.com/en-us/azure/active-directory/active-directory-scim-provisioning)  
-
-- For using OAuth/JWT credentials, Azure configuration "Secret Token" (bearer token) should be blank. Plugin configuration must then include bearerJwtAzure.tenantIdGUID. Click "Test Connection" in Azure to verify
-
-- Azure AD do a regular check for a "none" existing user/group. This check seems to be a "keep alive" to verify connection.
-
-- Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
-
-- Deleting a user in Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is default set in attribute mappings expression rule `Switch([IsSoftDeleted], , "False", "True", "True", "False")`. Standard SCIM "DELETE" method seems not to be used.  
 
 ## API Gateway    
 
-Gateway also works as an API Gateway when using url `/api` or `/<baseEntity>/api`  
+SCIM Gateway also works as an API Gateway when using url `/api` or `/<baseEntity>/api`  
 
 Following methods for the none SCIM based api-plugin are supported:  
   
@@ -928,7 +909,7 @@ Following methods for the none SCIM based api-plugin are supported:
 		PATCH /api/{id} + body  
 		DELETE /api/{id}  
 
-
+These methods can also be used in standard SCIM plugins  
 Please see example plugin: **plugin-api.js**
 
  
@@ -937,7 +918,7 @@ For JavaScript coding editor you may use [Visual Studio Code](https://code.visua
 
 Preparation:
 
-* Copy "best matching" example plugin e.g. `lib\plugin-loki.js` and `config\plugin-loki.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) 
+* Copy "best matching" example plugin e.g. `lib\plugin-mssql.js` and `config\plugin-mssql.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) 
 * Edit plugin-mine.json and define a unique port number for the gateway setting  
 * Edit index.js and add a new line for starting your plugin e.g. `let mine = require('./lib/plugin-mine');`  
 * Start SCIM Gateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  
@@ -945,20 +926,18 @@ Preparation:
 Now we are ready for custom coding by editing plugin-mine.js
 Coding should be done step by step and each step should be verified and tested before starting the next (they are all highlighted by comments in existing code).  
 
-1. **Turn off group functionality** in getGroup, getGroupMembers, getGroupUsers and modifyGroupMembers  
-Please see callback definitions in plugin-saphana that do not use groups.
-2. **exploreUsers** (test provisioning explore users)
-3. **getUser** (test provisioning retrieve account)
+1. **Turn off group functionality** - getGroups to return empty response  
+Please see plugin-saphana that do not use groups.
+2. **getUsers** (test provisioning retrieve accounts)
 4. **createUser** (test provisioning new account)
 5. **deleteUser** (test provisioning delete account)
 6. **modifyUser** (test provisioning modify account)
-7. **exploreGroups** (test provisioning explore groups)
-8. **Turn on group functionality** (if supporting groups)
-8. **getGroup** (test provisioning group list groups)
-9. **getGroupMembers** (test provisioning retrieve account - group list groups)
-10. **modifyGroupMembers** (test provisioning retrieve account - group add/remove groups)
-11. **getGroupUsers** (if using "groups member of user")   
-12. **createGroup** (test provisioning new group)  
+7. **Turn on group functionality** - getGroups having logic for returning groups if groups are supported  
+7. **getGroups** (test provisioning retrieve groups)
+8. **modifyGroup** (test provisioning modify group members)  
+12. **createGroup** (test provisioning new group)
+13. **deleteGroup** (test provisioning delete account)
+
 
 Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from "Job Title" if our endpoint/code do not support title)  
 
@@ -1028,9 +1007,9 @@ Plugins should have following initialization:
 	// mandatory plugin initialization - end
 
 
-### exploreUsers  
+### getUsers  
 
-	scimgateway.exploreUsers = async (baseEntity, attributes, startIndex, count) => {
+	scimgateway.getUsers = async (baseEntity, getObj, attributes) => {
 	    let ret = {
 	        "Resources": [],
 	        "totalResults": null
@@ -1040,54 +1019,15 @@ Plugins should have following initialization:
 	}  
 
 * baseEntity = Optional for multi-tenant or multi-endpoint support (defined in base url e.g. `<baseurl>/client1` gives baseEntity=client1)  
-* startIndex = Pagination - The 1-based index of the first result in the current set of search results  
-* count = Pagination - Number of elements to be returned in the current set of search results  
+* getObj = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
+	* attribute, operator and value are set when using "simpel filtering", e.g. getObj.attribute='userName', getObj.operator='eq' and getObj.value='bjensen', but not for advanced filtering having and/or/not
+	* rawFilter is always set when filtering is used
+	* startIndex = Pagination - The 1-based index of the first result in the current set of search results  
+	* count = Pagination - Number of elements to be returned in the current set of search results  
+*  attributes = array of attributes to be returned - if empty, all supported attributes should be returned
 * ret:   
-ret.Resources = array filled with user objects containing user attributes where userName is mandatory e.g [{"userName":"bjensen"}, {"userName":"jsmith"}]  
-ret.totalResults = if supporting pagination, then attribute should be set to the total numbers of elements (users) at the endpoint, else set to null
-
-### exploreGroups  
-
-	scimgateway.exploreGroups = async (baseEntity, attributes, startIndex, count) => {
-	    let ret = {
-	        "Resources": [],
-	        "totalResults": null
-	    }
-		...
-		return ret
-	}  
-
-* ret:  
-ret.Resources = array filled with group objects containing group attributes where displayName is mandatory e.g [{"displayName":"Admins"}, {"displayName":"Employees"}]  
-ret.totalResults = if supporting pagination attribute should be set to the total numbers of elements (groups) at the endpoint else set to null
-
-### getUser  
-
-	scimgateway.getUser = async (baseEntity, getObj, attributes) => {
-		...
-		return userObj
-	}  
-
-* getObj = `{ filter: <filterAttribute>, identifier: <identifier> }`  
-e.g: getObj = { "filter": "userName", "identifier": "bjensen"}  
-filter: **userName** and **id** must be supported  
-* attributes = scim attributes to be returned. If no attributes defined, all should be returned.  
-* return userObj: userObj containing scim userattributes/values
-eg:  
-{"id":"bjensen","name":{"formatted":"Ms. Barbara J Jensen III","familyName":"Jensen","givenName":"Barbara"}}
-
-Note, the value of the **id** attribute returned will be used by modifyUser and deleteUser
-
-### createUser
-
-	scimgateway.createUser = async (baseEntity, userObj) => {
-		...
-		return null
-	} 
-
-* userObj = user object containing userattributes according to scim standard  
-Note, multi-value attributes excluding user attribute 'groups' are customized from array to object based on type  
-* return null: null if OK, else throw error  
+ret.Resources = array filled with user objects according to getObj/attributes, we could normally include all attributes having id and userName as mandatory e.g [{"id": "bjensen", "userName": "bjensen"}, {"id":"jsmith", "userName":"jsmith"}]  
+ret.totalResults = if supporting pagination, then it should be set to the total numbers of elements (users), else set to null
 
 ### deleteUser  
 
@@ -1112,73 +1052,28 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 Note, multi-value attributes excluding user attribute 'groups' are customized from array to object based on type  
 * return null: null if OK, else throw error
 
-### getGroup  
+### getGroups  
 
-	scimgateway.getGroup = async (baseEntity, getObj, attributes) => {
+	scimgateway.getGroups = async (baseEntity, getObj, attributes) => {
+	    let ret = {
+	        "Resources": [],
+	        "totalResults": null
+	    }
 		...
-		return retObj
-	} 
+		return ret
+	}  
 
+* baseEntity = Optional for multi-tenant or multi-endpoint support (defined in base url e.g. `<baseurl>/client1` gives baseEntity=client1)  
+* getObj = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
+	* attribute, operator and value are set when using "simpel filtering", e.g. getObj.attribute='displayName', getObj.operator='eq' and getObj.value='Admins', but not for advanced filtering having and/or/not
+	* rawFilter is always set when filtering is used
+	* startIndex = Pagination - The 1-based index of the first result in the current set of search results  
+	* count = Pagination - Number of elements to be returned in the current set of search results  
+*  attributes = array of attributes to be returned - if empty, all supported attributes should be returned
+* ret:   
+ret.Resources = array filled with group objects according to getObj/attributes, we could normally include all attributes having id, displayName and members as mandatory e.g [{"id":"Admins", "displayName":"Admins", members":[{"value":"bjensen"}]}, {"id":"Employees", "displayName":"Employees"}, "members":[{"value":"jsmith","display":"John Smith"}]]  
+ret.totalResults = if supporting pagination, then it should be set to the total numbers of elements (users), else set to null
 
-* getObj = `{ filter: <filterAttribute>, identifier: <identifier> }`  
-e.g: getObj = { "filter": "displayName", "identifier": "GroupA" } 
-filter: **displayName** and **id** must be supported  
-* attributes  = scim attributes to be returned. If no attributes defined, all should be returned.  
-* return retObj: retObj containing group displayName and id (+ members if using default "users are member of group")  
-
-	eg. using default "users are member of group":  
-{"displayName":"Admins","id":"Admins","members":[{"value":"bjensen","display":"bjensen"]}  
-
-	eg. using "groups are member of user":  
-{"displayName":"Admins","id":"Admins"}
-
-	If we do not support groups, callback(null, null)
-
-### getGroupMembers  
-
-	scimgateway.getGroupMembers = async (baseEntity, id, attributes) => {
-	    let arrRet = []
-		...
-		return arrRet
-	}
-
-
-Retrieve all groups for user id WHEN **"user member of groups"**. This setting is default SCIM behaviour. This means Group having multivalue attribute members containing id of users.  
-
-* id = user id (eg. bjensen)  
-* attributes = scim attributes to be returned as object in array
-* arrRet = array containing the objects of id, displayName and members where members value only include current user id on the format:  
-{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }
-
-	[  
-	{"id": "Admins", "displayName: "Admins", "members": [{"value": "bjensen"}]},  
-	{"id": "Employees", "displayName: "Employees", "members": [{"value": "bjensen"}]}  
-	]
-
-	If "user member of groups" not supported, then return []  
-
-
-
-### getGroupUsers  
-
-	scimgateway.getGroupUsers = async (baseEntity, id, attributes) => {
-    	let arrRet = []
-		...
-    	return arrRet
-	}
-
-Retrieve all users for a spesific group id WHEN **"group member of users"**. This means user having multivalue attribute groups having value set to group id  
-
-* id = group id (eg. UserGroup-1)  
-* attributes = scim attributes to be returned as object in array 
-* arrRet = array containing the objects of userName and groups.value e.g:
-
-	[  
-	{"userName", "bjensen": [{"value": "UserGroup-1"}]},  
-	{"userName", "jsmith"}: [{"value": "UserGroup-1"}]}  
-	]
-
-	If "group member of users" not supported, then return []  
 
 ### createGroup  
 	scimgateway.createGroup = async (baseEntity, groupObj) => {
@@ -1215,13 +1110,6 @@ eg: {"value":"bjensen"},{"operation":"delete","value":"jsmith"}
 If we do not support groups, then return null  
 
 
-## Known limitations  
-
-* SCIM filtering only supports operator 'eq' returning unique object only, example:  
-  /Users?**filter**=userName **eq** "bjensen"&attributes=userName,id,name.givenName  
-  /Users?**filter**=emails.value **eq** "bjensen@example.com"&attributes=userName,phoneNumbers
-
-
 ## License  
  
 MIT © [Jarle Elshaug](https://www.elshaug.xyz)
@@ -1229,11 +1117,88 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.0.0  
+**[MAJOR]**  
+ 
+- New `getUsers()` replacing deprecated exploreUsers(), getUser() and getGroupUsers()
+- New `getGroups()` replacing deprecated exploreGroups(), getGroup() and getGroupMembers()
+- Fully filter and sort support
+- Authentication configuration may now include a baseEntities array containing one or more `baseEntity` allowed for corresponding admin user
+- New plugin-mongodb, **thanks to Filipe Ribeiro and Miguel Ferreira (KEEP SOLUTIONS)**
+
+Note, using this major version **require existing custom plugins to be upgraded**. If you do not want to upgrade your custom plugins, the old version have to be installed using: `npm install scimgateway@3.2.11`  
+
+How to upgrade your custom plugins:  
+
+	Replace: scimgateway.exploreUsers = async (baseEntity, attributes, startIndex, count) => {
+	With: scimgateway.getUsers = async (baseEntity, getObj, attributes) => {
+
+See comments in provided plugins regarding the new `getObj`. Also note that `attributes` is now an array and not a comma separated string like previous versions
+
+In the very beginning, add:
+
+	  // mandatory if-else logic - start
+	  if (getObj.operator) {
+	    if (getObj.operator === 'eq' && ['id', 'userName', 'externalId'].includes(getObj.attribute)) {
+	      // mandatory - unique filtering - single unique user to be returned - correspond to getUser() in versions < 4.x.x
+	    } else if (getObj.operator === 'eq' && getObj.attribute === 'group.value') {
+	      // optional - only used when groups are member of users, not default behavior - correspond to getGroupUsers() in versions < 4.x.x
+	      throw new Error(`${action} error: not supporting groups member of user filtering: ${getObj.rawFilter}`)
+	    } else {
+	      // optional - simpel filtering
+	      throw new Error(`${action} error: not supporting simpel filtering: ${getObj.rawFilter}`)
+	    }
+	  } else if (getObj.rawFilter) {
+	    // optional - advanced filtering having and/or/not - use getObj.rawFilter
+	    throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
+	  } else {
+	    // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all users to be returned - correspond to exploreUsers() in versions < 4.x.x
+	  }
+	  // mandatory if-else logic - end
+
+
+In the new getUsers() replacing exploreUsers() "as-is", we then need some logic in the last "else" statement listed above.  
+We also need to add logic from existing getGroup() and getGroupMembers()  
+**Please have a look at provieded plugins to see different ways of doing this logic.**  
+
+
+	Replace: scimgateway.exploreGroups = async (baseEntity, attributes, startIndex, count) => {
+	With: scimgateway.getGroups = async (baseEntity, getObj, attributes) => {
+
+In the very beginning, add:
+
+	  // mandatory if-else logic - start
+	  if (getObj.operator) {
+	    if (getObj.operator === 'eq' && ['id', 'displayName', 'externalId'].includes(getObj.attribute)) {
+	      // mandatory - unique filtering - single unique user to be returned - correspond to getUser() in versions < 4.x.x
+	    } else if (getObj.operator === 'eq' && getObj.attribute === 'members.value') {
+	      // mandatory - return all groups the user 'id' (getObj.value) is member of - correspond to getGroupMembers() in versions < 4.x.x
+	      // Resources = [{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }]
+	    } else {
+	      // optional - simpel filtering
+	      throw new Error(`${action} error: not supporting simpel filtering: ${getObj.rawFilter}`)
+	    }
+	  } else if (getObj.rawFilter) {
+	    // optional - advanced filtering having and/or/not - use getObj.rawFilter
+	    throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
+	  } else {
+	    // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreGroups() in versions < 4.x.x
+	  }
+	  // mandatory if-else logic - end
+
+
+In the new getGroups() replacing exploreGroups() "as-is", we then need some logic in the last "else" statement listed above.  
+We also need to add logic from existing getGroup() and getGroupMembers()  
+**Please have a look at provieded plugins to see different ways of doing this logic.**  
+
+
+    Delete deprecated exploreUsers(), getUser(), getGroupUsers(), exploreGroups(), getGroup() and getGroupMembers()
+
+
 ### v3.2.11  
 [Fixed] 
 
 - errorhandling related to running scimgateway as unikernel 
-
 
 ### v3.2.10  
 [Fixed] 

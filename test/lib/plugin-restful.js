@@ -13,7 +13,8 @@ var options = {
 }
 
 describe('plugin-restful tests', () => {
-  it('exploreUsers test (1)', function (done) {
+
+  it('getUsers all test (1)', function (done) {
     server_8886.get('/Users' +
       '?startIndex=1&count=100')
       .set(options.headers)
@@ -41,7 +42,7 @@ describe('plugin-restful tests', () => {
       })
   })
 
-  it('exploreUsers test (2)', function (done) {
+  it('getUsers all test (2)', function (done) {
     server_8886.get('/Users' +
       '?attributes=userName&startIndex=1&count=100')
       .set(options.headers)
@@ -63,29 +64,7 @@ describe('plugin-restful tests', () => {
       })
   })
 
-  it('exploreGroups test', (done) => {
-    server_8886.get('/Groups' +
-      '?attributes=displayName&startIndex=1&count=100')
-      .set(options.headers)
-      .end(function (err, res) {
-        if (err) {}
-        const groups = res.body
-        expect(res.statusCode).to.equal(200)
-        expect(groups.totalResults).to.equal(2)
-        expect(groups.itemsPerPage).to.equal(2)
-        expect(groups.startIndex).to.equal(1)
-        expect(groups).to.not.equal(undefined)
-        expect(groups.Resources[0].displayName).to.equal('Admins')
-        expect(groups.Resources[0].id).to.equal(undefined)
-        expect(groups.Resources[0].externalId).to.equal(undefined)
-        expect(groups.Resources[1].displayName).to.equal('Employees')
-        expect(groups.Resources[1].id).to.equal(undefined)
-        expect(groups.Resources[1].externalId).to.equal(undefined)
-        done()
-      })
-  })
-
-  it('getUser test (1)', function (done) {
+  it('getUsers unique test (1)', function (done) {
     server_8886.get('/Users/bjensen')
       .set(options.headers)
       .end(function (err, res) {
@@ -112,7 +91,7 @@ describe('plugin-restful tests', () => {
       })
   })
 
-  it('getUser test (2)', function (done) {
+  it('getUsers unique test (2)', function (done) {
     server_8886.get('/Users' +
       '?filter=userName eq "bjensen"&attributes=attributes=ims,locale,name.givenName,externalId,preferredLanguage,userType,id,title,timezone,name.middleName,name.familyName,nickName,name.formatted,meta.location,userName,name.honorificSuffix,meta.version,meta.lastModified,meta.created,name.honorificPrefix,emails,phoneNumbers,photos,x509Certificates.value,profileUrl,roles,active,addresses,displayName,entitlements')
       .set(options.headers)
@@ -137,7 +116,7 @@ describe('plugin-restful tests', () => {
       })
   })
 
-  it('getUser test (3)', function (done) {
+  it('getUsers filter test (1)', function (done) {
     server_8886.get('/Users' +
       '?filter=emails.value eq "bjensen@example.com"&attributes=emails,id,name.givenName')
       .set(options.headers)
@@ -157,7 +136,62 @@ describe('plugin-restful tests', () => {
       })
   })
 
-  it('getGroup test (1)', function (done) {
+  it('getUsers filter test (2)', function (done) {
+    server_8886.get('/Users' +
+      '?filter=emails.value co "@example.com"&attributes=userName,id,emails&sortBy=emails.value&sortOrder=descending')
+      .set(options.headers)
+      .end(function (err, res) {
+        if (err) { }
+        const users = res.body.Resources
+        expect(res.statusCode).to.equal(200)
+        expect(users.length).to.equal(2)
+        expect(users[0].id).to.equal('jsmith')
+        expect(users[1].id).to.equal('bjensen')
+        done()
+      })
+  })
+
+  it('getGroups all test (1)', (done) => {
+    server_8886.get('/Groups' +
+      '?startIndex=1&count=100')
+      .set(options.headers)
+      .end(function (err, res) {
+        if (err) {}
+        const groups = res.body
+        expect(res.statusCode).to.equal(200)
+        expect(groups).to.not.equal(undefined)
+        expect(groups.totalResults).to.equal(2)
+        expect(groups.itemsPerPage).to.equal(2)
+        expect(groups.startIndex).to.equal(1)
+        expect(groups.Resources[0].displayName).to.equal('Admins')
+        expect(groups.Resources[0].id).to.equal('Admins')
+        expect(groups.Resources[1].displayName).to.equal('Employees')
+        expect(groups.Resources[1].id).to.equal('Employees')
+        done()
+      })
+  })
+
+  it('getGroups all test (2)', (done) => {
+    server_8886.get('/Groups' +
+      '?attributes=displayName&startIndex=1&count=100')
+      .set(options.headers)
+      .end(function (err, res) {
+        if (err) {}
+        const groups = res.body
+        expect(res.statusCode).to.equal(200)
+        expect(groups).to.not.equal(undefined)
+        expect(groups.totalResults).to.equal(2)
+        expect(groups.itemsPerPage).to.equal(2)
+        expect(groups.startIndex).to.equal(1)
+        expect(groups.Resources[0].displayName).to.equal('Admins')
+        expect(groups.Resources[0].id).to.equal(undefined)
+        expect(groups.Resources[1].displayName).to.equal('Employees')
+        expect(groups.Resources[1].id).to.equal(undefined)
+        done()
+      })
+  })
+
+  it('getGroups uniqe test (1)', function (done) {
     server_8886.get('/Groups/Admins')
       .set(options.headers)
       .end(function (err, res) {
@@ -170,12 +204,12 @@ describe('plugin-restful tests', () => {
         expect(group.displayName).to.equal('Admins')
         expect(group.id).to.equal('Admins')
         expect(group.members[0].value).to.equal('bjensen')
-        // expect(group.members[0].display).to.equal('bjensen');
+        expect(group.members[0].display).to.equal('Babs Jensen')
         done()
       })
   })
 
-  it('getGroup test (2)', function (done) {
+  it('getGroups uniqe test (2)', function (done) {
     server_8886.get('/Groups' +
       '?filter=displayName eq "Admins"&attributes=externalId,id,members.value,displayName')
       .set(options.headers)
@@ -188,12 +222,11 @@ describe('plugin-restful tests', () => {
         expect(groups.Resources[0].displayName).to.equal('Admins')
         expect(groups.Resources[0].id).to.equal('Admins')
         expect(groups.Resources[0].members[0].value).to.equal('bjensen')
-        // expect(groups.Resources[0].members[0].display).to.equal('bjensen');
         done()
       })
   })
 
-  it('getGroupMembers test', (done) => {
+  it('getGroups member test', (done) => {
     server_8886.get('/Groups' +
       '?filter=members.value eq "bjensen"&attributes=members.value,displayName')
       .set(options.headers)
@@ -351,7 +384,7 @@ describe('plugin-restful tests', () => {
         expect(user.id).to.equal('jgilber')
         expect(user.active).to.equal(false) // modified
         expect(user.name.givenName).to.equal('Jeff-Modified') // modified
-        expect(user.name.familyName).to.equal('')
+        expect(user.name.familyName).to.equal(undefined) // deleted by ''
         expect(user.name.formatted).to.equal('Mr. Jeff Gilbert')
         expect(user.title).to.equal('test title')
         expect(user.emails).to.equal(undefined) // deleted

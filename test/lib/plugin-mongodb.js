@@ -1,8 +1,8 @@
 'use strict'
 
 const expect = require('chai').expect
-const scimgateway = require('../../lib/plugin-loki.js')
-const server_8880 = require('supertest').agent('http://localhost:8880') // module request is an alternative
+const scimgateway = require('../../lib/plugin-mongodb.js')
+const server_8885 = require('supertest').agent('http://localhost:8885') // module request is an alternative
 
 const auth = 'Basic ' + Buffer.from('gwadmin:password').toString('base64')
 const options = {
@@ -12,10 +12,16 @@ const options = {
   }
 }
 
-describe('plugin-loki tests', () => {
+describe('plugin-mongodb tests', () => {
+
+  it('awaiting plugin async collection initialization', (done) => {
+    (async () => { })()
+      .then(() => new Promise(resolve => setTimeout(() => { resolve() }, 3000)))
+      .then(() => done())
+  }).timeout(10000)
 
   it('getUsers all test (1)', function (done) {
-    server_8880.get('/Users' +
+    server_8885.get('/Users' +
       '?startIndex=1&count=100')
       .set(options.headers)
       .end(function (err, res) {
@@ -43,7 +49,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getUsers all test (2)', function (done) {
-    server_8880.get('/Users' +
+    server_8885.get('/Users' +
       '?attributes=userName&startIndex=1&count=100')
       .set(options.headers)
       .end(function (err, res) {
@@ -65,7 +71,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getUsers unique test (1)', function (done) {
-    server_8880.get('/Users/bjensen')
+    server_8885.get('/Users/bjensen')
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
@@ -95,7 +101,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getUsers unique test (2)', function (done) {
-    server_8880.get('/Users' +
+    server_8885.get('/Users' +
       '?filter=userName eq "bjensen"&attributes=ims,locale,name.givenName,externalId,preferredLanguage,userType,id,title,timezone,name.middleName,name.familyName,nickName,name.formatted,meta.location,userName,name.honorificSuffix,meta.version,meta.lastModified,meta.created,name.honorificPrefix,emails,phoneNumbers,photos,x509Certificates.value,profileUrl,roles,active,addresses,displayName,entitlements')
       .set(options.headers)
       .end(function (err, res) {
@@ -121,7 +127,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getUsers filter test (1)', function (done) {
-    server_8880.get('/Users' +
+    server_8885.get('/Users' +
       '?filter=emails.value eq "bjensen@example.com"&attributes=emails,id,name.givenName')
       .set(options.headers)
       .end(function (err, res) {
@@ -142,7 +148,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getUsers filter test (2)', function (done) {
-    server_8880.get('/Users' +
+    server_8885.get('/Users' +
       '?filter=meta.created gte "2010-01-01T00:00:00Z"&attributes=userName,id,name.familyName,meta.created&sortBy=name.familyName&sortOrder=descending')
       .set(options.headers)
       .end(function (err, res) {
@@ -157,7 +163,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getGroups all test (1)', (done) => {
-    server_8880.get('/Groups' +
+    server_8885.get('/Groups' +
       '?startIndex=1&count=100')
       .set(options.headers)
       .end(function (err, res) {
@@ -179,7 +185,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getGroups all test (2)', (done) => {
-    server_8880.get('/Groups' +
+    server_8885.get('/Groups' +
       '?attributes=displayName&startIndex=1&count=100')
       .set(options.headers)
       .end(function (err, res) {
@@ -201,7 +207,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getGroups unique test (1)', function (done) {
-    server_8880.get('/Groups/Admins')
+    server_8885.get('/Groups/Admins')
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
@@ -219,7 +225,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getGroups unique test (2)', function (done) {
-    server_8880.get('/Groups' +
+    server_8885.get('/Groups' +
       '?filter=displayName eq "Admins"&attributes=externalId,id,members.value,displayName')
       .set(options.headers)
       .end(function (err, res) {
@@ -237,7 +243,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getGroups members test', (done) => {
-    server_8880.get('/Groups' +
+    server_8885.get('/Groups' +
       '?filter=members.value eq "bjensen"&attributes=members.value,displayName')
       .set(options.headers)
       .end(function (err, res) {
@@ -287,19 +293,19 @@ describe('plugin-loki tests', () => {
       }
     }
 
-    server_8880.post('/Users')
+    server_8885.post('/Users')
       .set(options.headers)
       .send(newUser)
       .end(function (err, res) {
         expect(err).to.equal(null)
         expect(res.statusCode).to.equal(201)
-        expect(res.body.meta.location).to.equal('http://localhost:8880/Users/jgilber')
+        expect(res.body.meta.location).to.equal('http://localhost:8885/Users/jgilber')
         done()
       })
   })
 
   it('getUser just created test', (done) => {
-    server_8880.get('/Users/jgilber')
+    server_8885.get('/Users/jgilber')
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
@@ -427,7 +433,7 @@ describe('plugin-loki tests', () => {
       ]
     }
 
-    server_8880.patch('/Users/jgilber')
+    server_8885.patch('/Users/jgilber')
       .set(options.headers)
       .send(user)
       .end(function (err, res) {
@@ -438,7 +444,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getUser just modified test', (done) => {
-    server_8880.get('/Users/jgilber')
+    server_8885.get('/Users/jgilber')
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
@@ -493,7 +499,7 @@ describe('plugin-loki tests', () => {
       }
     }
 
-    server_8880.put('/Users/jgilber')
+    server_8885.put('/Users/jgilber')
       .set(options.headers)
       .send(putUser)
       .end(function (err, res) {
@@ -522,7 +528,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('deleteUser test', (done) => {
-    server_8880.delete('/Users/jgilber')
+    server_8885.delete('/Users/jgilber')
       .set(options.headers)
       .end(function (err, res) {
         expect(err).to.equal(null)
@@ -540,19 +546,19 @@ describe('plugin-loki tests', () => {
       }]
     }
 
-    server_8880.post('/Groups')
+    server_8885.post('/Groups')
       .set(options.headers)
       .send(newGroup)
       .end(function (err, res) {
         expect(err).to.equal(null)
         expect(res.statusCode).to.equal(201)
-        expect(res.body.meta.location).to.equal('http://localhost:8880/Groups/GoGoLoki')
+        expect(res.body.meta.location).to.equal('http://localhost:8885/Groups/GoGoLoki')
         done()
       })
   })
 
   it('getGroup just created test', (done) => {
-    server_8880.get('/Groups/GoGoLoki')
+    server_8885.get('/Groups/GoGoLoki')
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
@@ -566,7 +572,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('modifyGroupMembers test (1)', (done) => {
-    server_8880.patch('/Groups/GoGoLoki?attributes=members')
+    server_8885.patch('/Groups/GoGoLoki?attributes=members')
       .set(options.headers)
       // .send({ members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
       .send({
@@ -598,7 +604,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('getGroup just modified members test', (done) => {
-    server_8880.get('/Groups/GoGoLoki')
+    server_8885.get('/Groups/GoGoLoki')
       .set(options.headers)
       .end(function (err, res) {
         if (err) { }
@@ -614,7 +620,7 @@ describe('plugin-loki tests', () => {
   })
 
   it('deleteGroup test', (done) => {
-    server_8880.delete('/Groups/GoGoLoki')
+    server_8885.delete('/Groups/GoGoLoki')
       .set(options.headers)
       .end(function (err, res) {
         expect(err).to.equal(null)
