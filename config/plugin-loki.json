@@ -19,18 +19,22 @@
         {
           "username": "gwadmin",
           "password": "password",
-          "readOnly": false
+          "readOnly": false,
+          "baseEntities": []
         }
       ],
       "bearerToken": [
         {
           "token": null,
-          "readOnly": false
+          "readOnly": false,
+          "baseEntities": []
         }
       ],
       "bearerJwtAzure": [
         {
-          "tenantIdGUID": null
+          "tenantIdGUID": null,
+          "readOnly": false,
+          "baseEntities": []
         }
       ],
       "bearerJwt": [
@@ -40,7 +44,8 @@
           "options": {
             "issuer": null
           },
-          "readOnly": false
+          "readOnly": false,
+          "baseEntities": []
         }
       ]
     },

@@ -1,6 +1,6 @@
 {
   "scimgateway": {
-    "port": 8890,
+    "port": 8885,
     "localhostonly": false,
     "scim": {
       "version": "2.0",
@@ -21,6 +21,12 @@
           "password": "password",
           "readOnly": false,
           "baseEntities": []
+        },
+        {
+          "username": "client-a",
+          "password": "password",
+          "readOnly": false,
+          "baseEntities": ["client-a"]
         }
       ],
       "bearerToken": [
@@ -77,16 +83,18 @@
   "endpoint": {
     "entity": {
       "undefined": {
-        "baseUrls": [
-          "http://fakerestapi.azurewebsites.net"
-        ],
-        "username": "endpointuser",
-        "password": "password",
-        "proxy": {
-          "host": null,
-          "username": null,
-          "password": null
-        }
+        "persistence": false,
+        "baseUrl": "mongodb://localhost:27017/db",
+        "database": "db",
+        "username": "admin",
+        "password": "password"
+      },
+      "client-a": {
+        "persistence": false,
+        "baseUrl": "mongodb://localhost:28017/client-a-db",
+        "database": "client-a-db",
+        "username": "admin",
+        "password": "password"
       }
     }
   }
