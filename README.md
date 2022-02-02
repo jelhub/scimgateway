@@ -173,6 +173,10 @@ Note, always backup/copy C:\\my-scimgateway before upgrading. Custom plugins and
 
 To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compability with any existing custom plugins, we have to include the `@latest` suffix in the install command: `npm install scimgateway@latest`
 
+##### Avoid (re-)adding the files created during `postinstall`
+
+When maintaining a set of modifications it useful to disable the postinstall operations to keep your changes intact by setting the property `scimgateway_postinstall_skip = true` in `.npmrc`.
+
 ## Configuration  
 
 **index.js** defines one or more plugins to be started. We could comment out those we do not need. Default configuration only starts the loki plugin.  
