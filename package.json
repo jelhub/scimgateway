@@ -29,7 +29,7 @@
     "iga"
   ],
   "engines": {
-    "node": ">=10.0.0"
+    "node": ">=7.6.0"
   },
   "dependencies": {
     "callsite": "^1.0.0",
