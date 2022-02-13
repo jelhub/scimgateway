@@ -1,7 +1,7 @@
 'use strict'
 
 const expect = require('chai').expect
-const scimgateway = require('../../lib/plugin-restful.js')
+const scimgateway = require('../../lib/plugin-scim.js')
 const server_8886 = require('supertest').agent('http://localhost:8886') // module request is an alternative
 
 const auth = 'Basic ' + Buffer.from('gwadmin:password').toString('base64')
@@ -12,7 +12,7 @@ var options = {
   }
 }
 
-describe('plugin-restful tests', () => {
+describe('plugin-scim tests', () => {
 
   it('getUsers all test (1)', function (done) {
     server_8886.get('/Users' +
