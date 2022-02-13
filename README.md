@@ -389,6 +389,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - Setting environment variable `SEED` will override default password seeding logic.  
 - All configuration can be set based on environment variables. Syntax will then be `"process.env.<ENVIRONMENT>"` where `<ENVIRONMENT>` is the environment variable used. E.g. scimgateway.port could have value "process.env.PORT", then using environment variable PORT.
 - All configuration can be set based on corresponding JSON-content (dot notation) in external file using plugin name as parent JSON object. Syntax will then be `"process.file.<path>"` where `<path>` is the file used. E.g. endpoint.password could have value "process.file./var/run/vault/secrets.json"  
+- Indivudual Secrets can be contained in plain text files. Syntax will then be `"process.text.<path>"` where `<path>` is the file which contains raw (`UTF-8`) character value. E.g. endpoint.password could have value "process.text./var/run/vault/endpoint.password". This enables that the config file itself be loaded from a ConfigMap while specific values are mounted either from `secrets.json` style files as mentioned above OR from traditional secrets files mounted in the file system, one value per file.
 
 	Example:  
 
@@ -408,6 +409,11 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		        },
 		        ...
 		      ],
+		      "bearerJwt": [
+		         "secret": "process.text./var/run/vault/jwt.secret",
+		         "publicKey": "process.text./var/run/vault/jwt.pub",
+				 ...
+			  ],
 		      ...
 		    },
 		  "endpoint": {
