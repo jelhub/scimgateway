@@ -38,8 +38,6 @@ Using Identity Manager, we could setup one or more endpoints of type SCIM pointi
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
 
-Instead of using IM-SDK for building our own integration for none supported endpoints, we can now build new integration based on SCIM Gateway plugins. SCIM Gateway works with IM as long as IM supports SCIM.
-
 SCIM Gateway is based on the popular asynchronous event driven framework [Node.js](https://nodejs.dev/) using JavaScript. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.
 
 **Following example plugins are included:**
@@ -178,7 +176,7 @@ To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compabilit
 
 ##### Avoid (re-)adding the files created during `postinstall`
 
-When maintaining a set of modifications it useful to disable the postinstall operations to keep your changes intact by setting the property `scimgateway_postinstall_skip = true` in `.npmrc`.
+When maintaining a set of modifications it useful to disable the postinstall operations to keep your changes intact by setting the property `scimgateway_postinstall_skip = true` in `.npmrc` or by setting environment `SCIMGATEWAY_POSTINSTALL_SKIP = true`  
 
 ## Configuration  
 
@@ -1145,7 +1143,8 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 	         "outbound": "my-company.com"
         }
 
-
+- postinstall copying example plugins may be skipped by setting the property `scimgateway_postinstall_skip = true` in `.npmrc` or by setting environment `SCIMGATEWAY_POSTINSTALL_SKIP = true`
+- Secrets now also support key-value storage. The key defined in plugin configuration have syntax `process.text.<path>` where `<path>` is the file which contains raw (UTF-8) character value. E.g. configuration `endpoint.password` could have value `process.text./var/run/vault/endpoint.password`, and the corresponding file contains the secret. **Thanks to Raymond Augé**
 
 
 ### v4.0.0  
