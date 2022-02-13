@@ -11,7 +11,7 @@
 
 const loki = require('./lib/plugin-loki')
 // const mongodb = require('./lib/plugin-mongodb')
-// const restful = require('./lib/plugin-restful')
+// const scim = require('./lib/plugin-scim')
 // const forwardinc = require('./lib/plugin-forwardinc')
 // const mssql = require('./lib/plugin-mssql')
 // const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb --save

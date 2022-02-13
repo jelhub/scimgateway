@@ -10,6 +10,6 @@
 //
 
 const loki = require('./lib/plugin-loki')
-const restful = require('./lib/plugin-restful')
+const scim = require('./lib/plugin-scim')
 const api = require('./lib/plugin-api')
 // const mongodb = require('./lib/plugin-mongodb')
