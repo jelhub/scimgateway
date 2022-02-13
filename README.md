@@ -56,12 +56,15 @@ Example of a fully functional SCIM Gateway plugin
 Same as plugin "Loki" but using MongoDB  
 Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL
 
-* **RESTful** (REST Webservice)  
-Demonstrates user provisioning towards REST-Based endpoint   
-Using plugin "Loki" as a REST endpoint
+* **SCIM** (REST Webservice)  
+Demonstrates user provisioning towards a SCIM endpoint using REST   
+Using plugin "Loki" as SCIM endpoint  
+Can be used as SCIM version-gateway e.g. 1.1=>2.0 or 2.0=>1.1  
+Can be used to chain several SCIM Gateway's  
+
 
 * **Forwardinc** (SOAP Webservice)  
-Demonstrates user provisioning towards SOAP-Based endpoint   
+Demonstrates provisioning towards SOAP-Based endpoint   
 Using endpoint Forwardinc that comes with Broadcom/CA IM SDK (SDKWS) - [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com")    
 Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL  
 
@@ -137,7 +140,7 @@ If internet connection is blocked, we could install on another machine and copy 
 
     http://localhost:8880/Groups?filter=displayName eq "Admins"&excludedAttributes=members
     http://localhost:8880/Users?filter=userName eq "bjensen"&attributes=userName,id,name.givenName
-    http://localhost:8880/Users?filter=meta.created gte "2010-01-01T00:00:00Z"&attributes=userName,name.familyName,meta.created
+    http://localhost:8880/Users?filter=meta.created ge "2010-01-01T00:00:00Z"&attributes=userName,name.familyName,meta.created
     http://localhost:8880/Users?filter=emails.value co "@example.com"&attributes=userName,name.familyName,emails&sortBy=name.familyName&sortOrder=descending
     => Filtering examples
 
@@ -1116,6 +1119,24 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.0.1  
+[Added] 
+
+- create user/group supporting externalId
+- plugin-restful renamed to plugin-scim
+- plugin-ldap having improved SID/GUID support for Active Directory, also supporting domain map of userPrincipalName e.g. Azure AD => Active Directory
+        
+        "userPrincipalName": {
+           "mapTo": "userName",
+           "type": "string",
+	       "mapDomain": {
+	         "inbound": "test.onmicrosoft.com",
+	         "outbound": "my-company.com"
+        }
+
+
+
 
 ### v4.0.0  
 **[MAJOR]**  
