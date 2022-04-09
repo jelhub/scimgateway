@@ -16,7 +16,8 @@ Validated through IdP's:
   
 Latest news:  
 
-- New major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be limited to specific baseEntities. New MongoDB plugin  
+- Supporting OAuth Client Credentials authentication
+- Major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be limited to specific baseEntities. New MongoDB plugin  
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
 - General LDAP plugin configured for Active Directory  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
@@ -184,7 +185,7 @@ When maintaining a set of modifications it useful to disable the postinstall ope
   
 	const loki = require('./lib/plugin-loki')
 	// const mongodb = require('./lib/plugin-mongodb')
-	// const restful = require('./lib/plugin-restful')
+	// const scim = require('./lib/plugin-scim')
 	// const forwardinc = require('./lib/plugin-forwardinc')
 	// const mssql = require('./lib/plugin-mssql')
 	// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb
@@ -246,6 +247,14 @@ Below shows an example of config\plugin-saphana.json
               "options": {
                 "issuer": null
                },
+              "readOnly": false,
+              "baseEntities": []
+            }
+          ],
+          "bearerOAuth": [
+            {
+              "client_id": null,
+              "client_secret": null,
               "readOnly": false,
               "baseEntities": []
             }
@@ -335,6 +344,8 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **auth.bearerJwtAzure** - Array of one or more JWT used by Azure SyncFabric. **tenantIdGUID** must be set to Azure Active Directory Tenant ID.  
 
 - **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs`. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.   
+
+- **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`client_id`** and **`client_secret`** are mandatory. client_secret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. http://localhost:8880**/oauth/token**.
 
 - **certificate** - If not using SSL/TLS certificate, set "key", "cert" and "ca" to **null**. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the `<package-root>\config\certs` directory e.g:  
   
@@ -1127,6 +1138,30 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.1.0  
+[Added] 
+
+- Supporting OAuth Client Credentials authentication
+
+Configuration example:  
+
+    "bearerOAuth": [
+      {
+        "client_id": "my_client_id",
+        "client_secret": "my_client_secret",
+        "readOnly": false,
+        "baseEntities": []
+      }
+    ]
+
+
+In example above, client using SCIM Gateway must have OAuth configuration:  
+
+    client_id = my_client_id
+    client_secret = my_client_secret
+    token request url = http(s)://<host>:<port>/oauth/token
+
 
 ### v4.0.1  
 [Added] 
