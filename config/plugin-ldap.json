@@ -47,6 +47,14 @@
           "readOnly": false,
           "baseEntities": []
         }
+      ],
+      "bearerOAuth": [
+        {
+          "client_id": null,
+          "client_secret": null,
+          "readOnly": false,
+          "baseEntities": []
+        }
       ]
     },
     "certificate": {
