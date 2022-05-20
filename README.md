@@ -1148,7 +1148,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
         {
           ...
-          "userFilter": "(memberOf=CN=grp1,OU=Groups,DC=test,DC=com)(!(memberOf=CN=Administrators,CN=Builtin,DC=test,DC=com))",
+          "userFilter": "(memberOf=CN=grp1,OU=Groups,DC=test,DC=com)(!(memberOf=CN=Domain Admins,CN=Users,DC=test,DC=com))",
           "groupFilter": "(!(cn=grp2))",
           ...
         }
