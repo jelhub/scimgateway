@@ -94,6 +94,8 @@
         "ldap": {
           "userBase": "CN=Users,DC=test,DC=com",
           "groupBase": "OU=Groups,DC=test,DC=com",
+          "userFilter": null,
+          "groupFilter": null,
           "userNamingAttr": "CN",
           "groupNamingAttr": "CN",
           "userObjectClasses": [
