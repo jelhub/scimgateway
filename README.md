@@ -1139,6 +1139,20 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.1.1  
+[Added] 
+
+- plugin-ldap support userFilter/groupFilter configuration for restricting scope  
+
+Configuration example:  
+
+    {
+      ...
+      "userFilter": "(memberOf=CN=grp1,OU=Groups,DC=test,DC=com)(!(memberOf=CN=Administrators,CN=Builtin,DC=test,DC=com))",
+      "groupFilter": "(!(cn=grp2))",
+      ...
+    }
+
 ### v4.1.0  
 [Added] 
 
