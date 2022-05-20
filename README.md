@@ -1144,37 +1144,37 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 - plugin-ldap support userFilter/groupFilter configuration for restricting scope  
 
-Configuration example:  
+    Configuration example:  
 
-    {
-      ...
-      "userFilter": "(memberOf=CN=grp1,OU=Groups,DC=test,DC=com)(!(memberOf=CN=Administrators,CN=Builtin,DC=test,DC=com))",
-      "groupFilter": "(!(cn=grp2))",
-      ...
-    }
+        {
+          ...
+          "userFilter": "(memberOf=CN=grp1,OU=Groups,DC=test,DC=com)(!(memberOf=CN=Administrators,CN=Builtin,DC=test,DC=com))",
+          "groupFilter": "(!(cn=grp2))",
+          ...
+        }
 
 ### v4.1.0  
 [Added] 
 
 - Supporting OAuth Client Credentials authentication
 
-Configuration example:  
+    Configuration example:  
 
-    "bearerOAuth": [
-      {
-        "client_id": "my_client_id",
-        "client_secret": "my_client_secret",
-        "readOnly": false,
-        "baseEntities": []
-      }
-    ]
+        "bearerOAuth": [
+          {
+            "client_id": "my_client_id",
+            "client_secret": "my_client_secret",
+            "readOnly": false,
+            "baseEntities": []
+          }
+        ]
 
 
-In example above, client using SCIM Gateway must have OAuth configuration:  
+    In example above, client using SCIM Gateway must have OAuth configuration:  
 
-    client_id = my_client_id
-    client_secret = my_client_secret
-    token request url = http(s)://<host>:<port>/oauth/token
+        client_id = my_client_id
+        client_secret = my_client_secret
+        token request url = http(s)://<host>:<port>/oauth/token
 
 
 ### v4.0.1  
