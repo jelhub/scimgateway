@@ -31,7 +31,7 @@ Latest news:
 
 ## Overview  
  
-With SCIM Gateway we could do user management by using REST based [SCIM](http://www.simplecloud.info/) 1.1 or 2.0 protocol. Gateway will translate incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. In other words, none SCIM-endpoints will become SCIM-endpoints. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  
+With SCIM Gateway we can manage users and groups by using REST based [SCIM](http://www.simplecloud.info/) 1.1 or 2.0 protocol. Gateway translates incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. In other words, none SCIM-endpoints will become SCIM-endpoints. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  
 
 SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like Symatec/Broadcom/CA Identity Manager.
 
@@ -1138,6 +1138,24 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.1.2  
+[Added] 
+
+- endpointMapper supporting one to many mappings using a comma separated list of attributes in the `mapTo`  
+
+    Configuration example:  
+
+        "map": {
+          "user": {
+            "PersonnelNumber": {
+              "mapTo": "id,userName",
+              "type": "string"
+            },
+            ...
+          }
+        }
+          
 
 ### v4.1.1  
 [Added] 
