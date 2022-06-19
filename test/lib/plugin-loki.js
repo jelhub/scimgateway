@@ -13,7 +13,6 @@ const options = {
 }
 
 describe('plugin-loki tests', () => {
-
   it('getUsers all test (1)', function (done) {
     server_8880.get('/Users' +
       '?startIndex=1&count=100')
@@ -362,7 +361,7 @@ describe('plugin-loki tests', () => {
   */
 
   it('modifyUser test', (done) => {
-    var user = {
+    let user = {
       Operations: [
         {
           op: 'replace',
@@ -490,7 +489,11 @@ describe('plugin-loki tests', () => {
       }],
       'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User': {
         employeeNumber: '1111'
-      }
+      },
+      groups: [
+        { value: 'Employees', display: 'Employees' },
+        { value: 'Admins', display: 'Admins' }
+      ]
     }
 
     server_8880.put('/Users/jgilber')
@@ -517,6 +520,9 @@ describe('plugin-loki tests', () => {
         expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager).to.equal(undefined) // deleted
         expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).to.equal(undefined) // deleted
         expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).to.equal(undefined) // deleted
+        expect(user.groups.length).to.equal(2)
+        expect(user.groups[0].value).to.equal('Admins')
+        expect(user.groups[1].value).to.equal('Employees')
         done()
       })
   })
