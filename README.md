@@ -208,7 +208,8 @@ Below shows an example of config\plugin-saphana.json
         "scim": {
           "version": "2.0",
           "customSchema": null,
-          "skipTypeConvert" : false
+          "skipTypeConvert" : false,
+          "usePutSoftSync" : false
         },
         "log": {
           "loglevel": {
@@ -326,6 +327,8 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		]  
 
 
+- **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If body contains groups, usePutSoftsync=true will prevent removing any existing groups that are not included in body.groups   
+
 - **log.loglevel.file** - off, error, info, or debug. Output to plugin-logfile e.g. `logs\plugin-saphana.log`  
 
 - **log.loglevel.console** - off, error, info, or debug. Output to stdout and errors to stderr.   
@@ -347,7 +350,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`client_id`** and **`client_secret`** are mandatory. client_secret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. http://localhost:8880/oauth/token  
 
-- **certificate** - If not using SSL/TLS certificate, set "key", "cert" and "ca" to **null**. When using SSL/TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the `<package-root>\config\certs` directory e.g:  
+- **certificate** - If not using TLS certificate, set "key", "cert" and "ca" to **null**. When using TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the `<package-root>\config\certs` directory e.g:  
   
 		"certificate": {
 		  "key": "key.pem",
@@ -1138,6 +1141,30 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.1.3  
+[Fixed] 
+
+- createUser response did not include the id that was returned by plugin   
+
+[Added] 
+
+- PUT (Replace User) now includes group handling. Using configuration `scim.usePutSoftsync=true` will prevent removing any existing groups that are not included in body.groups
+
+    Example:  
+
+        PUT /Users/bjensen
+        {
+          ...
+		  "groups": [
+            {"value":"Employees","display":"Employees"},
+            {"value":"Admins","display":"Admins"}
+           ],
+          ...
+        }
+
+
+
 
 ### v4.1.2  
 [Added] 
