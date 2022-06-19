@@ -5,7 +5,8 @@
     "scim": {
       "version": "1.1",
       "customSchema": null,
-      "skipTypeConvert": false
+      "skipTypeConvert": false,
+      "usePutSoftSync": false
     },
     "log": {
       "loglevel": {
