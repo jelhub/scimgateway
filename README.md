@@ -1142,6 +1142,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.1.4  
+[Fixed] 
+
+- TypeConvert logic for multivalue attribute `addresses` did not correctly catch duplicate entries  
+- PUT (Replace User) configuration `scim.usePutSoftsync=true` will also prevent removing any existing roles that are not included in body.roles ref. v4.1.3
+
 ### v4.1.3  
 [Fixed] 
 
