@@ -16,8 +16,9 @@ Validated through IdP's:
   
 Latest news:  
 
+- **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Stream includes **SCIM Stream Gateway**, the next generation SCIM Gateway that supports message subscription and automated provisioning
 - Supporting OAuth Client Credentials authentication
-- Major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be limited to specific baseEntities. New MongoDB plugin  
+- Major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin  
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
 - General LDAP plugin configured for Active Directory  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
@@ -39,7 +40,7 @@ Using Identity Manager, we could setup one or more endpoints of type SCIM pointi
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
 
-SCIM Gateway is based on the popular asynchronous event driven framework [Node.js](https://nodejs.dev/) using JavaScript. It is firewall friendly using REST webservices. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical). Could even be uploaded and run as a cloud application.
+SCIM Gateway is based on the popular asynchronous event driven framework [Node.js](https://nodejs.dev/) using JavaScript. It is cloud and firewall friendly using REST webservices. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical).
 
 **Following example plugins are included:**
 
@@ -52,18 +53,18 @@ Setting `{"persistence": true}` gives persistence file store (no test users)
 Example of a fully functional SCIM Gateway plugin  
 
 * **MongoDB** (NoSQL Document-Oriented Database)  
-Same as plugin "Loki" but using MongoDB  
+Same as plugin "Loki" but using external MongoDB  
 Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL
 
 * **SCIM** (REST Webservice)  
-Demonstrates user provisioning towards a SCIM endpoint using REST   
+Demonstrates user provisioning towards REST-Based endpoint (type SCIM) 
 Using plugin "Loki" as SCIM endpoint  
 Can be used as SCIM version-gateway e.g. 1.1=>2.0 or 2.0=>1.1  
 Can be used to chain several SCIM Gateway's  
 
 
 * **Forwardinc** (SOAP Webservice)  
-Demonstrates provisioning towards SOAP-Based endpoint   
+Demonstrates user provisioning towards SOAP-Based endpoint   
 Using endpoint Forwardinc that comes with Broadcom/CA IM SDK (SDKWS) - [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com")    
 Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL  
 
@@ -1141,6 +1142,14 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.1.5  
+[Added]  
+
+Announcing some SCIM Gateway related news:  
+
+- [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Stream includes **SCIM Stream Gateway**, the next generation SCIM Gateway that supports message subscription and automated provisioning
+
 
 ### v4.1.4  
 [Fixed] 
