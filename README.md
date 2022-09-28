@@ -1,6 +1,6 @@
 # SCIM Gateway  
 
-[![Build Status](https://app.travis-ci.com/jelhub/scimgateway.svg?branch=master)](https://app.travis-ci.com/github/jelhub/scimgateway) [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dt/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/docs/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
+[![Build Status](https://app.travis-ci.com/jelhub/scimgateway.svg?branch=master)](https://app.travis-ci.com/github/jelhub/scimgateway) [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dm/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/docs/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
 
 ---  
 Author: Jarle Elshaug  
@@ -53,7 +53,7 @@ Setting `{"persistence": true}` gives persistence file store (no test users)
 Example of a fully functional SCIM Gateway plugin  
 
 * **MongoDB** (NoSQL Document-Oriented Database)  
-Same as plugin "Loki" but using external MongoDB  
+Same as plugin "Loki", but using external MongoDB  
 Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL
 
 * **SCIM** (REST Webservice)  
@@ -104,7 +104,7 @@ Node.js is a prerequisite and have to be installed on the server.
 #### Install SCIM Gateway  
 
 Open a command window (run as administrator)  
-Create your own package directory e.g. C:\my-scimgateway and install SCIM Gateway within this package.
+Create your own package directory e.g. c:\my-scimgateway and install SCIM Gateway within this package.
 
 	mkdir c:\my-scimgateway
 	cd c:\my-scimgateway
@@ -128,22 +128,22 @@ If internet connection is blocked, we could install on another machine and copy 
 	=> Health check with a "hello" response
 
 	http://localhost:8880/Users  
-	http://localhost:8880/Groups
-	or 
-	http://localhost:8880/Users?attributes=userName
-	http://localhost:8880/Groups?attributes=displayName  
+	http://localhost:8880/Groups 
 	=> Logon using gwadmin/password and two users and groups should be listed  
 
 	http://localhost:8880/Users/bjensen
 	http://localhost:8880/Groups/Admins
+	or
+	http://localhost:8880/Users?filter=userName eq "bjensen"
+	http://localhost:8880/Groups?filter=displayName eq "Admins"
 	=> Lists all attributes for specified user/group
 
     http://localhost:8880/Groups?filter=displayName eq "Admins"&excludedAttributes=members
+    http://localhost:8880/Groups?filter=members.value eq "bjensen"&attributes=id,displayName,members.value
     http://localhost:8880/Users?filter=userName eq "bjensen"&attributes=userName,id,name.givenName
     http://localhost:8880/Users?filter=meta.created ge "2010-01-01T00:00:00Z"&attributes=userName,name.familyName,meta.created
     http://localhost:8880/Users?filter=emails.value co "@example.com"&attributes=userName,name.familyName,emails&sortBy=name.familyName&sortOrder=descending
-    => Filtering examples
-
+    => Filtering and attribute examples
 
 	"Ctrl + c" to stop the SCIM Gateway
 
@@ -172,7 +172,7 @@ Upgrade to latest minor version:
 	cd c:\my-scimgateway
 	npm install scimgateway
 
-Note, always backup/copy C:\\my-scimgateway before upgrading. Custom plugins and corresponding configuration files will not be affected.  
+Note, always backup/copy c:\\my-scimgateway before upgrading. Custom plugins and corresponding configuration files will not be affected.  
 
 To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compability with any existing custom plugins, we have to include the `@latest` suffix in the install command: `npm install scimgateway@latest`
 
@@ -1142,6 +1142,10 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.1.6  
+[Added]
+- Dependencies bump  
 
 ### v4.1.5  
 [Added]  
