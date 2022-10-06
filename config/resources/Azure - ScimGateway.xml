@@ -19,7 +19,7 @@
         </metadata>
         <metadata name="version">
             <value>
-                <strValue>1.0</strValue>
+                <strValue>1.1</strValue>
             </value>
         </metadata>
         <metadata name="policyContainerClass">
@@ -1348,6 +1348,10 @@
             <val displayName="Account Template">TEMPLATE_GROUP</val>
             <val displayName="Account Template Information">TEMPLATE_SUBGROUP</val>
         </enum>
+        <enum name="UserTypes">
+            <val ordinal="1" displayName="Member">Member</val>
+            <val ordinal="2" displayName="">Guest</val>
+        </enum>
         <class name="eTDYNDirectory">
             <doc>Endpoint Class for ScimGateway endpoint type.</doc>
             <extends>eTDirectory</extends>
@@ -2237,6 +2241,27 @@ function init(FieldContext)
                         </valueType>
                         <mapEntry>
                             <key>
+<enumValue def="Groups">ACCOUNT</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <enumValue def="Groups"></enumValue>
+    </baseType>
+    <val>
+        <enumValue def="Groups">ACCOUNT_LOGIN</enumValue>
+    </val>
+    <val>
+        <enumValue def="Groups">ACCOUNT_PASSWORD</enumValue>
+    </val>
+    <val>
+        <enumValue def="Groups">ACCOUNT_STATUS</enumValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
 <enumValue def="Groups">CONTACT</enumValue>
                             </key>
                             <value>
@@ -2252,36 +2277,6 @@ function init(FieldContext)
     </val>
     <val>
         <enumValue def="Groups">CONTACT_PHONE</enumValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">GROUP MEMBERSHIP</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <enumValue def="Groups"></enumValue>
-    </baseType>
-    <val>
-        <enumValue def="Groups">GROUP MEMBERSHIP_GROUP MEMBERSHIP</enumValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">LICENSE</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <enumValue def="Groups"></enumValue>
-    </baseType>
-    <val>
-        <enumValue def="Groups">LICENSE_LICENSE</enumValue>
     </val>
 </sequenceValue>
                             </value>
@@ -2318,7 +2313,7 @@ function init(FieldContext)
                         </mapEntry>
                         <mapEntry>
                             <key>
-<enumValue def="Groups">USER</enumValue>
+<enumValue def="Groups">GROUP MEMBERSHIP</enumValue>
                             </key>
                             <value>
 <sequenceValue>
@@ -2326,10 +2321,7 @@ function init(FieldContext)
         <enumValue def="Groups"></enumValue>
     </baseType>
     <val>
-        <enumValue def="Groups">USER_NAME</enumValue>
-    </val>
-    <val>
-        <enumValue def="Groups">USER_ORGANIZATION</enumValue>
+        <enumValue def="Groups">GROUP MEMBERSHIP_GROUP MEMBERSHIP</enumValue>
     </val>
 </sequenceValue>
                             </value>
@@ -2351,7 +2343,7 @@ function init(FieldContext)
                         </mapEntry>
                         <mapEntry>
                             <key>
-<enumValue def="Groups">ACCOUNT</enumValue>
+<enumValue def="Groups">LICENSE</enumValue>
                             </key>
                             <value>
 <sequenceValue>
@@ -2359,13 +2351,25 @@ function init(FieldContext)
         <enumValue def="Groups"></enumValue>
     </baseType>
     <val>
-        <enumValue def="Groups">ACCOUNT_LOGIN</enumValue>
+        <enumValue def="Groups">LICENSE_LICENSE</enumValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
+<enumValue def="Groups">USER</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <enumValue def="Groups"></enumValue>
+    </baseType>
+    <val>
+        <enumValue def="Groups">USER_NAME</enumValue>
     </val>
     <val>
-        <enumValue def="Groups">ACCOUNT_PASSWORD</enumValue>
-    </val>
-    <val>
-        <enumValue def="Groups">ACCOUNT_STATUS</enumValue>
+        <enumValue def="Groups">USER_ORGANIZATION</enumValue>
     </val>
 </sequenceValue>
                             </value>
@@ -2388,6 +2392,30 @@ function init(FieldContext)
                         </valueType>
                         <mapEntry>
                             <key>
+<enumValue def="Groups">ACCOUNT_LOGIN</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTDYNAccountName</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-09</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-06</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-31</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
 <enumValue def="Groups">ACCOUNT_PASSWORD</enumValue>
                             </key>
                             <value>
@@ -2403,6 +2431,66 @@ function init(FieldContext)
     </val>
     <val>
         <strValue>eTDYN-str-multi-19</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
+<enumValue def="Groups">ACCOUNT_STATUS</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTSuspended</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-26</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
+<enumValue def="Groups">GROUP MEMBERSHIP_GROUP MEMBERSHIP</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTDYN-str-multi-c-07</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
+<enumValue def="Groups">CONTACT_ADDRESS</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTDYN-str-multi-24</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-10</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-23</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-03</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-05</strValue>
     </val>
 </sequenceValue>
                             </value>
@@ -2457,6 +2545,24 @@ function init(FieldContext)
                         </mapEntry>
                         <mapEntry>
                             <key>
+<enumValue def="Groups">CONTACT_PHONE</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTDYN-str-multi-22</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-01</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
 <enumValue def="Groups">USER_NAME</enumValue>
                             </key>
                             <value>
@@ -2481,7 +2587,7 @@ function init(FieldContext)
                         </mapEntry>
                         <mapEntry>
                             <key>
-<enumValue def="Groups">ACCOUNT_STATUS</enumValue>
+<enumValue def="Groups">MANAGER_MANAGER ID</enumValue>
                             </key>
                             <value>
 <sequenceValue>
@@ -2489,37 +2595,7 @@ function init(FieldContext)
         <strValue></strValue>
     </baseType>
     <val>
-        <strValue>eTSuspended</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-26</strValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">CONTACT_ADDRESS</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <strValue></strValue>
-    </baseType>
-    <val>
-        <strValue>eTDYN-str-multi-24</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-10</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-23</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-03</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-05</strValue>
+        <strValue>eTDYN-str-multi-11</strValue>
     </val>
 </sequenceValue>
                             </value>
@@ -2535,78 +2611,6 @@ function init(FieldContext)
     </baseType>
     <val>
         <strValue>eTDYN-str-multi-c-32</strValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">GROUP MEMBERSHIP_GROUP MEMBERSHIP</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <strValue></strValue>
-    </baseType>
-    <val>
-        <strValue>eTDYN-str-multi-c-07</strValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">ACCOUNT_LOGIN</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <strValue></strValue>
-    </baseType>
-    <val>
-        <strValue>eTDYNAccountName</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-09</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-06</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-31</strValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">CONTACT_PHONE</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <strValue></strValue>
-    </baseType>
-    <val>
-        <strValue>eTDYN-str-multi-22</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-01</strValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">MANAGER_MANAGER ID</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <strValue></strValue>
-    </baseType>
-    <val>
-        <strValue>eTDYN-str-multi-11</strValue>
     </val>
 </sequenceValue>
                             </value>
@@ -3111,11 +3115,6 @@ function init(FieldContext)
                         <strValue>onPremisesSyncEnabled</strValue>
                     </value>
                 </metadata>
-                <metadata name="isReadOnly">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
                 <metadata name="writableBy">
                     <value>
                         <strValue></strValue>
@@ -3125,7 +3124,7 @@ function init(FieldContext)
             <property name="eTDYN-str-multi-30">
                 <doc>User Type</doc>
                 <value default="false">
-                    <strValue></strValue>
+                    <enumValue def="UserTypes"></enumValue>
                 </value>
                 <metadata name="displayName">
                     <value>
@@ -3145,11 +3144,6 @@ function init(FieldContext)
                 <metadata name="connectorMapTo">
                     <value>
                         <strValue>userType</strValue>
-                    </value>
-                </metadata>
-                <metadata name="writableBy">
-                    <value>
-                        <strValue></strValue>
                     </value>
                 </metadata>
             </property>
@@ -3785,6 +3779,116 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
+            <property name="eTDYN-str-multi-02">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Employee ID</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>employeeId</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>employeeID</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-13">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Division</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>employeeOrgData.division</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue></strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-07">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Costcenter</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>employeeOrgData.costCenter</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>costcenter</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-17">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Company</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>companyName</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>company</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+                <metadata name="defaultPolicyValue">
+                    <value>
+                        <strValue>%UCOMP%</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-28">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Employee Type</strValue>
+                    </value>
+                </metadata>
+                <metadata name="connectorMapTo">
+                    <value>
+                        <strValue>employeeType</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>employeeType</strValue>
+                    </value>
+                </metadata>
+            </property>
         </class>
         <class name="eTDYNPolicy">
             <doc>Default Account Template.</doc>
@@ -3809,6 +3913,27 @@ function init(FieldContext)
                         </valueType>
                         <mapEntry>
                             <key>
+<enumValue def="Groups">ACCOUNT</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <enumValue def="Groups"></enumValue>
+    </baseType>
+    <val>
+        <enumValue def="Groups">ACCOUNT_LOGIN</enumValue>
+    </val>
+    <val>
+        <enumValue def="Groups">ACCOUNT_PASSWORD</enumValue>
+    </val>
+    <val>
+        <enumValue def="Groups">ACCOUNT_STATUS</enumValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
 <enumValue def="Groups">CONTACT</enumValue>
                             </key>
                             <value>
@@ -3824,36 +3949,6 @@ function init(FieldContext)
     </val>
     <val>
         <enumValue def="Groups">CONTACT_PHONE</enumValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">GROUP MEMBERSHIP</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <enumValue def="Groups"></enumValue>
-    </baseType>
-    <val>
-        <enumValue def="Groups">GROUP MEMBERSHIP_GROUP MEMBERSHIP</enumValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">LICENSE</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <enumValue def="Groups"></enumValue>
-    </baseType>
-    <val>
-        <enumValue def="Groups">LICENSE_LICENSE</enumValue>
     </val>
 </sequenceValue>
                             </value>
@@ -3893,7 +3988,7 @@ function init(FieldContext)
                         </mapEntry>
                         <mapEntry>
                             <key>
-<enumValue def="Groups">USER</enumValue>
+<enumValue def="Groups">GROUP MEMBERSHIP</enumValue>
                             </key>
                             <value>
 <sequenceValue>
@@ -3901,10 +3996,7 @@ function init(FieldContext)
         <enumValue def="Groups"></enumValue>
     </baseType>
     <val>
-        <enumValue def="Groups">USER_NAME</enumValue>
-    </val>
-    <val>
-        <enumValue def="Groups">USER_ORGANIZATION</enumValue>
+        <enumValue def="Groups">GROUP MEMBERSHIP_GROUP MEMBERSHIP</enumValue>
     </val>
 </sequenceValue>
                             </value>
@@ -3926,7 +4018,7 @@ function init(FieldContext)
                         </mapEntry>
                         <mapEntry>
                             <key>
-<enumValue def="Groups">ACCOUNT</enumValue>
+<enumValue def="Groups">LICENSE</enumValue>
                             </key>
                             <value>
 <sequenceValue>
@@ -3934,13 +4026,25 @@ function init(FieldContext)
         <enumValue def="Groups"></enumValue>
     </baseType>
     <val>
-        <enumValue def="Groups">ACCOUNT_LOGIN</enumValue>
+        <enumValue def="Groups">LICENSE_LICENSE</enumValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
+<enumValue def="Groups">USER</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <enumValue def="Groups"></enumValue>
+    </baseType>
+    <val>
+        <enumValue def="Groups">USER_NAME</enumValue>
     </val>
     <val>
-        <enumValue def="Groups">ACCOUNT_PASSWORD</enumValue>
-    </val>
-    <val>
-        <enumValue def="Groups">ACCOUNT_STATUS</enumValue>
+        <enumValue def="Groups">USER_ORGANIZATION</enumValue>
     </val>
 </sequenceValue>
                             </value>
@@ -3978,6 +4082,30 @@ function init(FieldContext)
                         </valueType>
                         <mapEntry>
                             <key>
+<enumValue def="Groups">ACCOUNT_LOGIN</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTDYNAccountName</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-09</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-06</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-31</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
 <enumValue def="Groups">ACCOUNT_PASSWORD</enumValue>
                             </key>
                             <value>
@@ -3993,6 +4121,66 @@ function init(FieldContext)
     </val>
     <val>
         <strValue>eTDYN-str-multi-19</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
+<enumValue def="Groups">ACCOUNT_STATUS</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTSuspended</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-26</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
+<enumValue def="Groups">GROUP MEMBERSHIP_GROUP MEMBERSHIP</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTDYN-str-multi-c-07</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
+<enumValue def="Groups">CONTACT_ADDRESS</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTDYN-str-multi-24</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-10</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-23</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-03</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-05</strValue>
     </val>
 </sequenceValue>
                             </value>
@@ -4047,6 +4235,24 @@ function init(FieldContext)
                         </mapEntry>
                         <mapEntry>
                             <key>
+<enumValue def="Groups">CONTACT_PHONE</enumValue>
+                            </key>
+                            <value>
+<sequenceValue>
+    <baseType>
+        <strValue></strValue>
+    </baseType>
+    <val>
+        <strValue>eTDYN-str-multi-22</strValue>
+    </val>
+    <val>
+        <strValue>eTDYN-str-multi-01</strValue>
+    </val>
+</sequenceValue>
+                            </value>
+                        </mapEntry>
+                        <mapEntry>
+                            <key>
 <enumValue def="Groups">USER_NAME</enumValue>
                             </key>
                             <value>
@@ -4071,7 +4277,7 @@ function init(FieldContext)
                         </mapEntry>
                         <mapEntry>
                             <key>
-<enumValue def="Groups">ACCOUNT_STATUS</enumValue>
+<enumValue def="Groups">MANAGER_MANAGER ID</enumValue>
                             </key>
                             <value>
 <sequenceValue>
@@ -4079,52 +4285,7 @@ function init(FieldContext)
         <strValue></strValue>
     </baseType>
     <val>
-        <strValue>eTSuspended</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-26</strValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">CONTACT_ADDRESS</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <strValue></strValue>
-    </baseType>
-    <val>
-        <strValue>eTDYN-str-multi-24</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-10</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-23</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-03</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-05</strValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">LICENSE_LICENSE</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <strValue></strValue>
-    </baseType>
-    <val>
-        <strValue>eTDYN-str-multi-c-32</strValue>
+        <strValue>eTDYN-str-multi-11</strValue>
     </val>
 </sequenceValue>
                             </value>
@@ -4158,7 +4319,7 @@ function init(FieldContext)
                         </mapEntry>
                         <mapEntry>
                             <key>
-<enumValue def="Groups">GROUP MEMBERSHIP_GROUP MEMBERSHIP</enumValue>
+<enumValue def="Groups">LICENSE_LICENSE</enumValue>
                             </key>
                             <value>
 <sequenceValue>
@@ -4166,64 +4327,7 @@ function init(FieldContext)
         <strValue></strValue>
     </baseType>
     <val>
-        <strValue>eTDYN-str-multi-c-07</strValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">ACCOUNT_LOGIN</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <strValue></strValue>
-    </baseType>
-    <val>
-        <strValue>eTDYNAccountName</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-09</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-06</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-31</strValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">CONTACT_PHONE</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <strValue></strValue>
-    </baseType>
-    <val>
-        <strValue>eTDYN-str-multi-22</strValue>
-    </val>
-    <val>
-        <strValue>eTDYN-str-multi-01</strValue>
-    </val>
-</sequenceValue>
-                            </value>
-                        </mapEntry>
-                        <mapEntry>
-                            <key>
-<enumValue def="Groups">MANAGER_MANAGER ID</enumValue>
-                            </key>
-                            <value>
-<sequenceValue>
-    <baseType>
-        <strValue></strValue>
-    </baseType>
-    <val>
-        <strValue>eTDYN-str-multi-11</strValue>
+        <strValue>eTDYN-str-multi-c-32</strValue>
     </val>
 </sequenceValue>
                             </value>
@@ -4275,7 +4379,7 @@ function init(FieldContext)
             </property>
             <property name="eTDYNAccountName">
                 <value default="true">
-                    <strValue>%UE%</strValue>
+                    <strValue>%AC%</strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
@@ -4607,11 +4711,6 @@ function init(FieldContext)
                         <boolValue>false</boolValue>
                     </value>
                 </metadata>
-                <metadata name="isReadOnly">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
                 <metadata name="writableBy">
                     <value>
                         <strValue></strValue>
@@ -4620,7 +4719,7 @@ function init(FieldContext)
             </property>
             <property name="eTDYN-str-multi-30">
                 <value>
-                    <strValue></strValue>
+                    <enumValue def="UserTypes"></enumValue>
                 </value>
                 <metadata name="displayName">
                     <value>
@@ -4635,11 +4734,6 @@ function init(FieldContext)
                 <metadata name="isRequired">
                     <value>
                         <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="writableBy">
-                    <value>
-                        <strValue></strValue>
                     </value>
                 </metadata>
             </property>
@@ -5110,6 +5204,86 @@ function init(FieldContext)
                     </value>
                 </metadata>
             </property>
+            <property name="eTDYN-str-multi-02">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Employee ID</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>employeeID</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-13">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Division</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue></strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-07">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Costcenter</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>costcenter</strValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-17">
+                <value default="true">
+                    <strValue>%UCOMP%</strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Company</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>company</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isWellKnown">
+                    <value>
+                        <boolValue>true</boolValue>
+                    </value>
+                </metadata>
+            </property>
+            <property name="eTDYN-str-multi-28">
+                <value>
+                    <strValue></strValue>
+                </value>
+                <metadata name="displayName">
+                    <value>
+                        <strValue>Employee Type</strValue>
+                    </value>
+                </metadata>
+                <metadata name="beanPropertyName">
+                    <value>
+                        <strValue>employeeType</strValue>
+                    </value>
+                </metadata>
+            </property>
         </class>
         <class name="eTDYNPolicyContainer">
             <doc>Account Template container.</doc>
@@ -5235,76 +5409,6 @@ function init(FieldContext)
                 <metadata name="isRequired">
                     <value>
                         <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-            </property>
-        </class>
-        <class name="CustomParameter">
-            <doc>Name/value pairs</doc>
-            <metadata name="isCompoundValue">
-                <value>
-                    <boolValue>true</boolValue>
-                </value>
-            </metadata>
-            <metadata name="displayName">
-                <value>
-                    <strValue>Custom Parameter</strValue>
-                </value>
-            </metadata>
-            <metadata name="connectorMapToSame">
-                <value>
-                    <boolValue>true</boolValue>
-                </value>
-            </metadata>
-            <metadata name="connectorMapToLax">
-                <value>
-                    <boolValue>true</boolValue>
-                </value>
-            </metadata>
-            <metadata name="isUnmanaged">
-                <value>
-                    <boolValue>true</boolValue>
-                </value>
-            </metadata>
-            <property name="parameterName">
-                <doc></doc>
-                <value>
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Parameter Name</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>parameterName</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>parameterName</strValue>
-                    </value>
-                </metadata>
-            </property>
-            <property name="parameterValue">
-                <doc></doc>
-                <value>
-                    <strValue></strValue>
-                </value>
-                <metadata name="displayName">
-                    <value>
-                        <strValue>Parameter Value</strValue>
-                    </value>
-                </metadata>
-                <metadata name="connectorMapTo">
-                    <value>
-                        <strValue>parameterValue</strValue>
-                    </value>
-                </metadata>
-                <metadata name="beanPropertyName">
-                    <value>
-                        <strValue>parameterValue</strValue>
                     </value>
                 </metadata>
             </property>
