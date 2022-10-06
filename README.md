@@ -1143,6 +1143,16 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.1.7  
+
+**Note, this version breaks compability with previous versions of plugin-azure-ad**  
+
+[Added]  
+
+- endpointMap moved from scimgateway to plugin-azure-ad
+- plugin-azure-ad.json configuration file now includes attribute mapping giving flexibility to add or customize AAD-SCIM attribute mappings
+- Symantec/Broadcom/CA ConnectorXpress configuration file `config\resources\Azure - ScimGateway.xml` for defining the Azure endpoint, have been updated with some new attributes according to plugin-azure-ad.json attribute mappings
+
 ### v4.1.6  
 [Added]
 - Dependencies bump  
