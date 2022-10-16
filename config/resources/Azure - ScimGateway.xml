@@ -3371,7 +3371,7 @@ function init(FieldContext)
             </property>
             <property name="eTDYN-str-multi-29">
                 <doc>Proxy Addresses</doc>
-                <value>
+                <value default="false">
                     <setValue>
                         <baseType>
                             <strValue></strValue>
@@ -3396,11 +3396,6 @@ function init(FieldContext)
                 <metadata name="isRequired">
                     <value>
                         <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isReadOnly">
-                    <value>
-                        <boolValue>true</boolValue>
                     </value>
                 </metadata>
                 <metadata name="writableBy">
@@ -3619,7 +3614,8 @@ function init(FieldContext)
                 </metadata>
             </property>
             <property name="eTDYN-str-multi-03">
-                <value>
+                <doc></doc>
+                <value default="false">
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
@@ -3645,6 +3641,11 @@ function init(FieldContext)
                 <metadata name="defaultPolicyValue">
                     <value>
                         <strValue>%UCOUNTRY%</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
                     </value>
                 </metadata>
             </property>
@@ -3750,7 +3751,8 @@ function init(FieldContext)
                 </metadata>
             </property>
             <property name="eTDYN-str-multi-05">
-                <value>
+                <doc></doc>
+                <value default="false">
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
@@ -3778,9 +3780,15 @@ function init(FieldContext)
                         <strValue>%UPC%</strValue>
                     </value>
                 </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
             </property>
             <property name="eTDYN-str-multi-02">
-                <value>
+                <doc></doc>
+                <value default="false">
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
@@ -3798,9 +3806,15 @@ function init(FieldContext)
                         <strValue>employeeID</strValue>
                     </value>
                 </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
             </property>
             <property name="eTDYN-str-multi-13">
-                <value>
+                <doc></doc>
+                <value default="false">
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
@@ -3815,12 +3829,18 @@ function init(FieldContext)
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue></strValue>
+                        <strValue>division</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
                     </value>
                 </metadata>
             </property>
             <property name="eTDYN-str-multi-07">
-                <value>
+                <doc></doc>
+                <value default="false">
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
@@ -3838,9 +3858,15 @@ function init(FieldContext)
                         <strValue>costcenter</strValue>
                     </value>
                 </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
             </property>
             <property name="eTDYN-str-multi-17">
-                <value>
+                <doc></doc>
+                <value default="false">
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
@@ -3868,9 +3894,15 @@ function init(FieldContext)
                         <strValue>%UCOMP%</strValue>
                     </value>
                 </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
             </property>
             <property name="eTDYN-str-multi-28">
-                <value>
+                <doc></doc>
+                <value default="false">
                     <strValue></strValue>
                 </value>
                 <metadata name="displayName">
@@ -3886,6 +3918,11 @@ function init(FieldContext)
                 <metadata name="beanPropertyName">
                     <value>
                         <strValue>employeeType</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
                     </value>
                 </metadata>
             </property>
@@ -5104,6 +5141,11 @@ function init(FieldContext)
                         <boolValue>true</boolValue>
                     </value>
                 </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
             </property>
             <property name="eTDYN-str-multi-10">
                 <value default="true">
@@ -5203,6 +5245,11 @@ function init(FieldContext)
                         <boolValue>true</boolValue>
                     </value>
                 </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
             </property>
             <property name="eTDYN-str-multi-02">
                 <value>
@@ -5218,6 +5265,11 @@ function init(FieldContext)
                         <strValue>employeeID</strValue>
                     </value>
                 </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
             </property>
             <property name="eTDYN-str-multi-13">
                 <value>
@@ -5230,7 +5282,12 @@ function init(FieldContext)
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue></strValue>
+                        <strValue>division</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
                     </value>
                 </metadata>
             </property>
@@ -5246,6 +5303,11 @@ function init(FieldContext)
                 <metadata name="beanPropertyName">
                     <value>
                         <strValue>costcenter</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
                     </value>
                 </metadata>
             </property>
@@ -5268,6 +5330,11 @@ function init(FieldContext)
                         <boolValue>true</boolValue>
                     </value>
                 </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
+                    </value>
+                </metadata>
             </property>
             <property name="eTDYN-str-multi-28">
                 <value>
@@ -5281,6 +5348,11 @@ function init(FieldContext)
                 <metadata name="beanPropertyName">
                     <value>
                         <strValue>employeeType</strValue>
+                    </value>
+                </metadata>
+                <metadata name="isRequired">
+                    <value>
+                        <boolValue>false</boolValue>
                     </value>
                 </metadata>
             </property>
