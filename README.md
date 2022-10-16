@@ -1143,6 +1143,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.1.8  
+
+[Fixed]  
+  
+- endpointMap and Symantec/Broadcom/CA ConnectorXpress configuration file `config\resources\Azure - ScimGateway.xml` introduced in v.4.1.7 had some missing logic  
+
 ### v4.1.7  
 
 **Note, this version breaks compability with previous versions of plugin-azure-ad**  
