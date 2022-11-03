@@ -210,6 +210,14 @@
           "mapTo": "passwordPolicies",
           "type": "string"
         },
+        "passwordProfile.forceChangePasswordNextSignIn": {
+          "mapTo": "passwordProfile.forceChangePasswordNextSignIn",
+          "type": "string"
+        },
+        "passwordProfile.password": {
+          "mapTo": "passwordProfile.password",
+          "type": "string"
+        },
         "servicePlan": {
           "mapTo": "servicePlan.value",
           "type": "array"
