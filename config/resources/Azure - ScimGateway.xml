@@ -3326,16 +3326,16 @@ function init(FieldContext)
             <property name="eTDYN-str-multi-11">
                 <doc></doc>
                 <value default="false">
-                    <flexiStrValue type="DN"></flexiStrValue>
+                    <strValue></strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Manager Id</strValue>
+                        <strValue>Manager UPN</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>managermanagerId</strValue>
+                        <strValue>managerId</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
@@ -3346,26 +3346,6 @@ function init(FieldContext)
                 <metadata name="connectorMapTo">
                     <value>
                         <strValue>manager.managerId</strValue>
-                    </value>
-                </metadata>
-                <metadata name="DNTestExists">
-                    <value>
-                        <boolValue>true</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="assocRefObjectClass">
-                    <value>
-                        <strValue>eTDYNAccount</strValue>
-                    </value>
-                </metadata>
-                <metadata name="assocRefKeyAttr">
-                    <value>
-                        <strValue>id</strValue>
-                    </value>
-                </metadata>
-                <metadata name="DNLdapObjectClass">
-                    <value>
-                        <strValue>eTDYNAccount</strValue>
                     </value>
                 </metadata>
             </property>
@@ -4906,36 +4886,21 @@ function init(FieldContext)
             </property>
             <property name="eTDYN-str-multi-11">
                 <value>
-                    <flexiStrValue type="DN"></flexiStrValue>
+                    <strValue></strValue>
                 </value>
                 <metadata name="displayName">
                     <value>
-                        <strValue>Manager Id</strValue>
+                        <strValue>Manager UPN</strValue>
                     </value>
                 </metadata>
                 <metadata name="beanPropertyName">
                     <value>
-                        <strValue>managermanagerId</strValue>
+                        <strValue>managerId</strValue>
                     </value>
                 </metadata>
                 <metadata name="isRequired">
                     <value>
                         <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="assocRefObjectClass">
-                    <value>
-                        <strValue>eTDYNAccount</strValue>
-                    </value>
-                </metadata>
-                <metadata name="assocRefKeyAttr">
-                    <value>
-                        <strValue>id</strValue>
-                    </value>
-                </metadata>
-                <metadata name="DNLdapObjectClass">
-                    <value>
-                        <strValue>eTDYNAccount</strValue>
                     </value>
                 </metadata>
             </property>
@@ -4960,11 +4925,6 @@ function init(FieldContext)
                 <metadata name="isRequired">
                     <value>
                         <boolValue>false</boolValue>
-                    </value>
-                </metadata>
-                <metadata name="isReadOnly">
-                    <value>
-                        <boolValue>true</boolValue>
                     </value>
                 </metadata>
                 <metadata name="writableBy">
