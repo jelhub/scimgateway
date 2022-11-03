@@ -1143,6 +1143,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.1.9  
+
+[Fixed]  
+  
+- plugin-azure-ad.json configuration file introduced in v.4.1.7 was missing passwordProfile attribute mappings
+- Symantec/Broadcom/CA ConnectorXpress configuration file `config\resources\Azure - ScimGateway.xml` now using standard text on manager attribute instead of selection dialogbox.
+
 ### v4.1.8  
 
 [Fixed]  
