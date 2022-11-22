@@ -2,7 +2,7 @@
   "scimgateway": {
     "port": 8883,
     "localhostonly": false,
-    "payloadSize": "1mb",
+    "payloadSize": null,
     "scim": {
       "version": "2.0",
       "customSchema": null,
@@ -87,10 +87,7 @@
   "endpoint": {
     "entity": {
       "undefined": {
-        "baseUrls": [
-          "ldaps://dc1.test.com:636",
-          "ldaps://dc2.test.com:636"
-        ],
+        "baseUrls": ["ldaps://dc1.test.com:636", "ldaps://dc2.test.com:636"],
         "username": "CN=Administrator,CN=Users,DC=test,DC=com",
         "password": "password",
         "ldap": {
@@ -106,10 +103,7 @@
             "organizationalPerson",
             "top"
           ],
-          "groupObjectClasses": [
-            "group",
-            "top"
-          ]
+          "groupObjectClasses": ["group", "top"]
         }
       }
     },
