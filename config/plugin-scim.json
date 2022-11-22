@@ -2,6 +2,7 @@
   "scimgateway": {
     "port": 8886,
     "localhostonly": false,
+    "payloadSize": null,
     "scim": {
       "version": "2.0",
       "customSchema": null,
@@ -86,9 +87,7 @@
   "endpoint": {
     "entity": {
       "undefined": {
-        "baseUrls": [
-          "http://localhost:8880"
-        ],
+        "baseUrls": ["http://localhost:8880"],
         "scimVersion": "2.0",
         "username": "gwadmin",
         "password": "password",
@@ -99,9 +98,7 @@
         }
       },
       "clientA": {
-        "baseUrls": [
-          "http://localhost:8880"
-        ],
+        "baseUrls": ["http://localhost:8880"],
         "scimVersion": "2.0",
         "username": "gwadmin",
         "password": "password",

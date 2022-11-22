@@ -2,6 +2,7 @@
   "scimgateway": {
     "port": 8881,
     "localhostonly": false,
+    "payloadSize": null,
     "scim": {
       "version": "1.1",
       "customSchema": null,
