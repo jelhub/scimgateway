@@ -206,6 +206,7 @@ Below shows an example of config\plugin-saphana.json
 	  "scimgateway": {
 	    "port": 8884,
 	    "localhostonly": false,
+        "payloadSize": null,
         "scim": {
           "version": "2.0",
           "customSchema": null,
@@ -306,6 +307,8 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway.  
 
 - **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the CA Connector Server).  
+
+- **payloadSize** - if not defined, default "1mb" will be used. There are cases which large groups could exceed default size and you may want to increase by setting your own size  
 
 - **scim.version** - "1.1" or "2.0". Default is "2.0". For Symantec/Broadcom/CA Identity Manager "1.1" should be used.  
 
@@ -1142,6 +1145,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.1.10  
+
+[Added]  
+
+- new plugin configuration `payloadSize`. If not defined, default "1mb" will be used. There are cases which large groups could exceed default size and you may want to increase by setting your own size e.g. "5mb"  
+    **Thanks to Sam Murphy**
+
+[Fixed]  
+  
+- using `GET /Users`, scimgateway automatically adds groups if not included by plugin. This operation calls plugin getGroups having attributes=['members.value', 'id', 'displayName']. Now, `members.value` is excluded. This attribute was in use and could cause unneeded load when having many group members.  
 
 ### v4.1.9  
 
