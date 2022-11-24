@@ -1146,6 +1146,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.1.11  
+
+[Fixed]  
+  
+- basic auth logon dialog should not show up when not configured 
+
 ### v4.1.10  
 
 [Added]  
