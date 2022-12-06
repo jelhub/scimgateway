@@ -17,12 +17,12 @@ Validated through IdP's:
 Latest news:  
 
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Stream includes **SCIM Stream Gateway**, the next generation SCIM Gateway that supports message subscription and automated provisioning
-- Supporting OAuth Client Credentials authentication
+- Supports OAuth Client Credentials authentication
 - Major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin  
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
 - General LDAP plugin configured for Active Directory  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
-- Authentication configuration allowing more than one admin user including option for readOnly
+- Each authentication configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
 - Supports configuration by environments and external files
 - Health monitoring through "/ping" URL, and option for error notifications by email
@@ -379,11 +379,11 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 	Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
-- **ipAllowList** - Array of one or more IPv4/IPv6 subnets (CIDR) allowed for incoming traffic.  E.g. using Azure AD as IdP, we would like to restrict access to IP addresses used by Azure AD. Azure IP-range can be downloaded from: [https://azureipranges.azurewebsites.net](https://azureipranges.azurewebsites.net), enter **AzureActiveDirectory** in the search list and select JSON download. Copy the "addressPrefixes" array content and paste into ipAllowList array. CIDR single IP-host syntax is a.b.c.d/32. Note, front-end HTTP proxy or a load balancer must include **X-Forwarded-For** header. Configuration example:  
+- **ipAllowList** - Array of one or more IPv4/IPv6 subnets (CIDR) allowed for incoming traffic.  E.g. using Azure AD as IdP, we would like to restrict access to IP addresses used by Azure AD. Azure IP-range can be downloaded from: [https://azureipranges.azurewebsites.net](https://azureipranges.azurewebsites.net), enter **AzureActiveDirectory** in the search list and select JSON download. Copy the "addressPrefixes" array content and paste into ipAllowList array. CIDR single IP-host syntax is a.b.c.d/32. Note, front-end HTTP proxy or a load balancer must include client IP-address in the **X-Forwarded-For** header. Configuration example:  
 
         "ipAllowList": [
-          "13.66.60.119/32",
-          "13.66.143.220/30",
+          "13.64.151.161/32",
+          "13.66.141.64/27",
           ...
           "2603:1056:2000::/48",
           "2603:1057:2::/48"
@@ -1146,6 +1146,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.1.12  
+
+[Added]  
+
+- Dependencies bump  
+
 ### v4.1.11  
 
 [Fixed]  
@@ -1187,13 +1193,16 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 - Symantec/Broadcom/CA ConnectorXpress configuration file `config\resources\Azure - ScimGateway.xml` for defining the Azure endpoint, have been updated with some new attributes according to plugin-azure-ad.json attribute mappings
 
 ### v4.1.6  
-[Added]
+
+[Added]  
+
 - Dependencies bump  
 
 ### v4.1.5  
+
 [Added]  
 
-Announcing some SCIM Gateway related news:  
+SCIM Gateway related news:  
 
 - [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Stream includes **SCIM Stream Gateway**, the next generation SCIM Gateway that supports message subscription and automated provisioning
 
