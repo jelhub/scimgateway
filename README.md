@@ -49,7 +49,7 @@ SCIM Gateway becomes a standalone SCIM endpoint
 Demonstrates user provisioning towards document-oriented database  
 Using [LokiJS](https://github.com/techfort/LokiJS) for a fast, in-memory document-oriented database (much like MongoDB/PouchDB)  
 Default gives two predefined test users loaded using in-memory only (no persistence)  
-Setting `{"persistence": true}` gives persistence file store (no test users)  
+Configuration `{"persistence": true}` gives persistence file store (no test users)  
 Example of a fully functional SCIM Gateway plugin  
 
 * **MongoDB** (NoSQL Document-Oriented Database)  
@@ -1145,6 +1145,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.1.13  
+
+[Fixed]  
+
+- Do not create logs directory or log-file when configuration `log.loglevel.file` not defined or set to `"off"`. This fix will allow SCIM Gateway to run on systems having read-only disk like Google Cloud App Engine Standard    
 
 ### v4.1.12  
 
