@@ -1146,7 +1146,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-### v4.1.13  
+### v4.1.14  
 
 [Fixed]  
 
