@@ -236,6 +236,10 @@ Below shows an example of config\plugin-saphana.json
               "baseEntities": []
             }
           ],
+          "bearerTokenPassThrough": {
+            "readOnly": false,
+            "baseEntities": []
+          },
           "bearerJwtAzure": [
             {
               "tenantIdGUID": null,
@@ -347,6 +351,8 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **auth.basic** - Array of one ore more basic authentication objects - Basic Authentication with **username**/**password**. Note, we set a clear text password that will become encrypted when gateway is started.  
 
 - **auth.bearerToken** - Array of one or more bearer token objects - Shared token/secret (supported by Azure). Clear text value will become encrypted when gateway is started.  
+
+- **auth.bearerTokenPassThrough** - If exists, pass through a bearer token to the plugin handlers. In this case, any authentication must be handled by the plugin handler. This token does not apply to other endpoints.
 
 - **auth.bearerJwtAzure** - Array of one or more JWT used by Azure SyncFabric. **tenantIdGUID** must be set to Azure Active Directory Tenant ID.  
 
@@ -1038,7 +1044,7 @@ Plugins should have following initialization:
 
 ### getUsers  
 
-	scimgateway.getUsers = async (baseEntity, getObj, attributes) => {
+	scimgateway.getUsers = async (baseEntity, getObj, attributes, authToken) => {
 	    let ret = {
 	        "Resources": [],
 	        "totalResults": null
@@ -1054,23 +1060,25 @@ Plugins should have following initialization:
 	* startIndex = Pagination - The 1-based index of the first result in the current set of search results  
 	* count = Pagination - Number of elements to be returned in the current set of search results  
 *  attributes = array of attributes to be returned - if empty, all supported attributes should be returned
+* authToken = auth token if BearerTokenPassThrough is enabled 
 * ret:   
 ret.Resources = array filled with user objects according to getObj/attributes, we could normally include all attributes having id and userName as mandatory e.g [{"id": "bjensen", "userName": "bjensen"}, {"id":"jsmith", "userName":"jsmith"}]  
 ret.totalResults = if supporting pagination, then it should be set to the total numbers of elements (users), else set to null
 
 ### deleteUser  
 
-	scimgateway.deleteUser = async (baseEntity, id) => {
+	scimgateway.deleteUser = async (baseEntity, id, authToken) => {
 		...
 		return null
 	} 
 
 * id = user id to be deleted 
+* authToken = auth token if BearerTokenPassThrough is enabled
 * return null: null if OK, else throw error  
 
 ### modifyUser  
 
-	scimgateway.modifyUser = async (baseEntity, id, attrObj) => {
+	scimgateway.modifyUser = async (baseEntity, id, attrObj, authTokem) => {
 		...
 		return null
 	} 
@@ -1079,11 +1087,12 @@ ret.totalResults = if supporting pagination, then it should be set to the total 
 * id = user id  
 * attrObj = object containing userattributes to be modified according to scim standard  
 Note, multi-value attributes excluding user attribute 'groups' are customized from array to object based on type  
+* authToken = auth token if BearerTokenPassThrough is enabled
 * return null: null if OK, else throw error
 
 ### getGroups  
 
-	scimgateway.getGroups = async (baseEntity, getObj, attributes) => {
+	scimgateway.getGroups = async (baseEntity, getObj, attributes, authToken) => {
 	    let ret = {
 	        "Resources": [],
 	        "totalResults": null
@@ -1099,33 +1108,36 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 	* startIndex = Pagination - The 1-based index of the first result in the current set of search results  
 	* count = Pagination - Number of elements to be returned in the current set of search results  
 *  attributes = array of attributes to be returned - if empty, all supported attributes should be returned
+* authToken = auth token if BearerTokenPassThrough is enabled
 * ret:   
 ret.Resources = array filled with group objects according to getObj/attributes, we could normally include all attributes having id, displayName and members as mandatory e.g [{"id":"Admins", "displayName":"Admins", members":[{"value":"bjensen"}]}, {"id":"Employees", "displayName":"Employees"}, "members":[{"value":"jsmith","display":"John Smith"}]]  
 ret.totalResults = if supporting pagination, then it should be set to the total numbers of elements (users), else set to null
 
 
 ### createGroup  
-	scimgateway.createGroup = async (baseEntity, groupObj) => {
+	scimgateway.createGroup = async (baseEntity, groupObj, authToken) => {
 		...
 	    return null
 	})
 
 * groupObj = group object containing groupattributes according to scim standard  
 groupObj.displayName contains the group name to be created
+* authToken = auth token if BearerTokenPassThrough is enabled
 * return null: null if OK, else throw error  
 
 ### deleteGroup  
-	scimgateway.deleteGroup = async (baseEntity, id) => {
+	scimgateway.deleteGroup = async (baseEntity, id, authToken) => {
 		...
 	    return null
 	}
 
 * id = group name (eg. Admins) to be deleted
+* authToken = auth token if BearerTokenPassThrough is enabled
 * return null: null if OK, else throw error 
 
 ### modifyGroup  
 
-	scimgateway.modifyGroup = async (baseEntity, id, attrObj) => {
+	scimgateway.modifyGroup = async (baseEntity, id, attrObj, authToken) => {
 		...
 	    return null
 	}
@@ -1135,6 +1147,7 @@ groupObj.displayName contains the group name to be created
 **attrObj.members** (must be supported) = array of objects containing groupmembers modifications  
 eg: {"value":"bjensen"},{"operation":"delete","value":"jsmith"}  
 (adding bjensen and deliting jsmith from group)  
+* authToken = auth token if BearerTokenPassThrough is enabled
 * return null: null if OK, else throw error  
 If we do not support groups, then return null  
 
