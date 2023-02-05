@@ -57,7 +57,12 @@
           "readOnly": false,
           "baseEntities": []
         }
-      ]
+      ],
+      "passThrough": {
+        "enabled": false,
+        "readOnly": false,
+        "baseEntities": []
+      }
     },
     "certificate": {
       "key": null,
@@ -87,7 +92,9 @@
   "endpoint": {
     "entity": {
       "undefined": {
-        "baseUrls": ["http://fakerestapi.azurewebsites.net"],
+        "baseUrls": [
+          "http://fakerestapi.azurewebsites.net"
+        ],
         "username": "endpointuser",
         "password": "password",
         "proxy": {

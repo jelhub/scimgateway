@@ -63,7 +63,12 @@
           "readOnly": false,
           "baseEntities": []
         }
-      ]
+      ],
+      "passThrough": {
+        "enabled": false,
+        "readOnly": false,
+        "baseEntities": []
+      }
     },
     "certificate": {
       "key": null,

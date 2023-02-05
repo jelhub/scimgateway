@@ -57,7 +57,12 @@
           "readOnly": false,
           "baseEntities": []
         }
-      ]
+      ],
+      "passThrough": {
+        "enabled": false,
+        "readOnly": false,
+        "baseEntities": []
+      }
     },
     "certificate": {
       "key": null,
@@ -87,7 +92,9 @@
   "endpoint": {
     "entity": {
       "undefined": {
-        "baseUrls": ["http://localhost:8880"],
+        "baseUrls": [
+          "http://localhost:8880"
+        ],
         "scimVersion": "2.0",
         "username": "gwadmin",
         "password": "password",
@@ -98,7 +105,9 @@
         }
       },
       "clientA": {
-        "baseUrls": ["http://localhost:8880"],
+        "baseUrls": [
+          "http://localhost:8880"
+        ],
         "scimVersion": "2.0",
         "username": "gwadmin",
         "password": "password",
