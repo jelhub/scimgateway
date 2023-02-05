@@ -261,7 +261,12 @@ Below shows an example of config\plugin-saphana.json
               "readOnly": false,
               "baseEntities": []
             }
-          ]
+          ],
+          "passThrough": {
+             "enabled": false,
+             "readOnly": false,
+             "baseEntities": []
+          }
         },
 	    "certificate": {
 	      "key": null,
@@ -353,6 +358,8 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs`. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.   
 
 - **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`client_id`** and **`client_secret`** are mandatory. client_secret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. http://localhost:8880/oauth/token  
+
+- **auth.passThrough** - Setting **auth.passThrough.enabled=true** will bypass SCIM Gateway authentication. Gateway will instead pass ctx containing authentication header to the plugin. Plugin could then use this information for endpoint authentication and we don't have any password/token stored at the gateway. Note, this also requires plugin binary having `scimgateway.authPassThroughAllowed = true` and endpoint logic for handling/passing ctx.request.header.authorization 
 
 - **certificate** - If not using TLS certificate, set "key", "cert" and "ca" to **null**. When using TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the `<package-root>\config\certs` directory e.g:  
   
@@ -1145,6 +1152,36 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.1.15  
+
+[Added]  
+
+- authPassThrough for passing the authentication directly to plugin without being processed by scimgateway 
+
+    Plugin configuration prerequisites: **auth.passThrough.enabled=true**      
+
+        "auth": {
+           ...
+           "passThrough": {
+             "enabled": true,
+             "readOnly": false,
+             "baseEntities": []
+           }
+           ...
+         }
+
+    Plugin binary prerequisites:
+
+        scimgateway.authPassThroughAllowed = true
+        // also need endpoint logic for handling/passing ctx.request.header.authorization
+
+
+    For upgrading existing custom plugins, above mention prerequisites needs to be included and in addition all plugin methods must include the `ctx` parameter e.g.: 
+
+        scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx)
+        // tip, see provided example plugins
+
 
 ### v4.1.14  
 
