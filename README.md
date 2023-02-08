@@ -409,6 +409,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **emailOnError.smtp.cc** - Comma separated list of cc email addresses
 
 - **kubernetes** - Enable Kubernetes support for healthchecks and graceful shutdown.
+- **kubernetes.enabled** - true or false, true will enable Kubernets health checks and shutdown handler
 - **kubernetes.shutdownTimeout** - Number of milliseconds to wait before shutting down (default 15000).
 - **kubernetes.forceExitTimeout** - Number of milliseconds before forceful exiting (default 1000).
 
