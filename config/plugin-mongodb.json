@@ -93,6 +93,11 @@
         "to": null,
         "cc": null
       }
+    },
+    "kubernetes": {
+      "enabled": false,
+      "shutdownTimeout": 15000,
+      "forceExitTimeout": 1000
     }
   },
   "endpoint": {
