@@ -16,9 +16,10 @@ Validated through IdP's:
   
 Latest news:  
 
+- Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. Kubernetes health checks and shutdown handler support
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Stream includes **SCIM Stream Gateway**, the next generation SCIM Gateway that supports message subscription and automated provisioning
 - Supports OAuth Client Credentials authentication
-- Major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin  
+- Major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
 - General LDAP plugin configured for Active Directory  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
@@ -291,7 +292,12 @@ Below shows an example of config\plugin-saphana.json
 	        "to": null,
 	        "cc": null
 	      }
-	    }
+	    },
+        "kubernetes": {
+          "enabled": false,
+          "shutdownTimeout": 15000,
+          "forceExitTimeout": 1000
+        }
 	  },
 	  "endpoint": {
 	    "host": "hostname",
@@ -305,7 +311,7 @@ Below shows an example of config\plugin-saphana.json
 
 Configuration file have two main JSON objects: `scimgateway` and `endpoint`  
 
-Definitions in `scimgateway` object have fixed attributes, but values can be modified. This object is used by the core functionality of the SCIM Gateway.  
+Definitions in `scimgateway` object have fixed attributes, but values can be modified. Sections not used/configured can be removed. This object is used by the core functionality of the SCIM Gateway.  
 
 Definitions in `endpoint` object are customized according to our plugin code. Plugin typically need this information for communicating with endpoint  
 
@@ -1045,12 +1051,13 @@ Plugins should have following initialization:
 	let validScimAttr = [] // empty array - all attrbutes are supported by endpoint
 	// add any external config process.env and process.file
 	config = scimgateway.processExtConfig(pluginName, config)
+    scimgateway.authPassThroughAllowed = false
 	// mandatory plugin initialization - end
 
 
 ### getUsers  
 
-	scimgateway.getUsers = async (baseEntity, getObj, attributes) => {
+	scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 	    let ret = {
 	        "Resources": [],
 	        "totalResults": null
@@ -1072,7 +1079,7 @@ ret.totalResults = if supporting pagination, then it should be set to the total 
 
 ### deleteUser  
 
-	scimgateway.deleteUser = async (baseEntity, id) => {
+	scimgateway.deleteUser = async (baseEntity, id, ctx) => {
 		...
 		return null
 	} 
@@ -1082,7 +1089,7 @@ ret.totalResults = if supporting pagination, then it should be set to the total 
 
 ### modifyUser  
 
-	scimgateway.modifyUser = async (baseEntity, id, attrObj) => {
+	scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 		...
 		return null
 	} 
@@ -1095,7 +1102,7 @@ Note, multi-value attributes excluding user attribute 'groups' are customized fr
 
 ### getGroups  
 
-	scimgateway.getGroups = async (baseEntity, getObj, attributes) => {
+	scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 	    let ret = {
 	        "Resources": [],
 	        "totalResults": null
@@ -1117,7 +1124,7 @@ ret.totalResults = if supporting pagination, then it should be set to the total 
 
 
 ### createGroup  
-	scimgateway.createGroup = async (baseEntity, groupObj) => {
+	scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 		...
 	    return null
 	})
@@ -1127,7 +1134,7 @@ groupObj.displayName contains the group name to be created
 * return null: null if OK, else throw error  
 
 ### deleteGroup  
-	scimgateway.deleteGroup = async (baseEntity, id) => {
+	scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
 		...
 	    return null
 	}
@@ -1137,7 +1144,7 @@ groupObj.displayName contains the group name to be created
 
 ### modifyGroup  
 
-	scimgateway.modifyGroup = async (baseEntity, id, attrObj) => {
+	scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
 		...
 	    return null
 	}
@@ -1158,11 +1165,27 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.0  
+
+[Added]  
+
+- Kubernetes health checks and shutdown handler support 
+
+    Plugin configuration prerequisite: **kubernetes.enabled=true**      
+
+        "kubernetes": {
+          "enabled": true,
+          "shutdownTimeout": 15000,
+          "forceExitTimeout": 1000
+        }
+
+    **Thanks to Kevin Osborn**
+
 ### v4.1.15  
 
 [Added]  
 
-- authPassThrough for passing the authentication directly to plugin without being processed by scimgateway 
+- Authentication PassThrough for passing the authentication directly to plugin without being processed by scimgateway. Plugin can then pass this authentication to endpoint for avoid maintaining secrets at the gateway.   
 
     Plugin configuration prerequisites: **auth.passThrough.enabled=true**      
 
@@ -1187,6 +1210,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
         scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx)
         // tip, see provided example plugins
 
+    **Thanks to Kevin Osborn**
 
 ### v4.1.14  
 
