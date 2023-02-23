@@ -1,0 +1,16 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: m1-scim-gateway
+  namespace: scim-gateway
+spec:
+  chart:
+    spec:
+      chart: m1-scim-gateway
+      reconcileStrategy: ChartVersion
+      sourceRef:
+        kind: HelmRepository
+        name: artifactory-infrastructure
+        namespace: flux-system
+  interval: 5m0s

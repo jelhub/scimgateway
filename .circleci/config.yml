@@ -1,0 +1,334 @@
+version: 2.1
+
+orbs:
+  m1-infra-orb: m1finance/m1-infra-orb@2.0.6
+
+package_parameters: &package_parameters
+  artifactory_chart_repository: m1-infrastructure-helm-local
+docker_parameters: &docker_parameters
+  docker_repo_name: m1-global-docker-local
+  dockerfile: "config/docker/Dockerfile"
+deploy_parameters: &deploy_parameters
+  application: m1-scim-gateway
+
+chart_parameters: &chart_parameters
+  chart_name: m1-scim-gateway
+hr_parameters: &hr_parameters
+  hr_name:
+    - m1-scim-gateway
+
+# These environments will be deployed for all branches except main
+canary_parameters: &canary_parameters
+  environment:
+    - litterbox
+# These environments will be deployed on merge to main
+test_parameters: &test_parameters
+  environment:
+    - litterbox
+# These environments will be deployed on semver tag. committed directly to flux. Can be blank (empty list [])
+prod_parameters: &prod_parameters
+  environment: []
+
+# These environments will be deployed on semver tag. pr is opened. Can be blank (empty list [])
+pr_parameters: &pr_parameters
+  environment: []
+
+workflows:
+  pr-open:
+    jobs:
+      - m1-infra-orb/package_and_upload_chart:
+          <<:
+            - *package_parameters
+            - *chart_parameters
+          name: Package and Upload Canary Chart
+          commit_hash_version: true
+          context:
+            - artifactory-publishing
+          filters:
+            branches:
+              ignore:
+                - main
+      - m1-infra-orb/build_and_publish_image:
+          <<:
+            - *docker_parameters
+            - *chart_parameters
+          name: Build and Publish Canary Image
+          commit_hash_version: true
+          context:
+            - artifactory-publishing
+          filters:
+            branches:
+              ignore:
+                - main
+      - m1-infra-orb/commit_helmrelease:
+          <<: *deploy_parameters
+          matrix:
+            alias: Canary Deploy
+            parameters:
+              <<:
+                - *hr_parameters
+                - *canary_parameters
+          commit_hash_version: true
+          context:
+            - artifactory-publishing
+          requires:
+            - Package and Upload Canary Chart
+            - Build and Publish Canary Image
+          filters:
+            branches:
+              ignore:
+                - main
+      - m1-infra-orb/check_helmrelease:
+          matrix:
+            alias: Canary Check
+            parameters:
+              <<:
+                - *hr_parameters
+                - *canary_parameters
+          commit_hash_version: true
+          requires:
+            - Canary Deploy
+          filters:
+            branches:
+              ignore:
+                - main
+      - m1-infra-orb/template_helmrelease:
+          <<: *deploy_parameters
+          matrix:
+            alias: Test Diff
+            parameters:
+              <<:
+                - *hr_parameters
+                - *test_parameters
+          context:
+            - artifactory-publishing
+          requires:
+            - Package and Upload Canary Chart
+          filters:
+            branches:
+              ignore:
+                - main
+      - m1-infra-orb/template_helmrelease:
+          <<: *deploy_parameters
+          matrix:
+            alias: Prod Diff
+            parameters:
+              <<:
+                - *hr_parameters
+                - *prod_parameters
+          context:
+            - artifactory-publishing
+          requires:
+            - Package and Upload Canary Chart
+          filters:
+            branches:
+              ignore:
+                - main
+      - m1-infra-orb/template_helmrelease:
+          <<: *deploy_parameters
+          matrix:
+            alias: PR Diff
+            parameters:
+              <<:
+                - *hr_parameters
+                - *pr_parameters
+          context:
+            - artifactory-publishing
+          requires:
+            - Package and Upload Canary Chart
+          filters:
+            branches:
+              ignore:
+                - main
+  pr-merge:
+    jobs:
+      - m1-infra-orb/package_and_upload_chart:
+          <<:
+            - *package_parameters
+            - *chart_parameters
+          name: Package and Upload Versioned Chart
+          context:
+            - artifactory-publishing
+          filters:
+            branches:
+              only:
+                - main
+      - m1-infra-orb/build_and_publish_image:
+          <<:
+            - *docker_parameters
+            - *chart_parameters
+          name: Build and Publish Versioned Image
+          context:
+            - artifactory-publishing
+          filters:
+            branches:
+              only:
+                - main
+      - m1-infra-orb/commit_helmrelease:
+          <<: *deploy_parameters
+          matrix:
+            alias: Canary Deploy
+            parameters:
+              <<:
+                - *hr_parameters
+                - *canary_parameters
+          context:
+            - artifactory-publishing
+          requires:
+            - Package and Upload Versioned Chart
+          filters:
+            branches:
+              only:
+                - main
+      - m1-infra-orb/check_helmrelease:
+          matrix:
+            alias: Canary Check
+            parameters:
+              <<:
+                - *hr_parameters
+                - *canary_parameters
+          requires:
+            - Canary Deploy
+          filters:
+            branches:
+              only:
+                - main
+      - m1-infra-orb/commit_helmrelease:
+          <<: *deploy_parameters
+          matrix:
+            alias: Test Deploy
+            parameters:
+              <<:
+                - *hr_parameters
+                - *test_parameters
+          context:
+            - artifactory-publishing
+          requires:
+            - Package and Upload Versioned Chart
+            - Build and Publish Versioned Image
+          filters:
+            branches:
+              only:
+                - main
+      - m1-infra-orb/check_helmrelease:
+          matrix:
+            alias: Test Check
+            parameters:
+              <<:
+                - *hr_parameters
+                - *test_parameters
+          requires:
+            - Test Deploy
+          filters:
+            branches:
+              only:
+                - main
+      - m1-infra-orb/template_helmrelease:
+          <<: *deploy_parameters
+          matrix:
+            alias: Production Diff
+            parameters:
+              <<:
+                - *hr_parameters
+                - *prod_parameters
+          context:
+            - artifactory-publishing
+          requires:
+            - Package and Upload Versioned Chart
+      - m1-infra-orb/template_helmrelease:
+          <<: *deploy_parameters
+          matrix:
+            alias: PR Diff
+            parameters:
+              <<:
+                - *hr_parameters
+                - *pr_parameters
+          context:
+            - artifactory-publishing
+          requires:
+            - Package and Upload Versioned Chart
+      - m1-infra-orb/create_git_release:
+          <<:
+            - *chart_parameters
+          name: Create Draft Git Release
+          context:
+            - artifactory-publishing
+            - github
+          requires:
+            - Test Check
+  semver:
+    jobs:
+      - m1-infra-orb/check_helmrelease:
+          matrix:
+            alias: Test Check
+            parameters:
+              <<:
+                - *hr_parameters
+                - *test_parameters
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+      - m1-infra-orb/commit_helmrelease:
+          <<: *deploy_parameters
+          matrix:
+            alias: Production Deploy
+            parameters:
+              <<:
+                - *hr_parameters
+                - *prod_parameters
+          context:
+            - artifactory-publishing
+          requires:
+            - Test Check
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+      - m1-infra-orb/pr_helmrelease:
+          <<:
+            - *deploy_parameters
+            - *chart_parameters
+          matrix:
+            alias: Production PR Creation
+            parameters:
+              <<:
+                - *hr_parameters
+                - *pr_parameters
+          context:
+            - artifactory-publishing
+            - github
+          requires:
+            - Test Check
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+      - m1-infra-orb/check_helmrelease:
+          matrix:
+            alias: Production Check
+            parameters:
+              <<:
+                - *hr_parameters
+                - *prod_parameters
+          requires:
+            - Production Deploy
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/
+      - m1-infra-orb/update_chart_semver:
+          <<: *chart_parameters
+          context:
+            - artifactory-publishing
+          requires:
+            - Test Check
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*/

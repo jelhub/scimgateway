@@ -1,0 +1,8 @@
+image:
+  # These are set by the pipeline on deploy
+  repository: "m1-scim-gateway"
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
