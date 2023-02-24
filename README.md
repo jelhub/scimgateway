@@ -1165,6 +1165,14 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.1  
+
+[Fixed]  
+
+- plugin-azure-ad createUser failed when manager was included
+- plugin-ldap slow when not using group/groupBase configuration
+
+
 ### v4.2.0  
 
 [Added]  
