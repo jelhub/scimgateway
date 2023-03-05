@@ -1165,6 +1165,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.2  
+
+[Fixed]  
+
+- some minor SCIM protocol complient adjustments for beeing fully SCIM API complient with [https://scimvalidator.microsoft.com](https://scimvalidator.microsoft.com)
+
 ### v4.2.1  
 
 [Fixed]  
