@@ -1165,6 +1165,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.3  
+
+[Fixed]  
+
+- plugin-loki and plugin-mongodb, for multi-value attributes like emails,phoneNumbers,... that includes primary attribute, only one is allowed having primary value set to true in the multi-value set.
+
 ### v4.2.2  
 
 [Fixed]  
