@@ -1165,6 +1165,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.5  
+
+[Fixed] 
+
+- travis test build cosmetics
+
 ### v4.2.4  
 
 [Added]  
