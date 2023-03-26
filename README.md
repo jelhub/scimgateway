@@ -1165,6 +1165,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.4  
+
+[Added]  
+
+- provided plugins now supports Auth PassThrough. See helpers methods like getClientIdentifier(), getCtxAuth() and changes in doRequest() and getServiceClient(). In general, PassThrough is supported for both basic and bearer auth. Password/secret/client_secret are then not needed in configuration file. Username may still be needed in configuration file depended on how logic is implemented (ref. mongodb/mssql) and what auth beeing used (basic/bearer). Plugin scim, api and azure-ad are all REST plugins having the same helpers (but, some minor differences to azure-ad using OAuth and the getAccessToken() method)
+
 ### v4.2.3  
 
 [Fixed]  
