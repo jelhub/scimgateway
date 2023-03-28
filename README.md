@@ -1165,6 +1165,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.6  
+
+[Fixed] 
+
+- cosmetics related to 401 error handling introduced in v4.2.4  
+
 ### v4.2.5  
 
 [Fixed] 
