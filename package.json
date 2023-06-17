@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "4.2.6",
+  "version": "4.2.7",
   "description": "Using SCIM protocol as a gateway for user provisioning to other endpoints",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
   "homepage": "https://elshaug.xyz",
@@ -32,29 +32,29 @@
     "node": ">=14.0.0"
   },
   "dependencies": {
-    "@godaddy/terminus": "^4.11.2",
+    "@godaddy/terminus": "^4.12.0",
     "callsite": "^1.0.0",
     "dot-object": "^2.1.4",
     "https-proxy-agent": "^5.0.1",
     "is-in-subnet": "^4.0.1",
     "jsonwebtoken": "^9.0.0",
-    "koa": "^2.14.0",
-    "koa-bodyparser": "^4.3.0",
+    "koa": "^2.14.2",
+    "koa-bodyparser": "^4.4.0",
     "koa-router": "^12.0.0",
-    "ldapjs": "^2.3.3",
+    "ldapjs": "^3.0.2",
     "lokijs": "^1.5.12",
-    "mongodb": "^4.12.1",
+    "mongodb": "^5.6.0",
     "node-machine-id": "1.1.9",
-    "nodemailer": "^6.8.0",
+    "nodemailer": "^6.9.3",
     "passport": "^0.6.0",
-    "passport-azure-ad": "^4.3.4",
-    "soap": "^0.45.0",
-    "tedious": "^15.1.2",
-    "winston": "^3.8.2"
+    "passport-azure-ad": "^4.3.5",
+    "soap": "^1.0.0",
+    "tedious": "^16.1.0",
+    "winston": "^3.9.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^9.2.0",
-    "supertest": "^4.0.2"
+    "supertest": "^6.3.3"
   }
 }

@@ -64,9 +64,10 @@ Can be used as SCIM version-gateway e.g. 1.1=>2.0 or 2.0=>1.1
 Can be used to chain several SCIM Gateway's  
 
 
-* **Forwardinc** (SOAP Webservice)  
-Demonstrates user provisioning towards SOAP-Based endpoint   
-Using endpoint Forwardinc that comes with Broadcom/CA IM SDK (SDKWS) - [wiki.ca.com](https://docops.ca.com/ca-identity-manager/12-6-8/EN/programming/connector-programming-reference/sdk-sample-connectors/sdkws-sdk-web-services-connector/sdkws-sample-connector-build-requirements "wiki.ca.com")    
+* **Soap** (SOAP Webservice)  
+Demonstrates user provisioning towards SOAP-Based endpoint  
+Excample WSDLs are included  
+Using endpoint "Forwardinc" as an example (comes with Symantec/Broadcom/CA IM SDK - SDKWS)   
 Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL  
 
 * **MSSQL** (MSSQL Database)  
@@ -188,7 +189,7 @@ When maintaining a set of modifications it useful to disable the postinstall ope
 	const loki = require('./lib/plugin-loki')
 	// const mongodb = require('./lib/plugin-mongodb')
 	// const scim = require('./lib/plugin-scim')
-	// const forwardinc = require('./lib/plugin-forwardinc')
+	// const soap = require('./lib/plugin-soap')
 	// const mssql = require('./lib/plugin-mssql')
 	// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb
 	// const azureAD = require('./lib/plugin-azure-ad')
@@ -212,7 +213,8 @@ Below shows an example of config\plugin-saphana.json
           "version": "2.0",
           "customSchema": null,
           "skipTypeConvert" : false,
-          "usePutSoftSync" : false
+          "usePutSoftSync" : false,
+          "usePutGroupMemberOfUser": false
         },
         "log": {
           "loglevel": {
@@ -342,7 +344,9 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		]  
 
 
-- **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If body contains groups, usePutSoftsync=true will prevent removing any existing groups that are not included in body.groups   
+- **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If body contains groups, usePutSoftsync=true will prevent removing any existing groups that are not included in body.groups  
+
+- **scim."usePutGroupMemberOfUser** - true or false, default false. `PUT /Users/<user>` will replace the user with body content. If body contains groups and usePutGroupMemberOfUser=true, groups will be set on user object (groups are member of user) instead of default user member of groups  
 
 - **log.loglevel.file** - off, error, info, or debug. Output to plugin-logfile e.g. `logs\plugin-saphana.log`  
 
@@ -462,20 +466,20 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		}  
 
 
-	secrets.json for plugin-forwardinc - example (dot notation):  
+	secrets.json for plugin-soap - example (dot notation):  
   
 		{
-		  "plugin-forwardinc.scimgateway.auth.basic[0].username": "gwadmin",
-		  "plugin-forwardinc.scimgateway.auth.basic[0].password": "password",
-		  "plugin-forwardinc.endpoint.username": "superuser",
-		  "plugin-forwardinc.endpoint.password": "secret"
+		  "plugin-soap.scimgateway.auth.basic[0].username": "gwadmin",
+		  "plugin-soap.scimgateway.auth.basic[0].password": "password",
+		  "plugin-soap.endpoint.username": "superuser",
+		  "plugin-soap.endpoint.password": "secret"
 		}  
 
 - Custom schema attributes can be added by plugin configuration `scim.customSchema` having value set to filename of a JSON schema-file located in `<package-root>/config/schemas` e.g:  
 
 		"scim": {
 		  "version": "2.0",
-		  "customSchema": "plugin-forwardinc-schema.json"
+		  "customSchema": "plugin-soap-schema.json"
 		},
 
 	JSON file have following syntax:  
@@ -748,7 +752,7 @@ Username, password and port must correspond with plugin configuration file. For 
 http://localhost:8880/client-a  
 http://localhost:8880/client-b
 
-Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-forwardinc.json
+Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-soap.json
 
 IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Loki plugin supports pagination. Other plugin may ignore this setting.  
 
@@ -965,7 +969,7 @@ For JavaScript coding editor you may use [Visual Studio Code](https://code.visua
 
 Preparation:
 
-* Copy "best matching" example plugin e.g. `lib\plugin-mssql.js` and `config\plugin-mssql.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-forwardinc as a template) 
+* Copy "best matching" example plugin e.g. `lib\plugin-mssql.js` and `config\plugin-mssql.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-soap as a template) 
 * Edit plugin-mine.json and define a unique port number for the gateway setting  
 * Edit index.js and add a new line for starting your plugin e.g. `let mine = require('./lib/plugin-mine');`  
 * Start SCIM Gateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  
@@ -988,7 +992,7 @@ Please see plugin-saphana that do not use groups.
 
 Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from "Job Title" if our endpoint/code do not support title)  
 
-CA Provisioning using default SCIM endpoint do not support SCIM Enterprise User Schema Extension (having attributes like employeeNumber, costCenter, organization, division, department and manager). If we need these or other attributes not found in CA Provisioning, we could define our own by using the free-text "type" definition in the multivalue entitlements or roles attribute. In the template entitlements definition, we could for example define type=Company and set value to %UCOMP%. Please see plugin-forwardinc.js using Company as a multivalue "type" definition.  
+CA Provisioning using default SCIM endpoint do not support SCIM Enterprise User Schema Extension (having attributes like employeeNumber, costCenter, organization, division, department and manager). If we need these or other attributes not found in CA Provisioning, we could define our own by using the free-text "type" definition in the multivalue entitlements or roles attribute. In the template entitlements definition, we could for example define type=Company and set value to %UCOMP%. Please see plugin-soap.js using Company as a multivalue "type" definition.  
 
 Using CA Connector Xpress we could create a new SCIM endpoint type based on the original SCIM. We could then add/remove attributes and change from default assign "user to groups" to assign "groups to user". There are also other predefined endpoints based on the original SCIM. You may take a look at "ServiceNow - WSL7" and "Zendesk - WSL7". 
 
@@ -1164,6 +1168,19 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.2.7  
+
+[Added]  
+
+- new plugin configuration **scim.usePutGroupMemberOfUser** can be set to true or false, default false. `PUT /Users/<user>` will replace the user bjensen with body content. If body contains groups and usePutGroupMemberOfUser=true, groups will be set on user object (groups are member of user) instead of default user member of groups  
+- plugin-forwardinc renamed to plugin-soap
+- Dependencies bump  
+
+[Fixed] 
+
+- plugin-azure-ad fixed some issues introduced in v4.2.4  
+- plugin-mongodb fixed some issues introduced in v4.2.4  
 
 ### v4.2.6  
 
