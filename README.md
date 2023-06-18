@@ -1173,7 +1173,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 [Added]  
 
-- new plugin configuration **scim.usePutGroupMemberOfUser** can be set to true or false, default false. `PUT /Users/<user>` will replace the user bjensen with body content. If body contains groups and usePutGroupMemberOfUser=true, groups will be set on user object (groups are member of user) instead of default user member of groups  
+- new plugin configuration **scim.usePutGroupMemberOfUser** can be set to true or false, default false. `PUT /Users/<user>` will replace user with body content. If body contains groups and usePutGroupMemberOfUser=true, groups will be set on user object (groups are member of user) instead of default user member of groups  
 - plugin-forwardinc renamed to plugin-soap
 - Dependencies bump  
 
