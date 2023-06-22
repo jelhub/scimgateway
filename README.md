@@ -1169,6 +1169,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.8  
+
+[Fixed] 
+
+- PUT did not allow group name to be modified
+
 ### v4.2.7  
 
 [Added]  
