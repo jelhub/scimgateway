@@ -1169,6 +1169,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.9  
+
+[Fixed] 
+
+- installation require nodejs >= v.16.0.0 due to previous dependencies bump
+
 ### v4.2.8  
 
 [Fixed] 
