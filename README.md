@@ -1169,6 +1169,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.10  
+
+[Fixed] 
+
+- plugin-ldap broken after dependencies bump of ldapjs (from 2.x.x to 3.x.x) in version 4.2.7
+
 ### v4.2.9  
 
 [Fixed] 
