@@ -1169,6 +1169,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.11  
+
+[Added] 
+
+- Plugin can set error statusCode returned by scimgateway through error message. Error message must then contain string `"statusCode":xxx` where xxx is HTTP status code e.g., 401. Plugin using REST will have statusCode automatically included in error message thrown by plugin. This could be useful for auth.PassThrough.
+
 ### v4.2.10  
 
 [Fixed] 
