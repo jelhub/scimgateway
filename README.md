@@ -326,6 +326,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **scim.version** - "1.1" or "2.0". Default is "2.0". For Symantec/Broadcom/CA Identity Manager "1.1" should be used.  
 
 - **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes 
+  **additional information**: Schemas, ServiceProviderConfig and ResourceType can be customized if `lib/scimdef-v2.js (or scimdef-v1.js)` exists. Original scimdef-v2.js/scimdef-v1.js can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
 
 - **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included and also for the endpointMapper method (used by plugin-ldap and plugin-azure-ad), e.g.: 
 
@@ -1168,6 +1169,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.2.12  
+
+[Added] 
+
+- Schemas, ServiceProviderConfig and ResourceType can be customized if `lib/scimdef-v2.js (or scimdef-v1.js)` exists. Original scimdef-v2.js/scimdef-v1.js can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
 
 ### v4.2.11  
 
