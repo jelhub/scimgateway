@@ -124,7 +124,7 @@ If internet connection is blocked, we could install on another machine and copy 
 
 	node c:\my-scimgateway
 	
-	Start a browser
+	Start a browser (note, Edge do not pop-up logon dialog box when using http)
 
 	http://localhost:8880/ping
 	=> Health check with a "hello" response
@@ -1169,6 +1169,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.2.13
+  
+[Fixed] 
+
+- `/ping` now excluded from info logs. If we want ping logging, use something else than lowercase e.g., `/Ping` or `/PING` 
 
 ### v4.2.12  
 
