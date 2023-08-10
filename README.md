@@ -1170,6 +1170,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.14
+  
+[Fixed] 
+
+- PUT now returning 404 instead of 500 when trying to update a user/group that does not exist
+
 ### v4.2.13
   
 [Fixed] 
