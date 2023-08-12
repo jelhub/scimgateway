@@ -1170,6 +1170,14 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.15
+  
+[Added] 
+
+- Plugin can set error statusCode returned by scimgateway through error object key `err.name`. This can be done by adding suffix `#code` to err.name where code is HTTP status code e.g., `err.name += '#401'`. This can be useful for auth.PassThrough and other scenarios like createUser where user already exist (409) and modifyUser where user does not exist (404)
+
+	This change replace statusCode logic introduced in v4.2.11  
+
 ### v4.2.14
   
 [Fixed] 
@@ -1191,6 +1199,8 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 ### v4.2.11  
 
 [Added] 
+
+Note, obsolete - see v4.2.15 comments
 
 - Plugin can set error statusCode returned by scimgateway through error message. Error message must then contain string `"statusCode":xxx` where xxx is HTTP status code e.g., 401. Plugin using REST will have statusCode automatically included in error message thrown by plugin. This could be useful for auth.PassThrough.
 
