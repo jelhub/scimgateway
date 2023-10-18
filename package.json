@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "4.2.16",
+  "version": "4.2.17",
   "description": "Using SCIM protocol as a gateway for user provisioning to other endpoints",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
   "homepage": "https://elshaug.xyz",
