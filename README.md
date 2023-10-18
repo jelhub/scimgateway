@@ -1170,7 +1170,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-### v4.2.16
+### v4.2.17
   
 [Fixed] 
 
