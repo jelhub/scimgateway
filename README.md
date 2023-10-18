@@ -1170,6 +1170,16 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.2.16
+  
+[Fixed] 
+
+- plugin-loki incorrect unique filtering
+
+[Added]  
+
+- Dependencies bump  
+
 ### v4.2.15
   
 [Added] 
