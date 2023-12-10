@@ -8,7 +8,7 @@ Author: Jarle Elshaug
 Validated through IdP's:  
 
 - Symantec/Broadcom/CA Identity Manager
-- Microsoft Azure Active Directory  
+- Microsoft Entra ID  
 - OneLogin  
 - Okta 
 - Omada 
@@ -20,24 +20,20 @@ Latest news:
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Stream includes **SCIM Stream Gateway**, the next generation SCIM Gateway that supports message subscription and automated provisioning
 - Supports OAuth Client Credentials authentication
 - Major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
-- ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure AD IP-range  
+- ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure IP-range  
 - General LDAP plugin configured for Active Directory  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
 - Each authentication configuration allowing more than one admin user including option for readOnly
 - Codebase moved from callback of h... to the the promise(d) land of async/await
 - Supports configuration by environments and external files
 - Health monitoring through "/ping" URL, and option for error notifications by email
-- Azure AD user provisioning including license management e.g. Office 365, installed and configured within minutes!
+- Entra ID user provisioning including license management e.g. Office 365, installed and configured within minutes!
 - Includes API Gateway for none SCIM/provisioning - becomes what you want it to become   
 - Running SCIM Gateway as a Docker container  
 
 ## Overview  
- 
-With SCIM Gateway we can manage users and groups by using REST based [SCIM](http://www.simplecloud.info/) 1.1 or 2.0 protocol. Gateway translates incoming SCIM requests and expose CRUD functionality (create, read, update and delete user/group) towards destinations using endpoint specific protocols. In other words, none SCIM-endpoints will become SCIM-endpoints. Gateway do not require SCIM to be used, it's also an API Gateway that could be used for other things than user provisioning.  
 
-SCIM Gateway is a standalone product, however this document shows how the gateway could be used by products like Symatec/Broadcom/CA Identity Manager.
-
-Using Identity Manager, we could setup one or more endpoints of type SCIM pointing to the gateway. Specific ports could then be used for each type of endpoint, and the SCIM Gateway would work like a "CA Connector Server" communicating with endpoints.
+With SCIM Gateway, user management is facilitated through the utilization of the REST-based SCIM 1.1 or 2.0 protocol. The Gateway acts as a translator for incoming SCIM requests, seamlessly enabling the exposure of CRUD functionality (create, read, update, and delete user/group) towards destinations. This is achieved through the implementation of endpoint-specific protocols, ensuring precise and efficient provisioning with diverse endpoints.
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
 
@@ -76,8 +72,8 @@ Demonstrates user provisioning towards MSSQL database
 * **SAP HANA** (SAP HANA Database)  
 Demonstrates SAP HANA specific user provisioning  
 
-* **Azure AD** (REST Webservices)  
-Azure AD user provisioning including Azure license management (App Service plans) e.g. Office 365  
+* **Entra ID** (REST Webservices)  
+Entra ID user provisioning including license management (App Service plans) e.g. Office 365  
 Using Microsoft Graph API  
 Using customized SCIM attributes according to Microsoft Graph API  
 Includes Symantec/Broadcom/CA ConnectorXpress metafile for creating provisioning "Azure - ScimGateway" endpoint type  
@@ -85,7 +81,7 @@ Includes Symantec/Broadcom/CA ConnectorXpress metafile for creating provisioning
 * **LDAP** (Directory)  
 Fully functional LDAP plugin  
 Pre-configured for Microsoft Active Directory  
-Using endpointMapper (like plugin-azure-ad) for attribute flexibility  
+Using endpointMapper (like plugin-entra-id) for attribute flexibility  
 
 * **API** (REST Webservices)  
 Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete  
@@ -192,7 +188,7 @@ When maintaining a set of modifications it useful to disable the postinstall ope
 	// const soap = require('./lib/plugin-soap')
 	// const mssql = require('./lib/plugin-mssql')
 	// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb
-	// const azureAD = require('./lib/plugin-azure-ad')
+	// const entra = require('./lib/plugin-entra-id')
 	// const ldap = require('./lib/plugin-ldap')
 	// const api = require('./lib/plugin-api')
 
@@ -328,7 +324,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes 
   **additional information**: Schemas, ServiceProviderConfig and ResourceType can be customized if `lib/scimdef-v2.js (or scimdef-v1.js)` exists. Original scimdef-v2.js/scimdef-v1.js can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
 
-- **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included and also for the endpointMapper method (used by plugin-ldap and plugin-azure-ad), e.g.: 
+- **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included and also for the endpointMapper method (used by plugin-ldap and plugin-entra-id), e.g.: 
 
 		"emails": {
 		  "work": {"value": "jsmith@example.com", "type": "work"},
@@ -345,7 +341,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		]  
 
 
-- **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If body contains groups, usePutSoftsync=true will prevent removing any existing groups that are not included in body.groups  
+- **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If set to `true`, only PUT body content will be replaced. Any additional existing user attributes and groups supported by plugin will remain as-is.
 
 - **scim."usePutGroupMemberOfUser** - true or false, default false. `PUT /Users/<user>` will replace the user with body content. If body contains groups and usePutGroupMemberOfUser=true, groups will be set on user object (groups are member of user) instead of default user member of groups  
 
@@ -362,9 +358,9 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **auth.basic** - Array of one ore more basic authentication objects - Basic Authentication with **username**/**password**. Note, we set a clear text password that will become encrypted when gateway is started.  
 
-- **auth.bearerToken** - Array of one or more bearer token objects - Shared token/secret (supported by Azure). Clear text value will become encrypted when gateway is started.  
+- **auth.bearerToken** - Array of one or more bearer token objects - Shared token/secret (supported by Entra ID). Clear text value will become encrypted when gateway is started.  
 
-- **auth.bearerJwtAzure** - Array of one or more JWT used by Azure SyncFabric. **tenantIdGUID** must be set to Azure Active Directory Tenant ID.  
+- **auth.bearerJwtAzure** - Array of one or more JWT used by Azure SyncFabric. **tenantIdGUID** must be set to Entra ID Tenant ID.  
 
 - **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs`. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.   
 
@@ -397,7 +393,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 	Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
-- **ipAllowList** - Array of one or more IPv4/IPv6 subnets (CIDR) allowed for incoming traffic.  E.g. using Azure AD as IdP, we would like to restrict access to IP addresses used by Azure AD. Azure IP-range can be downloaded from: [https://azureipranges.azurewebsites.net](https://azureipranges.azurewebsites.net), enter **AzureActiveDirectory** in the search list and select JSON download. Copy the "addressPrefixes" array content and paste into ipAllowList array. CIDR single IP-host syntax is a.b.c.d/32. Note, front-end HTTP proxy or a load balancer must include client IP-address in the **X-Forwarded-For** header. Configuration example:  
+- **ipAllowList** - Array of one or more IPv4/IPv6 subnets (CIDR) allowed for incoming traffic.  E.g. using Entra ID as IdP, we would like to restrict access to IP addresses used by Azure. Azure IP-range can be downloaded from: [https://azureipranges.azurewebsites.net](https://azureipranges.azurewebsites.net), enter **AzureActiveDirectory** in the search list and select JSON download. Copy the "addressPrefixes" array content and paste into ipAllowList array. CIDR single IP-host syntax is a.b.c.d/32. Note, front-end HTTP proxy or a load balancer must include client IP-address in the **X-Forwarded-For** header. Configuration example:  
 
         "ipAllowList": [
           "13.64.151.161/32",
@@ -656,11 +652,11 @@ To upgrade scimgateway docker image (remove the old stuff before running docker-
 	docker rm scimgateway  
 	docker rm $(docker ps -a -q); docker rmi $(docker images -q -f "dangling=true")  
 
-## Azure Active Directory as IdP using SCIM Gateway  
+## Entra ID as IdP using SCIM Gateway  
 
-Azure AD could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.
+Entra ID could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.
 
-Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.auth.bearerToken[x].token) or **Azure Tenant ID GUID** (scimgateway.auth.bearerJwtAzure[x].tenantIdGUID) or both:  
+Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.auth.bearerToken[x].token) or **Entra ID Tenant ID GUID** (scimgateway.auth.bearerJwtAzure[x].tenantIdGUID) or both:  
 
 	scimgateway: {
 	  "scim": {
@@ -683,42 +679,42 @@ Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.
       ...
 	}
 
-`token` configuration must correspond with "Secret Token" defined in Azure AD  
-`tenantIdGUID` configuration must correspond with Azure Active Directory Tenant ID  
+`token` configuration must correspond with "Secret Token" defined in Entra ID  
+`tenantIdGUID` configuration must correspond with Entra ID Tenant ID  
 
 In Azure Portal:
-`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Secret Token`  
+`Azure-Microsoft Entra ID-Enterprise Application-<My Application>-Provisioning-Secret Token`  
 Note, when "Secret Token" is left blank, Azure will use JWT (tenantIdGUID)
 
-`Azure-Azure Active Directory-Overview-Tenant ID`
+`Azure-Microsoft Entra ID-Overview-Tenant ID`
 
 User mappings attributes between AD and SCIM also needs to be configured  
 
-`Azure-Azure Active Directory-Enterprise Application-<My Application>-Provisioning-Edit attribute mappings-Mappings`
+`Azure-Microsoft Entra ID-Enterprise Application-<My Application>-Provisioning-Edit attribute mappings-Mappings`
 
-Azure AD default SCIM attribute mapping for **USER** must have:  
+Entra ID default SCIM attribute mapping for **USER** must have:  
 
 	userPrincipalName mapped to userName (matching precedence #1)  
 
 
-Azure AD default SCIM attribute mapping for **GROUP** must have:  
+Entra ID default SCIM attribute mapping for **GROUP** must have:  
 
 	displayName mapped to displayName (matching precedence #1)  
 	members mapped to members  
 
 
 
-Some notes related to Azure AD:  
+Some notes related to Entra ID:  
 
-- Azure Active Directory SCIM [documentation](https://docs.microsoft.com/en-us/azure/active-directory/active-directory-scim-provisioning)  
+- Entra ID SCIM [documentation](https://learn.microsoft.com/en-us/entra/identity/app-provisioning/use-scim-to-provision-users-and-groups)  
 
-- For using OAuth/JWT credentials, Azure configuration "Secret Token" (bearer token) should be blank. Plugin configuration must then include bearerJwtAzure.tenantIdGUID. Click "Test Connection" in Azure to verify
+- For using OAuth/JWT credentials, Entra ID configuration "Secret Token" (bearer token) should be blank. Plugin configuration must then include bearerJwtAzure.tenantIdGUID. Click "Test Connection" in Azure to verify
 
-- Azure AD do a regular check for a "none" existing user/group. This check seems to be a "keep alive" to verify connection.
+- Entra ID do a regular check for a "non" existing user/group. This check seems to be a "keep alive" to verify connection.
 
-- Azure AD first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
+- Entra ID first checks if user/group exists, if not exist they will be created (no explore of all users like CA Identity Manager)  
 
-- Deleting a user in Azure AD sends a modify user `{"active":"False"}` which means user should be disabled. This logic is default set in attribute mappings expression rule `Switch([IsSoftDeleted], , "False", "True", "True", "False")`. Standard SCIM "DELETE" method seems not to be used.  
+- Deleting a user in Entra ID sends a modify user `{"active":"False"}` which means user should be disabled. This logic is default set in attribute mappings expression rule `Switch([IsSoftDeleted], , "False", "True", "True", "False")`. Standard SCIM "DELETE" method seems not to be used.  
 
 
 ## CA Identity Manager as IdP using SCIM Gateway  
@@ -758,18 +754,15 @@ Each baseEntity should then be defined in the plugin configuration file with cus
 IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Loki plugin supports pagination. Other plugin may ignore this setting.  
 
 
-## Azure Active Directory provisioning  
-Using plugin-azure-ad we could do user provisioning towards Azure AD including license management e.g. O365  
+## Entra ID provisioning  
+Using plugin-entra-id we could do user provisioning towards Entra ID including license management e.g. O365  
 
 For testing purposes we could get an Azure free account and in addition the free Office 365 for testing license management through Azure.
 
-There are two alternative ways of configuring Azure AD. Alternative #1 is probably best and easiest  
-
-
-### Azure AD configuration 
+### Entra ID configuration 
 
 - Logon to [Azure](https://portal.azure.com) as global administrator  
-- Azure Active Directory - App registrations
+- Microsoft Entra ID - App registrations
 	- Click "New registration"
 	- Name = SCIM Gateway Inbound
 	- Select: Accounts in this organizational directory only
@@ -792,7 +785,7 @@ There are two alternative ways of configuring Azure AD. Alternative #1 is probab
 		- Organization - Organization.ReadWrite.All
 		- Click "Add permissions"  
 		Note, we also have to go to Enterprise application to grant these consents  
-- Azure Active Directory - Enterprise applications - SCIM Gateway Inbound
+- Microsoft Entra ID - Enterprise applications - SCIM Gateway Inbound
 	- Permissions:
 		- Click "Grant admin consent for [tenant name]"
 		- In the logon dialog, logon as global administrator
@@ -804,7 +797,7 @@ There are two alternative ways of configuring Azure AD. Alternative #1 is probab
 
 Also note, enable/disable user (accountEnabled - through Graph API) will fail if user have an "Administrator" role other than above mentioned "User Administrator" e.g. "Group Administrator"/"Application Administrator". To be sure we can enable/disable all users,  application needs to be member of **"Global administrator"** - 62e90394-69f5-4237-9190-012177145e10.  
  
-- Azure Active Directory - Roles and administration
+- Microsoft Entra ID - Roles and administration
 	- Click on role **"User administrator"**
 	- Click "Add assignments"
 	- Search: SCIM Gateway Inbound (application name)
@@ -813,11 +806,11 @@ Also note, enable/disable user (accountEnabled - through Graph API) will fail if
 ### SCIM Gateway configuration  
 
 **Edit index.js**  
-Uncomment startup of plugin-azure-ad, other plugins could be comment out if not needed
+Uncomment startup of plugin-entra-id, other plugins could be comment out if not needed
 
-	const azureAD = require('./lib/plugin-azure-ad')
+	const entra = require('./lib/plugin-entra-id')
 
-**Edit plugin-azure-ad.json**
+**Edit plugin-entra-id.json**
 
 Note, for Symantec/Broadcom/CA Provisioning we have to use SCIM version 1.1 
  
@@ -838,7 +831,7 @@ Note, for Symantec/Broadcom/CA Provisioning we have to use SCIM version 1.1
             }
           ],
 
-Update `tenantIdGUID`, `clientID` and `clientSecret` according to what you copied from the previous Azure AD configuration.  
+Update `tenantIdGUID`, `clientID` and `clientSecret` according to what you copied from the previous Entra ID configuration.  
   
 If using proxy, set proxy.host to `"http://<FQDN-ProxyHost>:<port>"` e.g `"http://proxy.mycompany.com:3128"`  
 
@@ -883,8 +876,8 @@ Note, we should normally use certificate (https) for communicating with SCIM Gat
 Create a new endpoint type "Azure - ScimGateway"  
 
 - Start SCIM Gateway
-	- "const azureAD" must be uncomment in `index.js`
-	- username, password and port defined in `plugin-azure-ad.json` must also be known 
+	- "const entra" must be uncomment in `index.js`
+	- username, password and port defined in `plugin-entra-id.json` must also be known 
 - Start ConnectorXpress
 - Setup Data Sources
 	- Add
@@ -1082,6 +1075,16 @@ Plugins should have following initialization:
 ret.Resources = array filled with user objects according to getObj/attributes, we could normally include all attributes having id and userName as mandatory e.g [{"id": "bjensen", "userName": "bjensen"}, {"id":"jsmith", "userName":"jsmith"}]  
 ret.totalResults = if supporting pagination, then it should be set to the total numbers of elements (users), else set to null
 
+### createUser  
+	scimgateway.createUser = async (baseEntity, userObj, ctx) => {
+		...
+	    return { "id": uniqueID }
+	})
+
+* userObj = user object containing userattributes according to scim standard  
+userObj.userName contains the unique naming at IdP
+* return the created user object or minimum the id generated { "id": uniqueID }, null is also accepted else throw error
+
 ### deleteUser  
 
 	scimgateway.deleteUser = async (baseEntity, id, ctx) => {
@@ -1131,12 +1134,12 @@ ret.totalResults = if supporting pagination, then it should be set to the total 
 ### createGroup  
 	scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 		...
-	    return null
+	    return { "id": uniqueID }
 	})
 
 * groupObj = group object containing groupattributes according to scim standard  
 groupObj.displayName contains the group name to be created
-* return null: null if OK, else throw error  
+* return the created group object or minimum the id generated { "id": uniqueID }, null is also accepted else throw error
 
 ### deleteGroup  
 	scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
@@ -1169,6 +1172,19 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.3.0
+  
+[Added] 
+
+- configuration **scimgateway.scim.port** can now be set to 0 or removed for deactivating listener
+- configuration **scimgateway.scim.usePutSoftSync** set to `true` now includes additional logic that do not change existing user attributes not included in PUT body content
+- createUser/createGroup no longer return id if id have not been returned by plugin or by getUser filtering on userName. Previously userName was returned as id when missing plugin logic.
+- plugin-ldap supporting simpel filtering
+- plugin-loki using baseEntity configuration for supporting multi loki endpoints
+- plugin-azure-ad renamed to plugin-entra-id
+- plugin-entra-id and plugin-scim now using an updated default REST helpers-template that gives more flexible endpoint authentication support like OAuth, Basic, Bearer, custom-headers, no-auth,...
+- Dependencies bump
 
 ### v4.2.17
   
