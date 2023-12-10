@@ -96,7 +96,11 @@
     }
   },
   "endpoint": {
-    "dbname": "loki.db",
-    "persistence": false
+    "entity": {
+      "undefined": {
+        "dbname": "loki.db",
+        "persistence": false
+      }
+    }
   }
 }
