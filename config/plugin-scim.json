@@ -102,8 +102,10 @@
           "http://localhost:8880"
         ],
         "scimVersion": "2.0",
-        "username": "gwadmin",
-        "password": "password",
+        "basicAuth": {
+          "username": "gwadmin",
+          "password": "password"
+        },
         "proxy": {
           "host": null,
           "username": null,
@@ -115,8 +117,10 @@
           "http://localhost:8880"
         ],
         "scimVersion": "2.0",
-        "username": "gwadmin",
-        "password": "password",
+        "basicAuth": {
+          "username": "gwadmin",
+          "password": "password"
+        },
         "proxy": {
           "host": null,
           "username": null,
