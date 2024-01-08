@@ -102,6 +102,8 @@
           "http://localhost:8880"
         ],
         "scimVersion": "2.0",
+        "oauth": null,
+        "bearerAuth": null,
         "basicAuth": {
           "username": "gwadmin",
           "password": "password"
@@ -117,6 +119,8 @@
           "http://localhost:8880"
         ],
         "scimVersion": "2.0",
+        "oauth": null,
+        "bearerAuth": null,
         "basicAuth": {
           "username": "gwadmin",
           "password": "password"

@@ -104,6 +104,8 @@
           "clientId": "Application ID",
           "clientSecret": "Generated application secret value"
         },
+        "bearerAuth": null,
+        "basicAuth": null,
         "proxy": {
           "host": null,
           "username": null,
