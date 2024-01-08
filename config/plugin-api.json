@@ -101,8 +101,9 @@
         "baseUrls": [
           "http://fakerestapi.azurewebsites.net"
         ],
-        "username": "endpointuser",
-        "password": "password",
+        "oauth": null,
+        "bearerAuth": null,
+        "basicAuth": null,
         "proxy": {
           "host": null,
           "username": null,
