@@ -16,8 +16,8 @@ Validated through IdP's:
   
 Latest news:  
 
+- **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Stream includes **the next generation SCIM Gateway** that supports message subscription and automated provisioning
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. Kubernetes health checks and shutdown handler support
-- **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Stream includes **SCIM Stream Gateway**, the next generation SCIM Gateway that supports message subscription and automated provisioning
 - Supports OAuth Client Credentials authentication
 - Major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure IP-range  
@@ -1173,12 +1173,18 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.3.1
+  
+[Added] 
+
+- plugin-entra-id, plugin-scim and plugin-api having updated `REST endpoint helpers-template` to address and resolve endpoint throttling
+
 ### v4.3.0
   
 [Added] 
 
-- configuration **scimgateway.scim.port** can now be set to 0 or removed for deactivating listener
-- configuration **scimgateway.scim.usePutSoftSync** set to `true` now includes additional logic that do not change existing user attributes not included in PUT body content
+- configuration `scimgateway.scim.port` can now be set to 0 or removed for deactivating listener
+- configuration `cimgateway.scim.usePutSoftSync` set to `true` now includes additional logic that do not change existing user attributes not included in PUT body content
 - createUser/createGroup no longer return id if id have not been returned by plugin or by getUser filtering on userName. Previously userName was returned as id when missing plugin logic.
 - plugin-ldap supporting simpel filtering
 - plugin-loki using baseEntity configuration for supporting multi loki endpoints
