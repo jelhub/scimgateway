@@ -16,7 +16,7 @@ Validated through IdP's:
   
 Latest news:  
 
-- **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Stream includes **the next generation SCIM Gateway** that supports message subscription and automated provisioning
+- **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. Kubernetes health checks and shutdown handler support
 - Supports OAuth Client Credentials authentication
 - Major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
@@ -185,9 +185,9 @@ When maintaining a set of modifications it useful to disable the postinstall ope
 	const loki = require('./lib/plugin-loki')
 	// const mongodb = require('./lib/plugin-mongodb')
 	// const scim = require('./lib/plugin-scim')
-	// const soap = require('./lib/plugin-soap')
+	// const soap = require('./lib/plugin-soap') // prereq: npm install soap
 	// const mssql = require('./lib/plugin-mssql')
-	// const saphana = require('./lib/plugin-saphana')  // prereq: npm install hdb
+	// const saphana = require('./lib/plugin-saphana') // prereq: npm install hdb
 	// const entra = require('./lib/plugin-entra-id')
 	// const ldap = require('./lib/plugin-ldap')
 	// const api = require('./lib/plugin-api')
@@ -295,7 +295,31 @@ Below shows an example of config\plugin-saphana.json
           "enabled": false,
           "shutdownTimeout": 15000,
           "forceExitTimeout": 1000
-        }
+        },
+	    "stream": {
+	      "baseUrls": [],
+	      "certificate": {
+	        "ca": null
+	      },
+	      "subscriber": {
+	        "enabled": false,
+	        "entity": {
+	          "undefined": {
+	            "nats": {
+	              "tenant": null,
+	              "subject": null,
+	              "jwt": null,
+	              "secret": null
+	            },
+	            "deleteUserOnLastGroupRoleRemoval": false,
+	            "convertRolesToGroups": false,
+	            "generateUserPassword": false,
+	            "modifyOnly": false,
+	            "replaceDomains": []
+	          }
+	        }
+	      }
+	    }
 	  },
 	  "endpoint": {
 	    "host": "hostname",
@@ -419,6 +443,8 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **kubernetes.enabled** - true or false, true will enable Kubernets health checks and shutdown handler
 - **kubernetes.shutdownTimeout** - Number of milliseconds to wait before shutting down (default 15000).
 - **kubernetes.forceExitTimeout** - Number of milliseconds before forceful exiting (default 1000).
+
+- **stream** - See [SCIM Stream](https://elshaug.xyz/docs/scim-stream) for configuration details
 
 - **endpoint** - Contains endpoint specific configuration according to our **plugin code**.    
  
@@ -1173,11 +1199,14 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-### v4.3.1
-  
-[Added] 
+### v4.4.0  
 
+[Added]
+
+- SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using [SCIM Stream](https://elshaug.xyz/docs/scim-stream)
 - plugin-entra-id, plugin-scim and plugin-api having updated `REST endpoint helpers-template` to address and resolve endpoint throttling
+
+Note, module soap is not default included anymore. SOAP based plugins e.g., plugin-soap therefore needs `npm install soap` for including module in your package
 
 ### v4.3.0
   
