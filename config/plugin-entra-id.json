@@ -92,6 +92,30 @@
       "enabled": false,
       "shutdownTimeout": 15000,
       "forceExitTimeout": 1000
+    },
+    "stream": {
+      "baseUrls": [],
+      "certificate": {
+        "ca": null
+      },
+      "subscriber": {
+        "enabled": false,
+        "entity": {
+          "undefined": {
+            "nats": {
+              "tenant": null,
+              "subject": null,
+              "jwt": null,
+              "secret": null
+            },
+            "deleteUserOnLastGroupRoleRemoval": false,
+            "convertRolesToGroups": false,
+            "generateUserPassword": false,
+            "modifyOnly": false,
+            "replaceDomains": []
+          }
+        }
+      }
     }
   },
   "endpoint": {

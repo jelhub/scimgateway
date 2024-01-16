@@ -6,6 +6,7 @@ npm-debug.log
 config/*.db
 config/certs
 config/schemas
+config/approles
 node_modules/
 typings/
 logs/
