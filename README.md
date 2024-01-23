@@ -1199,6 +1199,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.4.1  
+
+[Added]
+
+- scim-stream subscriber using latest api and some additional recovery logic  
+	Prerequisite: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) version > v1.0.0
+
+[Fixed] 
+
+- plugin-loki was missing async await and could cause problems in some stress test use cases
+
 ### v4.4.0  
 
 [Added]
