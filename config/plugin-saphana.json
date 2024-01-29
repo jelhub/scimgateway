@@ -110,7 +110,7 @@
               "secret": null
             },
             "deleteUserOnLastGroupRoleRemoval": false,
-            "convertRolesToGroups": false,
+            "skipConvertRolesToGroups": false,
             "generateUserPassword": false,
             "modifyOnly": false,
             "replaceDomains": []
