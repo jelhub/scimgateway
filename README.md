@@ -339,14 +339,14 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway.  
 
-- **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted (gateway must then be installed on the CA Connector Server).  
+- **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted.  
 
 - **payloadSize** - if not defined, default "1mb" will be used. There are cases which large groups could exceed default size and you may want to increase by setting your own size  
 
-- **scim.version** - "1.1" or "2.0". Default is "2.0". For Symantec/Broadcom/CA Identity Manager "1.1" should be used.  
+- **scim.version** - "1.1" or "2.0". Default is "2.0".  
 
 - **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes 
-  **additional information**: Schemas, ServiceProviderConfig and ResourceType can be customized if `lib/scimdef-v2.js (or scimdef-v1.js)` exists. Original scimdef-v2.js/scimdef-v1.js can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
+  **Note, scim.customSchema is obsolete, instead use:**: Schemas, ServiceProviderConfig and ResourceType can be customized if `lib/scimdef-v2.js (or scimdef-v1.js)` exists. Original scimdef-v2.js/scimdef-v1.js can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
 
 - **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included and also for the endpointMapper method (used by plugin-ldap and plugin-entra-id), e.g.: 
 
@@ -406,7 +406,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
     `<FQDN>` is Fully Qualified Domain Name of the host having SCIM Gateway installed
   
-    Note, when using Broadcom/CA Provisioning, the "certificate authority - CA" also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  
+    Note, when using Symantec/Broadcom/CA Provisioning, the "certificate authority - CA" also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  
 
     PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: 
 
@@ -498,62 +498,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		  "plugin-soap.endpoint.password": "secret"
 		}  
 
-- Custom schema attributes can be added by plugin configuration `scim.customSchema` having value set to filename of a JSON schema-file located in `<package-root>/config/schemas` e.g:  
-
-		"scim": {
-		  "version": "2.0",
-		  "customSchema": "plugin-soap-schema.json"
-		},
-
-	JSON file have following syntax:  
-
-		[
-		  { 
-		    "name": "User",
-		    "attributes": [...]
-		  },
-		  { 
-		    "name": "Group",
-		    "attributes": [...]
-		  }
-		]
-
-	Where array `attributes` contains custom attribute objects according to SCIM 1.1 or 2.0 spesification e.g:  
-
-		"attributes": [
-		  {
-		    "name": "musicPreference",
-			"type": "string",
-			"multiValued": false,
-			"description": "Music Preferences",
-			"readOnly": false,
-			"required": false,
-			"caseExact": false
-		  },
-		  {
-		    "name": "populations",
-			"type": "complex",
-			"multiValued": true,
-			"multiValuedAttributeChildName": "population",
-			"description": "Population array",
-			"readOnly": false,
-			"required": false,
-			"caseExact": false,
-			"subAttributes": [
-			  {
-			    "name": "value",
-			    "type": "string",
-			    "multiValued": false,
-			    "description": "Population value",
-			    "readOnly": false,
-			    "required": true,
-			    "caseExact": false
-			  }
-			]
-		  }
-		]
-
-	Note, custom schema attributes will be merged into core:1.0/2.0 schema, and names must not conflict with standard SCIM attribute names.
+- Custom Schemas, ServiceProviderConfig and ResourceType will be used if `lib/scimdef-v2.js or scimdef-v1.js` exists. Original scimdef-v2.js/scimdef-v1.js can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
 
 
 ## Manual startup    
@@ -745,7 +690,7 @@ Some notes related to Entra ID:
 
 ## CA Identity Manager as IdP using SCIM Gateway  
 
-Using Symantec/Broadcom/CA Identity Manger, plugin configuration file must include **SCIM Version "1.1"** (scimgateway.scim.version).  
+Using Symantec/Broadcom/CA Identity Manger, plugin configuration might have to use **SCIM Version "1.1"** (scimgateway.scim.version).  
 
 In the Provisioning Manager we have to use  
 
@@ -1198,6 +1143,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.4.3
+  
+[Added]  
+
+- Dependencies bump  
 
 ### v4.4.2  
 
