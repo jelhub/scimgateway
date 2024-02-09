@@ -489,8 +489,9 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		}  
 
 
-    jwt.secret file content example:
-    thisIsSecret
+    jwt.secret file content example:  
+
+    	thisIsSecret
 
 	secrets.json file content example for plugin-soap:  
   
