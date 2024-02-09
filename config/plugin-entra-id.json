@@ -5,9 +5,10 @@
     "payloadSize": null,
     "scim": {
       "version": "2.0",
-      "customSchema": null,
       "skipTypeConvert": false,
-      "usePutSoftSync": false
+      "skipMetaLocation": false,
+      "usePutSoftSync": false,
+      "usePutGroupMemberOfUser": false
     },
     "log": {
       "loglevel": {

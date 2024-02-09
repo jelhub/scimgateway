@@ -5,8 +5,8 @@
     "payloadSize": null,
     "scim": {
       "version": "2.0",
-      "customSchema": null,
       "skipTypeConvert": false,
+      "skipMetaLocation": false,
       "usePutSoftSync": false,
       "usePutGroupMemberOfUser": false
     },
