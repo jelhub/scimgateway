@@ -207,8 +207,8 @@ Below shows an example of config\plugin-saphana.json
         "payloadSize": null,
         "scim": {
           "version": "2.0",
-          "customSchema": null,
           "skipTypeConvert" : false,
+          "skipMetaLocation" false,
           "usePutSoftSync" : false,
           "usePutGroupMemberOfUser": false
         },
@@ -345,9 +345,6 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **scim.version** - "1.1" or "2.0". Default is "2.0".  
 
-- **scim.customSchema** - filename of JSON file located in `<package-root>\config\schemas` containing custom schema attributes, see configuration notes 
-  **Note, scim.customSchema is obsolete, instead use:**: Schemas, ServiceProviderConfig and ResourceType can be customized if `lib/scimdef-v2.js (or scimdef-v1.js)` exists. Original scimdef-v2.js/scimdef-v1.js can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
-
 - **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included and also for the endpointMapper method (used by plugin-ldap and plugin-entra-id), e.g.: 
 
 		"emails": {
@@ -364,6 +361,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		  {"value": "jsmith@hotmail.com"}
 		]  
 
+- **scim.skipMetaLocation** - true or false, default false. If set to true, `meta.location` which contains protocol and hostname from request-url, will be excluded from response e.g. `"{...,meta":{"location":"https://my-company.com/<...>"}}`. If using reverse proxy and not including headers `X-Forwarded-Proto` and `X-Forwarded-Host`, originator will be the proxy and we might not want to expose internal protocol and hostname being used by the proxy request.
 
 - **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If set to `true`, only PUT body content will be replaced. Any additional existing user attributes and groups supported by plugin will remain as-is.
 
@@ -450,10 +448,12 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
  
 #### Configuration notes
 
-- Setting environment variable `SEED` will override default password seeding logic.  
+- Custom Schemas, ServiceProviderConfig and ResourceType can be used if `./lib/scimdef-v2.js or scimdef-v1.js` exists. Original scimdef-v2.js/scimdef-v1.js can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
+- Using reverse proxy and we want ipAllowList and correct meta.location response, following headers must be set by proxy: `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host`  
+- Setting environment variable `SEED` with some random characters will override default password seeding logic. This also allow copying configuration file with encrypted secrets from one machine to another.  
 - All configuration can be set based on environment variables. Syntax will then be `"process.env.<ENVIRONMENT>"` where `<ENVIRONMENT>` is the environment variable used. E.g. scimgateway.port could have value "process.env.PORT", then using environment variable PORT.
-- All configuration can be set based on corresponding JSON-content (dot notation) in external file using plugin name as parent JSON object. Syntax will then be `"process.file.<path>"` where `<path>` is the file used. E.g. endpoint.password could have value "process.file./var/run/vault/secrets.json"  
-- Also, individual secret file may be used for a plain text secret per file. Syntax will then be `"process.text.<path>"` where `<path>` is the file which contains raw (`UTF-8`) character value. E.g. endpoint.password could have value "process.text./var/run/vault/endpoint.password". This enables that the config file itself be loaded from a ConfigMap while specific values are mounted either from `secrets.json` style files as mentioned above OR from traditional secrets files mounted in the file system, one value per file.
+- All configuration values can be moved to a single external file having JSON dot notation content with plugin name as parent JSON object. Syntax in original configuration file used by the gateway will then be `"process.file.<path>"` where `<path>` is the file used. E.g. key endpoint.password could have value "process.file./var/run/vault/secrets.json" 
+- All configuration values can be moved to multiple external files, each file containing one single value. Syntax in original configuration file used by the gateway will then be `"process.text.<path>"` where `<path>` is the file which contains raw (`UTF-8`) character value. E.g. key endpoint.password could have value "process.text./var/run/vault/endpoint.password".
 
 	Example:  
 
@@ -489,7 +489,10 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		}  
 
 
-	secrets.json for plugin-soap - example (dot notation):  
+    jwt.secret file content example:
+    thisIsSecret
+
+	secrets.json file content example for plugin-soap:  
   
 		{
 		  "plugin-soap.scimgateway.auth.basic[0].username": "gwadmin",
@@ -498,7 +501,6 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		  "plugin-soap.endpoint.password": "secret"
 		}  
 
-- Custom Schemas, ServiceProviderConfig and ResourceType will be used if `lib/scimdef-v2.js or scimdef-v1.js` exists. Original scimdef-v2.js/scimdef-v1.js can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
 
 
 ## Manual startup    
@@ -1143,6 +1145,19 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.4.4  
+
+[Added]
+
+- New configuration: **scim.skipMetaLocation**  
+ true or false, default false. If set to true, `meta.location` which contains protocol and hostname from request-url, will be excluded from response e.g. `"{...,meta":{"location":"https://my-company.com/<...>"}}`. If using reverse proxy and not including headers `X-Forwarded-Proto` and `X-Forwarded-Host`, originator will be the proxy and we might not want to expose internal protocol and hostname being used by the proxy request.
+
+Below is an example of nginx reverse proxy configuration supporting SCIM Gateway ipAllowList and correct meta.location response:  
+
+	proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	proxy_set_header X-Forwarded-Proto $scheme;
+	proxy_set_header X-Forwarded-Host $http_host;
 
 ### v4.4.3
   
