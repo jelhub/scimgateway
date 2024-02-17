@@ -129,13 +129,10 @@
           "clientId": "Application ID",
           "clientSecret": "Generated application secret value"
         },
+        "tokenAuth": null,
         "bearerAuth": null,
         "basicAuth": null,
-        "proxy": {
-          "host": null,
-          "username": null,
-          "password": null
-        }
+        "proxy": null
       }
     },
     "map": {

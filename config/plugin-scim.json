@@ -127,16 +127,13 @@
         ],
         "scimVersion": "2.0",
         "oauth": null,
+        "tokenAuth": null,
         "bearerAuth": null,
         "basicAuth": {
           "username": "gwadmin",
           "password": "password"
         },
-        "proxy": {
-          "host": null,
-          "username": null,
-          "password": null
-        }
+        "proxy": null
       },
       "clientA": {
         "baseUrls": [
@@ -144,16 +141,13 @@
         ],
         "scimVersion": "2.0",
         "oauth": null,
+        "tokenAuth": null,
         "bearerAuth": null,
         "basicAuth": {
           "username": "gwadmin",
           "password": "password"
         },
-        "proxy": {
-          "host": null,
-          "username": null,
-          "password": null
-        }
+        "proxy": null
       }
     }
   }
