@@ -123,16 +123,17 @@
     "entity": {
       "undefined": {
         "baseUrls": [
-          "http://fakerestapi.azurewebsites.net"
+          "https://dummyjson.com"
         ],
         "oauth": null,
+        "tokenAuth": {
+          "tokenUrl": "https://dummyjson.com/auth/login",
+          "username": "jissetts",
+          "password": "ePawWgrnZR8L"
+        },
         "bearerAuth": null,
         "basicAuth": null,
-        "proxy": {
-          "host": null,
-          "username": null,
-          "password": null
-        }
+        "proxy": null
       }
     }
   }

@@ -7,19 +7,18 @@ const server_8890 = require('supertest').agent('http://localhost:8890') // modul
 
 const auth = 'Basic ' + Buffer.from('gwadmin:password').toString('base64')
 
-var options = {
+const options = {
   headers: {
     'Content-Type': 'application/json',
     Authorization: auth
   }
 }
 
-describe('plugin-api remote tests', () => {
+describe('plugin-api remote dummyjson.com tests', () => {
   it('post /api test', (done) => {
     const objApi = {
-      eventName: 'AssignAccessRoleEvent',
-      subjectName: 'RACF_System-B',
-      userID: 'peter01'
+      title: 'BMW X5',
+      price: 58
     }
 
     server_8890.post('/api')
@@ -33,14 +32,13 @@ describe('plugin-api remote tests', () => {
       })
   })
 
-  it('put /api/1 test', (done) => {
+  it('put /api/100 test', (done) => {
     const objApi = {
-      eventName: 'AssignAccessRoleEvent',
-      subjectName: 'RACF_System-B',
-      userID: 'peter01'
+      title: 'BMW X1',
+      price: 21
     }
 
-    server_8890.put('/api/1')
+    server_8890.put('/api/100')
       .set(options.headers)
       .send(objApi)
       .end(function (err, res) {
@@ -51,27 +49,24 @@ describe('plugin-api remote tests', () => {
       })
   })
 
-  /*
-  it('patch /api/1 test', (done) => {
-    let objApi = {
-      'eventName': 'AssignAccessRoleEvent',
-      'subjectName': 'RACF_System-B',
-      'userID': 'peter01'}
+  it('patch /api/100 test', (done) => {
+    const objApi = {
+      title: 'BMW X3'
+    }
 
-    server_8890.patch('/api/1')
-          .set(options.headers)
-          .send(objApi)
-          .end(function (err, res) {
-            expect(err).to.equal(null)
-            expect(res.statusCode).to.equal(500)
-            expect(res.body.meta.result).to.equal('error')
-            done()
-          })
+    server_8890.patch('/api/100')
+      .set(options.headers)
+      .send(objApi)
+      .end(function (err, res) {
+        expect(err).to.equal(null)
+        expect(res.statusCode).to.equal(200)
+        expect(res.body.meta.result).to.equal('success')
+        done()
+      })
   })
-  */
 
-  it('get /api/1 test', (done) => {
-    server_8890.get('/api/1')
+  it('get /api/100 test', (done) => {
+    server_8890.get('/api/100')
       .set(options.headers)
       .end(function (err, res) {
         expect(err).to.equal(null)
@@ -81,8 +76,8 @@ describe('plugin-api remote tests', () => {
       })
   })
 
-  it('delete /api/1 test', (done) => {
-    server_8890.delete('/api/1')
+  it('delete /api/100 test', (done) => {
+    server_8890.delete('/api/100')
       .set(options.headers)
       .end(function (err, res) {
         expect(err).to.equal(null)
