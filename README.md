@@ -1147,6 +1147,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.4.6
+
+[Improved]  
+
+- Some PUT logic redesign. More granularity on mulitvalues, instead of including all elements, now only those that differ are sent to modifyUser.
 
 ### v4.4.5
 
