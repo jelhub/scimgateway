@@ -116,6 +116,19 @@
             "replaceDomains": []
           }
         }
+      },
+      "publisher": {
+        "enabled": false,
+        "entity": {
+          "undefined": {
+            "nats": {
+              "tenant": null,
+              "subject": null,
+              "jwt": null,
+              "secret": null
+            }
+          }
+        }
       }
     }
   },
