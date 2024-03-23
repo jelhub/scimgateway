@@ -16,6 +16,7 @@ Validated through IdP's:
   
 Latest news:  
 
+- Supports stream publishing mode having [SCIM Stream](https://elshaug.xyz/docs/scim-stream) as a prerequisite. In this mode, standard incoming SCIM requests from your Identity Provider (IdP) or API are directed and published to the stream. Subsequently, one of the gateways subscribing to the channel utilized by the publisher will manage the SCIM request, and response back to the publisher. Using SCIM Stream we have `egress/outbound only traffic` and get loadbalancing/failover by adding more gateways subscribing to same channel.
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. Kubernetes health checks and shutdown handler support
 - Supports OAuth Client Credentials authentication
@@ -33,7 +34,9 @@ Latest news:
 
 ## Overview  
 
-With SCIM Gateway, user management is facilitated through the utilization of the REST-based SCIM 1.1 or 2.0 protocol. The Gateway acts as a translator for incoming SCIM requests, seamlessly enabling the exposure of CRUD functionality (create, read, update, and delete user/group) towards destinations. This is achieved through the implementation of endpoint-specific protocols, ensuring precise and efficient provisioning with diverse endpoints.
+With SCIM Gateway, user management is facilitated through the utilization of the REST-based SCIM 1.1 or 2.0 protocol. The gateway acts as a translator for incoming SCIM requests, seamlessly enabling the exposure of CRUD functionality (create, read, update, and delete user/group) towards destinations. This is achieved through the implementation of endpoint-specific protocols, ensuring precise and efficient provisioning with diverse endpoints.  
+
+Using [SCIM Stream](https://elshaug.xyz/docs/scim-stream), gateway may enable Pub/Sub allowing incoming SCIM requests to be published and processed by other gateways acting as subscribers. This extends beyond being Entra ID and HR subscriber for messages published by the SCIM Stream collector.
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
 
@@ -54,10 +57,10 @@ Same as plugin "Loki", but using external MongoDB
 Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL
 
 * **SCIM** (REST Webservice)  
-Demonstrates user provisioning towards REST-Based endpoint (type SCIM) 
-Using plugin "Loki" as SCIM endpoint  
+Demonstrates user provisioning towards REST-Based endpoint (type SCIM)  
+Using plugin Loki as SCIM endpoint  
 Can be used as SCIM version-gateway e.g. 1.1=>2.0 or 2.0=>1.1  
-Can be used to chain several SCIM Gateway's  
+Can be used to chain several gateways  
 
 
 * **Soap** (SOAP Webservice)  
@@ -86,9 +89,9 @@ Using endpointMapper (like plugin-entra-id) for attribute flexibility
 * **API** (REST Webservices)  
 Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete  
 None SCIM plugin, becomes what you want it to become.  
-Methods listed can also be used in standard SCIM plugins  
+Methods included can also be used in standard SCIM plugins  
 Endpoint complexity could be put in this plugin, and client could instead communicate through Gateway using your own simplified REST specification.  
-One example of usage could be creation of tickets in ServiceDesk/HelpDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in Identity Manager.  
+One example of usage could be creation of tickets in ServiceDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in IdP.  
 
     
 ## Installation  
@@ -384,13 +387,13 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **auth.bearerJwtAzure** - Array of one or more JWT used by Azure SyncFabric. **tenantIdGUID** must be set to Entra ID Tenant ID.  
 
-- **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs`. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.   
+- **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs` or absolute path being used. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.   
 
 - **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`client_id`** and **`client_secret`** are mandatory. client_secret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. http://localhost:8880/oauth/token  
 
 - **auth.passThrough** - Setting **auth.passThrough.enabled=true** will bypass SCIM Gateway authentication. Gateway will instead pass ctx containing authentication header to the plugin. Plugin could then use this information for endpoint authentication and we don't have any password/token stored at the gateway. Note, this also requires plugin binary having `scimgateway.authPassThroughAllowed = true` and endpoint logic for handling/passing ctx.request.header.authorization 
 
-- **certificate** - If not using TLS certificate, set "key", "cert" and "ca" to **null**. When using TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the `<package-root>\config\certs` directory e.g:  
+- **certificate** - If not using TLS certificate, set "key", "cert" and "ca" to **null**. When using TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the `<package-root>\config\certs` directory unless absolute path being defined e.g:  
   
 		"certificate": {
 		  "key": "key.pem",
@@ -1146,6 +1149,16 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.5.0
+
+[Improved]  
+
+- scim-stream, scimgateway now supports stream publishing mode having [SCIM Stream](https://elshaug.xyz/docs/scim-stream) as a prerequisite. In this mode, standard incoming SCIM requests from your Identity Provider (IdP) or API are directed and published to the stream. Subsequently, one of the gateways subscribing to the channel utilized by the publisher will manage the SCIM request, and response back to the publisher. Using SCIM Stream we have `egress/outbound only traffic` and get loadbalancing/failover by adding more gateways subscribing to same channel.
+- scim-stream, subscriber will do automatic retry until connected when plugin not able to connect to endpoint (offline endpoint)
+- plugin-ldap, modifyGroup now supports all attributes and not only add/remove members
+- certificate absolute path may be used in plugin configuration file instead of default relative path 
+- dependencies bump
 
 ### v4.4.6
 
