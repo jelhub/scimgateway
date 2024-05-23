@@ -1164,6 +1164,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 ## Change log  
 
 
+### v4.5.3  
+
+[Fixed]  
+
+- plugin-api configuration file having new credentials for dummy-json testing 
+
+
 ### v4.5.2
 
 [Improved]  
@@ -1171,17 +1178,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 - Dependencies bump  
 - plugin-loki and plugin-mongodb, minor improvements for handling raw mulitivalue updates when not using default skipTypeConvert=false  
 - endpointMapper supporting comma separated string to be converted to array, e.g.:  
-  SCIM otherMails = "myAlias1@company.com,myAlias2@company.com,myAlias3@company.com"
+	SCIM otherMails = "myAlias1@company.com,myAlias2@company.com,myAlias3@company.com"
   
-  endpointMapper configuration for endpoint attribute emails of type array:  
+  	endpointMapper configuration for endpoint attribute emails of type array:  
 
-    "map": {
-      "user": {
-        "emails": {
-          "mapTo": "otherMails",
-          "type": "array",
-          "typeInbound": "string"
-        },
+	"map": {
+	  "user": {
+	    "emails": {
+	      "mapTo": "otherMails",
+	      "type": "array",
+	      "typeInbound": "string"
+	    },
 		...
 
 ### v4.5.1
