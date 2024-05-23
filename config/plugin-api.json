@@ -141,8 +141,8 @@
         "oauth": null,
         "tokenAuth": {
           "tokenUrl": "https://dummyjson.com/auth/login",
-          "username": "jissetts",
-          "password": "ePawWgrnZR8L"
+          "username": "emilys",
+          "password": "emilyspass"
         },
         "bearerAuth": null,
         "basicAuth": null,
