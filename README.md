@@ -321,6 +321,19 @@ Below shows an example of config\plugin-saphana.json
 	            "replaceDomains": []
 	          }
 	        }
+	      },
+	      "publisher": {
+	        "enabled": false,
+	        "entity": {
+	          "undefined": {
+	            "nats": {
+	              "tenant": null,
+	              "subject": null,
+	              "jwt": null,
+	              "secret": null
+	            }
+	          }
+	        }
 	      }
 	    }
 	  },
@@ -1149,6 +1162,27 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+
+### v4.5.2
+
+[Improved]  
+
+- Dependencies bump  
+- plugin-loki and plugin-mongodb, minor improvements for handling raw mulitivalue updates when not using default skipTypeConvert=false  
+- endpointMapper supporting comma separated string to be converted to array, e.g.:  
+  SCIM otherMails = "myAlias1@company.com,myAlias2@company.com,myAlias3@company.com"
+  
+  endpointMapper configuration for endpoint attribute emails of type array:  
+
+    "map": {
+      "user": {
+        "emails": {
+          "mapTo": "otherMails",
+          "type": "array",
+          "typeInbound": "string"
+        },
+		...
 
 ### v4.5.1
 
