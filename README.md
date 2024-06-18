@@ -1163,15 +1163,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.5.4  
+
+[Fixed]
+
+- Delete User missing url-decoding of id e.g. using ldap-dn as id
 
 ### v4.5.3  
 
 [Fixed]  
 
 - plugin-api configuration file having new credentials for dummy-json testing 
-
-
-### v4.5.2
 
 [Improved]  
 
