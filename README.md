@@ -1163,6 +1163,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.5.5  
+
+[Fixed]
+
+- PUT /Groups/xxx failed on final group lookup and returned error
+- endpointMapper failed to correctly map customExtensions in certain use cases
+
 ### v4.5.4  
 
 [Fixed]
