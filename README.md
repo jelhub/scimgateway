@@ -1163,6 +1163,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.5.6  
+
+[Improved]
+
+- plugin-ldap preserve multivalue-attribute order on modify. Do not apply to groups/members.
+
 ### v4.5.5  
 
 [Fixed]
