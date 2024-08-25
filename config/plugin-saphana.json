@@ -7,8 +7,8 @@
       "version": "2.0",
       "skipTypeConvert": false,
       "skipMetaLocation": false,
-      "usePutSoftSync": false,
-      "usePutGroupMemberOfUser": false
+      "groupMemberOfUser": false,
+      "usePutSoftSync": false
     },
     "log": {
       "loglevel": {
