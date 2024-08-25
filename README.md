@@ -9,7 +9,7 @@ Validated through IdP's:
 
 - Symantec/Broadcom/CA Identity Manager
 - Microsoft Entra ID  
-- OneLogin  
+- One Identity/OneLogin  
 - Okta 
 - Omada 
 - SailPoint/IdentityNow  
@@ -212,8 +212,8 @@ Below shows an example of config\plugin-saphana.json
           "version": "2.0",
           "skipTypeConvert" : false,
           "skipMetaLocation" false,
-          "usePutSoftSync" : false,
-          "usePutGroupMemberOfUser": false
+          "groupMemberOfUser": false
+          "usePutSoftSync" : false
         },
         "log": {
           "loglevel": {
@@ -379,9 +379,9 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **scim.skipMetaLocation** - true or false, default false. If set to true, `meta.location` which contains protocol and hostname from request-url, will be excluded from response e.g. `"{...,meta":{"location":"https://my-company.com/<...>"}}`. If using reverse proxy and not including headers `X-Forwarded-Proto` and `X-Forwarded-Host`, originator will be the proxy and we might not want to expose internal protocol and hostname being used by the proxy request.
 
-- **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If set to `true`, only PUT body content will be replaced. Any additional existing user attributes and groups supported by plugin will remain as-is.
+- **scim."groupMemberOfUser** - true or false, default false. If body contains groups and groupMemberOfUser=true, groups attribute will remain at user object (groups are member of user) instead of default user member of groups that will use modifyGroup method for maintaining group members.
 
-- **scim."usePutGroupMemberOfUser** - true or false, default false. `PUT /Users/<user>` will replace the user with body content. If body contains groups and usePutGroupMemberOfUser=true, groups will be set on user object (groups are member of user) instead of default user member of groups  
+- **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If set to `true`, only PUT body content will be replaced. Any additional existing user attributes and groups supported by plugin will remain as-is.
 
 - **log.loglevel.file** - off, error, info, or debug. Output to plugin-logfile e.g. `logs\plugin-saphana.log`  
 
@@ -522,7 +522,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 ## Manual startup    
 
-Gateway can now be started from a command window running in administrative mode
+Gateway can be started from a command window running in administrative mode
 
 3 ways to start:
 
@@ -1162,6 +1162,16 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.5.7  
+
+[Fixed]
+
+- PUT changes introduced in v4.4.6 did not handle PUT /Groups correctly
+
+[Improved]
+- configuration scim.usePutGroupMemberOfUser replaced by scim.groupMemberOfUser
+- misc cosmetics
 
 ### v4.5.6  
 
