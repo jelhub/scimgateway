@@ -467,7 +467,7 @@ describe('plugin-loki tests', () => {
       })
   })
 
-  it('modifyUser PUT test', (done) => {
+  it('replaceUser test', (done) => {
     const putUser = {
       name: {
         formatted: 'Mr. Jeff Gilbert-2',
@@ -571,7 +571,7 @@ describe('plugin-loki tests', () => {
       })
   })
 
-  it('modifyGroupMembers test (1)', (done) => {
+  it('modifyGroupMembers test', (done) => {
     server_8880.patch('/Groups/GoGoLoki?attributes=members')
       .set(options.headers)
       // .send({ members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
@@ -615,6 +615,32 @@ describe('plugin-loki tests', () => {
         expect(group.id).to.equal('GoGoLoki')
         expect(group.members.length).to.equal(1) // bjensen removed
         expect(group.members[0].value).to.equal('jsmith') // added
+        done()
+      })
+  })
+
+
+  it('replaceGroup test', (done) => {
+    const group = {
+      displayName: 'NewGoGoLoki',
+      externalId: undefined,
+      members: [{
+        value: 'bjensen'
+      },
+      {
+        value: 'jsmith'
+      }]
+    }
+
+    server_8880.put('/Groups/GoGoLoki')
+      .set(options.headers)
+      .send(group)
+      .end(function (err, res) {
+        expect(err).to.equal(null)
+        expect(group.members.length).to.equal(2)
+        expect(group.displayName).to.equal("NewGoGoLoki")
+        expect(res.statusCode).to.equal(200)
+        expect(res.body.meta.location).to.equal('http://localhost:8880/Groups/GoGoLoki')
         done()
       })
   })
