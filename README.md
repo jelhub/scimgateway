@@ -16,7 +16,7 @@ Validated through IdP's:
   
 Latest news:  
 
-- Supports stream publishing mode having [SCIM Stream](https://elshaug.xyz/docs/scim-stream) as a prerequisite. In this mode, standard incoming SCIM requests from your Identity Provider (IdP) or API are directed and published to the stream. Subsequently, one of the gateways subscribing to the channel utilized by the publisher will manage the SCIM request, and response back. Using SCIM Stream we have egress/outbound only traffic and get loadbalancing/failover by adding more gateways subscribing to the same channel.
+- Supports stream publishing mode having [SCIM Stream](https://elshaug.xyz/docs/scim-stream) as a prerequisite. In this mode, standard incoming SCIM requests from your Identity Provider (IdP) or API are directed and published to the stream. Subsequently, one of the gateways subscribing to the channel utilized by the publisher will manage the SCIM request, and response back. Using SCIM Stream we have only egress/outbound traffic and get loadbalancing/failover by adding more gateways subscribing to the same channel.
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. Kubernetes health checks and shutdown handler support
 - Supports OAuth Client Credentials authentication
@@ -1162,6 +1162,48 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.5.8  
+
+[Fixed]
+
+- plugin-ldap failed when using national special characters and some other LDAP special characters in DN
+
+Note, plugin-ldap now has following new configuration:
+
+	"ldap": {
+	  "isOpenLdap": false,
+	  ...
+	  "namingAttribute": {
+		"user": [
+		  {
+			"attribute": "CN",
+			"mapTo": "userName"
+		  }
+		],
+		"group": [
+		  {
+			"attribute": "CN",
+			"mapTo": "displayName"
+		  }
+		]
+	  },
+	  ...
+	}
+
+`isOpenLdap` true/false decides whether or not OpenLDAP Foundation protocol should be used for national characters and special characters in DN. For Active Directory, default isOpenLdap=false should be used.
+
+`namingAttribute` can now be linked to scim `mapTo` attribute and is not hardcoded like it was in previous version.
+
+Previous `userNamingAttr` and `groupNamingAttr` shown below, is now deprecated
+
+	"ldap": {
+	  ...
+	  "userNamingAttr": "CN",
+	  "groupNamingAttr": "CN",
+	  ...
+	}
+
 
 ### v4.5.7  
 
