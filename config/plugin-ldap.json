@@ -139,12 +139,25 @@
         "username": "CN=Administrator,CN=Users,DC=test,DC=com",
         "password": "password",
         "ldap": {
+          "isOpenLdap": false,
           "userBase": "CN=Users,DC=test,DC=com",
           "groupBase": "OU=Groups,DC=test,DC=com",
           "userFilter": null,
           "groupFilter": null,
-          "userNamingAttr": "CN",
-          "groupNamingAttr": "CN",
+          "namingAttribute": {
+            "user": [
+              {
+                "attribute": "CN",
+                "mapTo": "userName"
+              }
+            ],
+            "group": [
+              {
+                "attribute": "CN",
+                "mapTo": "displayName"
+              }
+            ]
+          },
           "userObjectClasses": [
             "user",
             "person",
