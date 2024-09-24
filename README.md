@@ -65,7 +65,7 @@ Can be used to chain several gateways
 
 * **Soap** (SOAP Webservice)  
 Demonstrates user provisioning towards SOAP-Based endpoint  
-Excample WSDLs are included  
+Example WSDLs are included  
 Using endpoint "Forwardinc" as an example (comes with Symantec/Broadcom/CA IM SDK - SDKWS)   
 Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL  
 
@@ -84,7 +84,7 @@ Includes Symantec/Broadcom/CA ConnectorXpress metafile for creating provisioning
 * **LDAP** (Directory)  
 Fully functional LDAP plugin  
 Pre-configured for Microsoft Active Directory  
-Using endpointMapper (like plugin-entra-id) for attribute flexibility  
+Using endpointMapper (like plugin-entra-id) for attribute mapping flexibility  
 
 * **API** (REST Webservices)  
 Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete  
@@ -1162,6 +1162,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.5.9
+  
+[Improved]  
+
+- Dependencies bump  
 
 ### v4.5.8  
 
