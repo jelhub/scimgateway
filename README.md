@@ -1163,6 +1163,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.5.10
+  
+[Fixed]  
+
+- PUT changes introduced in v4.5.7 had incorrect check of configuration groupMemberOfUser (default not set)
+
 ### v4.5.9
   
 [Improved]  
