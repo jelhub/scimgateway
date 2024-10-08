@@ -8,9 +8,16 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'scimgateway')
+IF DB_ID('scimgateway') IS NULL
 BEGIN
-    CREATE TABLE [dbo].[scimgateway] (
+    CREATE DATABASE [scimgateway];
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'User')
+BEGIN
+    USE [scimgateway]
+    CREATE TABLE [User] (
         [UserID] VARCHAR(50) NOT NULL,
         [Enabled] VARCHAR(50) NULL,
         [Password] VARCHAR(50) NULL,
@@ -23,4 +30,3 @@ BEGIN
     );
 END
 GO
-

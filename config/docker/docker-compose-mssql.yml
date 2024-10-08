@@ -1,30 +1,30 @@
 version: '2'
 services:
-  scimgateway:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-    image: scimgateway:latest
-    container_name: scimgateway
-    depends_on:
-      scimgateway-sqlserver:
-        condition: service_healthy
-    hostname:
-      scimgateway
-    volumes:
-      - ./config:/home/scimgateway/config:rw
-      - /var/lib/dbus:/var/lib/dbus:ro
-    ports:
-      - "8880:8880"
-#    environment:
-#      - NODE_ENV=production
-#      - PORT=8880
-#      - SEED=changeit
-    restart: on-failure:3
-            
+#   scimgateway:
+#     build:
+#       context: .
+#       dockerfile: ./Dockerfile
+#     image: scimgateway:latest
+#     container_name: scimgateway
+#     depends_on:
+#       scimgateway-sqlserver:
+#         condition: service_healthy
+#     hostname:
+#       scimgateway
+#     volumes:
+#       - ./config:/home/scimgateway/config:rw
+#       - /var/lib/dbus:/var/lib/dbus:ro
+#     ports:
+#       - "8880:8880"
+# #    environment:
+# #      - NODE_ENV=production
+# #      - PORT=8880
+# #      - SEED=changeit
+#     restart: on-failure:3
+
   scimgateway-sqlserver:
     image: mcr.microsoft.com/mssql/server:2019-latest
-    hostname: 
+    hostname:
       MySqlHost
     environment:
       - ACCEPT_EULA=Y
