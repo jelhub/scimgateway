@@ -26,7 +26,18 @@ BEGIN
         [LastName] VARCHAR(50) NULL,
         [Email] VARCHAR(50) NULL,
         [MobilePhone] VARCHAR(50) NULL,
-        CONSTRAINT [PK_scimgateway] PRIMARY KEY ([UserID])
+        CONSTRAINT [PK_User] PRIMARY KEY ([UserID])
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'Group')
+BEGIN
+    USE [scimgateway]
+    CREATE TABLE [Group] (
+        [GroupID] VARCHAR(50) NOT NULL,
+        [Enabled] VARCHAR(50) NULL,
+        CONSTRAINT [PK_Group] PRIMARY KEY ([GroupID])
     );
 END
 GO
