@@ -9,7 +9,7 @@ Validated through IdP's:
 
 - Symantec/Broadcom/CA Identity Manager
 - Microsoft Entra ID  
-- One Identity/OneLogin  
+- One Identity Manager/OneLogin  
 - Okta 
 - Omada 
 - SailPoint/IdentityNow  
@@ -1162,6 +1162,26 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v4.5.11
+  
+[Improved] 
+
+- deleteUser will try to revoke user from groups before deleting user
+- advanced or-filter (e.g., used by One Identity Manager) will be chunked and handled by scimgateway as separate calls to plugin
+- baseEntity now included in scimgateway log entries like plugin log entries
+
+[Fixed]
+
+- plugin-ldap, using OpenLDAP - configuration { "isOpenLdap": true } and adding an already existing group member returned 500 Error instead of 200 OK.
+- plugin-ldap, using OpenLDAP in combination with endpoint user mapping `"type":"array"` and `"typeInbound":"string"` for handling comma separated SCIM string mapping towards an endpoint array/multivalue attribute, did not return correct sort order of the comma separated string when using OpenLDAP.   Mapping example:
+
+        "<endpointAttr>": {
+          "mapTo": "<scimAttr>",
+          "type": "array",
+          "typeInbound": "string"
+        },
+
 
 ### v4.5.10
   
