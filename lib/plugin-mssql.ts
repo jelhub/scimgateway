@@ -82,7 +82,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   if (getObj.operator) {
     if (getObj.operator === 'eq' && ['id', 'userName', 'externalId'].includes(getObj.attribute)) {
       // mandatory - unique filtering - single unique user to be returned - correspond to getUser() in versions < 4.x.x
-      sqlQuery = `select * from [User] where UserID = '${getObj.value}'`
+      sqlQuery = `select * from [Users] where UserID = '${getObj.value}'`
     } else if (getObj.operator === 'eq' && getObj.attribute === 'group.value') {
       // optional - only used when groups are member of users, not default behavior - correspond to getGroupUsers() in versions < 4.x.x
       throw new Error(`${action} error: not supporting groups member of user filtering: ${getObj.rawFilter}`)
@@ -95,7 +95,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     throw new Error(`${action} not error: supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all users to be returned - correspond to exploreUsers() in versions < 4.x.x
-    sqlQuery = 'select * from [User]'
+    sqlQuery = 'select * from [Users]'
   }
   // mandatory if-else logic - end
 
@@ -198,7 +198,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
           const e = new Error(`createUser MSSQL client connect error: ${err.message}`)
           return reject(e)
         }
-        const sqlQuery = `insert into [User] (UserID, Enabled, Password, FirstName, MiddleName, LastName, Email, MobilePhone)
+        const sqlQuery = `insert into [Users] (UserID, Enabled, Password, FirstName, MiddleName, LastName, Email, MobilePhone)
                 values (${insert.UserID}, ${insert.Enabled}, ${insert.Password}, ${insert.FirstName}, ${insert.MiddleName}, ${insert.LastName}, ${insert.Email}, ${insert.MobilePhone})`
 
         const request = new Request(sqlQuery, function (err, rowCount, rows) {
@@ -244,7 +244,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
           const e = new Error(`deleteUser MSSQL client connect error: ${err.message}`)
           return reject(e)
         }
-        const sqlQuery = `delete from [User] where UserID = '${id}'`
+        const sqlQuery = `delete from [Users] where UserID = '${id}'`
         const request = new Request(sqlQuery, function (err, rowCount, rows) {
           if (err) {
             connection.close()
@@ -322,7 +322,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
           const e = new Error(`modifyUser MSSQL client connect error: ${err.message}`)
           return reject(e)
         }
-        const sqlQuery = `update [User] set ${sql} where UserID like '${id}'`
+        const sqlQuery = `update [Users] set ${sql} where UserID like '${id}'`
         const request = new Request(sqlQuery, function (err, rowCount, rows) {
           if (err) {
             connection.close()
@@ -366,10 +366,10 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   if (getObj.operator) {
     if (getObj.operator === 'eq' && ['id', 'displayName', 'externalId'].includes(getObj.attribute)) {
       // mandatory - unique filtering - single unique user to be returned - correspond to getGroup() in versions < 4.x.x
-      sqlQuery = `select * from [Group] where GroupID = '${getObj.value}'`
+      sqlQuery = `select * from [Groups] where GroupID = '${getObj.value}'`
     } else if (getObj.operator === 'eq' && getObj.attribute === 'members.value') {
       // mandatory - return all groups the user 'id' (getObj.value) is member of - correspond to getGroupMembers() in versions < 4.x.x
-      // Resources = [{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }]
+      sqlQuery = `select * from [Groups] join [Users2Group] on Groups.GroupID = Users2Group.GroupID where Users2Group.UserID = '${getObj.value}'`
     } else {
       // optional - simpel filtering
       throw new Error(`${action} error: not supporting simple filtering: ${getObj.rawFilter}`)
@@ -379,7 +379,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     throw new Error(`${action} not error: supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreGroups() in versions < 4.x.x
-    sqlQuery = 'select * from [Group]'
+    sqlQuery = 'select * from [Groups]'
   }
   // mandatory if-else logic - end
   if (!sqlQuery) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
@@ -400,13 +400,21 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
         connectionCfg.authentication.options.password = password
         if (username) connectionCfg.authentication.options.userName = username
       }
+
       const connection = new Connection(connectionCfg)
 
+      const members = []
       connection.on('connect', function (err) {
         if (err) {
           const e = new Error(`exploreGroups MSSQL client connect error: ${err.message}`)
           return reject(e)
         }
+        getGroups() // Daisy chain the subsequent requests
+      })
+      connection.connect() // initialize the connection
+
+      // First, get group(s)
+      function getGroups() {
         const request = new Request(sqlQuery, function (err, rowCount, rows) {
           if (err) {
             connection.close()
@@ -415,19 +423,45 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
           }
 
           for (const row in rows) {
-            const scimGroup = {
+            let scimGroup = {
               id: rows[row].GroupID.value ? rows[row].GroupID.value : undefined,
               displayName: rows[row].GroupID.value ? rows[row].GroupID.value : undefined,
-              active: rows[row].Enabled.value === 'true' || false
+              active: rows[row].Enabled.value === 'true' || false,
+              members: []
             }
+            addMembers(scimGroup) // Daisy chain the subsequent requests
             ret.Resources.push(scimGroup)
           }
-          connection.close()
-          resolve(ret) // all explored groups
-        }) // request
+
+        }) // Group(s) request
         connection.execSql(request)
-      }) // connection
-      connection.connect() // initialize the connection
+      }
+
+      // Then add members to the Group(s)
+      function addMembers(scimGroup) {
+          const request = new Request(`select UserID from [Users2Group] where GroupID = '${scimGroup.id}'`, function (err, rowCount, rows) {
+            if (err) {
+              connection.close()
+              const e = new Error(`exploreGroups MSSQL client request: ${sqlQuery} Error: ${err.message}`)
+              return reject(e)
+            }
+
+            for (const row in rows) {
+              const scimMember = {
+                value: rows[row].UserID.value,
+                display: rows[row].UserID.value
+              }
+              scimGroup.members.push(scimMember)
+            }
+
+            resolve(ret) // Return all explored groups
+
+          }) // Members request
+          connection.execSql(request)
+
+      } // addMembers
+      connection.close() // Finally close the connection
+
     }) // Promise
   } catch (err) {
     throw new Error(`${action} error: ${err.message}`)
@@ -464,8 +498,13 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
           const e = new Error(`createGroup MSSQL client connect error: ${err.message}`)
           return reject(e)
         }
-        const sqlQuery = `insert into [Group] (GroupID, Enabled)
-                values (${insert.GroupID}, ${insert.Enabled})`
+        createGroup()
+      })
+      connection.connect() // initialize the connection
+
+      // First, create the group
+      function createGroup() {
+        const sqlQuery = `insert into [Groups] (GroupID, Enabled) values (${insert.GroupID}, ${insert.Enabled})`
 
         const request = new Request(sqlQuery, function (err, rowCount, rows) {
           if (err) {
@@ -473,12 +512,34 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
             const e = new Error(`createGroup MSSQL client request: ${sqlQuery} error: ${err.message}`)
             return reject(e)
           }
-          connection.close()
-          resolve(null)
+          if (groupObj.members) {
+            addMembers()
+          }
+
         }) // request
         connection.execSql(request)
-      }) // connection
-      connection.connect() // initialize the connection
+      }
+
+      // Then, add members
+      function addMembers() {
+        groupObj.members.forEach((member) => {
+          const sqlQuery = `insert into [Users2Group] (UserID, GroupID) values ('${member.value}', ${insert.GroupID})`
+
+          const request = new Request(sqlQuery, function (err, rowCount, rows) {
+            if (err) {
+              connection.close()
+              const e = new Error(`createGroup MSSQL client request: ${sqlQuery} error: ${err.message}`)
+              return reject(e)
+            }
+          }) // request
+          connection.execSql(request)
+
+        }) // Foreach
+        resolve(null)
+
+      } // addMembers
+      connection.close()
+
     }) // Promise
   } catch (err) {
     throw new Error(`${action} error: ${err.message}`)
@@ -510,7 +571,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
           const e = new Error(`deleteGroup MSSQL client connect error: ${err.message}`)
           return reject(e)
         }
-        const sqlQuery = `delete from [Group] where GroupID = '${id}'`
+        const sqlQuery = `delete from [Groups] where GroupID = '${id}'`
         const request = new Request(sqlQuery, function (err, rowCount, rows) {
           if (err) {
             connection.close()
@@ -537,48 +598,71 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyGroup'
   scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
-  try {
-    return await new Promise((resolve, reject) => {
-      let sql = ''
+  // Group = await getGroup(id)
+  // scimgateway.logger.debug(`Group: ${JSON.stringify(Group)}`)
 
-      if (attrObj.active !== undefined) sql += `Enabled='${attrObj.active}',`
+  let sql = ''
 
-      sql = sql.substr(0, sql.length - 1) // remove trailing ","
+  if (attrObj.active !== undefined) sql += `Enabled='${attrObj.active}',`
+  sql = sql.substr(0, sql.length - 1) // remove trailing ","
 
-      const connectionCfg = scimgateway.copyObj(config.connection)
-      if (ctx?.request?.header?.authorization) { // Auth PassThrough (don't use configuration password)
-        if (!connectionCfg.authentication) connectionCfg.authentication = {}
-        if (!connectionCfg.authentication.type) connectionCfg.authentication.type = 'default'
-        if (!connectionCfg.authentication.options) connectionCfg.authentication.options = {}
-        const [username, password] = getCtxAuth(ctx)
-        connectionCfg.authentication.options.password = password
-        if (username) connectionCfg.authentication.options.userName = username
-      }
-      const connection = new Connection(connectionCfg)
-
-      connection.on('connect', function (err) {
-        if (err) {
-          const e = new Error(`modifyGroup MSSQL client connect error: ${err.message}`)
-          return reject(e)
-        }
-        const sqlQuery = `update [Group] set ${sql} where GroupID like '${id}'`
-        const request = new Request(sqlQuery, function (err, rowCount, rows) {
-          if (err) {
-            connection.close()
-            const e = new Error(`modifyGroup MSSQL client request: ${sqlQuery} error: ${err.message}`)
-            return reject(e)
-          }
-          connection.close()
-          resolve(null)
-        }) // request
-        connection.execSql(request)
-      }) // connection
-      connection.connect() // initialize the connection
-    }) // Promise
-  } catch (err) {
-    throw new Error(`${action} error: ${err.message}`)
+  const queries = []
+  if (sql) {
+    queries.push(`update [Groups] set ${sql} where GroupID like '${id}'`)
   }
 
+  // This BLINDLY inserts all user/groups and gracefully breaks on PK violation
+  // for each existing membership
+  if (attrObj.members) {
+    attrObj.members.forEach((member) => {
+      if (member.operation == 'delete') {
+        queries.push(`delete from [Users2Group] where GroupID='${id}' and UserID='${member.value}'`)
+      } else {
+        queries.push(`insert into [Users2Group] (UserID, GroupID) values ('${member.value}','${id}')`)
+      }
+    })
+  }
+  const sqlQuery = queries.join(';')
+
+  if (sqlQuery) {
+    scimgateway.logger.debug(`sqlQuery: ${sqlQuery}`)
+    try {
+      return await new Promise((resolve, reject) => {
+
+        const connectionCfg = scimgateway.copyObj(config.connection)
+        if (ctx?.request?.header?.authorization) { // Auth PassThrough (don't use configuration password)
+          if (!connectionCfg.authentication) connectionCfg.authentication = {}
+          if (!connectionCfg.authentication.type) connectionCfg.authentication.type = 'default'
+          if (!connectionCfg.authentication.options) connectionCfg.authentication.options = {}
+          const [username, password] = getCtxAuth(ctx)
+          connectionCfg.authentication.options.password = password
+          if (username) connectionCfg.authentication.options.userName = username
+        }
+        const connection = new Connection(connectionCfg)
+
+        connection.on('connect', function (err) {
+          if (err) {
+            const e = new Error(`modifyGroup MSSQL client connect error: ${err.message}`)
+            return reject(e)
+          }
+          const request = new Request(sqlQuery, function (err, rowCount, rows) {
+            if (err) {
+              connection.close()
+              const e = new Error(`modifyGroup MSSQL client request: ${sqlQuery} error: ${err.message}`)
+              return reject(e)
+            }
+            connection.close()
+            resolve(null)
+          }) // request
+          connection.execSql(request)
+        }) // connection
+        connection.connect() // initialize the connection
+      }) // Promise
+    } catch (err) {
+      throw new Error(`${action} error: ${err.message}`)
+    }
+
+  }
 }
 
 // =================================================
