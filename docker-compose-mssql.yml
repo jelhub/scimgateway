@@ -1,0 +1,58 @@
+services:
+#   scimgateway:
+#     build:
+#       context: .
+#       dockerfile: ./Dockerfile
+#     image: scimgateway:latest
+#     container_name: scimgateway
+#     depends_on:
+#       scimgateway-sqlserver:
+#         condition: service_healthy
+#     hostname:
+#       scimgateway
+#     volumes:
+#       - ./config:/home/scimgateway/config:rw
+#       - /var/lib/dbus:/var/lib/dbus:ro
+#     ports:
+#       - "8880:8880"
+# #    environment:
+# #      - NODE_ENV=production
+# #      - PORT=8880
+# #      - SEED=changeit
+#     restart: on-failure:3
+
+  scimgateway-sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    hostname:
+      MySqlHost
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=p@ssw0rd!
+      - MSSQL_PID=Developer
+    ports:
+      - 1433:1433
+    volumes:
+      - ./sqlserver_data:/var/opt/mssql
+      - ./dbinit:/docker-entrypoint-initdb.d
+    user: root
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"p@ssw0rd!\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      retries: 10
+      start_period: 10s
+      timeout: 3s
+
+  scimgateway-sqlserver-configurator:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    volumes:
+      - ./dbinit:/docker-entrypoint-initdb.d
+    depends_on:
+      scimgateway-sqlserver:
+        condition: service_healthy
+    restart: no
+    command: >
+      bash -c '
+      /opt/mssql-tools18/bin/sqlcmd -C -S MySqlHost -U sa -P "p@ssw0rd!" -d master -i docker-entrypoint-initdb.d/init.sql;
+      echo "All done!";
+      '
