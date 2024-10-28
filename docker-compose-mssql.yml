@@ -35,7 +35,7 @@ services:
       - ./sqlserver_data:/var/opt/mssql
       - ./dbinit:/docker-entrypoint-initdb.d
     user: root
-    restart: always
+    restart: no
     healthcheck:
       test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"p@ssw0rd!\" -Q 'SELECT 1' || exit 1"]
       interval: 10s
