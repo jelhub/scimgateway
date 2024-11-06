@@ -1163,6 +1163,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v4.5.12
+
+[Improved]
+
+- plugin-ldap, new configuration { allowModifyDN: true } allows DN being changed based on modified mapping or namingAttribute
+
 ### v4.5.11
   
 [Improved] 
