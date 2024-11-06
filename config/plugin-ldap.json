@@ -144,16 +144,17 @@
           "groupBase": "OU=Groups,DC=test,DC=com",
           "userFilter": null,
           "groupFilter": null,
+          "allowModifyDN": false,
           "namingAttribute": {
             "user": [
               {
-                "attribute": "CN",
+                "attribute": "cn",
                 "mapTo": "userName"
               }
             ],
             "group": [
               {
-                "attribute": "CN",
+                "attribute": "cn",
                 "mapTo": "displayName"
               }
             ]
