@@ -99,7 +99,7 @@ One example of usage could be creation of tickets in ServiceDesk and also the ot
 
 [Bun](https://bun.sh/) is a prerequisite and must be installed on the server.  
 
-Note, Bun install default to current user `HOMEPATH\.bun`. This can be overridden by exporting environment `BUN_INSTALL=<install-path>`. Also path are default updated for current user and not the global/system path.
+Note, Bun installs by default in the current user’s `HOMEPATH\.bun`. To install it elsewhere, set `BUN_INSTALL=<install-path>` as a global or system environment variable before installing. The installation will add Bun to the current user’s path, but consider adding it to the global or system path for easier access across all users.
 
 #### Install SCIM Gateway  
 
@@ -109,8 +109,8 @@ Create your own package directory e.g. c:\my-scimgateway and install SCIM Gatewa
 	mkdir c:\my-scimgateway
 	cd c:\my-scimgateway
 	bun init -y
-	bun pm trust scimgateway
 	bun install scimgateway
+	bun pm trust scimgateway
 
 **c:\\my-scimgateway** will now be `<package-root>` 
  
@@ -179,7 +179,7 @@ For Node.js (and also Bun), we might set the property `scimgateway_postinstall_s
 
 ## Configuration  
 
-**index.ts** defines one or more plugins to be started by the `const plugins` array setting.  
+**index.ts** defines one or more plugins to be started by the `const plugins` setting.  
   
 	// example starting all default plugins:
 	// const plugins = ['loki', 'scim', 'entra-id', 'ldap', 'mssql', 'api', 'mongodb', 'saphana', 'soap']
@@ -1075,7 +1075,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 **[MAJOR]**  
 
-- Major version v5.0.0 marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js.  
+Major version v5.0.0 marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js.  
 
 Besides going from JavaScript to TypeScript, following can be mentioned:  
   
@@ -1099,22 +1099,26 @@ Besides going from JavaScript to TypeScript, following can be mentioned:
 
 	Note, HelperRest use fetch which is not fully supported by Node.js regarding TLS.  
 	For TLS and Node.js, environment must instead be used and set before started, e.g.,:  
-	`export NODE_EXTRA_CA_CERTS=/plugin-path/config/certs/ca.pem`  
+	`export NODE_EXTRA_CA_CERTS=/package-path/config/certs/ca.pem`  
+	or
 	`export NODE_TLS_REJECT_UNAUTHORIZED=0`  
 
 * Configuration secrets (password, secret, token, client_secret, ... ) defined in the `endpoint` section of the configuration file, will automatically be encrypted/decrypted. If there are secrets not handled by the automated encryption/decryption, we may use `scimgateway.getSecret()`. In the old version, corresponding method was named scimgateway.getPassword().
 * kubernetes configuration and logic have been removed. Kubernetes can use default `/ping` url for healthchecks, and graceful shutdown is taken care of the gateway
 * In case using custom schemas defined in lib/scimdef-v1/v2.js, these files have now changed to scimdef-v1/v2.json
-* `config/docker/Dockerfile` using Bun
+* `config/docker/Dockerfile` now using Bun
 * plugin-entra, modify licenses/servicePlans is not included anymore, only listing. For license management we instead use groups.
-* plugin-ldap, for LDAPS/TLS and Bun, we must use environments e.g. `export NODE_EXTRA_CA_CERTS=/package-path/config/certs/ca.pem` or `export NODE_TLS_REJECT_UNAUTHORIZED=0`
+* plugin-ldap, for LDAPS/TLS and Bun, we must use environments e.g.:  
+	`export NODE_EXTRA_CA_CERTS=/package-path/config/certs/ca.pem`  
+	or
+	`export NODE_TLS_REJECT_UNAUTHORIZED=0` 
 
 
-How to migrate existing plugins:  
+**How to migrate existing plugins:**  
 
 * Remove old index.js, use the new index.ts and update `const plugins = ['xxx']` to include your plugin name(s)
 * Rename plugin-xxx.js to plugin-xxx.ts
-* import must be used for loading modules: change `require` to `import` e.g.:  
+* import must be used instead of require for loading modules e.g.:  
   const Loki = require('lokijs') => `import Loki from 'lokijs'`
 * Use the new mandatory settings:
 
@@ -1132,7 +1136,7 @@ How to migrate existing plugins:
 		scimgateway.authPassThroughAllowed = false
 		// end - mandatory plugin initialization
 
-* Use the new `config` object (mentioned above) which contains `scimgatway.endpoint` configuration having automated encryption/decryption of any attributes named password, secret, client_secret, token and APIKey
+* Use the new `config` object (mentioned above) which contains the `scimgatway.endpoint` configuration having automated encryption/decryption of any attributes named password, secret, client_secret, token and APIKey
 * The old scimgateway.getPassword() is not normally not needed because of scimgateway automated `config` logic. If needed, use the new scimgateway.getSecret().
 * Use the new logging syntax: 
  
@@ -1141,7 +1145,7 @@ How to migrate existing plugins:
 
 * Use scimgateway.HelperRest() for REST functionlity, also supports Auth PassThrough
 * scimgateway.endpointMapper() may be used for inbound/outbound attribute mappings
-* In general when using TypeScript, variables should be type defined: `let isDone: boolean = false`, `catch (err: any)`
+* In general when using TypeScript, variables should be type defined: `let isDone: boolean = false`, `catch (err: any)`, ...
 
 ### v4.5.12
 
