@@ -1,5 +1,4 @@
-// https://github.com/lukes/ISO-3166-Countries-with-Regional-Codes/blob/master/all/all.json
-module.exports.codes = [
+ [
   {
     "name": "AFGHANISTAN",
     "alpha-2": "AF",

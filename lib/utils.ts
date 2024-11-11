@@ -8,57 +8,62 @@
 
 'use strict'
 
-const crypto = require('crypto')
-const id = require('node-machine-id')
-const path = require('path')
-const EventEmitter = require('events').EventEmitter
-const fs = require('fs')
+import * as crypto from 'node:crypto'
+import id from 'node-machine-id'
+import fs from 'node:fs'
+import path from 'node:path'
+import { EventEmitter } from 'node:events'
 
-/**
- * @constructor
- */
-const Lock = function () { // mutual exclusion ref: https://thecodebarbarian.com/mutual-exclusion-patterns-with-node-promises
-  this._locked = false
-  this._ee = new EventEmitter()
-}
+// mutual exclusion ref: https://thecodebarbarian.com/mutual-exclusion-patterns-with-node-promises
+export class Lock {
+  private _locked: boolean
+  private _ee: any
+  constructor() {
+    this._locked = false
+    this._ee = new EventEmitter()
+  }
 
-Lock.prototype.acquire = function () {
-  return new Promise(resolve => {
-    if (!this._locked) { // If nobody has the lock, take it and resolve immediately
-      this._locked = true
-      return resolve()
-    }
-    const tryAcquire = () => { // Otherwise, wait until somebody releases the lock and try again
+  acquire() {
+    return new Promise((resolve) => {
+      // If nobody has the lock, take it and resolve immediately
       if (!this._locked) {
+        // Safe because JS doesn't interrupt you on synchronous operations,
+        // so no need for compare-and-swap or anything like that.
         this._locked = true
-        this._ee.removeListener('release', tryAcquire)
-        return resolve()
+        return resolve(null)
       }
-    }
-    this._ee.on('release', tryAcquire)
-  })
+
+      // Otherwise, wait until somebody releases the lock and try again
+      const tryAcquire = () => {
+        if (!this._locked) {
+          this._locked = true
+          this._ee.removeListener('release', tryAcquire)
+          return resolve(null)
+        }
+      }
+      this._ee.on('release', tryAcquire)
+    })
+  }
+
+  release() {
+    // Release the lock immediately
+    this._locked = false
+    setImmediate(() => this._ee.emit('release'))
+  }
 }
 
-Lock.prototype.release = function () { // Release the lock immediately
-  this._locked = false
-  setImmediate(() => this._ee.emit('release'))
-}
-
-module.exports.Lock = Lock // export constructor - Note, must be exported before other ordinary export functions listed below
-// module.exports = { 'Lock': Lock } // same as above
-
-module.exports.getPassword = function (pwDotNotation, configFile) {
+export const getSecret = function (dotNotationAttr: string, configFile: string) {
   // get password from json-file.
-  // if cleartext then encrypt and save to file + return cleartext password
-  // else return decrypted password
+  // if cleartext then encrypt and save to file + return cleartext secret
+  // else return decrypted secret
   const configString = fs.readFileSync(configFile).toString()
   const config = JSON.parse(configString)
-  const pw = Object.prop(config, pwDotNotation)
+  const pw = objProp(config, dotNotationAttr, null)
   let pwclear
   let seed
   try {
-    seed = path.basename(configFile) + (process.env.SEED || id.machineIdSync({ original: true }))
-  } catch (err) {
+    seed = path.basename(configFile) + (process.env.SEED || id.machineIdSync(true))
+  } catch (err: any) {
     throw (new Error(`consider using SEED environment because machineId can't be found - error: ${err.message}`))
   }
   const ivLength = 16
@@ -87,14 +92,14 @@ module.exports.getPassword = function (pwDotNotation, configFile) {
           try {
             const pluginName = path.basename(configFile, '.json')
             const jContent = JSON.parse(content)
-            pwclear = Object.prop(jContent, `${pluginName}.${pwDotNotation}`)
+            pwclear = objProp(jContent, `${pluginName}.${dotNotationAttr}`, null)
           } catch (err) { pwclear = undefined } // can't JSON parse external file
         } catch (err) { pwclear = undefined } // can't read external configuration file
       } else pwclear = undefined
     } else { // password based on local configuration file
       try { // decrypt
         const pwencr = Buffer.from(pw, 'base64').toString('utf8')
-        const textParts = pwencr.split(':')
+        const textParts: any = pwencr.split(':')
         const iv = Buffer.from(textParts.shift(), 'hex')
         const encryptedText = Buffer.from(textParts.join(':'), 'hex')
         const decipher = crypto.createDecipheriv('aes-128-cbc', Buffer.from(seed.substr(-ivLength)), iv)
@@ -109,7 +114,7 @@ module.exports.getPassword = function (pwDotNotation, configFile) {
         encrypted = Buffer.concat([encrypted, cipher.final()])
         let pwencr = iv.toString('hex') + ':' + encrypted.toString('hex')
         pwencr = Buffer.from(pwencr).toString('base64')
-        Object.prop(config, pwDotNotation, pwencr)
+        objProp(config, dotNotationAttr, pwencr)
         let fileContent = JSON.stringify(config, null, 2) // removing white space, but use 2 space separator
         fileContent = fileContent.replace(/\n/g, '\r\n') // cr-lf instead of lf
         try {
@@ -126,16 +131,16 @@ module.exports.getPassword = function (pwDotNotation, configFile) {
   return pwclear
 }
 
-module.exports.timestamp = function () { // new Date() do not handle current timezone
+export const timestamp = function () { // new Date() do not handle current timezone
   const pad = (n) => { return n < 10 ? '0' + n : n }
   const d = new Date()
-  return d.getFullYear() + '-' +
-    pad(d.getMonth() + 1) + '-' +
-    pad(d.getDate()) + 'T' +
-    pad(d.getHours()) + ':' +
-    pad(d.getMinutes()) + ':' +
-    pad(d.getSeconds()) + '.' +
-    pad(d.getMilliseconds())
+  return d.getFullYear() + '-'
+    + pad(d.getMonth() + 1) + '-'
+    + pad(d.getDate()) + 'T'
+    + pad(d.getHours()) + ':'
+    + pad(d.getMinutes()) + ':'
+    + pad(d.getSeconds()) + '.'
+    + pad(d.getMilliseconds())
 }
 
 /**
@@ -143,8 +148,8 @@ module.exports.timestamp = function () { // new Date() do not handle current tim
  * This fxn uses a custom replacer function to handle circular references
  * see http://stackoverflow.com/a/11616993/3043369
  */
-module.exports.JSONStringify = function (object) {
-  let cache = []
+export const JSONStringify = function (object) {
+  let cache: any = []
   const str = JSON.stringify(object,
     // custom replacer fxn - gets around "TypeError: Converting circular structure to JSON"
     function (key, value) {
@@ -160,7 +165,7 @@ module.exports.JSONStringify = function (object) {
   return str
 }
 
-Object.prop = function (obj, prop, val) { // return obj value based on json dot notation formatted prop
+const objProp = function (obj, prop, val) { // return obj value based on json dot notation formatted prop
   if (Object.prototype.hasOwnProperty.call(obj, prop)) return obj[prop]
   const props = prop.split('.') // scimgateway.auth.basic[0].password
   const final = props.pop()
@@ -175,7 +180,7 @@ Object.prop = function (obj, prop, val) { // return obj value based on json dot 
   return val ? (obj[final] = val) : obj[final]
 }
 
-module.exports.copyObj = (o) => { // deep copy/clone faster than JSON.parse(JSON.stringify(o))
+export const copyObj = (o) => { // deep copy/clone faster than JSON.parse(JSON.stringify(o))
   let v, key
   const output = Array.isArray(o) ? [] : {}
   for (key in o) {
@@ -184,13 +189,13 @@ module.exports.copyObj = (o) => { // deep copy/clone faster than JSON.parse(JSON
       const objProp = Object.getPrototypeOf(v) // e.g. HttpsProxyAgent {}
       if (objProp !== null && objProp !== Object.getPrototypeOf({}) && objProp !== Object.getPrototypeOf([])) {
         output[key] = Object.assign(Object.create(v), v) // e.g. { HttpsProxyAgent {...} }
-      } else output[key] = module.exports.copyObj(v)
+      } else output[key] = copyObj(v)
     } else output[key] = v
   }
   return output
 }
 
-const extendObj = (obj, src) => {
+const _extendObj = (obj, src) => {
   Object.keys(src).forEach((key) => {
     if (typeof src[key] === 'object' && src[key] != null) {
       if (typeof obj[key] === 'undefined') obj[key] = src[key]
@@ -230,20 +235,20 @@ const extendObj = (obj, src) => {
             } else if (!obj[key].includes(val)) obj[key].push(val)
           }
         }
-      } else obj[key] = module.exports.extendObj(obj[key], src[key])
+      } else obj[key] = extendObj(obj[key], src[key])
     } else if (src[key] != null) obj[key] = src[key]
   })
   return obj
 }
 
-module.exports.extendObj = (obj, src) => { // copy src content into obj
+export const extendObj = (obj, src) => { // copy src content into obj
   if (typeof src !== 'object' || Array.isArray(src)) return obj
-  return extendObj(obj, src)
+  return _extendObj(obj, src)
 }
 
 // extendObjClear extends obj with cleared src
 // if isSoftSync, extend without cleared
-module.exports.extendObjClear = (obj, src, isSoftSync) => {
+export const extendObjClear = (obj, src, isSoftSync) => {
   Object.keys(src).forEach((key) => {
     if (src[key] === null) return
     if (typeof src[key] !== 'object') { // last key
@@ -269,7 +274,7 @@ module.exports.extendObjClear = (obj, src, isSoftSync) => {
 
     if (!Array.isArray(src[key])) {
       if (!obj[key]) obj[key] = {}
-      obj[key] = module.exports.extendObjClear(obj[key], src[key], isSoftSync)
+      obj[key] = extendObjClear(obj[key], src[key], isSoftSync)
     } else { // array
       if (!Array.isArray(obj[key])) obj[key] = []
       for (let i = 0; i < src[key].length; i++) {
@@ -279,7 +284,7 @@ module.exports.extendObjClear = (obj, src, isSoftSync) => {
         } else {
           if (Object.prototype.hasOwnProperty.call(val, 'type') && key !== 'members' && key !== 'groups') {
             if (obj[key].length < 1) {
-              const v = this.copyObj(val)
+              const v: any = copyObj(val)
               if (!isSoftSync) v.operation = 'delete'
               obj[key].push(v)
             } else {
@@ -308,18 +313,18 @@ module.exports.extendObjClear = (obj, src, isSoftSync) => {
                 }
               }
               if (!found) {
-                const v = module.exports.copyObj(val)
+                const v: any = copyObj(val)
                 if (!isSoftSync) v.operation = 'delete'
                 obj[key].push(v)
               }
             }
           } else if (Object.prototype.hasOwnProperty.call(val, 'value')) { // no type
             if (obj[key].length < 1) {
-              const v = module.exports.copyObj(val)
+              const v: any = copyObj(val)
               if (!isSoftSync) v.operation = 'delete'
               obj[key].push(v)
             } else {
-              const addArr = []
+              const addArr: any = []
               let found = false
               for (let j = 0; j < obj[key].length; j++) {
                 const el = obj[key][j]
@@ -331,7 +336,7 @@ module.exports.extendObjClear = (obj, src, isSoftSync) => {
                 }
               }
               if (!found) {
-                const v = module.exports.copyObj(val)
+                const v: any = copyObj(val)
                 if (!isSoftSync) v.operation = 'delete'
                 addArr.push(v)
               }
@@ -350,7 +355,7 @@ module.exports.extendObjClear = (obj, src, isSoftSync) => {
 }
 
 // deltaObj removes from obj what matches with src, only delta remains in obj
-module.exports.deltaObj = (obj, src) => {
+export const deltaObj = (obj, src) => {
   for (const key in obj) {
     if (Array.isArray(obj[key])) {
       if (!src[key] || !Array.isArray(src[key])) continue
@@ -366,7 +371,7 @@ module.exports.deltaObj = (obj, src) => {
               i -= 1
             }
           } else { // only type
-            const a = src[key].filter(o => {
+            const a = src[key].filter((o) => {
               for (const k in el) {
                 if (el[k] !== o[k]) return false
               }
@@ -411,7 +416,7 @@ module.exports.deltaObj = (obj, src) => {
 }
 
 // stripObj strips and return a new object according to attributes or excludedAttributes - comma separated dot object list
-module.exports.stripObj = (obj, attributes, excludedAttributes) => {
+export const stripObj = (obj, attributes, excludedAttributes) => {
   if (!attributes && !excludedAttributes) return obj
   if (!obj || typeof obj !== 'object') return obj
   let arrObj
@@ -421,10 +426,10 @@ module.exports.stripObj = (obj, attributes, excludedAttributes) => {
     arrObj = obj
   }
   let arrRet = []
-  const arrCheckEmpty = []
+  const arrCheckEmpty: any = []
   if (attributes) {
     const arrAttr = attributes.split(',').map(item => item.trim())
-    arrRet = arrObj.map(obj => {
+    arrRet = arrObj.map((obj) => {
       const ret = {}
       for (let i = 0; i < arrAttr.length; i++) {
         const attr = arrAttr[i].split('.') // title / name.familyName / emails.value
@@ -456,7 +461,7 @@ module.exports.stripObj = (obj, attributes, excludedAttributes) => {
           for (let j = 0; j < arr.length; j++) {
             try {
               if (JSON.stringify(arr[j]) === '{}') arr.splice(j, 1)
-            } catch (err) {}
+            } catch (err) { return }
           }
         }
       }
@@ -464,8 +469,8 @@ module.exports.stripObj = (obj, attributes, excludedAttributes) => {
     })
   } else if (excludedAttributes) {
     const arrAttr = excludedAttributes.split(',').map(item => item.trim())
-    arrRet = arrObj.map(obj => {
-      const ret = module.exports.copyObj(obj)
+    arrRet = arrObj.map((obj) => {
+      const ret: any = copyObj(obj)
       for (let i = 0; i < arrAttr.length; i++) {
         const attr = arrAttr[i].split('.') // title / name.familyName / emails.value
         if (Object.prototype.hasOwnProperty.call(ret, attr[0])) {
@@ -480,7 +485,7 @@ module.exports.stripObj = (obj, attributes, excludedAttributes) => {
                   delete arr[index][attr[1]]
                   try {
                     if (JSON.stringify(arr[index]) === '{}') arr.splice(index, 1)
-                  } catch (err) {}
+                  } catch (err) { return }
                 }
               }
             }
@@ -490,7 +495,7 @@ module.exports.stripObj = (obj, attributes, excludedAttributes) => {
       return ret
     })
   } else { // should not be here
-    arrRet = [{}]
+    arrRet = []
   }
   if (!Array.isArray(obj)) return arrRet[0]
   return arrRet
@@ -498,9 +503,9 @@ module.exports.stripObj = (obj, attributes, excludedAttributes) => {
 
 // sortByKey will string-sort array of objects by spesific key
 // myArr.sort(sortByKey('name.familyName', 'ascending'))
-module.exports.sortByKey = (key, order = 'ascending') => {
+export const sortByKey = (key, order = 'ascending') => {
   return (a, b) => { // inner sort
-    const val = [undefined, undefined]
+    const val: any = [undefined, undefined]
     const arrIter = [a, b]
     const levels = key.split('.')
     if (!Object.prototype.hasOwnProperty.call(a, levels[0]) || !Object.prototype.hasOwnProperty.call(b, levels[0])) return 0
@@ -530,7 +535,7 @@ module.exports.sortByKey = (key, order = 'ascending') => {
 // same as getPassword method, but seed passed as argument and not using json configuration file
 // if pw is cleartext, return encrypted secret
 // if pw is encrypted, return cleartext secret
-module.exports.getEncrypted = function (pw, seed) {
+export const getEncrypted = function (pw: string, seed: string) {
   if (!pw || !seed) return undefined
   const ivLength = 16
   if (seed.length < ivLength) {
@@ -538,33 +543,29 @@ module.exports.getEncrypted = function (pw, seed) {
     const diff = ivLength - seed.length
     if (diff > 0) seed += addStr.substring(0, diff)
   }
-  if (pw) {
-    try { // decrypt
-      const pwencr = Buffer.from(pw, 'base64').toString('utf8')
-      const textParts = pwencr.split(':')
-      const iv = Buffer.from(textParts.shift(), 'hex')
-      const encryptedText = Buffer.from(textParts.join(':'), 'hex')
-      const decipher = crypto.createDecipheriv('aes-128-cbc', Buffer.from(seed.substr(-ivLength)), iv)
-      let pwclear = decipher.update(encryptedText)
-      pwclear = Buffer.concat([pwclear, decipher.final()])
-      pwclear = pwclear.toString()
-      return pwclear
-    } catch (err) { // password considered as cleartext and needs to be encrypted
-      const pwclear = pw
-      const iv = crypto.randomBytes(ivLength)
-      const cipher = crypto.createCipheriv('aes-128-cbc', Buffer.from(seed.substr(-ivLength), 'utf8'), iv)
-      let encrypted = cipher.update(pwclear)
-      encrypted = Buffer.concat([encrypted, cipher.final()])
-      let pwencr = iv.toString('hex') + ':' + encrypted.toString('hex')
-      pwencr = Buffer.from(pwencr).toString('base64')
-      return pwencr
-    }
+  const pwencr = Buffer.from(pw, 'base64').toString('utf8')
+  try { // decrypt
+    const textParts: any = pwencr.split(':')
+    const iv = Buffer.from(textParts.shift(), 'hex')
+    const encryptedText = Buffer.from(textParts.join(':'), 'hex')
+    const decipher = crypto.createDecipheriv('aes-128-cbc', Buffer.from(seed.substr(-ivLength)), iv)
+    const pw = decipher.update(encryptedText)
+    const pwClear: any = Buffer.concat([pw, decipher.final()])
+    return pwClear.toString()
+  } catch (err) { // password considered as cleartext and needs to be encrypted
+    const pwclear = pw
+    const iv = crypto.randomBytes(ivLength)
+    const cipher = crypto.createCipheriv('aes-128-cbc', Buffer.from(seed.substr(-ivLength), 'utf8'), iv)
+    let encrypted = cipher.update(pwclear)
+    encrypted = Buffer.concat([encrypted, cipher.final()])
+    const pwencr = iv.toString('hex') + ':' + encrypted.toString('hex')
+    return Buffer.from(pwencr).toString('base64')
   }
   return undefined
 }
 
 // fsExistsSync checks if file/directory exist and returns true/false
-module.exports.fsExistsSync = function (f) {
+export const fsExistsSync = function (f) {
   try {
     fs.accessSync(f)
     return true
@@ -577,15 +578,15 @@ module.exports.fsExistsSync = function (f) {
 // utils.createRandomPassword(12) => 12 characters: lower, upper, numeric and special
 // utils.createRandomPassword(12, utils.createRandomPassword.alphaLower, utils.createRandomPassword.alphaUpper)
 // https://gist.github.com/6174/6062387
-module.exports.createRandomPassword = function (len, ...set) {
+export const createRandomPassword = function (len, ...set) {
   const gen = (min, max) => max++ && [...Array(max - min)].map((s, i) => String.fromCharCode(min + i))
   const sets = {
     num: gen(48, 57),
     alphaLower: gen(97, 122),
     alphaUpper: gen(65, 90),
-    special: [...'~!@#$%^&*()_+-=[]{}|;:\'",./<>?']
+    special: [...'~!@#$%^&*()_+-=[]{}|;:\'",./<>?'],
   }
-  function * iter (len, set) {
+  function* iter(len, set) {
     if (set.length < 1) { set = Object.values(sets).flat() }
     for (let i = 0; i < len; i++) { yield set[Math.random() * set.length | 0] }
   }

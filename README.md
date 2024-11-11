@@ -16,11 +16,11 @@ Validated through IdP's:
   
 Latest news:  
 
-- Supports stream publishing mode having [SCIM Stream](https://elshaug.xyz/docs/scim-stream) as a prerequisite. In this mode, standard incoming SCIM requests from your Identity Provider (IdP) or API are directed and published to the stream. Subsequently, one of the gateways subscribing to the channel utilized by the publisher will manage the SCIM request, and response back. Using SCIM Stream we have only egress/outbound traffic and get loadbalancing/failover by adding more gateways subscribing to the same channel.
+- Major version **v5.0.0** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. Kubernetes health checks and shutdown handler support
 - Supports OAuth Client Credentials authentication
-- Major version v4.0.0. getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
+- Major version **v4.0.0** getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure IP-range  
 - General LDAP plugin configured for Active Directory  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
@@ -36,11 +36,10 @@ Latest news:
 
 With SCIM Gateway, user management is facilitated through the utilization of the REST-based SCIM 1.1 or 2.0 protocol. The gateway acts as a translator for incoming SCIM requests, seamlessly enabling the exposure of CRUD functionality (create, read, update, and delete user/group) towards destinations. This is achieved through the implementation of endpoint-specific protocols, ensuring precise and efficient provisioning with diverse endpoints.  
 
-Using [SCIM Stream](https://elshaug.xyz/docs/scim-stream), gateway may enable Pub/Sub allowing incoming SCIM requests to be published and processed by other gateways acting as subscribers. This extends beyond being Entra ID and HR subscriber for messages published by the SCIM Stream collector.
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
 
-SCIM Gateway is based on the popular asynchronous event driven framework [Node.js](https://nodejs.dev/) using JavaScript. It is cloud and firewall friendly using REST webservices. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical).
+SCIM Gateway is based on popular asynchronous event driven framework [Bun](https://bun.sh/) or [Node.js](https://nodejs.dev/) using TypeScript/JavaScript. It is cloud and firewall friendly. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical).
 
 **Following example plugins are included:**
 
@@ -96,11 +95,11 @@ One example of usage could be creation of tickets in ServiceDesk and also the ot
     
 ## Installation  
 
-#### Install Node.js  
+#### Install Bun  
 
-Node.js is a prerequisite and have to be installed on the server.  
+[Bun](https://bun.sh/) is a prerequisite and must be installed on the server.  
 
-[Download](https://nodejs.org/en/download/) the windows installer (.msi 64-bit) and install using default options.  
+Note, Bun install default to current user `HOMEPATH\.bun`. This can be overridden by exporting environment `BUN_INSTALL=<install-path>`. Also path are default updated for current user and not the global/system path.
 
 #### Install SCIM Gateway  
 
@@ -109,19 +108,22 @@ Create your own package directory e.g. c:\my-scimgateway and install SCIM Gatewa
 
 	mkdir c:\my-scimgateway
 	cd c:\my-scimgateway
-	npm init -y
-	npm install scimgateway
+	bun init -y
+	bun pm trust scimgateway
+	bun install scimgateway
 
 **c:\\my-scimgateway** will now be `<package-root>` 
  
-index.js, lib and config directories containing example plugins have been copied to your package from the original scimgateway package located under node_modules.  
+index.ts, lib and config directories containing example plugins have been copied to your package from the original scimgateway package located under node_modules. Bun requires `bun pm trust scimgateway` for allowing postinstall copying these files.   
 
 If internet connection is blocked, we could install on another machine and copy the `<package-root>` folder.
 
 
 #### Startup and verify default Loki plugin 
 
-	node c:\my-scimgateway
+	bun c:\my-scimgateway
+
+	If using Node.js instead of Bun: node --experimental-strip-types c:\my-scimgateway\index.ts
 	
 	Start a browser (note, Edge do not pop-up logon dialog box when using http)
 
@@ -148,55 +150,54 @@ If internet connection is blocked, we could install on another machine and copy 
 
 	"Ctrl + c" to stop the SCIM Gateway
 
-For more functionality using browser (post/patch/delete) a REST extension/add-on is needed. 
-
->Tip, take a look at mocha test scripts located in `node_modules\scimgateway\test\lib`  
+>Tip, take a look at bun test scripts located in `node_modules\scimgateway\test\lib`
 
 
 #### Upgrade SCIM Gateway  
 
 Not needed after a fresh install  
 
-Check if newer versions are available: 
-
-	cd c:\my-scimgateway
-	npm outdated
-
-Lists current, wanted and latest version. No output on screen means we are running the latest version.
-
-The best and easiest way to upgrade is renaming existing scimgateway package folder, create a new one and do a fresh installation. After the installation you copy `index.js, config and lib folder` (your customized plugins) from your previous installation to the new installation. You should also read the version history to see if your custom plugins needs to be updated.
+The best and easiest way to upgrade is renaming existing scimgateway package folder, create a new one and do a fresh installation. After the installation we copy `index.ts, config and lib folder` (customized plugins) from previous installation to the new installation. You should also read the version history to see custom plugins needs to be updated.
 
 Alternatives are:  
 
 Upgrade to latest minor version:  
 
 	cd c:\my-scimgateway
-	npm install scimgateway
+	bun install scimgateway
 
 Note, always backup/copy c:\\my-scimgateway before upgrading. Custom plugins and corresponding configuration files will not be affected.  
 
-To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compability with any existing custom plugins, we have to include the `@latest` suffix in the install command: `npm install scimgateway@latest`
+To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compability with any existing custom plugins, we have to include the `@latest` suffix in the install command: `bun install scimgateway@latest`
 
 ##### Avoid (re-)adding the files created during `postinstall`
 
-When maintaining a set of modifications it useful to disable the postinstall operations to keep your changes intact by setting the property `scimgateway_postinstall_skip = true` in `.npmrc` or by setting environment `SCIMGATEWAY_POSTINSTALL_SKIP = true`  
+For production we do not need example plugins to be incuded by the `postinstall` job  
+Bun will by default exlude any `postinstall` jobs unless we have trusted the scimgateway package using the `bun pm trust scimgateway` that updates package.json `{ trustedDependencies: ["scimgateway"] }`
+
+For Node.js (and also Bun), we might set the property `scimgateway_postinstall_skip = true` in `.npmrc` or setting environment `SCIMGATEWAY_POSTINSTALL_SKIP = true`  
 
 ## Configuration  
 
-**index.js** defines one or more plugins to be started. We could comment out those we do not need. Default configuration only starts the loki plugin.  
+**index.ts** defines one or more plugins to be started by the `const plugins` array setting.  
   
-	const loki = require('./lib/plugin-loki')
-	// const mongodb = require('./lib/plugin-mongodb')
-	// const scim = require('./lib/plugin-scim')
-	// const soap = require('./lib/plugin-soap') // prereq: npm install soap
-	// const mssql = require('./lib/plugin-mssql')
-	// const saphana = require('./lib/plugin-saphana') // prereq: npm install hdb
-	// const entra = require('./lib/plugin-entra-id')
-	// const ldap = require('./lib/plugin-ldap')
-	// const api = require('./lib/plugin-api')
+	// example starting all default plugins:
+	// const plugins = ['loki', 'scim', 'entra-id', 'ldap', 'mssql', 'api', 'mongodb', 'saphana', 'soap']
 
-Each endpoint plugin needs a JavaScript file (.js) and a configuration file (.json). **They both must have the same naming prefix**. For SAP Hana endpoint we have:  
->lib\plugin-saphana.js  
+	const plugins = ['ldap']
+	
+	for (const plugin of plugins) {
+	  try {
+	    await import(`./lib/plugin-${plugin}.ts`)
+	  } catch (err: any) {
+	    console.error(`plugin-${plugin} startup error: ${err.message}`)
+	    console.log()
+	  }
+	}
+
+
+Each endpoint plugin needs a TypeScript file (.ts) and a configuration file (.json). **They both must have the same naming prefix**. For SAP Hana endpoint we have:  
+>lib\plugin-saphana.ts  
 >config\plugin-saphana.json
 
 
@@ -294,11 +295,6 @@ Below shows an example of config\plugin-saphana.json
 	        "cc": null
 	      }
 	    },
-        "kubernetes": {
-          "enabled": false,
-          "shutdownTimeout": 15000,
-          "forceExitTimeout": 1000
-        },
 	    "stream": {
 	      "baseUrls": [],
 	      "certificate": {
@@ -453,18 +449,13 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **emailOnError.smtp.to** - Comma separated list of recipients email addresses e.g: "someone@example.com"
 - **emailOnError.smtp.cc** - Comma separated list of cc email addresses
 
-- **kubernetes** - Enable Kubernetes support for healthchecks and graceful shutdown.
-- **kubernetes.enabled** - true or false, true will enable Kubernets health checks and shutdown handler
-- **kubernetes.shutdownTimeout** - Number of milliseconds to wait before shutting down (default 15000).
-- **kubernetes.forceExitTimeout** - Number of milliseconds before forceful exiting (default 1000).
-
 - **stream** - See [SCIM Stream](https://elshaug.xyz/docs/scim-stream) for configuration details
 
 - **endpoint** - Contains endpoint specific configuration according to our **plugin code**.    
  
 #### Configuration notes
 
-- Custom Schemas, ServiceProviderConfig and ResourceType can be used if `./lib/scimdef-v2.js or scimdef-v1.js` exists. Original scimdef-v2.js/scimdef-v1.js can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
+- Custom Schemas, ServiceProviderConfig and ResourceType can be used if `./lib/scimdef-v2.json or scimdef-v1.json` exists. Original scimdef-v2.json/scimdef-v1.json can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
 - Using reverse proxy and we want ipAllowList and correct meta.location response, following headers must be set by proxy: `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host`  
 - Setting environment variable `SEED` with some random characters will override default password seeding logic. This also allow copying configuration file with encrypted secrets from one machine to another.  
 - All configuration can be set based on environment variables. Syntax will then be `"process.env.<ENVIRONMENT>"` where `<ENVIRONMENT>` is the environment variable used. E.g. scimgateway.port could have value "process.env.PORT", then using environment variable PORT.
@@ -526,11 +517,11 @@ Gateway can be started from a command window running in administrative mode
 
 3 ways to start:
 
-	node c:\my-scimgateway
+	bun c:\my-scimgateway
 
-	node c:\my-scimgateway\index.js
+	bun c:\my-scimgateway\index.ts
 
-	<package-root>node .
+	<package-root>bun .
 
 
 <kbd>Ctrl</kbd>+<kbd>c</kbd> to stop  
@@ -552,7 +543,7 @@ Start Windows Task Scheduler (taskschd.msc), right click on "Task Scheduler Libr
 	Actions tab:
 	------------
 	Action = Start a program
-	Program/script = c:\Program Files\nodejs\node.exe
+	Program/script = <install path>\bun.exe
 	Arguments = c:\my-scimgateway
 
 	Settings - tab:
@@ -745,9 +736,9 @@ IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transfe
 
 
 ## Entra ID provisioning  
-Using plugin-entra-id we could do user provisioning towards Entra ID including license management e.g. O365  
+Using plugin-entra-id we could do user provisioning towards Entra ID   
 
-For testing purposes we could get an Azure free account and in addition the free Office 365 for testing license management through Azure.
+For testing purposes we could get an Azure free account 
 
 ### Entra ID configuration 
 
@@ -795,14 +786,14 @@ Also note, enable/disable user (accountEnabled - through Graph API) will fail if
 
 ### SCIM Gateway configuration  
 
-**Edit index.js**  
-Uncomment startup of plugin-entra-id, other plugins could be comment out if not needed
+**Edit index.ts**  
+Set plugin to be started to `entra-id`
 
-	const entra = require('./lib/plugin-entra-id')
+	const plugins = ['entra-id']
 
 **Edit plugin-entra-id.json**
 
-Note, for Symantec/Broadcom/CA Provisioning we have to use SCIM version 1.1 
+Note, for Symantec/Broadcom/CA Provisioning we must use SCIM version 1.1 
  
 	scimgateway: {
 	  "scim": {
@@ -866,7 +857,7 @@ Note, we should normally use certificate (https) for communicating with SCIM Gat
 Create a new endpoint type "Azure - ScimGateway"  
 
 - Start SCIM Gateway
-	- "const entra" must be uncomment in `index.js`
+	- Using plugin-entra-id: `const plugins = ['entra-id']` in `index.ts`
 	- username, password and port defined in `plugin-entra-id.json` must also be known 
 - Start ConnectorXpress
 - Setup Data Sources
@@ -945,7 +936,7 @@ Following methods for the none SCIM based api-plugin are supported:
 		DELETE /api/{id}  
 
 These methods can also be used in standard SCIM plugins  
-Please see example plugin: **plugin-api.js**
+Please see example plugin: **plugin-api.ts**
 
  
 ## How to build your own plugins  
@@ -953,12 +944,12 @@ For JavaScript coding editor you may use [Visual Studio Code](https://code.visua
 
 Preparation:
 
-* Copy "best matching" example plugin e.g. `lib\plugin-mssql.js` and `config\plugin-mssql.json` and rename both copies to your plugin name prefix e.g. plugin-mine.js and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-soap as a template) 
+* Copy "best matching" example plugin e.g. `lib\plugin-mssql.ts` and `config\plugin-mssql.json` and rename both copies to your plugin name prefix e.g. plugin-mine.ts and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-soap as a template) 
 * Edit plugin-mine.json and define a unique port number for the gateway setting  
-* Edit index.js and add a new line for starting your plugin e.g. `let mine = require('./lib/plugin-mine');`  
+* Edit index.ts and add a new line for starting your plugin e.g. `let mine = require('./lib/plugin-mine');`  
 * Start SCIM Gateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  
 
-Now we are ready for custom coding by editing plugin-mine.js
+Now we are ready for custom coding by editing plugin-mine.ts
 Coding should be done step by step and each step should be verified and tested before starting the next (they are all highlighted by comments in existing code).  
 
 1. **Turn off group functionality** - getGroups to return empty response  
@@ -976,7 +967,7 @@ Please see plugin-saphana that do not use groups.
 
 Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from "Job Title" if our endpoint/code do not support title)  
 
-CA Provisioning using default SCIM endpoint do not support SCIM Enterprise User Schema Extension (having attributes like employeeNumber, costCenter, organization, division, department and manager). If we need these or other attributes not found in CA Provisioning, we could define our own by using the free-text "type" definition in the multivalue entitlements or roles attribute. In the template entitlements definition, we could for example define type=Company and set value to %UCOMP%. Please see plugin-soap.js using Company as a multivalue "type" definition.  
+CA Provisioning using default SCIM endpoint do not support SCIM Enterprise User Schema Extension (having attributes like employeeNumber, costCenter, organization, division, department and manager). If we need these or other attributes not found in CA Provisioning, we could define our own by using the free-text "type" definition in the multivalue entitlements or roles attribute. In the template entitlements definition, we could for example define type=Company and set value to %UCOMP%. Please see plugin-soap.ts using Company as a multivalue "type" definition.  
 
 Using CA Connector Xpress we could create a new SCIM endpoint type based on the original SCIM. We could then add/remove attributes and change from default assign "user to groups" to assign "groups to user". There are also other predefined endpoints based on the original SCIM. You may take a look at "ServiceNow - WSL7" and "Zendesk - WSL7". 
 
@@ -1023,138 +1014,55 @@ advanced options - **Synchronized** = enabled (toggled on)
 
 Plugins should have following initialization:  
 
-	// mandatory plugin initialization - start
-	const path = require('path')
-	let ScimGateway = null
-	try {
-	  ScimGateway = require('scimgateway')
-	} catch (err) {
-	  ScimGateway = require('./scimgateway')
-	}
-	let scimgateway = new ScimGateway()
-	let pluginName = path.basename(__filename, '.js')
-	let configDir = path.join(__dirname, '..', 'config')
-	let configFile = path.join(`${configDir}`, `${pluginName}.json`)
-	let config = require(configFile).endpoint
-	let validScimAttr = [] // empty array - all attrbutes are supported by endpoint
-	// add any external config process.env and process.file
-	config = scimgateway.processExtConfig(pluginName, config)
-    scimgateway.authPassThroughAllowed = false
-	// mandatory plugin initialization - end
+	// start - mandatory plugin initialization
+	const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
+	  try {
+		return (await import('scimgateway')).ScimGateway
+	  } catch (err) {
+		const source = './scimgateway.ts'
+		return (await import(source)).ScimGateway
+	  }
+	})()
+	const scimgateway = new ScimGateway()
+	const config = scimgateway.getConfig()
+	scimgateway.authPassThroughAllowed = false
+	// end - mandatory plugin initialization
+	
+If using REST, we could also include the HelperRest:
 
+	// start - mandatory plugin initialization
+	...
+	const HelperRest: typeof import('scimgateway').HelperRest = await (async () => {
+	  try {
+		return (await import('scimgateway')).HelperRest
+	  } catch (err) {
+		const source = './scimgateway.ts'
+		return (await import(source)).HelperRest
+	  }
+	})()
+	...
+	// end - mandatory plugin initialization
 
-### getUsers  
+Plugins should include following SCIM methods:  
 
-	scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
-	    let ret = {
-	        "Resources": [],
-	        "totalResults": null
-	    }
-		...
-		return ret
-	}  
+* scimgateway.getUsers()  
+* scimgateway.createUser()  
+* scimgateway.deleteUser()  
+* scimgateway.modifyUser()  
+* scimgateway.getGroups()  
+* scimgateway.createGroup()  
+* scimgateway.deleteGroup()  
+* scimgateway.modifyGroup()  
 
-* baseEntity = Optional for multi-tenant or multi-endpoint support (defined in base url e.g. `<baseurl>/client1` gives baseEntity=client1)  
-* getObj = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
-	* attribute, operator and value are set when using "simpel filtering", e.g. getObj.attribute='userName', getObj.operator='eq' and getObj.value='bjensen', but not for advanced filtering having and/or/not
-	* rawFilter is always set when filtering is used
-	* startIndex = Pagination - The 1-based index of the first result in the current set of search results  
-	* count = Pagination - Number of elements to be returned in the current set of search results  
-*  attributes = array of attributes to be returned - if empty, all supported attributes should be returned
-* ret:   
-ret.Resources = array filled with user objects according to getObj/attributes, we could normally include all attributes having id and userName as mandatory e.g [{"id": "bjensen", "userName": "bjensen"}, {"id":"jsmith", "userName":"jsmith"}]  
-ret.totalResults = if supporting pagination, then it should be set to the total numbers of elements (users), else set to null
+In addition following general API methods are available for use:  
 
-### createUser  
-	scimgateway.createUser = async (baseEntity, userObj, ctx) => {
-		...
-	    return { "id": uniqueID }
-	})
+* scimgateway.postApi()  
+* scimgateway.putApi()  
+* scimgateway.patchApi()  
+* scimgateway.getApi()  
+* scimgateway.deleteApi()
 
-* userObj = user object containing userattributes according to scim standard  
-userObj.userName contains the unique naming at IdP
-* return the created user object or minimum the id generated { "id": uniqueID }, null is also accepted else throw error
-
-### deleteUser  
-
-	scimgateway.deleteUser = async (baseEntity, id, ctx) => {
-		...
-		return null
-	} 
-
-* id = user id to be deleted 
-* return null: null if OK, else throw error  
-
-### modifyUser  
-
-	scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
-		...
-		return null
-	} 
-
-
-* id = user id  
-* attrObj = object containing userattributes to be modified according to scim standard  
-Note, multi-value attributes excluding user attribute 'groups' are customized from array to object based on type  
-* return null: null if OK, else throw error
-
-### getGroups  
-
-	scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
-	    let ret = {
-	        "Resources": [],
-	        "totalResults": null
-	    }
-		...
-		return ret
-	}  
-
-* baseEntity = Optional for multi-tenant or multi-endpoint support (defined in base url e.g. `<baseurl>/client1` gives baseEntity=client1)  
-* getObj = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
-	* attribute, operator and value are set when using "simpel filtering", e.g. getObj.attribute='displayName', getObj.operator='eq' and getObj.value='Admins', but not for advanced filtering having and/or/not
-	* rawFilter is always set when filtering is used
-	* startIndex = Pagination - The 1-based index of the first result in the current set of search results  
-	* count = Pagination - Number of elements to be returned in the current set of search results  
-*  attributes = array of attributes to be returned - if empty, all supported attributes should be returned
-* ret:   
-ret.Resources = array filled with group objects according to getObj/attributes, we could normally include all attributes having id, displayName and members as mandatory e.g [{"id":"Admins", "displayName":"Admins", members":[{"value":"bjensen"}]}, {"id":"Employees", "displayName":"Employees"}, "members":[{"value":"jsmith","display":"John Smith"}]]  
-ret.totalResults = if supporting pagination, then it should be set to the total numbers of elements (users), else set to null
-
-
-### createGroup  
-	scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
-		...
-	    return { "id": uniqueID }
-	})
-
-* groupObj = group object containing groupattributes according to scim standard  
-groupObj.displayName contains the group name to be created
-* return the created group object or minimum the id generated { "id": uniqueID }, null is also accepted else throw error
-
-### deleteGroup  
-	scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
-		...
-	    return null
-	}
-
-* id = group name (eg. Admins) to be deleted
-* return null: null if OK, else throw error 
-
-### modifyGroup  
-
-	scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
-		...
-	    return null
-	}
-
-* id = group name (eg. Admins)  
-* attrObj = object containing groupattributes to be modified according to scim standard  
-**attrObj.members** (must be supported) = array of objects containing groupmembers modifications  
-eg: {"value":"bjensen"},{"operation":"delete","value":"jsmith"}  
-(adding bjensen and deliting jsmith from group)  
-* return null: null if OK, else throw error  
-If we do not support groups, then return null  
-
+In code editor (e.g., Visual Studio Code), method details and documentation are shown by IntelliSense 
 
 ## License  
  
@@ -1162,6 +1070,78 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.0.0  
+
+**[MAJOR]**  
+
+- Major version v5.0.0 marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js.  
+
+Besides going from JavaScript to TypeScript, following can be mentioned:  
+  
+* Code editor now having IntelliSense showing available methods and documentation details for scimgateway methods  
+* index.ts having new logic for starting plugins e.g.: `const plugins = ['ldap']` for starting plugin-ldap
+* If using Node.js, node must be version >= 22.6.0 and include startup argument `--experimental-strip-types` e.g.; `node --experimental-strip-types index.ts`   
+* Plugins can use `scimgateway.HelperRest()` for REST functionality. Previously this logic was included in each plugin that used REST.  
+
+		// start - mandatory plugin initialization
+		...
+		const HelperRest: typeof import('scimgateway').HelperRest = await (async () => {
+		  try {
+			return (await import('scimgateway')).HelperRest
+		  } catch (err) {
+			const source = './scimgateway.ts'
+			return (await import(source)).HelperRest
+		  }
+		})()
+		...
+		// end - mandatory plugin initialization  
+
+	Note, HelperRest use fetch which is not fully supported by Node.js regarding TLS.  
+	For TLS and Node.js, environment must instead be used and set before started, e.g.,:  
+	`export NODE_EXTRA_CA_CERTS=/plugin-path/config/certs/ca.pem`  
+	`export NODE_TLS_REJECT_UNAUTHORIZED=0`  
+
+* Configuration secrets (password, secret, token, client_secret, ... ) defined in the `endpoint` section of the configuration file, will automatically be encrypted/decrypted. If there are secrets not handled by the automated encryption/decryption, we may use `scimgateway.getSecret()`. In the old version, corresponding method was named scimgateway.getPassword().
+* kubernetes configuration and logic have been removed. Kubernetes can use default `/ping` url for healthchecks, and graceful shutdown is taken care of the gateway
+* In case using custom schemas defined in lib/scimdef-v1/v2.js, these files have now changed to scimdef-v1/v2.json
+* `config/docker/Dockerfile` using Bun
+* plugin-entra, modify licenses/servicePlans is not included anymore, only listing. For license management we instead use groups.
+* plugin-ldap, for LDAPS/TLS and Bun, we must use environments e.g. `export NODE_EXTRA_CA_CERTS=/package-path/config/certs/ca.pem` or `export NODE_TLS_REJECT_UNAUTHORIZED=0`
+
+
+How to migrate existing plugins:  
+
+* Remove old index.js, use the new index.ts and update `const plugins = ['xxx']` to include your plugin name(s)
+* Rename plugin-xxx.js to plugin-xxx.ts
+* import must be used for loading modules: change `require` to `import` e.g.:  
+  const Loki = require('lokijs') => `import Loki from 'lokijs'`
+* Use the new mandatory settings:
+
+		// start - mandatory plugin initialization
+		const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
+		  try {
+		    return (await import('scimgateway')).ScimGateway
+		  } catch (err) {
+		    const source = './scimgateway.ts'
+		    return (await import(source)).ScimGateway
+		  }
+		})()
+		const scimgateway = new ScimGateway()
+		const config = scimgateway.getConfig()
+		scimgateway.authPassThroughAllowed = false
+		// end - mandatory plugin initialization
+
+* Use the new `config` object (mentioned above) which contains `scimgatway.endpoint` configuration having automated encryption/decryption of any attributes named password, secret, client_secret, token and APIKey
+* The old scimgateway.getPassword() is not normally not needed because of scimgateway automated `config` logic. If needed, use the new scimgateway.getSecret().
+* Use the new logging syntax: 
+ 
+		replace: scimgateway.logger.debug(`${pluginName}[${baseEntity}] xxx`)  
+		with: scimgateway.logDebug(baseEntity, `xxx`)
+
+* Use scimgateway.HelperRest() for REST functionlity, also supports Auth PassThrough
+* scimgateway.endpointMapper() may be used for inbound/outbound attribute mappings
+* In general when using TypeScript, variables should be type defined: `let isDone: boolean = false`, `catch (err: any)`
 
 ### v4.5.12
 

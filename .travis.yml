@@ -1,7 +1,16 @@
-language: node_js
+# Specify the operating system
+os: linux
+dist: focal  # Use Ubuntu 20.04 (focal) or another version as needed
 
-node_js:
-  - "16"
+# Install Bun
+before_install:
+  - curl -fsSL https://bun.sh/install | bash
+  - export PATH="$HOME/.bun/bin:$PATH"
 
-sudo: false
+# Install project dependencies
+install:
+  - bun install
 
+# Run the Bun test runner
+script:
+  - bun test

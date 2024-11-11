@@ -29,50 +29,38 @@
 
 'use strict'
 
-const soap = require('soap')
-const path = require('path')
+import soap from 'soap' // prereq: bun install soap
+import path from 'node:path'
+// for supporting nodejs running scimgateway package directly, using dynamic import instead of: import { ScimGateway } from 'scimgateway'
+// scimgateway also inclues HelperRest: import { ScimGateway, HelperRest } from 'scimgateway'
 
 // start - mandatory plugin initialization
-let ScimGateway = null
-try {
-  ScimGateway = require('scimgateway')
-} catch (err) {
-  ScimGateway = require('./scimgateway')
-}
+const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
+  try {
+    return (await import('scimgateway')).ScimGateway
+  } catch (err) {
+    const source = './scimgateway.ts'
+    return (await import(source)).ScimGateway
+  }
+})()
 const scimgateway = new ScimGateway()
-const pluginName = scimgateway.pluginName
-const configDir = scimgateway.configDir
-const configFile = scimgateway.configFile
-let config = require(configFile).endpoint
-config = scimgateway.processExtConfig(pluginName, config) // add any external config process.env and process.file
-scimgateway.authPassThroughAllowed = false // true enables auth passThrough (no scimgateway authentication). scimgateway instead includes ctx (ctx.request.header) in plugin methods. Note, requires plugin-logic for handling/passing ctx.request.header.authorization to be used in endpoint communication
-// start - mandatory plugin initialization
+const config = scimgateway.getConfig()
+scimgateway.authPassThroughAllowed = false
+// end - mandatory plugin initialization
 
-const wsdlDir = path.join(`${configDir}`, 'wsdls')
+const wsdlDir = path.join(`${scimgateway.configDir}`, 'wsdls')
 const endpointUsername = config.username
-let endpointPassword
-if (!scimgateway.authPassThroughAllowed) { // not using Auth PassThrough
-  endpointPassword = scimgateway.getPassword('endpoint.password', configFile)
+let endpointPassword: string | undefined
+if (!scimgateway.authPassThroughAllowed) {
+  endpointPassword = scimgateway.getSecret('endpoint.password')
 }
 
 // =================================================
 // getUsers
 // =================================================
 scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
-  //
-  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
-  // rawFilter is always included when filtering
-  // attribute, operator and value are included when requesting unique object or simpel filtering
-  // See comments in the "mandatory if-else logic - start"
-  //
-  // "attributes" is array of attributes to be returned - if empty, all supported attributes should be returned
-  // Should normally return all supported user attributes having id and userName as mandatory
-  // id and userName are most often considered as "the same" having value = <UserID>
-  // Note, the value of returned 'id' will be used as 'id' in modifyUser and deleteUser
-  // scimgateway will automatically filter response according to the attributes list
-  //
   const action = 'getUsers'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
 
   let soapRequest
   let soapAction
@@ -102,9 +90,9 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   if (!soapRequest) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
 
   try {
-    const ret = {
+    const ret: any = {
       Resources: [],
-      totalResults: null // not used - paging not supported
+      totalResults: null, // not used - paging not supported
     }
 
     const serviceClient = await getServiceClient(baseEntity, soapAction, ctx)
@@ -113,7 +101,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     if (!Array.isArray(result) || result.length < 4) {
       throw new Error(`${config[soapAction].service}-${config[soapAction].method} : Invalid SOAP result: ${JSON.stringify(result)}`)
     }
-    scimgateway.logger.debug(`${pluginName}[${baseEntity}] ${config[soapAction].service}-${config[soapAction].method} endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
+    scimgateway.logDebug(baseEntity, `${config[soapAction].service}-${config[soapAction].method} endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
     result = result[0]
 
     if (!result.return) {
@@ -124,21 +112,21 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     if (hdl) {
       if (result.return.size < 1) {
         soapRequest = { handleId: hdl }
-        try { serviceClient['releaseHandle' + 'Async'](soapRequest) } catch (err) {}
+        try { serviceClient['releaseHandle' + 'Async'](soapRequest) } catch (err) { void 0 }
         return ret // no users found
       }
 
       soapRequest = {
         handleId: hdl,
         startIndex: 0,
-        endIndex: result.return.size - 1
+        endIndex: result.return.size - 1,
       }
 
       result = await serviceClient['searchPagedUser' + 'Async'](soapRequest)
       if (!Array.isArray(result) || result.length < 4) {
         throw new Error(`${soapAction} searchPagedUser : Invalid SOAP result: ${JSON.stringify(result)}`)
       }
-      scimgateway.logger.debug(`${pluginName}[${baseEntity}] ${config[soapAction].service}-searchPagedUser endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
+      scimgateway.logDebug(baseEntity, `${config[soapAction].service}-searchPagedUser endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
       result = result[0]
 
       if (!result.return) {
@@ -148,7 +136,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 
     if (!Array.isArray(result.return)) result.return = [result.return]
 
-    result.return.forEach(function (el) {
+    result.return.forEach((el: Record<string, any>) => {
       const userObj = {
         userName: el.userID,
         id: el.userID,
@@ -157,23 +145,23 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         name: {
           givenName: el.firstName,
           familyName: el.lastName,
-          formatted: el.displayName
+          formatted: el.displayName,
         },
         title: el.title,
         emails: (el.emailAddress) ? [{ value: el.emailAddress, type: 'work' }] : null,
         phoneNumbers: (el.phoneNumber) ? [{ value: el.phoneNumber, type: 'work' }] : null,
-        entitlements: (el.company) ? [{ value: el.company, type: 'company' }] : null
+        entitlements: (el.company) ? [{ value: el.company, type: 'company' }] : null,
       }
       ret.Resources.push(userObj)
     })
 
     if (hdl) {
       soapRequest = { handleId: hdl }
-      try { serviceClient['releaseHandle' + 'Async'](soapRequest) } catch (err) {}
+      try { serviceClient['releaseHandle' + 'Async'](soapRequest) } catch (err) { void 0 }
     }
 
     return ret
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -183,7 +171,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   const action = 'createUser'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" userObj=${JSON.stringify(userObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" userObj=${JSON.stringify(userObj)}`)
   try {
     if (!userObj.name) userObj.name = {}
     if (!userObj.emails) userObj.emails = { work: {} }
@@ -200,8 +188,8 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
         title: userObj.title || null,
         emailAddress: userObj.emails.work.value || null,
         phoneNumber: userObj.phoneNumbers.work.value || null,
-        company: userObj.entitlements.company.value || null
-      }
+        company: userObj.entitlements.company.value || null,
+      },
     }
 
     const serviceClient = await getServiceClient(baseEntity, action, ctx)
@@ -210,14 +198,14 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
     if (!Array.isArray(result) || result.length < 4) {
       throw new Error(`${config[action].service}-${config[action].method} : Invalid SOAP result: ${JSON.stringify(result)}`)
     }
-    scimgateway.logger.debug(`${pluginName}[${baseEntity}] ${config[action].service}-${config[action].method} endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
+    scimgateway.logDebug(baseEntity, `${config[action].service}-${config[action].method} endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
     result = result[0]
 
     if (!result.return) {
       throw new Error(`${action} ${config[action].method} : Got empty response on soap request: ${soapRequest}`)
     }
     return null
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -227,7 +215,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
 // =================================================
 scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   const action = 'deleteUser'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
   try {
     const serviceClient = await getServiceClient(baseEntity, action, ctx)
 
@@ -237,14 +225,14 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
     if (!Array.isArray(result) || result.length < 4) {
       throw new Error(`${config[action].service}-${config[action].method} : Invalid SOAP result: ${JSON.stringify(result)}`)
     }
-    scimgateway.logger.debug(`${pluginName}[${baseEntity}] ${config[action].service}-${config[action].method} endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
+    scimgateway.logDebug(baseEntity, `${config[action].service}-${config[action].method} endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
     result = result[0]
 
     if (!result.return) {
       throw new Error(`${config[action].method} : Got empty response on soap request: ${soapRequest}`)
     }
     return null
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -254,7 +242,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyUser'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
   try {
     // forwardinc modify user will blank all attributes not included in soap request...
     // We therefore need to to retrieve all user attributes from forwardinc and merge with updated attributes.
@@ -262,10 +250,10 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
     const getObj = {
       attribute: 'id',
       operator: 'eq',
-      value: id
+      value: id,
     }
 
-    const res = await scimgateway.getUsers(baseEntity, getObj, '', ctx)
+    const res = await scimgateway.getUsers(baseEntity, getObj, [], ctx)
 
     let userObj
     if (res && Array.isArray(res.Resources) && res.Resources.length === 1) userObj = res.Resources[0]
@@ -301,19 +289,19 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         emailAddress: userObj.emails.work.value, // note, using default configuration setting  scim.skipTypeConvert = false
         phoneNumber: userObj.phoneNumbers.work.value,
         company: userObj.entitlements.company.value,
-        title: userObj.title
-      }
+        title: userObj.title,
+      },
     }
 
     let result = await serviceClient[config[action].method + 'Async'](soapRequest)
     if (!Array.isArray(result) || result.length < 4) {
       throw new Error(`${config[action].service}-${config[action].method} : Invalid SOAP result: ${JSON.stringify(result)}`)
     }
-    scimgateway.logger.debug(`${pluginName}[${baseEntity}] ${config[action].service}-${config[action].method} endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
+    scimgateway.logDebug(baseEntity, `${config[action].service}-${config[action].method} endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
     result = result[0]
 
     return null
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -322,20 +310,8 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 // getGroups
 // =================================================
 scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
-  //
-  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
-  // rawFilter is always included when filtering
-  // attribute, operator and value are included when requesting unique object or simpel filtering
-  // See comments in the "mandatory if-else logic - start"
-  //
-  // "attributes" is array of attributes to be returned - if empty, all supported attributes should be returned
-  // Should normally return all supported group attributes having id, displayName and members as mandatory
-  // id and displayName are most often considered as "the same" having value = <GroupName>
-  // Note, the value of returned 'id' will be used as 'id' in modifyGroup and deleteGroup
-  // scimgateway will automatically filter response according to the attributes list
-  //
   const action = 'getGroups'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
 
   let soapRequest
   let soapAction
@@ -366,9 +342,9 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 
   if (!soapRequest) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
 
-  const ret = { // itemsPerPage will be set by scimgateway
+  const ret: any = { // itemsPerPage will be set by scimgateway
     Resources: [],
-    totalResults: null
+    totalResults: null,
   }
 
   try {
@@ -378,7 +354,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     if (!Array.isArray(result) || result.length < 4) {
       throw new Error(`${config[soapAction].service}-${config[soapAction].method} : Invalid SOAP result: ${JSON.stringify(result)}`)
     }
-    scimgateway.logger.debug(`${pluginName}[${baseEntity}] ${config[soapAction].service}-${config[soapAction].method} endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
+    scimgateway.logDebug(baseEntity, `${config[soapAction].service}-${config[soapAction].method} endpoint: ${serviceClient.endpoint} rawRequest: ${result[3]} rawResponse: ${result[1].replace(/\n/g, '')}`)
     result = result[0]
 
     if (!result) return ret // no groups
@@ -389,11 +365,11 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     if (!Array.isArray(result.return)) result.return = [result.return]
 
     if (getObj.attribute === 'members.value' && getObj.operator === 'eq') {
-      result.return.forEach(function (el) {
-        const scimGroup = {
+      result.return.forEach(function (el: Record<string, any>) {
+        const scimGroup: any = {
           displayName: el.groupID,
           id: el.groupID,
-          externalId: el.groupID
+          externalId: el.groupID,
         }
         scimGroup.members = []
         if (Array.isArray(el.members)) {
@@ -403,11 +379,11 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
         if (scimGroup.members.length === 1) ret.Resources.push(scimGroup)
       })
     } else {
-      result.return.forEach(function (el) {
-        const scimGroup = {
+      result.return.forEach(function (el: Record<string, any>) {
+        const scimGroup: any = {
           displayName: el.groupID,
           id: el.groupID,
-          externalId: el.groupID
+          externalId: el.groupID,
         }
         scimGroup.members = []
         if (Array.isArray(el.members)) {
@@ -419,7 +395,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       })
     }
     return ret
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -427,9 +403,9 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 // createGroup
 // =================================================
-scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
+scimgateway.createGroup = async (baseEntity, groupObj) => {
   const action = 'createGroup'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" groupObj=${JSON.stringify(groupObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" groupObj=${JSON.stringify(groupObj)}`)
   // groupObj.displayName contains the group to be created
   // if supporting create group, we need some endpoint logic here
   throw new Error(`${action} error: ${action} is not supported`)
@@ -438,9 +414,9 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 // =================================================
 // deleteGroup
 // =================================================
-scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
+scimgateway.deleteGroup = async (baseEntity, id) => {
   const action = 'deleteGroup'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
   // if supporting delete group, we need some endpoint logic here
   throw new Error(`${action} error: ${action} is not supported`)
 }
@@ -450,7 +426,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyGroup'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
   if (!attrObj.members) {
     throw new Error(`${action} error: only supports modification of members`)
@@ -466,7 +442,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
       if (el.operation && el.operation === 'delete') { // delete member from group
         const soapRequest = {
           groupID: id,
-          userID: el.value
+          userID: el.value,
         }
         let result = await serviceClient['removeUserFromGroup' + 'Async'](soapRequest)
         if (!Array.isArray(result) || result.length < 4) {
@@ -481,7 +457,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
       } else { // add member to group
         const soapRequest = {
           groupID: id,
-          userID: el.value
+          userID: el.value,
         }
         let result = await serviceClient['assignUserToGroup' + 'Async'](soapRequest)
         if (!Array.isArray(result) || result.length < 4) {
@@ -495,7 +471,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
         return null
       }
     })
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -504,39 +480,35 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
 // helpers
 // =================================================
 
-const _serviceClient = {}
+const _serviceClient: any = {}
 
-const getServiceClient = async (baseEntity, action, ctx) => {
+const getServiceClient = async (baseEntity: string, action: string, ctx: undefined | Record<string, any>) => {
   try {
     const entityService = config[action].service
 
     if (_serviceClient[baseEntity] && _serviceClient[baseEntity][entityService]) { // serviceClient already exist
       // here we may also check for expired auth and update _serviceClient if needed
-      scimgateway.logger.debug(`${pluginName}[${baseEntity}] getServiceClient[${baseEntity}][${entityService}]: Using existing client`)
+      scimgateway.logDebug(baseEntity, `getServiceClient[${baseEntity}][${entityService}]: Using existing client`)
       return _serviceClient[baseEntity][entityService]
     }
+    scimgateway.logDebug(baseEntity, `getServiceClient[${baseEntity}][${entityService}]: Client have to be created`)
 
-    scimgateway.logger.debug(`${pluginName}[${baseEntity}] getServiceClient[${baseEntity}][${entityService}]: Client have to be created`)
-
-    let urlToWsdl = null // may be file system URL or http URL
-    let serviceEndpoint = null
     let client = null
-
     if (config.entity && config.entity[baseEntity]) client = config.entity[baseEntity]
     if (!client) {
-      const err = new Error(`Base URL have baseEntity=${baseEntity}, and configuration file ${pluginName}.json is missing required baseEntity configuration for ${baseEntity}`)
+      const err = new Error(`unsupported baseEntity: ${baseEntity}`)
       throw err
     }
 
     if (!config[action]) {
       throw new Error(`getServiceClient function called with invalid action definition: ${action}`)
     }
-    urlToWsdl = require('path').resolve(`${wsdlDir}/${entityService}.wsdl`)// file system wsdl/URL
-    // urlToWsdl = `${config.baseServiceEndpoint}/${entityService}?wsdl` // http URL
-    serviceEndpoint = config.baseServiceEndpoint + '/' + entityService
+    const urlToWsdl = path.resolve(`${wsdlDir}/${entityService}.wsdl`)// file system wsdl/URL
+    // const urlToWsdl = `${config.baseServiceEndpoint}/${entityService}?wsdl` // http URL
+    const serviceEndpoint = config.baseServiceEndpoint + '/' + entityService
 
     const wsdlOptions = {
-      handleNilAsNull: false
+      handleNilAsNull: false,
     }
 
     const customHeader = {}
@@ -568,7 +540,7 @@ const getServiceClient = async (baseEntity, action, ctx) => {
         _serviceClient[baseEntity][entityService] = serviceClient // serviceClient created
       }
       return serviceClient
-    } catch (err) {
+    } catch (err: any) {
       if (err.message) throw new Error(`createClient ${urlToWsdl} errorMessage: ${err.message}`)
       else throw new Error(`createClient ${urlToWsdl} errorMessage: invalid service definition - wsdl maybe not found?`)
     }
@@ -581,7 +553,7 @@ const getServiceClient = async (baseEntity, action, ctx) => {
 //
 // getCtxAuth returns username/secret from ctx header when using Auth PassThrough
 //
-const getCtxAuth = (ctx) => {
+const getCtxAuth = (ctx: undefined | Record<string, any>) => {
   if (!ctx?.request?.header?.authorization) return []
   const [authType, authToken] = (ctx.request.header.authorization || '').split(' ') // [0] = 'Basic' or 'Bearer'
   let username, password

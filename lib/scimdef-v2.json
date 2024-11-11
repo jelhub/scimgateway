@@ -1,10 +1,5 @@
-//==================================
-// File:    scimdef.js
-//
-// Author:  Jarle Elshaug
-//==================================
-
-module.exports.ServiceProviderConfigs = {
+{
+  "ServiceProviderConfigs": {
   "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"],
   "patch": {
     "supported": true
@@ -53,9 +48,9 @@ module.exports.ServiceProviderConfigs = {
     }
   ],
   "xmlDataFormat": { "supported": false }
-}
+},
 
-module.exports.ResourceType = {
+"ResourceType": {
   "totalResults": 2,
   "itemsPerPage": 2,
   "startIndex": 1,
@@ -91,9 +86,9 @@ module.exports.ResourceType = {
         "/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group"
     }
   }]
-}
+},
 
-module.exports.Schemas = {
+"Schemas": {
   "Resources":
     [
       {
@@ -1711,21 +1706,10 @@ module.exports.Schemas = {
           }
         ]
       }
-
-
     ]
+},
 
-
-
-}
-
-
-//========================================================//
-//======= Dummy testdata used for testmode plugin  =======//
-//========================================================//
-
-
-module.exports.TestmodeUsers = {
+"TestmodeUsers": {
   "Resources": [
     {
       "id": "bjensen",
@@ -1822,7 +1806,7 @@ module.exports.TestmodeUsers = {
       "password": "t1meMa$heen",
       "x509Certificates": [
         {
-        "value": "MIIDQzCCAqy...",
+        "value": "MIIDQzCCAqy..."
         }
       ],
       "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
@@ -1941,7 +1925,7 @@ module.exports.TestmodeUsers = {
       "password": "MySecret",
       "x509Certificates": [
         {
-        "value": "MIIDQzCCAqy...",
+        "value": "MIIDQzCCAqy..."
         }
       ],
       "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User": {
@@ -1965,9 +1949,9 @@ module.exports.TestmodeUsers = {
       }
     }
   ]
-}
+},
 
-module.exports.TestmodeGroups = {
+  "TestmodeGroups": {
   "Resources": [
     {
     "displayName": "Admins",
@@ -1976,7 +1960,7 @@ module.exports.TestmodeGroups = {
       {
         "value": "bjensen",
         "display": "Babs Jensen"
-      },
+      }
     ],
     "meta": {
       "resourceType": "Group",
@@ -2004,4 +1988,5 @@ module.exports.TestmodeGroups = {
     }
   }
   ]
+}
 }

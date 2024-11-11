@@ -24,28 +24,27 @@
 
 'use strict'
 
-const MongoClient = require('mongodb').MongoClient
+import { MongoClient } from 'mongodb'
+// for supporting nodejs running scimgateway package directly, using dynamic import instead of: import { ScimGateway } from 'scimgateway'
+// scimgateway also inclues HelperRest: import { ScimGateway, HelperRest } from 'scimgateway'
 
 // start - mandatory plugin initialization
-let ScimGateway = null
-try {
-  ScimGateway = require('./scimgateway')
-} catch (err) {
-  ScimGateway = require('scimgateway')
-}
+const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
+  try {
+    return (await import('scimgateway')).ScimGateway
+  } catch (err) {
+    const source = './scimgateway.ts'
+    return (await import(source)).ScimGateway
+  }
+})()
 const scimgateway = new ScimGateway()
-const pluginName = scimgateway.pluginName
-const configFile = scimgateway.configFile // const configDir = scimgateway.configDir
-let config = require(configFile).endpoint
-config = scimgateway.processExtConfig(pluginName, config) // add any external config process.env and process.file
-scimgateway.authPassThroughAllowed = false // true enables auth passThrough (no scimgateway authentication). scimgateway instead includes ctx (ctx.request.header) in plugin methods. Note, requires plugin-logic for handling/passing ctx.request.header.authorization to be used in endpoint communication
+const config = scimgateway.getConfig()
+scimgateway.authPassThroughAllowed = false
 // end - mandatory plugin initialization
-
-// let endpointPasswordExample = scimgateway.getPassword('endpoint.password', configFile); // example how to encrypt configfile having "endpoint.password"
 
 const validFilterOperators = ['eq', 'ne', 'aeq', 'dteq', 'gt', 'gte', 'lt', 'lte', 'between', 'jgt', 'jgte', 'jlt', 'jlte', 'jbetween', 'regex', 'in', 'nin', 'keyin', 'nkeyin', 'definedin', 'undefinedin', 'contains', 'containsAny', 'type', 'finite', 'size', 'len', 'exists']
 
-async function loadHandler (baseEntity, ctx) {
+async function loadHandler(baseEntity: string, ctx: undefined | Record<string, any>) {
   const action = 'loadHander'
 
   const clientIdentifier = getClientIdentifier(ctx)
@@ -70,10 +69,10 @@ async function loadHandler (baseEntity, ctx) {
     password = secret
   } else {
     username = config.entity[baseEntity].username
-    password = scimgateway.getPassword(`endpoint.entity.${baseEntity}.password`, configFile)
+    password = scimgateway.getSecret(`endpoint.entity.${baseEntity}.password`)
   }
   const dbConn = `${arr[0]}//${encodeURIComponent(username)}:${encodeURIComponent(password)}@${arr[1]}` // percent encoded username/password
-  const client = new MongoClient(dbConn, { useUnifiedTopology: true })
+  const client = new MongoClient(dbConn, { serverSelectionTimeoutMS: 5000 })
 
   const dbName = config.entity[baseEntity].database ? config.entity[baseEntity].database : 'scim'
   let db
@@ -82,7 +81,7 @@ async function loadHandler (baseEntity, ctx) {
 
   try {
     await client.connect()
-    db = await client.db(dbName)
+    db = client.db(dbName)
 
     const clientIdentifier = getClientIdentifier(ctx)
     if (!config.entity[baseEntity][clientIdentifier]) config.entity[baseEntity][clientIdentifier] = {}
@@ -99,11 +98,11 @@ async function loadHandler (baseEntity, ctx) {
       groups = await db.collection('groups')
       groups.createIndex({ id: 1 }, { unique: true })
     }
-  } catch (error) {
+  } catch (error: any) {
     if (clientIdentifier && error.message.includes('Authentication')) {
       throw new Error('{"error":"Access denied","statusCode":401}') // string: "statusCode":401 ensure gateway returns 401
     }
-    throw new Error(`${action} error: failed to connect to database '${client.s.options.dbName}' - ${error.message}`)
+    throw new Error(`${action} error: failed to connect to database '${client.options.dbName}' - ${error.message}`)
   }
 
   if (config.entity[baseEntity].persistence === false && process.env.NODE_ENV !== 'production') {
@@ -115,36 +114,36 @@ async function loadHandler (baseEntity, ctx) {
       users.createIndex({ id: 1 }, { unique: true })
       groups = await db.collection('groups')
       groups.createIndex({ id: 1 }, { unique: true })
-    } catch (error) {
-      throw new Error(`${action} error: failed to get collections for database '${client.s.options.dbName}' - ${error.message}`)
+    } catch (error: any) {
+      throw new Error(`${action} error: failed to get collections for database '${client.options.dbName}' - ${error.message}`)
     }
 
-    for (let record of scimgateway.testmodeusers) {
+    for (let record of scimgateway.getTestModeUsers()) {
       try {
         record = encodeDotDate(record)
         const now = Date.now()
         record.meta = {
           created: now,
-          version: 0
+          version: 0,
         }
 
         await users.insertOne(record)
-      } catch (error) {
-        throw new Error(`${action} error: failed to insert user for database '${client.s.options.dbName}' - ${error.message}`)
+      } catch (error: any) {
+        throw new Error(`${action} error: failed to insert user for database '${client.options.dbName}' - ${error.message}`)
       }
     }
 
-    for (let record of scimgateway.testmodegroups) {
+    for (let record of scimgateway.getTestModeGroups()) {
       try {
         record = encodeDotDate(record)
         const now = Date.now()
         record.meta = {
           created: now,
-          version: 0
+          version: 0,
         }
         await groups.insertOne(record)
-      } catch (error) {
-        throw new Error(`${action} error: failed to insert group for database '${client.s.options.dbName}' - ${error.message}`)
+      } catch (error: any) {
+        throw new Error(`${action} error: failed to insert group for database '${client.options.dbName}' - ${error.message}`)
       }
     }
   }
@@ -160,20 +159,8 @@ async function loadHandler (baseEntity, ctx) {
 // getUsers
 // =================================================
 scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
-  //
-  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
-  // rawFilter is always included when filtering
-  // attribute, operator and value are included when requesting unique object or simpel filtering
-  // See comments in the "mandatory if-else logic - start"
-  //
-  // "attributes" is array of attributes to be returned - if empty, all supported attributes should be returned
-  // Should normally return all supported user attributes having id and userName as mandatory
-  // id and userName are most often considered as "the same" having value = <UserID>
-  // Note, the value of returned 'id' will be used as 'id' in modifyUser and deleteUser
-  // scimgateway will automatically filter response according to the attributes list
-  //
   const action = 'getUsers'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -208,7 +195,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   }
 
   const users = config.entity[baseEntity][clientIdentifier].collection.users
-  let findObj
+  let findObj: any
 
   // mandatory if-else logic - start
   if (getObj.operator) { // note, using prefix '$'
@@ -246,12 +233,12 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 
   const ret = {
     Resources: [],
-    totalResults: null
+    totalResults: null,
   }
 
   try {
     const projection = attributes.length > 0 ? getProjectionFromAttributes(attributes) : { _id: 0 }
-    const usersArr = await users.find(findObj, { projection: projection }).sort({ _id: 1 }).skip(getObj.startIndex - 1).limit(getObj.count).toArray()
+    const usersArr: Record<string, any>[] = await users.find(findObj, { projection: projection }).sort({ _id: 1 }).skip(getObj.startIndex - 1).limit(getObj.count).toArray()
     const totalResults = await users.countDocuments(findObj, { projection: projection })
     const arr = usersArr.map((obj) => {
       const o = decodeDotDate(obj)
@@ -263,7 +250,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     Array.prototype.push.apply(ret.Resources, arr)
     ret.totalResults = totalResults
     return ret
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -273,14 +260,14 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   const action = 'createUser'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" userObj=${JSON.stringify(userObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" userObj=${JSON.stringify(userObj)}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
   if (userObj.password) delete userObj.password // exclude password db not ecrypted
   for (const key in userObj) {
     if (!Array.isArray(userObj[key]) && scimgateway.isMultiValueTypes(key)) { // true if attribute is "type converted object" => convert to standard array
-      const arr = []
+      const arr: string[] = []
       for (const el in userObj[key]) {
         userObj[key][el].type = el
         if (el === 'undefined') delete userObj[key][el].type // type "undefined" reverted back to original blank
@@ -299,7 +286,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
     userObj.meta = {
       version: 0,
       created: now,
-      lastModified: now
+      lastModified: now,
     }
   }
   userObj = encodeDotDate(userObj)
@@ -308,7 +295,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
     const users = config.entity[baseEntity][clientIdentifier].collection.users
     await users.insertOne(userObj)
     return null
-  } catch (err) {
+  } catch (err: any) {
     const newErr = new Error(`${action} error: ${err.message}`)
     if (err.message && err.message.includes('duplicate key')) {
       newErr.name += '#409' // customErrorCode
@@ -322,7 +309,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
 // =================================================
 scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   const action = 'deleteUser'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -341,7 +328,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
     */
     await users.deleteOne({ id: id })
     return null
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: failed for user id=${id} - ${err.message}`)
   }
 }
@@ -351,7 +338,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyUser'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -362,7 +349,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
     res = await users.find({ id }, { projection: { _id: 0 } }).toArray()
     if (res.length === 0) throw new Error('user does not exist')
     if (res.length > 1) throw new Error('user is not unique, more than one have been found')
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`${action} error: could not find user with id=${id} - ${error.message}`)
   }
 
@@ -374,8 +361,8 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
       const addArr = attrObj[key].filter(el => (!el.operation || el.operation !== 'delete'))
       if (!userObj[key] || !Array.isArray(userObj[key])) userObj[key] = []
       // delete
-      userObj[key] = userObj[key].filter(el => {
-        const index = delArr.findIndex(e => {
+      userObj[key] = userObj[key].filter((el: Record<string, any>) => {
+        const index = delArr.findIndex((e) => {
           let elExist = false
           for (const k in el) {
             if (k === 'primary') continue
@@ -391,19 +378,20 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         else return true
       })
       // add
-      addArr.forEach(el => {
+      addArr.forEach((el) => {
         if (Object.prototype.hasOwnProperty.call(el, 'primary')) {
           if (el.primary === true || (typeof el.primary === 'string' && el.primary.toLowerCase() === 'true')) {
-            const index = userObj[key].findIndex(e => e.primary === el.primary)
+            const index = userObj[key].findIndex((e: Record<string, any>) => e.primary === el.primary)
             if (index >= 0) {
               if (key === 'roles') userObj[key].splice(index, 1) // roles, delete existing role having primary attribute true (new role with primary will be added)
               else userObj[key][index].primary = undefined // remove primary attribute, only one primary
             }
           }
         }
-        const index = userObj[key].findIndex(e => { // avoid adding existing
+        const index = userObj[key].findIndex((e: Record<string, any>) => { // avoid adding existing
           let elExist = false
           for (const k in el) {
+            if (k === 'primary') continue
             if (el[k] !== e[k]) {
               elExist = false
               break
@@ -419,22 +407,22 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
       for (const el in attrObj[key]) {
         attrObj[key][el].type = el
         if (attrObj[key][el].operation && attrObj[key][el].operation === 'delete') { // delete multivalue
-          let type = el
+          let type: any = el
           if (type === 'undefined') type = undefined
-          userObj[key] = userObj[key].filter(e => e.type !== type)
+          userObj[key] = userObj[key].filter((e: Record<string, any>) => e.type !== type)
           if (userObj[key].length < 1) delete userObj[key]
         } else { // modify/create multivalue
           if (!userObj[key]) userObj[key] = []
           if (attrObj[key][el].primary) { // remove any existing primary attribute, should only have one primary set
             const primVal = attrObj[key][el].primary
             if (primVal === true || (typeof primVal === 'string' && primVal.toLowerCase() === 'true')) {
-              const index = userObj[key].findIndex(e => e.primary === primVal)
+              const index = userObj[key].findIndex((e: Record<string, any>) => e.primary === primVal)
               if (index >= 0) {
                 userObj[key][index].primary = undefined
               }
             }
           }
-          const found = userObj[key].find((e, i) => {
+          const found = userObj[key].find((e: Record<string, any>, i: any) => {
             if (e.type === el || (!e.type && el === 'undefined')) {
               for (const k in attrObj[key][el]) {
                 userObj[key][i][k] = attrObj[key][el][k]
@@ -457,14 +445,14 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         if (!userObj[key]) userObj[key] = {} // e.g name object does not exist
         for (const sub in attrObj[key]) { // attributes to be cleard located in meta.attributes eg: {"meta":{"attributes":["name.familyName","profileUrl","title"]}
           if (sub === 'attributes' && Array.isArray(attrObj[key][sub])) {
-            attrObj[key][sub].forEach(element => {
+            attrObj[key][sub].forEach((element) => {
               const arrSub = element.split('.')
               if (arrSub.length === 2) userObj[arrSub[0]][arrSub[1]] = '' // e.g. name.familyName
               else userObj[element] = ''
             })
           } else {
-            if (Object.prototype.hasOwnProperty.call(attrObj[key][sub], 'value') &&
-            attrObj[key][sub].value === '') delete userObj[key][sub] // object having blank value attribute e.g. {"manager": {"value": "",...}}
+            if (Object.prototype.hasOwnProperty.call(attrObj[key][sub], 'value')
+              && attrObj[key][sub].value === '') delete userObj[key][sub] // object having blank value attribute e.g. {"manager": {"value": "",...}}
             else if (attrObj[key][sub] === '') delete userObj[key][sub]
             else {
               if (!userObj[key]) userObj[key] = {} // may have been deleted by length check below
@@ -482,7 +470,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
     userObj.meta = {
       version: 0,
       created: now,
-      lastModified: now
+      lastModified: now,
     }
   } else {
     const now = Date.now()
@@ -495,7 +483,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
     const users = config.entity[baseEntity][clientIdentifier].collection.users
     await users.replaceOne({ id: id }, userObj)
     return null
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: failed for user id=${id} - ${err.message}`)
   }
 }
@@ -504,20 +492,8 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 // getGroups
 // =================================================
 scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
-  //
-  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
-  // rawFilter is always included when filtering
-  // attribute, operator and value are included when requesting unique object or simpel filtering
-  // See comments in the "mandatory if-else logic - start"
-  //
-  // "attributes" is array of attributes to be returned - if empty, all supported attributes should be returned
-  // Should normally return all supported group attributes having id, displayName and members as mandatory
-  // id and displayName are most often considered as "the same" having value = <GroupName>
-  // Note, the value of returned 'id' will be used as 'id' in modifyGroup and deleteGroup
-  // scimgateway will automatically filter response according to the attributes list
-  //
   const action = 'getGroups'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -551,7 +527,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     }
   }
 
-  let findObj
+  let findObj: any
 
   // mandatory if-else logic - start
   if (getObj.operator) { // note, loki using prefix '$'
@@ -589,13 +565,13 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 
   const ret = {
     Resources: [],
-    totalResults: null
+    totalResults: null,
   }
 
   try {
     const projection = attributes.length > 0 ? getProjectionFromAttributes(attributes) : { _id: 0 }
     const groups = config.entity[baseEntity][clientIdentifier].collection.groups
-    const groupsArr = await groups.find(findObj, { projection: projection }).sort({ _id: 1 }).skip(getObj.startIndex - 1).limit(getObj.count).toArray()
+    const groupsArr: Record<string, any>[] = await groups.find(findObj, { projection: projection }).sort({ _id: 1 }).skip(getObj.startIndex - 1).limit(getObj.count).toArray()
     const totalResults = await groups.countDocuments(findObj, { projection: projection })
     const arr = groupsArr.map((obj) => {
       return decodeDotDate(obj)
@@ -603,7 +579,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     Array.prototype.push.apply(ret.Resources, arr)
     ret.totalResults = totalResults
     return ret
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -613,7 +589,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   const action = 'createGroup'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" groupObj=${JSON.stringify(groupObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" groupObj=${JSON.stringify(groupObj)}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -622,7 +598,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
     groupObj.meta = {
       version: 0,
       created: now,
-      lastModified: now
+      lastModified: now,
     }
   }
   if (groupObj.externalId) groupObj.id = groupObj.externalId // for loki-plugin (scim endpoint) id is mandatory and set to displayName
@@ -630,8 +606,8 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   groupObj = encodeDotDate(groupObj)
 
   if (groupObj.members) {
-    const noneExistingUsers = []
-    await Promise.all(groupObj.members.map(async (el) => {
+    const noneExistingUsers: any = []
+    await Promise.all(groupObj.members.map(async (el: any) => {
       if (el.value) {
         const getObj = { attribute: 'id', operator: 'eq', value: el.value }
         const usrs = await scimgateway.getUsers(baseEntity, getObj, ['id', 'displayName'], ctx) // check if user exist
@@ -651,7 +627,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
     const groups = config.entity[baseEntity][clientIdentifier].collection.groups
     await groups.insertOne(groupObj)
     return null
-  } catch (err) {
+  } catch (err: any) {
     const newErr = new Error(`${action} error: ${err.message}`)
     if (err.message && err.message.includes('duplicate key')) {
       newErr.name += '#409' // customErrorCode
@@ -665,7 +641,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 // =================================================
 scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
   const action = 'deleteGroup'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -684,7 +660,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
     */
     await groups.deleteOne({ id: id })
     return null
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: failed for id=${id} - ${err.message}`)
   }
 }
@@ -694,7 +670,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyGroup'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -707,13 +683,13 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
     res = await groups.find({ id: id }, { projection: { _id: 0 } }).toArray()
     if (res.length === 0) throw new Error('group does not exist')
     if (res.length > 1) throw new Error('group is not unique, more than one have been found')
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: group id=${id} - ${err.message}`)
   }
 
-  let groupObj = decodeDotDate(res[0])
+  let groupObj: any = decodeDotDate(res[0])
   if (!groupObj.members) groupObj.members = []
-  const usersNotExist = []
+  const usersNotExist: string[] = []
 
   if (attrObj.members) {
     if (!Array.isArray(attrObj.members)) {
@@ -721,29 +697,29 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
     }
     for (const el of attrObj.members) {
       if (el.operation && el.operation === 'delete') {
-      // delete member from group
+        // delete member from group
         if (!el.value) {
-        // members=[{"operation":"delete"}] => no value, delete all members
+          // members=[{"operation":"delete"}] => no value, delete all members
           await groups.updateOne({ id: groupObj.id }, { $set: { members: [] } })
-          scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id} deleted all members`)
+          scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} deleted all members`)
           isModified = true
         } else {
           await groups.updateMany({ id: groupObj.id }, { $pull: { members: { value: el.value } } })
-          scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id} deleted from group: ${el.value}`)
+          scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} deleted from group: ${el.value}`)
           isModified = true
         }
       } else { // Add member to group
         if (el.value) {
-          let usrs = []
+          let usrs: any = []
           try {
             usrs = await users.find({ id: el.value }, { projection: { _id: 0 } }).toArray() // check if user exist
-          } catch (err) {
+          } catch (err: any) {
             throw new Error(`${action} error: failed to find group id=${id} - ${err.message}`)
           }
           if (usrs.length === 1 && usrs[0].id === el.value) {
-            if (!groupObj.members.some((element) => element.value === el.value)) {
+            if (!groupObj.members.some((element: Record<string, any>) => element.value === el.value)) {
               await groups.updateMany({ id: groupObj.id }, { $push: { members: { display: usrs[0].displayName || el.value, value: el.value } } })
-              scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id} added member to group: ${el.value}`)
+              scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} added member to group: ${el.value}`)
               isModified = true
             }
           } else usersNotExist.push(el.value)
@@ -763,7 +739,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
     groupObj.meta = {
       version: 0,
       created: now,
-      lastModified: now
+      lastModified: now,
     }
   } else {
     const now = Date.now()
@@ -773,9 +749,9 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   groupObj = encodeDotDate(groupObj)
   try {
     if (isModified) await groups.updateOne({ id: groupObj.id }, { $set: { meta: groupObj.meta } })
-    if (usersNotExist.length > 0) throw new Error(`includes none existing members: ${usersNotExist.toString()}`)
+    if (usersNotExist.length > 0) throw new Error(`includes none existing users: ${usersNotExist.toString()}`)
     return null
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: failed for id=${groupObj.id} - ${err.message}`)
   }
 }
@@ -784,8 +760,8 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
 // helpers
 // =================================================
 
-const getClientIdentifier = (ctx) => {
-  if (!ctx?.request?.header?.authorization) return undefined
+const getClientIdentifier = (ctx: undefined | Record<string, any>) => {
+  if (!ctx?.request?.header?.authorization) return 'undefined'
   const [user, secret] = getCtxAuth(ctx)
   return `${encodeURIComponent(user)}_${encodeURIComponent(secret)}` // user_password or undefined_password
 }
@@ -793,7 +769,7 @@ const getClientIdentifier = (ctx) => {
 //
 // getCtxAuth returns username/secret from ctx header when using Auth PassThrough
 //
-const getCtxAuth = (ctx) => {
+const getCtxAuth = (ctx: undefined | Record<string, any>) => {
   if (!ctx?.request?.header?.authorization) return []
   const [authType, authToken] = (ctx.request.header.authorization || '').split(' ') // [0] = 'Basic' or 'Bearer'
   let username, password
@@ -802,11 +778,11 @@ const getCtxAuth = (ctx) => {
   else return [undefined, authToken] // bearer auth
 }
 
-const decodeDotDate = (obj) => { // replace dot with unicode
+const decodeDotDate = (obj: Record<string, any>) => { // replace dot with unicode
   const retObj = JSON.parse(JSON.stringify(obj)) // new object - don't modify source
   Object.keys(retObj).forEach(function (key) {
     if (key.includes('·')) {
-      retObj[key.replace(/\·/g, '.')] = retObj[key] // eslint-disable-line
+      retObj[key.replace(/·/g, '.')] = retObj[key]
       delete retObj[key]
     }
   })
@@ -817,7 +793,7 @@ const decodeDotDate = (obj) => { // replace dot with unicode
   return retObj
 }
 
-const encodeDotDate = (obj) => {
+const encodeDotDate = (obj: Record<string, any>) => {
   const retObj = JSON.parse(JSON.stringify(obj)) // new object - don't modify source
   if (retObj._id) delete retObj._id
   Object.keys(retObj).forEach(function (key) { // replace dot with unicode
@@ -843,31 +819,31 @@ const encodeDotDate = (obj) => {
   return retObj
 }
 
-function getProjectionFromAttributes (attributes) {
-  const projection = {}
+function getProjectionFromAttributes(attributes: Array<string>) {
+  const projection: any = {}
   attributes.forEach((attr) => {
     projection[attr] = 1
   })
   return projection
 }
 
-async function isMongoCollection (baseEntity, collection) {
+async function isMongoCollection(baseEntity: string, collection: string) {
   try {
     if (!config.entity[baseEntity].db.listCollections) return false
     const colls = await config.entity[baseEntity].db.listCollections({ name: collection }).toArray()
     if (colls.length === 1) return true
     return false
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to check collection '${collection}' - ${error.message}`)
   }
 }
 
-async function dropMongoCollection (baseEntity, collection) {
+async function dropMongoCollection(baseEntity: string, collection: string) {
   try {
     if (await isMongoCollection(baseEntity, collection)) {
       await config.entity[baseEntity].db.dropCollection(collection)
     }
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to drop collection '${collection}' - ${error.message}`)
   }
 }
@@ -875,22 +851,22 @@ async function dropMongoCollection (baseEntity, collection) {
 //
 // Cleanup on exit
 //
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   // kill
   for (const baseEntity in config.entity) {
     for (const key in config.entity[baseEntity]) {
-      if (config.entity[baseEntity][key].client) {
-        config.entity[baseEntity][key].client.close()
+      if (config.entity[baseEntity][key].client && config.entity[baseEntity][key].client.topology) {
+        await config.entity[baseEntity][key].client.close()
       }
     }
   }
 })
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   // Ctrl+C
   for (const baseEntity in config.entity) {
     for (const key in config.entity[baseEntity]) {
-      if (config.entity[baseEntity][key].client) {
-        config.entity[baseEntity][key].client.close()
+      if (config.entity[baseEntity][key].client && config.entity[baseEntity][key].client.topology) {
+        await config.entity[baseEntity][key].client.close()
       }
     }
   }
@@ -900,6 +876,10 @@ process.on('SIGINT', () => {
 if (!config.entity) throw new Error('error: configuration entity is missing')
 if (!scimgateway.authPassThroughAllowed) { // not using Auth PassThrough, loading db handler at startup using username/password from config
   for (const baseEntity in config.entity) {
-    loadHandler(baseEntity)
+    try {
+      await loadHandler(baseEntity, undefined)
+    } catch (err: any) {
+      scimgateway.logError(baseEntity, err.message)
+    }
   }
 }

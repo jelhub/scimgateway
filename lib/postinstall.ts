@@ -2,9 +2,9 @@
 // Copy plugins from original scimgateway package to current installation folder
 //
 
-const fs = require('fs')
+import fs from 'node:fs'
 
-function fsExistsSync (f) {
+function fsExistsSync(f: string) {
   try {
     fs.accessSync(f)
     return true
@@ -13,8 +13,8 @@ function fsExistsSync (f) {
   }
 }
 
-if (process.env.npm_config_scimgateway_postinstall_skip || process.env.SCIMGATEWAY_POSTINSTALL_SKIP) {
-  console.info('The configuration `scimgateway_postinstall_skip` was set to true so `postinstall` activities are going to be skipped!')
+if (process.env.SCIMGATEWAY_POSTINSTALL_SKIP) {
+  console.info('The configuration `scimgateway_postinstall_skip` was set to true, `postinstall` activities are skipped!')
   process.exit(0)
 }
 
@@ -37,15 +37,15 @@ if (!fsExistsSync('../../config/plugin-entra-id.json')) fs.writeFileSync('../../
 if (!fsExistsSync('../../config/plugin-ldap.json')) fs.writeFileSync('../../config/plugin-ldap.json', fs.readFileSync('./config/plugin-ldap.json'))
 if (!fsExistsSync('../../config/plugin-mongodb.json')) fs.writeFileSync('../../config/plugin-mongodb.json', fs.readFileSync('./config/plugin-mongodb.json'))
 
-fs.writeFileSync('../../lib/plugin-loki.js', fs.readFileSync('./lib/plugin-loki.js'))
-fs.writeFileSync('../../lib/plugin-scim.js', fs.readFileSync('./lib/plugin-scim.js'))
-fs.writeFileSync('../../lib/plugin-soap.js', fs.readFileSync('./lib/plugin-soap.js'))
-fs.writeFileSync('../../lib/plugin-mssql.js', fs.readFileSync('./lib/plugin-mssql.js'))
-fs.writeFileSync('../../lib/plugin-saphana.js', fs.readFileSync('./lib/plugin-saphana.js'))
-fs.writeFileSync('../../lib/plugin-api.js', fs.readFileSync('./lib/plugin-api.js'))
-fs.writeFileSync('../../lib/plugin-entra-id.js', fs.readFileSync('./lib/plugin-entra-id.js'))
-fs.writeFileSync('../../lib/plugin-ldap.js', fs.readFileSync('./lib/plugin-ldap.js'))
-fs.writeFileSync('../../lib/plugin-mongodb.js', fs.readFileSync('./lib/plugin-mongodb.js'))
+fs.writeFileSync('../../lib/plugin-loki.ts', fs.readFileSync('./lib/plugin-loki.ts'))
+fs.writeFileSync('../../lib/plugin-scim.ts', fs.readFileSync('./lib/plugin-scim.ts'))
+fs.writeFileSync('../../lib/plugin-soap.ts', fs.readFileSync('./lib/plugin-soap.ts'))
+fs.writeFileSync('../../lib/plugin-mssql.ts', fs.readFileSync('./lib/plugin-mssql.ts'))
+fs.writeFileSync('../../lib/plugin-saphana.ts', fs.readFileSync('./lib/plugin-saphana.ts'))
+fs.writeFileSync('../../lib/plugin-api.ts', fs.readFileSync('./lib/plugin-api.ts'))
+fs.writeFileSync('../../lib/plugin-entra-id.ts', fs.readFileSync('./lib/plugin-entra-id.ts'))
+fs.writeFileSync('../../lib/plugin-ldap.ts', fs.readFileSync('./lib/plugin-ldap.ts'))
+fs.writeFileSync('../../lib/plugin-mongodb.ts', fs.readFileSync('./lib/plugin-mongodb.ts'))
 
 if (!fsExistsSync('../../config/wsdls/GroupService.wsdl')) {
   fs.writeFileSync('../../config/wsdls/GroupService.wsdl', fs.readFileSync('./config/wsdls/GroupService.wsdl'))
@@ -60,4 +60,4 @@ fs.writeFileSync('../../config/docker/DataDockerfile', fs.readFileSync('./config
 fs.writeFileSync('../../config/docker/docker-compose-debug.yml', fs.readFileSync('./config/docker/docker-compose-debug.yml'))
 
 fs.writeFileSync('../../LICENSE', fs.readFileSync('./LICENSE'))
-if (!fsExistsSync('../../index.js')) fs.writeFileSync('../../index.js', fs.readFileSync('./index.js'))
+if (!fsExistsSync('../../index.ts')) fs.writeFileSync('../../index.ts', fs.readFileSync('./index.ts'))

@@ -19,53 +19,42 @@
 
 'use strict'
 
-const hdb = require('hdb')
+import hdb from 'hdb' // prereq: bun install hdb
+// for supporting nodejs running scimgateway package directly, using dynamic import instead of: import { ScimGateway } from 'scimgateway'
+// scimgateway also inclues HelperRest: import { ScimGateway, HelperRest } from 'scimgateway'
 
 // start - mandatory plugin initialization
-let ScimGateway = null
-try {
-  ScimGateway = require('scimgateway')
-} catch (err) {
-  ScimGateway = require('./scimgateway')
-}
+const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
+  try {
+    return (await import('scimgateway')).ScimGateway
+  } catch (err) {
+    const source = './scimgateway.ts'
+    return (await import(source)).ScimGateway
+  }
+})()
 const scimgateway = new ScimGateway()
-const pluginName = scimgateway.pluginName
-const configFile = scimgateway.configFile // const configDir = scimgateway.configDir
-let config = require(configFile).endpoint
-config = scimgateway.processExtConfig(pluginName, config) // add any external config process.env and process.file
-scimgateway.authPassThroughAllowed = false // true enables auth passThrough (no scimgateway authentication). scimgateway instead includes ctx (ctx.request.header) in plugin methods. Note, requires plugin-logic for handling/passing ctx.request.header.authorization to be used in endpoint communication
-// start - mandatory plugin initialization
+const config = scimgateway.getConfig()
+scimgateway.authPassThroughAllowed = false
+// end - mandatory plugin initialization
 
 const endpointHost = config.host
 const endpointPort = config.port
 const endpointUsername = config.username
-const endpointPassword = scimgateway.getPassword('endpoint.password', configFile)
+const endpointPassword = scimgateway.getSecret('endpoint.password')
 const endpointSamlProvider = config.saml_provider
 const hdbClient = hdb.createClient({
   host: endpointHost,
   port: endpointPort,
   user: endpointUsername,
-  password: endpointPassword
+  password: endpointPassword,
 })
 
 // =================================================
 // getUsers
 // =================================================
-scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
-  //
-  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
-  // rawFilter is always included when filtering
-  // attribute, operator and value are included when requesting unique object or simpel filtering
-  // See comments in the "mandatory if-else logic - start"
-  //
-  // "attributes" is array of attributes to be returned - if empty, all supported attributes should be returned
-  // Should normally return all supported user attributes having id and userName as mandatory
-  // id and userName are most often considered as "the same" having value = <UserID>
-  // Note, the value of returned 'id' will be used as 'id' in modifyUser and deleteUser
-  // scimgateway will automatically filter response according to the attributes list
-  //
+scimgateway.getUsers = async (baseEntity, getObj, attributes) => {
   const action = 'getUsers'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
 
   let sqlQuery
 
@@ -86,7 +75,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all users to be returned - correspond to exploreUsers() in versions < 4.x.x
-    sqlQuery = "select USER_NAME, USER_DEACTIVATED from SYS.USERS where IS_SAML_ENABLED like 'TRUE'"
+    sqlQuery = 'select USER_NAME, USER_DEACTIVATED from SYS.USERS where IS_SAML_ENABLED like \'TRUE\''
   }
   // mandatory if-else logic - end
 
@@ -94,18 +83,18 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 
   try {
     return await new Promise((resolve, reject) => {
-      const ret = { // itemsPerPage will be set by scimgateway
+      const ret: any = { // itemsPerPage will be set by scimgateway
         Resources: [],
-        totalResults: null
+        totalResults: null,
       }
 
-      hdbClient.connect(function (err) {
+      hdbClient.connect(function (err: any) {
         if (err) {
           const newErr = new Error('exploreUsers hdbcClient.connect: SAP Hana client connect error: ' + err.message)
           return reject(newErr)
         }
         // Find all SAML_ENABLED users
-        hdbClient.exec(sqlQuery, function (err, rows) {
+        hdbClient.exec(sqlQuery, function (err: any, rows: any) {
           hdbClient.end()
           if (err) {
             const newErr = new Error('exploreUsers hdbcClient.exec: SAP Hana client execute error: ' + err.message + ' sqlQuery = ' + sqlQuery)
@@ -115,7 +104,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
             const scimUser = { // returning userName and id
               userName: rows[row].USER_NAME,
               id: rows[row].USER_NAME,
-              active: !JSON.parse((rows[0].USER_DEACTIVATED).toLowerCase())
+              active: !JSON.parse((rows[0].USER_DEACTIVATED).toLowerCase()),
             }
             ret.Resources.push(scimUser)
           }
@@ -123,7 +112,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         }) // exec
       }) // connect
     }) // Promise
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -131,13 +120,13 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 // createUser
 // =================================================
-scimgateway.createUser = async (baseEntity, userObj, ctx) => {
+scimgateway.createUser = async (baseEntity, userObj) => {
   const action = 'createUser'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" userObj=${JSON.stringify(userObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" userObj=${JSON.stringify(userObj)}`)
 
   try {
     return await new Promise((resolve, reject) => {
-      hdbClient.connect(function (err) {
+      hdbClient.connect(function (err: any) {
         if (err) {
           const newErr = new Error('createUser hdbcClient.connect: SAP Hana client connect error: ' + err.message)
           return reject(newErr)
@@ -145,15 +134,15 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
         // SAPHana create user do not need any additional provisioning attributes to be included
         // let sqlQuery = 'CREATE USER ' + userObj.userName + ' WITH IDENTITY ANY FOR SAML PROVIDER ' + endpointSamlProvider;
         // let sqlQuery = 'CREATE USER ' + userObj.userName + ' WITH IDENTITY ' + "'" + userObj.userName + "'" + ' FOR SAML PROVIDER ' + endpointSamlProvider;
-        let sqlQuery = 'CREATE USER ' + userObj.userName + ' WITH IDENTITY ' + "'" + userObj.userName + "'" + ' FOR SAML PROVIDER ' + endpointSamlProvider + ' SET PARAMETER CLIENT = ' + "'103'"
-        hdbClient.exec(sqlQuery, function (err, rows) {
+        let sqlQuery = 'CREATE USER ' + userObj.userName + ' WITH IDENTITY ' + '\'' + userObj.userName + '\'' + ' FOR SAML PROVIDER ' + endpointSamlProvider + ' SET PARAMETER CLIENT = ' + '\'103\''
+        hdbClient.exec(sqlQuery, function (err: any) {
           hdbClient.end()
           if (err) {
             const newErr = new Error('createUser hdbcClient.exec: SAP Hana client execute error: ' + err.message + ' sqlQuery = ' + sqlQuery)
             return reject(newErr)
           }
           sqlQuery = 'GRANT NG_REPORTING_ROLE TO ' + userObj.userName
-          hdbClient.exec(sqlQuery, function (err, rows) {
+          hdbClient.exec(sqlQuery, function (err: any) {
             hdbClient.end()
             if (err) {
               const newErr = new Error('createUser hdbcClient.exec: SAP Hana client execute error: ' + err.message + ' sqlQuery = ' + sqlQuery)
@@ -164,7 +153,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
         }) // exec
       }) // connect
     }) // Promise
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -172,19 +161,19 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
 // =================================================
 // deleteUser
 // =================================================
-scimgateway.deleteUser = async (baseEntity, id, ctx) => {
+scimgateway.deleteUser = async (baseEntity, id) => {
   const action = 'deleteUser'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
 
   try {
     return await new Promise((resolve, reject) => {
-      hdbClient.connect(function (err) {
+      hdbClient.connect(function (err: any) {
         if (err) {
           const newErr = new Error('deleteUser hdbcClient.connect: SAP Hana client connect error: ' + err.message)
           return reject(newErr)
         }
         const sqlQuery = 'DROP USER ' + id
-        hdbClient.exec(sqlQuery, function (err, rows) {
+        hdbClient.exec(sqlQuery, function (err: any) {
           hdbClient.end()
           if (err) {
             const newErr = new Error('deleteUser hdbcClient.exec: SAP Hana client execute error: ' + err.message + ' sqlQuery = ' + sqlQuery)
@@ -194,7 +183,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
         }) // exec
       }) // connect
     }) // Promise
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -202,9 +191,9 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
 // =================================================
 // modifyUser
 // =================================================
-scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
+scimgateway.modifyUser = async (baseEntity, id, attrObj) => {
   const action = 'modifyUser'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
   try {
     return await new Promise((resolve, reject) => {
@@ -214,13 +203,13 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         else sqlAction += (attrObj.active === true) ? ' ACTIVATE' : ' DEACTIVATE'
       } // Add more attribute checks here according supported endpoint attributes
 
-      hdbClient.connect(function (err) {
+      hdbClient.connect(function (err: any) {
         if (err) {
           const newErr = new Error('modifyUser hdbcClient.connect: SAP Hana client connect error: ' + err.message)
           return reject(newErr)
         }
         const sqlQuery = 'ALTER USER ' + id + ' ' + sqlAction
-        hdbClient.exec(sqlQuery, function (err, rows) {
+        hdbClient.exec(sqlQuery, function (err: any) {
           hdbClient.end()
           if (err) {
             const newErr = new Error('modifyUser hdbcClient.exec: SAP Hana client execute error: ' + err.message + ' sqlQuery = ' + sqlQuery)
@@ -230,7 +219,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         }) // execute
       }) // connect
     }) // Promise
-  } catch (err) {
+  } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -238,21 +227,9 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 // =================================================
 // getGroups
 // =================================================
-scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
-  //
-  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
-  // rawFilter is always included when filtering
-  // attribute, operator and value are included when requesting unique object or simpel filtering
-  // See comments in the "mandatory if-else logic - start"
-  //
-  // "attributes" is array of attributes to be returned - if empty, all supported attributes should be returned
-  // Should normally return all supported group attributes having id, displayName and members as mandatory
-  // id and displayName are most often considered as "the same" having value = <GroupName>
-  // Note, the value of returned 'id' will be used as 'id' in modifyGroup and deleteGroup
-  // scimgateway will automatically filter response according to the attributes list
-  //
+scimgateway.getGroups = async (baseEntity, getObj, attributes) => {
   const action = 'getGroups'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
 
   // mandatory if-else logic - start
   if (getObj.operator) {
@@ -277,27 +254,27 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 // createGroup
 // =================================================
-scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
+scimgateway.createGroup = async (baseEntity, groupObj) => {
   const action = 'createGroup'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" groupObj=${JSON.stringify(groupObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" groupObj=${JSON.stringify(groupObj)}`)
   throw new Error(`${action} error: ${action} is not supported`)
 }
 
 // =================================================
 // deleteGroup
 // =================================================
-scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
+scimgateway.deleteGroup = async (baseEntity, id) => {
   const action = 'deleteGroup'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
   throw new Error(`${action} error: ${action} is not supported`)
 }
 
 // =================================================
 // modifyGroup
 // =================================================
-scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
+scimgateway.modifyGroup = async (baseEntity, id, attrObj) => {
   const action = 'modifyGroup'
-  scimgateway.logger.debug(`${pluginName}[${baseEntity}] handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
   throw new Error(`${action} error: ${action} is not supported`)
 }
 

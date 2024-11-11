@@ -8,6 +8,7 @@ config/certs
 config/schemas
 config/approles
 node_modules/
+dist/
 typings/
 logs/
 client_deploy/

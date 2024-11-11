@@ -5,8 +5,8 @@
     "payloadSize": null,
     "scim": {
       "version": "2.0",
+      "customSchema": null,
       "skipTypeConvert": false,
-      "skipMetaLocation": false,
       "groupMemberOfUser": false,
       "usePutSoftSync": false
     },
@@ -88,64 +88,30 @@
         "to": null,
         "cc": null
       }
-    },
-    "kubernetes": {
-      "enabled": false,
-      "shutdownTimeout": 15000,
-      "forceExitTimeout": 1000
-    },
-    "stream": {
-      "baseUrls": [],
-      "certificate": {
-        "ca": null
-      },
-      "subscriber": {
-        "enabled": false,
-        "entity": {
-          "undefined": {
-            "nats": {
-              "tenant": null,
-              "subject": null,
-              "jwt": null,
-              "secret": null
-            },
-            "deleteUserOnLastGroupRoleRemoval": false,
-            "skipConvertRolesToGroups": false,
-            "generateUserPassword": false,
-            "modifyOnly": false,
-            "replaceDomains": []
-          }
-        }
-      },
-      "publisher": {
-        "enabled": false,
-        "entity": {
-          "undefined": {
-            "nats": {
-              "tenant": null,
-              "subject": null,
-              "jwt": null,
-              "secret": null
-            }
-          }
-        }
-      }
     }
   },
   "endpoint": {
     "entity": {
       "undefined": {
-        "baseUrls": ["not in use by plugin-entra-id (hardcoded)"],
-        "oauth": {
-          "tenantIdGUID": "DomainName or DirectoryID (GUID) - only used by plugin-entra-id",
-          "tokenUrl": "not in use by plugin-entra-id (hardcoded)",
-          "clientId": "Application ID",
-          "clientSecret": "Generated application secret value"
-        },
-        "tokenAuth": null,
-        "bearerAuth": null,
-        "basicAuth": null,
-        "proxy": null
+        "connection": {
+          "baseUrls": [
+            "not in use for Entra ID when tenantIdGUID is defined"
+          ],
+          "auth": {
+            "type": "oauth",
+            "options": {
+              "tokenUrl": "oauth token_url - not in use when tenantIdGUID is defined",
+              "tenantIdGUID": "Entra ID Tenant ID (GUID) or Primary domain name - only used by plugin-entra-id",
+              "clientId": "oauth client_id - Entra ID: Application ID",
+              "clientSecret": "oauth client_secret - Entra ID: generated application secret value"
+            }
+          },
+          "proxy": {
+            "host": null,
+            "username": null,
+            "password": null
+          }
+        }
       }
     },
     "map": {

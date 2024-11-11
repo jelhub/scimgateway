@@ -89,11 +89,6 @@
         "cc": null
       }
     },
-    "kubernetes": {
-      "enabled": false,
-      "shutdownTimeout": 15000,
-      "forceExitTimeout": 1000
-    },
     "stream": {
       "baseUrls": [],
       "certificate": {
@@ -135,18 +130,30 @@
   "endpoint": {
     "entity": {
       "undefined": {
-        "baseUrls": [
-          "https://dummyjson.com"
-        ],
-        "oauth": null,
-        "tokenAuth": {
-          "tokenUrl": "https://dummyjson.com/auth/login",
-          "username": "emilys",
-          "password": "emilyspass"
-        },
-        "bearerAuth": null,
-        "basicAuth": null,
-        "proxy": null
+        "connection": {
+          "baseUrls": [
+            "https://dummyjson.com"
+          ],
+          "auth": {
+            "type": "token",
+            "options": {
+              "tokenUrl": "https://dummyjson.com/auth/login",
+              "username": "emilys",
+              "password": "emilyspass"
+            }
+          },
+          "options": {
+            "tls": {
+              "rejectUnauthorized": null,
+              "ca": null
+            }
+          },
+          "proxy": {
+            "host": null,
+            "username": null,
+            "password": null
+          }
+        }
       }
     }
   }

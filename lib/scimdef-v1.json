@@ -1,10 +1,5 @@
-// ==================================
-// File:    scimdef.js
-//
-// Author:  Jarle Elshaug
-// ==================================
-
-module.exports.ServiceProviderConfigs = {
+{
+  "ServiceProviderConfigs": {
   "schemas": ["urn:scim:schemas:core:1.0"],
   "id": "urn:scim:schemas:core:1.0",
   "patch": { "supported": true },
@@ -45,12 +40,12 @@ module.exports.ServiceProviderConfigs = {
     }
   ],
   "xmlDataFormat": { "supported": false }
-}
+},
 
-module.exports.ResourceType = { // not used in scim v1
-}
+"ResourceType": {
+},
 
-module.exports.Schemas = {
+"Schemas": {
   "Resources": [
     {
       "name": "User",
@@ -866,7 +861,7 @@ module.exports.Schemas = {
       "meta": { "location": "/Schemas/urn:scim:schemas:core:1.0:Group" }
     },
 
-    { // Custom SCIM
+    {
       "name": "servicePlan",
       "description": "SCIM core resource for representing AAD ServicePlan",
       "schema": "urn:scim:schemas:core:1.0",
@@ -944,13 +939,9 @@ module.exports.Schemas = {
     }
 
   ]
-}
+},
 
-//==============================================================//
-//======= Dummy testdata used by testmode (loki-plugin)  =======//
-//==============================================================//
-
-module.exports.TestmodeUsers = {
+"TestmodeUsers": {
   "Resources": [
     {
       "id": "bjensen",
@@ -1047,7 +1038,7 @@ module.exports.TestmodeUsers = {
       "password": "t1meMa$heen",
       "x509Certificates": [
         {
-        "value": "MIIDQzCCAqy...",
+        "value": "MIIDQzCCAqy..."
         }
       ],
       "urn:scim:schemas:extension:enterprise:1.0": {
@@ -1161,7 +1152,7 @@ module.exports.TestmodeUsers = {
       "password": "MySecret",
       "x509Certificates": [
         {
-        "value": "MIIDQzCCAqy...",
+        "value": "MIIDQzCCAqy..."
         }
       ],
       "urn:scim:schemas:extension:enterprise:1.0": {
@@ -1182,9 +1173,9 @@ module.exports.TestmodeUsers = {
       }
     }
   ]
-}
+},
 
-module.exports.TestmodeGroups = {
+"TestmodeGroups": {
   "Resources": [{
     "displayName": "Admins",
     "id": "Admins",
@@ -1218,4 +1209,5 @@ module.exports.TestmodeGroups = {
     }
   }
   ]
+}
 }
