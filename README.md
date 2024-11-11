@@ -1071,6 +1071,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.0.1  
+
+[Fixed]
+
+Postinstall did not update index.ts when default bun index.ts did exist  
+
+
 ### v5.0.0  
 
 **[MAJOR]**  

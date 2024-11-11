@@ -61,3 +61,9 @@ fs.writeFileSync('../../config/docker/docker-compose-debug.yml', fs.readFileSync
 
 fs.writeFileSync('../../LICENSE', fs.readFileSync('./LICENSE'))
 if (!fsExistsSync('../../index.ts')) fs.writeFileSync('../../index.ts', fs.readFileSync('./index.ts'))
+else {
+  const buf = fs.readFileSync('../../index.ts')
+  if (buf.toString().startsWith('console.log')) { // default bun index.ts
+    fs.writeFileSync('../../index.ts', fs.readFileSync('./index.ts'))
+  }
+}
