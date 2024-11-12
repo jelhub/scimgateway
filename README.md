@@ -123,7 +123,7 @@ If internet connection is blocked, we could install on another machine and copy 
 
 	bun c:\my-scimgateway
 
-	If using Node.js instead of Bun: node --experimental-strip-types c:\my-scimgateway\index.ts
+	If using Node.js instead of Bun, scimgateway must be downloaded from github and startup: node --experimental-strip-types c:\my-scimgateway\index.ts
 	
 	Start a browser (note, Edge do not pop-up logon dialog box when using http)
 
@@ -1071,11 +1071,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.0.2  
+
+[Improved] 
+
+- minor cosmetics readme updates 
+
 ### v5.0.1  
 
 [Fixed]
 
-Postinstall did not update index.ts when default bun index.ts did exist  
+- postinstall did not update index.ts when default bun index.ts did exist  
 
 
 ### v5.0.0  
@@ -1088,7 +1094,7 @@ Besides going from JavaScript to TypeScript, following can be mentioned:
   
 * Code editor now having IntelliSense showing available methods and documentation details for scimgateway methods  
 * index.ts having new logic for starting plugins e.g.: `const plugins = ['ldap']` for starting plugin-ldap
-* If using Node.js, node must be version >= 22.6.0 and include startup argument `--experimental-strip-types` e.g.; `node --experimental-strip-types index.ts`   
+* If using Node.js: node must be version >= 22.6.0, scimgateway must be downloaded from github (because stripping types is currently unsupported for files under node_modules) and startup argument `--experimental-strip-types` e.g.; `node --experimental-strip-types index.ts`   
 * Plugins can use `scimgateway.HelperRest()` for REST functionality. Previously this logic was included in each plugin that used REST.  
 
 		// start - mandatory plugin initialization
