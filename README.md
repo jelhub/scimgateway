@@ -1086,6 +1086,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.0.4  
+
+[Improved] 
+
+- minor type definition cosmetics
+
 ### v5.0.3  
 
 [Fixed]
@@ -1094,7 +1100,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 [Improved] 
 
-- minor type cosmetics
+- minor type definition cosmetics
 
 
 ### v5.0.2  
