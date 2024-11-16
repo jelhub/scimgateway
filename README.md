@@ -569,8 +569,9 @@ docker-compose**
 
 		mkdir /opt/my-scimgateway  
 		cd /opt/my-scimgateway  
-		npm init -y  
-		npm install scimgateway  
+		bun init -y  
+		bun install scimgateway  
+		bun pm trust scimgateway  
 		cp ./config/docker/* .  
 
 	**docker-compose.yml**   <== Here is where you would set the exposed port and environment  
@@ -819,15 +820,29 @@ If using proxy, set proxy.host to `"http://<FQDN-ProxyHost>:<port>"` e.g `"http:
 	"endpoint": {
 	  "entity": {
 	    "undefined": {
-	      "tenantIdGUID": "DomainName or DirectoryID (GUID)",
-	      "clientId": "Application ID",
-	      "clientSecret": "Generated application key value",
-          "proxy": {
-            "host": null,
-            "username": null,
-            "password": null
-          }
+		  "connection": {
+		    "baseUrls": [
+			  "not in use for Entra ID when tenantIdGUID is defined"
+		    ],
+		    "auth": {
+			  "type": "oauth",
+			  "options": {
+			    "tokenUrl": "oauth token_url - not in use when tenantIdGUID is defined",
+			    "tenantIdGUID": "Entra ID Tenant ID (GUID) or Primary domain name - only used by plugin-entra-id",
+			    "clientId": "oauth client_id - Entra ID: Application ID",
+			    "clientSecret": "oauth client_secret - Entra ID: generated application secret value"
+			  }
+		    },
+		    "proxy": {
+			  "host": null,
+			  "username": null,
+			  "password": null
+		    }
+		  }
 	    }
+	  },
+	  "map": {
+	    ...
 	  }
 	}
 
@@ -946,7 +961,7 @@ Preparation:
 
 * Copy "best matching" example plugin e.g. `lib\plugin-mssql.ts` and `config\plugin-mssql.json` and rename both copies to your plugin name prefix e.g. plugin-mine.ts and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-soap as a template) 
 * Edit plugin-mine.json and define a unique port number for the gateway setting  
-* Edit index.ts and add a new line for starting your plugin e.g. `let mine = require('./lib/plugin-mine');`  
+* Edit index.ts and include your plugin in the startup e.g. `const plugins = ['mine']');`  
 * Start SCIM Gateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  
 
 Now we are ready for custom coding by editing plugin-mine.ts
@@ -1070,6 +1085,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.0.3  
+
+[Fixed]
+
+- unauthorized connection when using configuration bearerJwtAzure 
+
+[Improved] 
+
+- minor type cosmetics
+
 
 ### v5.0.2  
 

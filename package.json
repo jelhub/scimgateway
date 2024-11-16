@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "5.0.2",
+  "version": "5.0.3",
   "type": "module",
   "description": "Using SCIM protocol as a gateway for user provisioning to other endpoints",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
@@ -8,6 +8,7 @@
   "license": "MIT",
   "main": "lib/scimgateway.ts",
   "module": "./index.ts",
+  "types": "./types",
   "scripts": {
     "postinstall": "bun ./lib/postinstall.ts",
     "start": "bun index.ts",
@@ -35,6 +36,10 @@
     "node": ">=22.6.0"
   },
   "dependencies": {
+    "@ldapjs/asn1": "^2.0.0",
+    "@types/ldapjs": "^3.0.6",
+    "@types/lokijs": "^1.5.14",
+    "@types/tedious": "^4.0.14",
     "dot-object": "^2.1.5",
     "fold-to-ascii": "^5.0.1",
     "https-proxy-agent": "^7.0.4",
@@ -50,18 +55,18 @@
     "passport-azure-ad": "^4.3.5",
     "winston": "^3.13.0"
   },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
   "devDependencies": {
     "@stylistic/eslint-plugin": "^2.10.1",
     "@types/bun": "latest",
     "@types/dot-object": "^2.1.6",
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/ldapjs": "^3.0.6",
-    "@types/lokijs": "^1.5.14",
     "@types/node": "latest",
     "@types/nodemailer": "^6.4.14",
     "@types/passport": "^1.0.16",
     "@types/passport-azure-ad": "^4.3.6",
-    "@types/tedious": "^4.0.14",
     "@typescript-eslint/eslint-plugin": "^8.12.2",
     "@typescript-eslint/parser": "^8.12.2",
     "eslint": "^9.13.0",
