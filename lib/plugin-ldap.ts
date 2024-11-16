@@ -82,6 +82,7 @@
 'use strict'
 
 import ldap from 'ldapjs'
+// @ts-expect-error missing type definitions
 import { BerReader } from '@ldapjs/asn1'
 
 // for supporting nodejs running scimgateway package directly, using dynamic import instead of: import { ScimGateway } from 'scimgateway'

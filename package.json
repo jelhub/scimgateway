@@ -8,7 +8,6 @@
   "license": "MIT",
   "main": "lib/scimgateway.ts",
   "module": "./index.ts",
-  "types": "./types",
   "scripts": {
     "postinstall": "bun ./lib/postinstall.ts",
     "start": "bun index.ts",
