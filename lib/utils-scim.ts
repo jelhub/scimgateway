@@ -19,7 +19,7 @@ export function convertedScim(obj: any, multiValueTypes: string[]): any {
   let err: any = null
   const scimdata: any = utils.copyObj(obj)
   if (scimdata.schemas) delete scimdata.schemas
-  const newMulti = {}
+  const newMulti: Record<string, any> = {}
   if (!multiValueTypes) multiValueTypes = []
 
   for (const key in scimdata) {
@@ -33,7 +33,7 @@ export function convertedScim(obj: any, multiValueTypes: string[]): any {
         scimdata[key].forEach(function (element) {
           if (!element.type) element.type = 'undefined' // "none-type"
           if (element.operation && element.operation === 'delete') { // add as delete if same type not included as none delete
-            const arr = scimdata[key].filter(obj => obj.type && obj.type === element.type && !obj.operation)
+            const arr = scimdata[key].filter((obj: Record<string, any>) => obj.type && obj.type === element.type && !obj.operation)
             if (arr.length < 1) {
               if (!newMulti[key]) newMulti[key] = {}
               if (newMulti[key][element.type]) {
@@ -89,9 +89,9 @@ export function convertedScim(obj: any, multiValueTypes: string[]): any {
   }
   if (scimdata.meta) { // cleared attributes e.g { meta: { attributes: [ 'name.givenName', 'title' ] } }
     if (Array.isArray(scimdata.meta.attributes)) {
-      scimdata.meta.attributes.forEach((el) => {
-        let rootKey
-        let subKey
+      scimdata.meta.attributes.forEach((el: string) => {
+        let rootKey = ''
+        let subKey = ''
         if (el.startsWith('urn:')) { // can't use dot.str on key having dot e.g. urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department
           const i = el.lastIndexOf(':')
           subKey = el.substring(i + 1)
@@ -200,7 +200,7 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
       }
 
       if (element.value && Array.isArray(element.value)) {
-        element.value.forEach(function (el, i) { // {"value": [{ "value": "jsmith" }]}
+        element.value.forEach(function (el: any, i: any) { // {"value": [{ "value": "jsmith" }]}
           if (el.value) {
             if (typeof el.value === 'object') { // "value": [{"value": {"id":"c20e145e-5459-4a6c-a074-b942bbd4cfe1","value":"admin","displayName":"Administrator"}}]
               element.value[i] = el.value
@@ -223,7 +223,7 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
 
       if (pathRoot) { // pathRoot = emails and path = emails.work.value (we may also have path = pathRoot)
         if (!scimdata[pathRoot]) scimdata[pathRoot] = []
-        const index = scimdata[pathRoot].findIndex(el => el.type === type)
+        const index = scimdata[pathRoot].findIndex((el: Record<string, any>) => el.type === type)
         if (index < 0) {
           if (typeof element.value === 'object') { // e.g. addresses with no typeElement - value includes object having all attributes
             if (element.op && element.op === 'remove') element.value.operation = 'delete'
@@ -294,7 +294,7 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
             if (k === 'User' || k === 'Group') rootKey = key
             else rootKey = key.substring(0, i) // urn:ietf:params:scim:schemas:extension:enterprise:2.0:User
             if (k === 'User' || k === 'Group') { // value is object
-              const o = {}
+              const o: Record<string, any> = {}
               o[rootKey] = value
               scimdata = utils.extendObj(scimdata, o)
             } else {
@@ -327,7 +327,7 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
 
   for (const key in primaryOrgType) { // revert back to original type when included
     if (scimdata[key]) {
-      const index = scimdata[key].findIndex(el => el.type === 'primary')
+      const index = scimdata[key].findIndex((el: Record<string, any>) => el.type === 'primary')
       if (index >= 0) {
         if (primaryOrgType[key] === 'primary') delete scimdata[key][index].type // temp have not been changed - remove
         else scimdata[key][index].type = primaryOrgType[key]
@@ -340,7 +340,7 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
 }
 
 // recursiveStrMap is used by endpointMapper() for converting obj according to endpointMap type definition
-const recursiveStrMap = function (direction, dotMap, obj, dotPath) {
+const recursiveStrMap = function (direction: string, dotMap: any, obj: any, dotPath: any) {
   for (const key in obj) {
     if (obj[key] && obj[key].constructor === Object) recursiveStrMap(direction, dotMap, obj[key], (dotPath ? `${dotPath}.${key}` : key))
     let dotKey = ''
@@ -355,7 +355,7 @@ const recursiveStrMap = function (direction, dotMap, obj, dotPath) {
         } else if (type === 'array') {
           if (!Array.isArray(obj[key])) {
             if (!obj[key]) obj[key] = []
-            else obj[key] = obj[key].split(',').map(item => item.trim())
+            else obj[key] = obj[key].split(',').map((item: string) => item.trim())
           }
         } else if (dotMap.sAMAccountName) { // Active Directory
           if (dotMap[`${dotKey}.mapTo`].startsWith('addresses.') && dotMap[`${dotKey}.mapTo`].endsWith('.country')) {
@@ -415,7 +415,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
   const arrUnsupported: any = []
   const inboundArrCheck: any = []
   const complexArr: any = []
-  const complexObj = {
+  const complexObj: Record<string, any> = {
     addresses: {},
     emails: {},
     phoneNumbers: {},
@@ -438,7 +438,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
     const arrDelete: any = []
     for (const key in dotParse) {
       if (key.endsWith('.operation')) {
-        const arr = key.split('.') // addresses.work.operation
+        const arr: string[] = key.split('.') // addresses.work.operation
         if (arr.length > 2 && complexObj[arr[0]] && dotParse[key] === 'delete') {
           arrDelete.push(`${arr[0]}.${arr[1]}.`) // addresses.work.
           delete dotParse[key]
@@ -479,7 +479,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
           }
           for (const key2 in dotMap) {
             if (!key2.endsWith('.mapTo')) continue
-            if (dotMap[key2].split(',').map(item => item.trim().toLowerCase()).includes(key.toLowerCase())) {
+            if (dotMap[key2].split(',').map((item: string) => item.trim().toLowerCase()).includes(key.toLowerCase())) {
               found = true
               const keyRoot = key2.split('.').slice(0, -1).join('.') // xx.yy.mapTo => xx.yy
               if (dotMap[`${keyRoot}.type`] === 'array' && arrIndex && arrIndex >= 0) {
@@ -496,16 +496,16 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
         let strArr: any = []
         if (Array.isArray(str)) {
           for (let i = 0; i < str.length; i++) {
-            strArr = strArr.concat(str[i].split(',').map(item => item.trim())) // supports "id,userName" e.g. {"mapTo": "id,userName"}
+            strArr = strArr.concat(str[i].split(',').map((item: string) => item.trim())) // supports "id,userName" e.g. {"mapTo": "id,userName"}
           }
-        } else strArr = str.split(',').map(item => item.trim())
+        } else strArr = str.split(',').map((item: string) => item.trim())
         for (let i = 0; i < strArr.length; i++) {
           const attr = strArr[i]
           let found = false
           for (const key in dotMap) {
             if (!key.endsWith('.mapTo')) continue
             const keyNotDot: string = key.substring(0, key.indexOf('.mapTo'))
-            if (dotMap[key].split(',').map(item => item.trim()).includes(attr)) { // supports { "mapTo": "userName,id" }
+            if (dotMap[key].split(',').map((item: string) => item.trim()).includes(attr)) { // supports { "mapTo": "userName,id" }
               found = true
               if (!resArr.includes(keyNotDot)) resArr.push(keyNotDot)
               break
@@ -593,7 +593,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
             }
           }
         } else { // none array
-          const arrMapTo = mapTo.split(',').map(item => item.trim()) // supports {"mapTo": "id,userName"}
+          const arrMapTo = mapTo.split(',').map((item: string) => item.trim()) // supports {"mapTo": "id,userName"}
           for (let i = 0; i < arrMapTo.length; i++) {
             dotNewObj[arrMapTo[i]] = dotParse[key] // {"active": {"mapTo": "accountEnabled"} => str.replace("accountEnabled", "active")
           }
@@ -624,9 +624,9 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
   }
 
   if (isObj) {
-    let newObj = dot.object(dotNewObj) // from dot to normal
+    let newObj = dot.object(dotNewObj) as Record<string, any>// from dot to normal
     if (noneCore) { // revert back dot workaround
-      const tmpObj = {}
+      const tmpObj: Record<string, any> = {}
       for (const key in newObj) {
         if (key.startsWith('urn:') && key.includes('##')) {
           const newKey = key.replace('##', '.')
@@ -664,11 +664,11 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
       // }
       //
       if (complexArr.length > 0) {
-        const tmpObj = {}
+        const tmpObj: Record<string, any> = {}
         for (let i = 0; i < complexArr.length; i++) { // e.g. ['emails', 'addresses', 'phoneNumbers', 'ims', 'photos']
           const el = complexArr[i]
           if (newObj[el]) { // { work: { postalCode: '1733' }, work: { streetAddress: 'Roteveien 10' } }
-            const tmp = {}
+            const tmp: Record<string, any> = {}
             for (const key in newObj[el]) {
               if (newObj[el][key].constructor === Object) { // { postalCode: '1733' }
                 if (!tmp[key]) tmp[key] = [{ type: key }]
@@ -707,27 +707,27 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
 // getMultivalueTypes returns an array of mulitvalue attributes allowing type e.g [emails,addresses,...]
 // objName should be 'User' or 'Group'
 //
-export function getMultivalueTypes(objName, scimDef) { // objName = 'User' or 'Group'
+export function getMultivalueTypes(objName: string, scimDef: Record<string, any>) { // objName = 'User' or 'Group'
   if (!objName) return []
 
-  const obj = scimDef.Schemas.Resources.find((el) => {
+  const obj = scimDef.Schemas.Resources.find((el: Record<string, any>) => {
     return (el.name === objName)
   })
   if (!obj) return []
 
   return obj.attributes
-    .filter((el) => {
+    .filter((el: Record<string, any>) => {
       return (el.multiValued === true && el.subAttributes
         && el.subAttributes
-          .find(function (subel) {
+          .find(function (subel: Record<string, any>) {
             return (subel.name === 'type')
           })
       )
     })
-    .map(obj => obj.name)
+    .map((obj: Record<string, any>) => obj.name)
 }
 
-export function addResources(data, startIndex, sortBy, sortOrder) {
+export function addResources(data: any, startIndex?: string, sortBy?: string, sortOrder?: string) {
   if (!data || JSON.stringify(data) === '{}') data = [] // no user/group found
   const res: { [key: string]: any } = { Resources: [] }
   if (Array.isArray(data)) res.Resources = data
@@ -739,8 +739,8 @@ export function addResources(data, startIndex, sortBy, sortOrder) {
   // pagination
   if (!res.totalResults) res.totalResults = res.Resources.length // Specifies the total number of results matching the Consumer query
   res.itemsPerPage = res.Resources.length // Specifies the number of search results returned in a query response page
-  res.startIndex = parseInt(startIndex) // The 1-based index of the first result in the current set of search results
-  if (!res.startIndex) res.startIndex = 1
+  if (startIndex) res.startIndex = parseInt(startIndex) // The 1-based index of the first result in the current set of search results
+  else res.startIndex = 1
   if (res.startIndex > res.totalResults) { // invalid paging request
     res.Resources = []
     res.itemsPerPage = 0
@@ -750,7 +750,7 @@ export function addResources(data, startIndex, sortBy, sortOrder) {
   return res
 }
 
-export function addSchemas(data, type, isScimv2, location) {
+export function addSchemas(data: Record<string, any>, isScimv2: boolean, type?: string, location?: string) {
   if (!type) {
     if (isScimv2) data.schemas = ['urn:ietf:params:scim:api:messages:2.0:ListResponse']
     else data.schemas = ['urn:scim:schemas:core:1.0']
@@ -842,12 +842,12 @@ export function addSchemas(data, type, isScimv2, location) {
 //   roles[primary eq "True"].value: "val1",
 //   roles[primary eq "True"].primary: "True"}]
 // }
-export function addPrimaryAttrs(obj) {
+export function addPrimaryAttrs(obj: Record<string, any>) {
   const key = 'roles'
   if (!obj || typeof obj !== 'object') return obj
   if (!obj[key] || !Array.isArray(obj[key])) return obj
   const o = utils.copyObj(obj)
-  const index = o[key].findIndex(el => (el.primary === true || (typeof el.primary === 'string' && el.primary.toLowerCase() === 'true')))
+  const index = o[key].findIndex((el: Record<string, any>) => (el.primary === true || (typeof el.primary === 'string' && el.primary.toLowerCase() === 'true')))
   if (index >= 0) {
     const prim = o[key][index]
     for (const k in prim) {
@@ -861,7 +861,7 @@ export function addPrimaryAttrs(obj) {
 //
 // SCIM error formatting
 //
-export function jsonErr(scimVersion, pluginName, htmlErrCode, err: Error): [Record<string, any>, number] {
+export function jsonErr(scimVersion: string | number, pluginName: string, htmlErrCode: number | undefined, err: Error): [Record<string, any>, number] {
   let errJson = {}
   let customErrCode: any = null
   let scimType = 'invalidSyntax'
@@ -925,7 +925,7 @@ export function jsonErr(scimVersion, pluginName, htmlErrCode, err: Error): [Reco
 //
 // api plugin formatted error
 //
-export function apiErr(pluginName, err) {
+export function apiErr(pluginName: string, err: any) {
   let msg
   if (err.constructor !== Error) err = { message: err }
   try {

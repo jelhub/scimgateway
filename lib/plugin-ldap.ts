@@ -219,7 +219,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   try {
     const users: any = await doRequest(baseEntity, method, base, ldapOptions, ctx) // ignoring SCIM paging startIndex/count - get all
     result.totalResults = users.length
-    result.Resources = await Promise.all(users.map(async (user) => { // Promise.all because of async map
+    result.Resources = await Promise.all(users.map(async (user: any) => { // Promise.all because of async map
       // endpoint spesific attribute handling
       // "active" must be handled separate
       if (user.userAccountControl !== undefined) { // SCIM "active" - Active Directory
@@ -368,7 +368,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
     delete attrObj.groups // make sure to be removed from attrObj
 
     const [groupsAttr] = scimgateway.endpointMapper('outbound', 'groups.value', config.map.user)
-    const grp = { add: {}, remove: {} }
+    const grp: any = { add: {}, remove: {} }
     grp.add[groupsAttr] = []
     grp.remove[groupsAttr] = []
 
@@ -484,7 +484,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
       // clean up zoombie group members and use the new user DN incase not handled by ldap server
       const [memberAttr] = scimgateway.endpointMapper('outbound', 'members.value', config.map.group)
       if (memberAttr) {
-        const grp = { add: {}, remove: {} }
+        const grp: any = { add: {}, remove: {} }
         grp.add[memberAttr] = []
         grp.remove[memberAttr] = []
         let r
@@ -644,7 +644,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     if (ldapOptions === 'getMemberOfGroups') result.Resources = await getMemberOfGroups(baseEntity, getObj.value, ctx)
     else {
       const groups: any = await doRequest(baseEntity, method, base, ldapOptions, ctx)
-      result.Resources = await Promise.all(groups.map(async (group) => { // Promise.all because of async map
+      result.Resources = await Promise.all(groups.map(async (group: any) => { // Promise.all because of async map
         if (config.useSID_id || config.useGUID_id) {
           if (group.member) {
             const arr: string[] = []
@@ -756,7 +756,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const [memberAttr] = scimgateway.endpointMapper('outbound', 'members.value', config.map.group)
   if (!memberAttr && attrObj.members) throw new Error(`${action} error: missing attribute mapping configuration for group members`)
 
-  const grp = { add: {}, remove: {} }
+  const grp: any = { add: {}, remove: {} }
   grp.add[memberAttr] = []
   grp.remove[memberAttr] = []
 
@@ -821,14 +821,14 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
 // helpers
 // =================================================
 
-const _serviceClient = {}
+const _serviceClient: Record<string, any> = {}
 
 //
 // createAndFilter creates AndFilter object to be used as filter instead of standard string filter
 // Using AndFilter object for eliminating internal ldapjs escaping problems related to values with some
 // combinations of parentheses e.g. ab(c)d
 //
-const createAndFilter = (baseEntity, type, arrObj) => {
+const createAndFilter = (baseEntity: string, type: string, arrObj: any) => {
   const objFilters: ldap.PresenceFilter[] | ldap.SubstringFilter[] = []
 
   // add arrObj
@@ -906,7 +906,7 @@ const createAndFilter = (baseEntity, type, arrObj) => {
 //
 // dnToSidGuid is used for Active Directory to return objectGUID based on dn
 //
-const dnToSidGuid = async (baseEntity, dn, ctx): Promise<string> => {
+const dnToSidGuid = async (baseEntity: string, dn: any, ctx: any): Promise<string> => {
   const method = 'search'
   const ldapOptions: any = {}
   if (config.useSID_id) ldapOptions.attributes = ['objectSid']
@@ -928,7 +928,7 @@ const dnToSidGuid = async (baseEntity, dn, ctx): Promise<string> => {
 //
 // guidToDn is used for Active Directory to return dn based on objectGUID
 //
-const sidGuidToDn = async (baseEntity, id, ctx): Promise<string> => {
+const sidGuidToDn = async (baseEntity: string, id: string, ctx: any): Promise<string> => {
   const method = 'search'
   const ldapOptions = {
     attributes: ['dn'],
@@ -959,8 +959,8 @@ const sidGuidToDn = async (baseEntity, id, ctx): Promise<string> => {
 // output: S-1-5-21-2657077294-4200173015-2627628055-1146
 // ref: https://gist.github.com/Krizzzn/0ae47f280cca9749c67759a9adedc015
 //
-const pad = function (s) { if (s.length < 2) { return `0${s}` } else { return s } }
-const convertSidToString = (buf) => {
+const pad = function (s: any) { if (s.length < 2) { return `0${s}` } else { return s } }
+const convertSidToString = (buf: any) => {
   let asc: any, end: any
   let i: number
   if (buf == null) { return null }
@@ -997,7 +997,7 @@ const convertSidToString = (buf) => {
 // output: 010500000000000515000000a065cf7e784b9b5fe77c8770091c0100
 // ref: https://devblogs.microsoft.com/oldnewthing/20040315-00/?p=40253
 //
-const convertStringToSid = (sidStr) => {
+const convertStringToSid = (sidStr: string) => {
   const arr = sidStr.split('-')
   if (arr.length !== 8) return null
   try {
@@ -1025,7 +1025,7 @@ const convertStringToSid = (sidStr) => {
 // getMemberOfGroups returns all groups the user is member of
 // [{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }]
 //
-const getMemberOfGroups = async (baseEntity, id, ctx) => {
+const getMemberOfGroups = async (baseEntity: string, id: string, ctx: any) => {
   const action = 'getMemberOfGroups'
   if (!config.map.group) throw new Error('missing configuration endpoint.map.group') // not using groups
 
@@ -1075,7 +1075,7 @@ const getMemberOfGroups = async (baseEntity, id, ctx) => {
 
   try {
     const groups: any = await doRequest(baseEntity, method, base, ldapOptions, ctx)
-    return groups.map((grp) => {
+    return groups.map((grp: any) => {
       return { // { id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }
         id: encodeURIComponent(grp[attrs[0]]), // not mandatory, but included anyhow
         displayName: grp[attrs[1]], // displayName is mandatory
@@ -1093,7 +1093,7 @@ const getMemberOfGroups = async (baseEntity, id, ctx) => {
 // using OpenLDAP, DN must be escaped - national characters and special ldap characters
 // using Active Directory (none OpenLDAP), DN should not be escaped, but DN retrieved from AD is character escaped
 //
-const ldapEscDn = (isOpenLdap, str) => {
+const ldapEscDn = (isOpenLdap: any, str: string) => {
   if (typeof str !== 'string' || str.length < 1) return str
 
   if (!isOpenLdap && str.indexOf('\\') > 0) {
@@ -1150,13 +1150,13 @@ const ldapEscDn = (isOpenLdap, str) => {
       if (i === 0) {
         const ua = new Uint8Array(Buffer.from(a[1], 'utf-8'))
         const buf = Buffer.from(new Uint8Array([4, ua.length, ...ua]))
-        const rdn = {}
+        const rdn: any = {}
         rdn[a[0]] = new BerReader(buf)
         dn.push(new ldap.RDN(rdn))
         // new BerReader(Buffer.from([0x04, 0x05, 0x4B, 0xc3, 0xbc, 0x72, 0x74])) // Kürt
         // the leading 04 is the tag for "octet string" and the following 05 is the length in bytes of the string.
       } else {
-        const rdn = {}
+        const rdn: any = {}
         rdn[a[0]] = a[1]
         dn.push(new ldap.RDN(rdn))
       }
@@ -1172,7 +1172,7 @@ const ldapEscDn = (isOpenLdap, str) => {
 // Hex encoded escaping (extended and unicode ascii) is not included because
 // automatically handled by ldapjs when not using BER encoded DN
 //
-const ldapEsc = (str) => {
+const ldapEsc = (str: any) => {
   if (!str) return str
   let newStr = ''
   for (let i = 0; i < str.length; i++) {
@@ -1228,7 +1228,7 @@ const ldapEsc = (str) => {
 // only using BER on first part of dn
 // Having BER decoding for Active Directory, but not for OpenLDAP
 //
-const berDecodeDn = (dn) => {
+const berDecodeDn = (dn: any) => {
   if (Object.prototype.toString.call(dn) !== '[object LdapDn]') return dn // OpenLDAP
   const str = dn.toString()
   if (str.indexOf('#') < 1) return str
@@ -1262,7 +1262,7 @@ const berDecodeDn = (dn) => {
   return str
 }
 
-const getNamingAttribute = (baseEntity, type) => {
+const getNamingAttribute = (baseEntity: string, type: string) => {
   let arr
   switch (type) {
     case 'user':
@@ -1278,7 +1278,7 @@ const getNamingAttribute = (baseEntity, type) => {
   return [arr[0].attribute, arr[0].mapTo]
 }
 
-const checkIfNewDN = (baseEntity, base, type, obj, endpointObj) => {
+const checkIfNewDN = (baseEntity: string, base: any, type: string, obj: any, endpointObj: any) => {
   if (typeof obj !== 'object' || Object.keys(obj).length < 1) return ''
   if (typeof endpointObj !== 'object' || Object.keys(endpointObj).length < 1) return ''
 
@@ -1326,7 +1326,7 @@ const checkIfNewDN = (baseEntity, base, type, obj, endpointObj) => {
 //
 // getCtxAuth returns username/secret from ctx header when using Auth PassThrough
 //
-const getCtxAuth = (ctx) => {
+const getCtxAuth = (ctx: any) => {
   if (!ctx?.request?.header?.authorization) return []
   const [authType, authToken] = (ctx.request.header.authorization || '').split(' ') // [0] = 'Basic' or 'Bearer'
   let username, password
@@ -1338,7 +1338,7 @@ const getCtxAuth = (ctx) => {
 //
 // getServiceClient returns LDAP client used by doRequest
 //
-const getServiceClient = async (baseEntity, ctx) => {
+const getServiceClient = async (baseEntity: string, ctx: any) => {
   const action = 'getServiceClient'
   // TODO if (!config.entity[baseEntity].passwordDecrypted) config.entity[baseEntity].passwordDecrypted = scimgateway.getPassword(`endpoint.entity.${baseEntity}.password`, configFile)
   if (!config.entity[baseEntity].baseUrl) config.entity[baseEntity].baseUrl = config.entity[baseEntity].baseUrls[0] // failover logic also updates baseUrl
@@ -1390,7 +1390,7 @@ const getServiceClient = async (baseEntity, ctx) => {
 //         "attributes": ["sAMAccountName","displayName","mail"]
 //       }
 //
-const doRequest = async (baseEntity, method, base, options, ctx) => {
+const doRequest = async (baseEntity: string, method: string, base: any, options: any, ctx: any) => {
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity: ${baseEntity}`)
   let result: any = null
   let client: any = null
@@ -1413,15 +1413,15 @@ const doRequest = async (baseEntity, method, base, options, ctx) => {
         result = await new Promise((resolve, reject) => {
           const results: any = []
 
-          client.search(base, options, (err, search) => {
+          client.search(base, options, (err: any, search: any) => {
             if (err) {
               return reject(err)
             }
 
-            search.on('searchEntry', (entry) => {
+            search.on('searchEntry', (entry: any) => {
               if (!entry.pojo || !entry.pojo.attributes) return
               const obj: any = { dn: entry.pojo.objectName }
-              entry.pojo.attributes.map((el) => {
+              entry.pojo.attributes.map((el: any) => {
                 if (el.values.length > 1) obj[el.type] = el.values
                 else obj[el.type] = el.values[0]
                 return null
@@ -1449,7 +1449,7 @@ const doRequest = async (baseEntity, method, base, options, ctx) => {
                 // for OpenLDAP ensure dn is not hex escaped e.g.: cn=K\c3\bcrt => cn=Kürt
                 // because dn may be be used as value in standard attributes like group memberOf
                 obj.dn = obj.dn.replace(/\\\\/g, '__') // temp
-                let conv = obj.dn.replace(/\\([0-9A-Fa-f]{2})/g, (_, hex) => {
+                let conv = obj.dn.replace(/\\([0-9A-Fa-f]{2})/g, (_: any, hex: any) => {
                   const intAscii = parseInt(hex, 16)
                   if (intAscii > 128) { // extended ascii - will be unescaped by decodeURIComponent
                     return '%' + hex
@@ -1470,12 +1470,12 @@ const doRequest = async (baseEntity, method, base, options, ctx) => {
             })
             */
 
-            search.on('error', (err) => {
+            search.on('error', (err: any) => {
               if (err.message.includes('LdapErr: DSID-0C0909F2') || err.message.includes('NO_OBJECT')) return resolve([]) // object not found when using base <SID=...> or <GUID=...> ref. objectSid/objectGUID
               reject(err)
             })
 
-            search.on('end', (_) => { resolve(results) })
+            search.on('end', (_: any) => { resolve(results) })
           })
         })
         break
@@ -1506,7 +1506,7 @@ const doRequest = async (baseEntity, method, base, options, ctx) => {
             })
             changes.push(change)
           }
-          client.modify(dn, changes, (err) => {
+          client.modify(dn, changes, (err: any) => {
             if (err) {
               if (options.operation && options.operation === 'add') {
                 const msg = err.message.toLowerCase()
@@ -1526,7 +1526,7 @@ const doRequest = async (baseEntity, method, base, options, ctx) => {
           let newDN = options?.modification?.newDN
           if (!newDN) return reject(new Error('modifyDN() missing newDN'))
           if (Object.prototype.toString.call(newDN) === '[object LdapDn]') newDN = newDN.toString()
-          client.modifyDN(dn, newDN, (err) => {
+          client.modifyDN(dn, newDN, (err: any) => {
             if (err) {
               return reject(err)
             }
@@ -1537,7 +1537,7 @@ const doRequest = async (baseEntity, method, base, options, ctx) => {
 
       case 'add':
         result = await new Promise((resolve: any, reject: any) => {
-          client.add(base, options, (err) => {
+          client.add(base, options, (err: any) => {
             if (err) {
               return reject(err)
             }
@@ -1548,7 +1548,7 @@ const doRequest = async (baseEntity, method, base, options, ctx) => {
 
       case 'del':
         result = await new Promise((resolve: any, reject: any) => {
-          client.del(base, (err) => {
+          client.del(base, (err: any) => {
             if (err) {
               return reject(err)
             }

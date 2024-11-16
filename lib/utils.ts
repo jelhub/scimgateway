@@ -132,7 +132,7 @@ export const getSecret = function (dotNotationAttr: string, configFile: string) 
 }
 
 export const timestamp = function () { // new Date() do not handle current timezone
-  const pad = (n) => { return n < 10 ? '0' + n : n }
+  const pad = (n: number) => { return n < 10 ? '0' + n : n }
   const d = new Date()
   return d.getFullYear() + '-'
     + pad(d.getMonth() + 1) + '-'
@@ -148,7 +148,7 @@ export const timestamp = function () { // new Date() do not handle current timez
  * This fxn uses a custom replacer function to handle circular references
  * see http://stackoverflow.com/a/11616993/3043369
  */
-export const JSONStringify = function (object) {
+export const JSONStringify = function (object: any) {
   let cache: any = []
   const str = JSON.stringify(object,
     // custom replacer fxn - gets around "TypeError: Converting circular structure to JSON"
@@ -165,10 +165,10 @@ export const JSONStringify = function (object) {
   return str
 }
 
-const objProp = function (obj, prop, val) { // return obj value based on json dot notation formatted prop
+const objProp = function (obj: Record<string, any>, prop: string, val: any) { // return obj value based on json dot notation formatted prop
   if (Object.prototype.hasOwnProperty.call(obj, prop)) return obj[prop]
   const props = prop.split('.') // scimgateway.auth.basic[0].password
-  const final = props.pop()
+  const final = props.pop() as string
   for (let i = 0; i < props.length; i++) {
     const p = props[i]
     const arr = p.match(/^(.*)\[(.*)\]$/i)
@@ -180,9 +180,9 @@ const objProp = function (obj, prop, val) { // return obj value based on json do
   return val ? (obj[final] = val) : obj[final]
 }
 
-export const copyObj = (o) => { // deep copy/clone faster than JSON.parse(JSON.stringify(o))
+export const copyObj = (o: any): any => { // deep copy/clone faster than JSON.parse(JSON.stringify(o))
   let v, key
-  const output = Array.isArray(o) ? [] : {}
+  const output: any = Array.isArray(o) ? [] : {}
   for (key in o) {
     v = o[key]
     if (typeof v === 'object' && v !== null) {
@@ -195,7 +195,7 @@ export const copyObj = (o) => { // deep copy/clone faster than JSON.parse(JSON.s
   return output
 }
 
-const _extendObj = (obj, src) => {
+const _extendObj = (obj: Record<any, any>, src: Record<any, any>) => {
   Object.keys(src).forEach((key) => {
     if (typeof src[key] === 'object' && src[key] != null) {
       if (typeof obj[key] === 'undefined') obj[key] = src[key]
@@ -241,14 +241,14 @@ const _extendObj = (obj, src) => {
   return obj
 }
 
-export const extendObj = (obj, src) => { // copy src content into obj
+export const extendObj = (obj: any, src: any) => { // copy src content into obj
   if (typeof src !== 'object' || Array.isArray(src)) return obj
   return _extendObj(obj, src)
 }
 
 // extendObjClear extends obj with cleared src
 // if isSoftSync, extend without cleared
-export const extendObjClear = (obj, src, isSoftSync) => {
+export const extendObjClear = (obj: Record<string, any>, src: Record<string, any>, isSoftSync?: boolean) => {
   Object.keys(src).forEach((key) => {
     if (src[key] === null) return
     if (typeof src[key] !== 'object') { // last key
@@ -355,7 +355,7 @@ export const extendObjClear = (obj, src, isSoftSync) => {
 }
 
 // deltaObj removes from obj what matches with src, only delta remains in obj
-export const deltaObj = (obj, src) => {
+export const deltaObj = (obj: Record<string, any>, src: Record<string, any>) => {
   for (const key in obj) {
     if (Array.isArray(obj[key])) {
       if (!src[key] || !Array.isArray(src[key])) continue
@@ -416,7 +416,7 @@ export const deltaObj = (obj, src) => {
 }
 
 // stripObj strips and return a new object according to attributes or excludedAttributes - comma separated dot object list
-export const stripObj = (obj, attributes, excludedAttributes) => {
+export const stripObj = (obj: Record<string, any>, attributes?: string, excludedAttributes?: string) => {
   if (!attributes && !excludedAttributes) return obj
   if (!obj || typeof obj !== 'object') return obj
   let arrObj
@@ -430,7 +430,7 @@ export const stripObj = (obj, attributes, excludedAttributes) => {
   if (attributes) {
     const arrAttr = attributes.split(',').map(item => item.trim())
     arrRet = arrObj.map((obj) => {
-      const ret = {}
+      const ret: Record<string, any> = {}
       for (let i = 0; i < arrAttr.length; i++) {
         const attr = arrAttr[i].split('.') // title / name.familyName / emails.value
         if (Object.prototype.hasOwnProperty.call(obj, attr[0])) {
@@ -480,7 +480,7 @@ export const stripObj = (obj, attributes, excludedAttributes) => {
             const arr = ret[attr[0]]
             for (let j = 0; j < arr.length; j++) {
               if (Object.prototype.hasOwnProperty.call(arr[j], attr[1])) {
-                const index = arr.findIndex(el => ((Object.prototype.hasOwnProperty.call(el, attr[1]))))
+                const index = arr.findIndex((el: Record<string, any>) => ((Object.prototype.hasOwnProperty.call(el, attr[1]))))
                 if (index > -1) {
                   delete arr[index][attr[1]]
                   try {
@@ -503,8 +503,8 @@ export const stripObj = (obj, attributes, excludedAttributes) => {
 
 // sortByKey will string-sort array of objects by spesific key
 // myArr.sort(sortByKey('name.familyName', 'ascending'))
-export const sortByKey = (key, order = 'ascending') => {
-  return (a, b) => { // inner sort
+export const sortByKey = (key: string, order: string = 'ascending') => {
+  return (a: any, b: any) => { // inner sort
     const val: any = [undefined, undefined]
     const arrIter = [a, b]
     const levels = key.split('.')
@@ -565,7 +565,7 @@ export const getEncrypted = function (pw: string, seed: string) {
 }
 
 // fsExistsSync checks if file/directory exist and returns true/false
-export const fsExistsSync = function (f) {
+export const fsExistsSync = function (f: string) {
   try {
     fs.accessSync(f)
     return true
@@ -578,31 +578,31 @@ export const fsExistsSync = function (f) {
 // utils.createRandomPassword(12) => 12 characters: lower, upper, numeric and special
 // utils.createRandomPassword(12, utils.createRandomPassword.alphaLower, utils.createRandomPassword.alphaUpper)
 // https://gist.github.com/6174/6062387
-export const createRandomPassword = function (len, ...set) {
-  const gen = (min, max) => max++ && [...Array(max - min)].map((s, i) => String.fromCharCode(min + i))
+export const createRandomPassword = function (len: number, ...set: string[]) {
+  const gen = (min: number, max: number) => max++ && [...Array(max - min)].map((s, i) => String.fromCharCode(min + i))
   const sets = {
     num: gen(48, 57),
     alphaLower: gen(97, 122),
     alphaUpper: gen(65, 90),
     special: [...'~!@#$%^&*()_+-=[]{}|;:\'",./<>?'],
   }
-  function* iter(len, set) {
+  function* iter(len: number, set: any) {
     if (set.length < 1) { set = Object.values(sets).flat() }
     for (let i = 0; i < len; i++) { yield set[Math.random() * set.length | 0] }
   }
   let res
   if (len > 3 && set.length === 0) { // ensure all variants are included: lower, upper, numeric and special
-    res = Object.assign((len, set) => [...iter(len, set.flat())].join(''), sets)(len, set)
+    res = Object.assign((len: number, set: any) => [...iter(len, set.flat())].join(''), sets)(len, set)
     let pos = Math.random() * len | 0
     if (pos > len - 4) pos = len - 4
     res = res.split('')
-    res.splice(pos, 1, Object.assign((len, set) => [...iter(len, set.flat())].join(''), sets)(1, sets.num))
-    res.splice(pos + 1, 1, Object.assign((len, set) => [...iter(len, set.flat())].join(''), sets)(1, sets.alphaUpper))
-    res.splice(pos + 2, 1, Object.assign((len, set) => [...iter(len, set.flat())].join(''), sets)(1, sets.special))
-    res.splice(pos + 3, 1, Object.assign((len, set) => [...iter(len, set.flat())].join(''), sets)(1, sets.alphaLower))
+    res.splice(pos, 1, Object.assign((len: number, set: any) => [...iter(len, set.flat())].join(''), sets)(1, sets.num))
+    res.splice(pos + 1, 1, Object.assign((len: number, set: any) => [...iter(len, set.flat())].join(''), sets)(1, sets.alphaUpper))
+    res.splice(pos + 2, 1, Object.assign((len: number, set: any) => [...iter(len, set.flat())].join(''), sets)(1, sets.special))
+    res.splice(pos + 3, 1, Object.assign((len: number, set: any) => [...iter(len, set.flat())].join(''), sets)(1, sets.alphaLower))
     res = res.join('')
   } else {
-    res = Object.assign((len, set) => [...iter(len, set.flat())].join(''), sets)(len, set)
+    res = Object.assign((len: number, set: any) => [...iter(len, set.flat())].join(''), sets)(len, set)
   }
   return res
 }

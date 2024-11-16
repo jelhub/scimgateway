@@ -11,7 +11,7 @@ import type ScimGateway from 'scimgateway'
  */
 export class HelperRest {
   private lock = new utils.Lock()
-  private _serviceClient = {}
+  private _serviceClient: Record<string, any> = {}
   private config_entity: any
   private scimgateway: ScimGateway
   private graphUrl = 'https://graph.microsoft.com/beta' // beta instead of 'v1.0' gives all user attributes when no $select
@@ -47,8 +47,8 @@ export class HelperRest {
   * @param ctx having format { autorization: "<type>:xxxxx" }
   * @returns user_secret
   **/
-  private getClientIdentifier(ctx): string | undefined {
-    if (!ctx?.headers?.authorization) return undefined
+  private getClientIdentifier(ctx: Record<string, any> | undefined): string {
+    if (!ctx?.headers?.authorization) return 'undefined'
     const [user, secret] = this.getCtxAuth(ctx)
     return `${encodeURIComponent(user)}_${encodeURIComponent(secret)}` // user_password or undefined_password
   }
@@ -58,7 +58,7 @@ export class HelperRest {
   * @param ctx includes Auth PassThrough having format {headers:{autorization:"<type>:xxxxx"}}
   * @returns [username, secret]
   **/
-  private getCtxAuth(ctx): any[] {
+  private getCtxAuth(ctx: Record<string, any> | undefined): any[] {
     if (!ctx?.headers?.authorization) return []
     const [authType, authToken] = (ctx.headers.authorization || '').split(' ') // [0] = 'Basic' or 'Bearer'
     let username, password
@@ -73,7 +73,7 @@ export class HelperRest {
    * @param ctx 
    * @returns oauth accesstoken
    */
-  private async getAccessToken(baseEntity: string, ctx: string | undefined) {
+  private async getAccessToken(baseEntity: string, ctx: Record<string, any> | undefined) {
     await this.lock.acquire()
     const clientIdentifier = this.getClientIdentifier(ctx)
     const d = Math.floor(Date.now() / 1000) // seconds (unix time)
@@ -381,7 +381,7 @@ export class HelperRest {
    * @param clientIdentifier 
    * @param obj 
    */
-  private updateServiceClient(baseEntity: string, clientIdentifier: string | undefined, obj: any) {
+  private updateServiceClient(baseEntity: string, clientIdentifier: string, obj: any) {
     if (this._serviceClient[baseEntity] && this._serviceClient[baseEntity][clientIdentifier]) this._serviceClient[baseEntity][clientIdentifier] = utils.extendObj(this._serviceClient[baseEntity][clientIdentifier], obj)
   }
 
@@ -396,7 +396,7 @@ export class HelperRest {
   * @param opt web-standard fetch client options, e.g., options not defined as general options in configuration file
   * @param retryCount internal use only - internal counter for retry and failover logic to other baseUrls defined
   **/
-  private async doRequestHandler(baseEntity: string, method: string, path: string, body?: any, ctx?: any, opt?: any, retryCount?: number) {
+  private async doRequestHandler(baseEntity: string, method: string, path: string, body?: any, ctx?: any, opt?: any, retryCount?: number): Promise<any> {
     let retryAfter = 0
     try {
       const cli = await this.getServiceClient(baseEntity, method, path, opt, ctx)

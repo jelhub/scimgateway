@@ -25,7 +25,6 @@
     "noPropertyAccessFromIndexSignature": false,
 
     // scimgateway settings
-    "noImplicitAny": false,
     "baseUrl": ".", 
     "paths": {
       "scimgateway": ["./lib/scimgateway"],
