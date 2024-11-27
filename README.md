@@ -18,7 +18,7 @@ Latest news:
 
 - Major version **v5.0.0** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
-- Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. Kubernetes health checks and shutdown handler support
+- Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway
 - Supports OAuth Client Credentials authentication
 - Major version **v4.0.0** getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure IP-range  
@@ -157,7 +157,7 @@ If internet connection is blocked, we could install on another machine and copy 
 
 Not needed after a fresh install  
 
-The best and easiest way to upgrade is renaming existing scimgateway package folder, create a new one and do a fresh installation. After the installation we copy `index.ts, config and lib folder` (customized plugins) from previous installation to the new installation. You should also read the version history to see custom plugins needs to be updated.
+The best and easiest way to upgrade is renaming existing scimgateway package folder, create a new one and do a fresh installation. After the installation we copy `index.ts, config and lib folder` (customized plugins) from previous installation to the new installation. You should also read the version history to see if custom plugins needs to be updated.
 
 Alternatives are:  
 
@@ -1085,6 +1085,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.0.5  
+
+[Fixed]
+
+- plugin-ldap, dn special character not correct for ascii code 128(dec)/80(hex) 
 
 ### v5.0.4  
 
