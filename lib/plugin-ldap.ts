@@ -1452,7 +1452,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
                 obj.dn = obj.dn.replace(/\\\\/g, '__') // temp
                 let conv = obj.dn.replace(/\\([0-9A-Fa-f]{2})/g, (_: any, hex: any) => {
                   const intAscii = parseInt(hex, 16)
-                  if (intAscii > 128) { // extended ascii - will be unescaped by decodeURIComponent
+                  if (intAscii > 127) { // extended ascii - will be unescaped by decodeURIComponent
                     return '%' + hex
                   } else { // use character escape
                     return '\\' + String.fromCharCode(intAscii)
