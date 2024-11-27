@@ -896,7 +896,7 @@ export class ScimGateway {
       const baseEntity = ctx.routeObj.baseEntity
       const id = decodeURIComponent(path.basename(ctx.routeObj.id || '', '.json')) // supports <id>.json
 
-      if (!id || id.includes('/')) {
+      if (!id) {
         ctx.response.status = 500
         const err = new Error('missing id')
         const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
