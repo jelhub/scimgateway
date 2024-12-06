@@ -2439,6 +2439,7 @@ export class ScimGateway {
         server = Bun.serve({
           port: this.config.scimgateway.port,
           reusePort: false,
+          idleTimeout: this.config.scimgateway.idleTimeout || 120,
           hostname, // hostname === 'localhost' ? hostname : undefined, // bun defaults to '0.0.0.0', but using '0.0.0.0.' or other ip like '127.0.0.1' becomes extremly slow - bun bug
           tls,
           async fetch(req, srv) {
