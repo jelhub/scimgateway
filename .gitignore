@@ -13,3 +13,8 @@ typings/
 logs/
 client_deploy/
 .vscode/
+/dbinit/
+/docker-compose*.yml
+/Dockerfile
+/DataDockerfile
+/sqlserver_data
