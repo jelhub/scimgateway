@@ -16,11 +16,11 @@ Validated through IdP's:
   
 Latest news:  
 
-- Major version **v5.0.0** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
+- Major version **v5** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway
 - Supports OAuth Client Credentials authentication
-- Major version **v4.0.0** getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
+- Major version **v4** getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure IP-range  
 - General LDAP plugin configured for Active Directory  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
@@ -208,7 +208,6 @@ Below shows an example of config\plugin-saphana.json
 	  "scimgateway": {
 	    "port": 8884,
 	    "localhostonly": false,
-        "payloadSize": null,
         "scim": {
           "version": "2.0",
           "skipTypeConvert" : false,
@@ -281,18 +280,19 @@ Below shows an example of config\plugin-saphana.json
 	      }
 	    },
 	    "ipAllowList": [],
-	    "emailOnError": {
-	      "smtp": {
+	    "email": {
+	      "auth": {
+	        "type": "oauth",
+	        "options": {
+	          "tenantIdGUID": null,
+	          "clientId": null,
+	          "clientSecret": null
+	        }
+	      },
+	      "emailOnError": {
 	        "enabled": false,
-	        "host": null,
-	        "port": 587,
-	        "proxy": null,
-	        "authenticate": true,
-	        "username": null,
-	        "password": null,
-	        "sendInterval": 15,
-	        "to": null,
-	        "cc": null
+	        "from": null,
+	        "to": null
 	      }
 	    },
 	    "stream": {
@@ -349,15 +349,15 @@ Definitions in `scimgateway` object have fixed attributes, but values can be mod
 
 Definitions in `endpoint` object are customized according to our plugin code. Plugin typically need this information for communicating with endpoint  
 
-- **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway.  
+- **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway
 
-- **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted.  
+- **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted.
 
-- **payloadSize** - if not defined, default "1mb" will be used. There are cases which large groups could exceed default size and you may want to increase by setting your own size  
+- **idleTimeout** - default 120, sets the the number of seconds to wait before timing out a connection due to inactivity
 
-- **scim.version** - "1.1" or "2.0". Default is "2.0".  
+- **scim.version** - "1.1" or "2.0". Default is "2.0".
 
-- **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included and also for the endpointMapper method (used by plugin-ldap and plugin-entra-id), e.g.: 
+- **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included and also for the endpointMapper method (used by plugin-ldap and plugin-entra-id), e.g.:
 
 		"emails": {
 		  "work": {"value": "jsmith@example.com", "type": "work"},
@@ -375,34 +375,34 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **scim.skipMetaLocation** - true or false, default false. If set to true, `meta.location` which contains protocol and hostname from request-url, will be excluded from response e.g. `"{...,meta":{"location":"https://my-company.com/<...>"}}`. If using reverse proxy and not including headers `X-Forwarded-Proto` and `X-Forwarded-Host`, originator will be the proxy and we might not want to expose internal protocol and hostname being used by the proxy request.
 
-- **scim."groupMemberOfUser** - true or false, default false. If body contains groups and groupMemberOfUser=true, groups attribute will remain at user object (groups are member of user) instead of default user member of groups that will use modifyGroup method for maintaining group members.
+- **scim.groupMemberOfUser** - true or false, default false. If body contains groups and groupMemberOfUser=true, groups attribute will remain at user object (groups are member of user) instead of default user member of groups that will use modifyGroup method for maintaining group members.
 
 - **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If set to `true`, only PUT body content will be replaced. Any additional existing user attributes and groups supported by plugin will remain as-is.
 
-- **log.loglevel.file** - off, error, info, or debug. Output to plugin-logfile e.g. `logs\plugin-saphana.log`  
+- **log.loglevel.file** - off, error, info, or debug. Output to plugin-logfile e.g. `logs\plugin-saphana.log`
 
-- **log.loglevel.console** - off, error, info, or debug. Output to stdout and errors to stderr.   
+- **log.loglevel.console** - off, error, info, or debug. Output to stdout and errors to stderr.
 
-- **log.customMasking** - array of attributes to be masked e.g. `"customMasking": ["SSN", "weight"]`. By default SCIM Gateway includes masking of some standard attributes like password.  
+- **log.customMasking** - array of attributes to be masked e.g. `"customMasking": ["SSN", "weight"]`. By default SCIM Gateway includes masking of some standard attributes like password.
 
 - **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway - may also include:
   - **auth.xx.readOnly** - true/false, true gives read only access - only allowing `GET` requests for corresponding admin user
   - **auth.xx.baseEntities** - array containing one or more `baseEntity` allowed for this user e.g. ["client-a"] - empty array allowing all.  
-  **Methods are disabled by setting corresponding admin user to null or remove methods not used**  
+  **Methods are disabled by setting corresponding admin user to null or remove methods not used**
 
-- **auth.basic** - Array of one ore more basic authentication objects - Basic Authentication with **username**/**password**. Note, we set a clear text password that will become encrypted when gateway is started.  
+- **auth.basic** - Array of one ore more basic authentication objects - Basic Authentication with **username**/**password**. Note, we set a clear text password that will become encrypted when gateway is started.
 
-- **auth.bearerToken** - Array of one or more bearer token objects - Shared token/secret (supported by Entra ID). Clear text value will become encrypted when gateway is started.  
+- **auth.bearerToken** - Array of one or more bearer token objects - Shared token/secret (supported by Entra ID). Clear text value will become encrypted when gateway is started.
 
-- **auth.bearerJwtAzure** - Array of one or more JWT used by Azure SyncFabric. **tenantIdGUID** must be set to Entra ID Tenant ID.  
+- **auth.bearerJwtAzure** - Array of one or more JWT used by Azure SyncFabric. **tenantIdGUID** must be set to Entra ID Tenant ID.
 
-- **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs` or absolute path being used. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.   
+- **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs` or absolute path being used. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.
 
-- **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`client_id`** and **`client_secret`** are mandatory. client_secret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. http://localhost:8880/oauth/token  
+- **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`client_id`** and **`client_secret`** are mandatory. client_secret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. http://localhost:8880/oauth/token
 
-- **auth.passThrough** - Setting **auth.passThrough.enabled=true** will bypass SCIM Gateway authentication. Gateway will instead pass ctx containing authentication header to the plugin. Plugin could then use this information for endpoint authentication and we don't have any password/token stored at the gateway. Note, this also requires plugin binary having `scimgateway.authPassThroughAllowed = true` and endpoint logic for handling/passing ctx.request.header.authorization 
+- **auth.passThrough** - Setting **auth.passThrough.enabled=true** will bypass SCIM Gateway authentication. Gateway will instead pass ctx containing authentication header to the plugin. Plugin could then use this information for endpoint authentication and we don't have any password/token stored at the gateway. Note, this also requires plugin binary having `scimgateway.authPassThroughAllowed = true` and endpoint logic for handling/passing ctx.request.header.authorization
 
-- **certificate** - If not using TLS certificate, set "key", "cert" and "ca" to **null**. When using TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the `<package-root>\config\certs` directory unless absolute path being defined e.g:  
+- **certificate** - If not using TLS certificate, set "key", "cert" and "ca" to **null**. When using TLS, "key" and "cert" have to be defined with the filename corresponding to the primary-key and public-certificate. Both files must be located in the `<package-root>\config\certs` directory unless absolute path being defined e.g:
   
 		"certificate": {
 		  "key": "key.pem",
@@ -436,23 +436,34 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
           "2603:1056:2000::/48",
           "2603:1057:2::/48"
         ]
-
-- **emailOnError** - Contains configuration for sending error notifications by email. Note, only the first error will be sent until sendInterval have passed
-- **emailOnError.smtp.enabled** - true or false, value set to true will enable email notifications
-- **emailOnError.smtp.host** - Mailserver e.g. "smtp.office365.com"
-- **emailOnError.smtp.port** - Port used by mailserver e.g. 587, 25 or 465
-- **emailOnError.smtp.proxy** - If using mailproxy e.g. "http://proxy-host:1234"
-- **emailOnError.smtp.authenticate** - true or false, set to true will use username/password authentication
-- **emailOnError.smtp.username** - Mail account for authentication and also the sender of the email, e.g. "user@outlook.com"
-- **emailOnError.smtp.password** - Mail account password
-- **emailOnError.smtp.sendInterval** - Mail notifications on error are deferred until sendInterval **minutes** have passed since the last notification. Default 15 minutes
-- **emailOnError.smtp.to** - Comma separated list of recipients email addresses e.g: "someone@example.com"
-- **emailOnError.smtp.cc** - Comma separated list of cc email addresses
+- **email** - Contains configuration for sending email from plugin or automated error notifications emailOnError. Note, for emailOnError only the first error will be sent until sendInterval have passed
+- **email.host** - Mailserver e.g. "smtp.gmail.com" - mandatory when not using tenantIdGUID (Microsoft)
+- **email.port** - Port used by mailserver e.g. 587, 25 or 465 - mandatory when not using tenantIdGUID (Microsoft)
+- **email.auth** - Authentication configuration
+- **email.auth.type** - `basic` or `oauth`
+- **email.auth.options** - Authentication configuration options - note, different options for type basic and oauth
+- **email.auth.options.username (basic)** - Mail account for authentication normally same as sender of the email, e.g. "user@gmail.com"
+- **email.auth.options.password (basic)** - Mail account password
+- **email.auth.options.tenantIdGUID (oauth)** - Entra ID tenant id, mandatory/recommended when using Microsoft Exchange Online
+- **email.auth.options.tokenUrl (oauth)** - Token endpoint, mandatory when not using tenantIdGUID (Microsoft Exchange Online)
+- **email.auth.options.clientId (oauth)** - Client ID
+- **email.auth.options.clientSecret (oauth)** - Client Secret
+- **email.proxy** - Proxy configuration if using mailproxy
+- **email.proxy.host** - Proxy host e.g. `http://proxy-host:1234`
+- **email.proxy.username** - username if authentication is required
+- **email.proxy.password** - password if authentication is required
+- **email.emailOnError** - Contains configuration for sending error notifications by email. Note, only the first error will be sent until sendInterval have passed
+- **email.emailOnError.enabled** - true or false, value set to true will enable email notifications
+- **email.emailOnError.sendInterval** - Default 15. Mail notifications on error are deferred until sendInterval **minutes** have passed since the last notification.
+- **email.emailOnError.from** - Sender email addresses e.g: "noreply@example.com", note must correspond with email.auth.options being used and mailserver configuration
+- **email.emailOnError.to** - Comma separated list of recipients email addresses e.g: "someone@example.com"
+- **email.emailOnError.cc** - Optional comma separated list of cc mail addresses
+- **email.emailOnError.subject** - Optional mail subject, default `SCIM Gateway error message`
 
 - **stream** - See [SCIM Stream](https://elshaug.xyz/docs/scim-stream) for configuration details
 
-- **endpoint** - Contains endpoint specific configuration according to our **plugin code**.    
- 
+- **endpoint** - Contains endpoint specific configuration according to our **plugin code**. 
+
 #### Configuration notes
 
 - Custom Schemas, ServiceProviderConfig and ResourceType can be used if `./lib/scimdef-v2.json or scimdef-v1.json` exists. Original scimdef-v2.json/scimdef-v1.json can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
@@ -1086,11 +1097,20 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.0.6  
+
+[Improved]
+
+- new configuration option: `scimgateway.idleTimeout` default 120, sets the the number of seconds to wait before timing out a connection due to inactivity
+- new configuration option: `scimgateway.email` replacing legacy `scimgateway.emailOnError` (legacy still supported). Email now support oauth authentication configuration which is default and recommended for Microsoft Exchange Online.
+- removed configuration option: `scimgateway.payloadSize` Bun using default maxRequestBodySize 128MB
+- plugin may send email using method scimgateway.sendMail()
+
 ### v5.0.5  
 
 [Fixed]
 
-- plugin-ldap, dn special character not correct for ascii code 128(dec)/80(hex) 
+- plugin-ldap, dn special character not correct for ascii code 128(dec)/80(hex)
 
 ### v5.0.4  
 
@@ -1104,7 +1124,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 - unauthorized connection when using configuration bearerJwtAzure 
 
-[Improved] 
+[Improved]
 
 - minor type definition cosmetics
 
