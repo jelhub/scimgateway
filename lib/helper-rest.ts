@@ -4,7 +4,7 @@ import { Buffer } from 'node:buffer'
 import fs from 'node:fs'
 import querystring from 'querystring'
 import * as utils from './utils.ts'
-import type ScimGateway from 'scimgateway'
+import ScimGateway from 'scimgateway'
 
 /**
  * HelperRest includes function doRequest() for doing REST calls
@@ -14,12 +14,16 @@ export class HelperRest {
   private _serviceClient: Record<string, any> = {}
   private config_entity: any
   private scimgateway: ScimGateway
+  private idleTimeout: number
   private graphUrl = 'https://graph.microsoft.com/beta' // beta instead of 'v1.0' gives all user attributes when no $select
 
-  constructor(scimgateway: ScimGateway) {
+  constructor(scimgateway: ScimGateway, optionalEntities?: Record<string, any>) {
+    if (!(scimgateway instanceof ScimGateway)) throw new Error('HelperRest initialization error: argument scimgateway is not of type ScimGateway')
     this.scimgateway = scimgateway
-    const config = scimgateway.getConfig()
-    this.config_entity = config.entity
+    this.idleTimeout = (scimgateway as any)?.config?.scimgateway.idleTimeout || 120
+    this.idleTimeout = this.idleTimeout - 1
+    if (optionalEntities && optionalEntities.entity) this.config_entity = utils.copyObj(optionalEntities.entity)
+    else this.config_entity = utils.copyObj(scimgateway.getConfig())?.entity
     let entityFound = false
     let connectionFound = false
     for (const baseEntity in this.config_entity) {
@@ -31,15 +35,12 @@ export class HelperRest {
           }
         }
         connectionFound = true
-        if (!this.config_entity[baseEntity].connection.baseUrls
-          || !Array.isArray(this.config_entity[baseEntity].connection.baseUrls)
-          || this.config_entity[baseEntity].connection.baseUrls.length < 1) {
-          throw new Error('HelperRest initialization error: missing configuration \'endpoint.entity.<name>.connection.baseUrls\'')
-        }
       }
     }
-    if (!entityFound) throw new Error('HelperRest initialization error: missing configuration \'endpoint.entity.<name>\'')
-    if (!connectionFound) throw new Error('HelperRest initialization error: missing configuration \'endpoint.entity.<name>.connection\'')
+    let errMsg = ''
+    if (!entityFound) errMsg = 'HelperRest initialization error: missing configuration \'endpoint.entity.<name>\''
+    else if (!connectionFound) errMsg = 'HelperRest initialization error: missing configuration \'endpoint.entity.<name>.connection\''
+    if (errMsg) this.scimgateway.logError('undefined', errMsg)
   }
 
   /**
@@ -68,12 +69,12 @@ export class HelperRest {
   }
 
   /**
-   * getAccessToken returns oauth accesstoken
+   * getAccessToken returns oauth accesstoken object
    * @param baseEntity 
    * @param ctx 
-   * @returns oauth accesstoken
+   * @returns oauth accesstoken object
    */
-  private async getAccessToken(baseEntity: string, ctx: Record<string, any> | undefined) {
+  public async getAccessToken(baseEntity: string, ctx?: Record<string, any> | undefined) { // public in case token is needed for other logic e.g. sending mail
     await this.lock.acquire()
     const clientIdentifier = this.getClientIdentifier(ctx)
     const d = Math.floor(Date.now() / 1000) // seconds (unix time)
@@ -417,7 +418,7 @@ export class HelperRest {
       } else delete options.headers['Content-Type']
       const controller = new AbortController()
       const signal = controller.signal
-      const timeout = setTimeout(() => controller.abort(), options.abortTimeout ? options.abortTimeout * 1000 : 120 * 1000) // 120 seconds default abort timeout
+      const timeout = setTimeout(() => controller.abort(), options.abortTimeout ? options.abortTimeout * 1000 : this.idleTimeout * 1000) // 120 seconds default abort timeout
       options.signal = signal
       const url = `${options.protocol}//${options.host}${options.port ? ':' + options.port : ''}${options.path}`
       // execute request
@@ -486,7 +487,7 @@ export class HelperRest {
       if (!retryCount) retryCount = 0
       let urlObj
       try { urlObj = new URL(path) } catch (err) { void 0 }
-      if (!urlObj && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT' || retryAfter)) {
+      if (!urlObj && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || retryAfter)) {
         if (retryAfter) {
           this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} throttle/ratelimit error - awaiting ${retryAfter} seconds before automatic retry`)
           await new Promise(resolve => setTimeout(function () {
