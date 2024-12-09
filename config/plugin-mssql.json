@@ -134,14 +134,14 @@
       "authentication": {
         "type": "default",
         "options": {
-          "userName": "sa",
+          "userName": "scimgateway",
           "password": "password"
         }
       },
       "options": {
         "instanceName": "",
         "port": 1433,
-        "database": "MyDatabase",
+        "database": "scimgateway",
         "useColumnNames": true,
         "rowCollectionOnRequestCompletion": true,
         "encrypt": false
