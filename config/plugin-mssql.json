@@ -75,18 +75,19 @@
       }
     },
     "ipAllowList": [],
-    "emailOnError": {
-      "smtp": {
+    "email": {
+      "auth": {
+        "type": "oauth",
+        "options": {
+          "tenantIdGUID": null,
+          "clientId": null,
+          "clientSecret": null
+        }
+      },
+      "emailOnError": {
         "enabled": false,
-        "host": null,
-        "port": 587,
-        "proxy": null,
-        "authenticate": true,
-        "username": null,
-        "password": null,
-        "sendInterval": 15,
-        "to": null,
-        "cc": null
+        "from": null,
+        "to": null
       }
     },
     "stream": {
