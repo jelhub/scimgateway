@@ -4,9 +4,7 @@
 // Author:  Jarle Elshaug
 // ==============================================================
 
-// import * as winston from 'winston' // level: silly=0(lowest), debug=1, verbose=2, info=3, warn=4, error=5(highest)
-// import winston, { Logger } from 'winston'
-import winston, { Logger } from 'winston'
+import winston, { Logger } from 'winston' // level: silly=0, debug=1, verbose=2, info=3, warn=4, error=5
 
 // Wrong time if not setting timestamp. Timezone did not work.
 // moment-timezone is also an alternative to the timestamp() function.
