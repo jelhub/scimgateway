@@ -21,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jelhub/scimgateway.git"
+    "url": "https://github.com/jelhub/scimgateway.git"
   },
   "keywords": [
     "scim",
