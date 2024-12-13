@@ -1112,15 +1112,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-### v5.0.7
-
-[Fixed]
-- mail sending option introduced in v5.0.6 did not fully support national special charcters when using Microsoft Exchange Online and html formatted email
-
-[Improved]
-
-
-### v5.0.7
+### v5.0.6
 
 [Improved]
 
