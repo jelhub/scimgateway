@@ -6,16 +6,40 @@
 // Purpose: SQL user-provisioning
 //
 // Prereq:
-// TABLE [dbo].[User](
-//  [UserID] [varchar](50) NOT NULL,
-//  [Enabled] [varchar](50) NULL,
-//  [Password] [varchar](50) NULL,
-//  [FirstName] [varchar](50) NULL,
-//  [MiddleName] [varchar](50) NULL,
-//  [LastName] [varchar](50) NULL,
-//  [Email] [varchar](50) NULL,
-//  [MobilePhone] [varchar](50) NULL
-// )
+// CREATE TABLE [Users] (
+//     [UserID] VARCHAR(50) NOT NULL,
+//     [Enabled] VARCHAR(50) NULL,
+//     [Password] VARCHAR(50) NULL,
+//     [FirstName] VARCHAR(50) NULL,
+//     [MiddleName] VARCHAR(50) NULL,
+//     [LastName] VARCHAR(50) NULL,
+//     [Email] VARCHAR(50) NULL,
+//     [MobilePhone] VARCHAR(50) NULL,
+//     CONSTRAINT [PK_User]
+//         PRIMARY KEY ([UserID])
+// );
+//
+// CREATE TABLE [Groups] (
+//     [GroupID] VARCHAR(50) NOT NULL,
+//     [Enabled] VARCHAR(50) NULL,
+//     CONSTRAINT [PK_Group]
+//         PRIMARY KEY ([GroupID])
+// );
+//
+// CREATE TABLE [Users2Group] (
+//     [GroupID] VARCHAR(50) NOT NULL,
+//     [UserID] VARCHAR(50) NOT NULL,
+//     CONSTRAINT [PK_Users2Group]
+//         PRIMARY KEY ([GroupID],[UserID]),
+//     CONSTRAINT [FK_U2G_Group]
+//         FOREIGN KEY ([GroupID])
+//         REFERENCES [Groups]([GroupID])
+//         ON DELETE CASCADE,
+//     CONSTRAINT [FK_U2G_Users]
+//         FOREIGN KEY ([UserID])
+//         REFERENCES [Users]([UserID])
+//         ON DELETE CASCADE
+// );
 //
 // Supported attributes:
 //
@@ -69,7 +93,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   if (getObj.operator) {
     if (getObj.operator === 'eq' && ['id', 'userName', 'externalId'].includes(getObj.attribute)) {
       // mandatory - unique filtering - single unique user to be returned - correspond to getUser() in versions < 4.x.x
-      sqlQuery = `select * from [User] where UserID = '${getObj.value}'`
+      sqlQuery = `select * from [Users] where UserID = '${getObj.value}'`
     } else if (getObj.operator === 'eq' && getObj.attribute === 'group.value') {
       // optional - only used when groups are member of users, not default behavior - correspond to getGroupUsers() in versions < 4.x.x
       throw new Error(`${action} error: not supporting groups member of user filtering: ${getObj.rawFilter}`)
@@ -82,64 +106,38 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     throw new Error(`${action} not error: supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all users to be returned - correspond to exploreUsers() in versions < 4.x.x
-    sqlQuery = 'select * from [User]'
+    sqlQuery = 'select * from [Users]'
   }
   // mandatory if-else logic - end
 
   if (!sqlQuery) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
 
   try {
-    return await new Promise((resolve, reject) => {
+    return await new Promise( async (resolve, reject) => {
       const ret: any = { // itemsPerPage will be set by scimgateway
         Resources: [],
         totalResults: null,
       }
 
-      const connectionCfg: any = scimgateway.copyObj(config.connection)
-      if (ctx?.request?.header?.authorization) { // Auth PassThrough (don't use configuration password)
-        if (!connectionCfg.authentication) connectionCfg.authentication = {}
-        if (!connectionCfg.authentication.type) connectionCfg.authentication.type = 'default'
-        if (!connectionCfg.authentication.options) connectionCfg.authentication.options = {}
-        const [username, password] = getCtxAuth(ctx)
-        connectionCfg.authentication.options.password = password
-        if (username) connectionCfg.authentication.options.userName = username
+      const users = await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+
+      for (const user of users) {
+        const scimUser = {
+          id: user.UserID.value ? user.UserID.value : undefined,
+          userName: user.UserID.value ? user.UserID.value : undefined,
+          active: user.Enabled.value === 'true' || false,
+          name: {
+            givenName: user.FirstName.value ? user.FirstName.value : undefined,
+            middleName: user.MiddleName.value ? user.MiddleName.value : undefined,
+            familyName: user.LastName.value ? user.LastName.value : undefined,
+          },
+          phoneNumbers: user.MobilePhone.value ? [{ type: 'work', value: user.MobilePhone.value }] : undefined,
+          emails: user.Email.value ? [{ type: 'work', value: user.Email.value }] : undefined,
+        }
+        ret.Resources.push(scimUser)
       }
 
-      const connection = new Connection(connectionCfg)
-
-      connection.on('connect', function (err) {
-        if (err) {
-          const e = new Error(`exploreUsers MSSQL client connect error: ${err.message}`)
-          return reject(e)
-        }
-        const request = new Request(sqlQuery, function (err, rowCount, rows) {
-          if (err) {
-            connection.close()
-            const e = new Error(`exploreUsers MSSQL client request: ${sqlQuery} Error: ${err.message}`)
-            return reject(e)
-          }
-
-          for (const row in rows) {
-            const scimUser = {
-              id: rows[row].UserID.value ? rows[row].UserID.value : undefined,
-              userName: rows[row].UserID.value ? rows[row].UserID.value : undefined,
-              active: rows[row].Enabled.value === 'true' || false,
-              name: {
-                givenName: rows[row].FirstName.value ? rows[row].FirstName.value : undefined,
-                middleName: rows[row].MiddleName.value ? rows[row].MiddleName.value : undefined,
-                familyName: rows[row].LastName.value ? rows[row].LastName.value : undefined,
-              },
-              phoneNumbers: rows[row].MobilePhone.value ? [{ type: 'work', value: rows[row].MobilePhone.value }] : undefined,
-              emails: rows[row].Email.value ? [{ type: 'work', value: rows[row].Email.value }] : undefined,
-            }
-            ret.Resources.push(scimUser)
-          }
-          connection.close()
-          resolve(ret) // all explored users
-        }) // request
-        connection.execSql(request)
-      }) // connection
-      connection.connect() // initialize the connection
+      resolve(ret) // all explored users
     }) // Promise
   } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
@@ -154,7 +152,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   scimgateway.logDebug(baseEntity, `handling "${action}" userObj=${JSON.stringify(userObj)}`)
 
   try {
-    return await new Promise((resolve, reject) => {
+    return await new Promise( async (resolve, reject) => {
       if (!userObj.name) userObj.name = {}
       if (!userObj.emails) userObj.emails = { work: {} }
       if (!userObj.phoneNumbers) userObj.phoneNumbers = { work: {} }
@@ -170,37 +168,12 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
         Email: (userObj.emails.work.value) ? `'${userObj.emails.work.value}'` : null,
       }
 
-      const connectionCfg: any = scimgateway.copyObj(config.connection)
-      if (ctx?.request?.header?.authorization) { // Auth PassThrough (don't use configuration password)
-        if (!connectionCfg.authentication) connectionCfg.authentication = {}
-        if (!connectionCfg.authentication.type) connectionCfg.authentication.type = 'default'
-        if (!connectionCfg.authentication.options) connectionCfg.authentication.options = {}
-        const [username, password] = getCtxAuth(ctx)
-        connectionCfg.authentication.options.password = password
-        if (username) connectionCfg.authentication.options.userName = username
-      }
-      const connection = new Connection(connectionCfg)
-
-      connection.on('connect', function (err) {
-        if (err) {
-          const e = new Error(`createUser MSSQL client connect error: ${err.message}`)
-          return reject(e)
-        }
-        const sqlQuery = `insert into [User] (UserID, Enabled, Password, FirstName, MiddleName, LastName, Email, MobilePhone) 
+      const sqlQuery = `insert into [Users] (UserID, Enabled, Password, FirstName, MiddleName, LastName, Email, MobilePhone)
                 values (${insert.UserID}, ${insert.Enabled}, ${insert.Password}, ${insert.FirstName}, ${insert.MiddleName}, ${insert.LastName}, ${insert.Email}, ${insert.MobilePhone})`
 
-        const request = new Request(sqlQuery, function (err) {
-          if (err) {
-            connection.close()
-            const e = new Error(`createUser MSSQL client request: ${sqlQuery} error: ${err.message}`)
-            return reject(e)
-          }
-          connection.close()
-          resolve(null)
-        }) // request
-        connection.execSql(request)
-      }) // connection
-      connection.connect() // initialize the connection
+      await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+
+      resolve(null)
     }) // Promise
   } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
@@ -215,36 +188,12 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
 
   try {
-    return await new Promise((resolve, reject) => {
-      const connectionCfg: any = scimgateway.copyObj(config.connection)
-      if (ctx?.request?.header?.authorization) { // Auth PassThrough (don't use configuration password)
-        if (!connectionCfg.authentication) connectionCfg.authentication = {}
-        if (!connectionCfg.authentication.type) connectionCfg.authentication.type = 'default'
-        if (!connectionCfg.authentication.options) connectionCfg.authentication.options = {}
-        const [username, password] = getCtxAuth(ctx)
-        connectionCfg.authentication.options.password = password
-        if (username) connectionCfg.authentication.options.userName = username
-      }
-      const connection = new Connection(connectionCfg)
+    return await new Promise( async (resolve, reject) => {
 
-      connection.on('connect', function (err) {
-        if (err) {
-          const e = new Error(`deleteUser MSSQL client connect error: ${err.message}`)
-          return reject(e)
-        }
-        const sqlQuery = `delete from [User] where UserID = '${id}'`
-        const request = new Request(sqlQuery, function (err) {
-          if (err) {
-            connection.close()
-            const e = new Error(`deleteUser MSSQL client request: ${sqlQuery} error: ${err.message}`)
-            return reject(e)
-          }
-          connection.close()
-          resolve(null)
-        }) // request
-        connection.execSql(request)
-      }) // connection
-      connection.connect() // initialize the connection
+      const sqlQuery = `delete from [Users] where UserID = '${id}'`
+      await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+
+      resolve(null)
     }) // Promise
   } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
@@ -259,7 +208,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
   try {
-    return await new Promise((resolve, reject) => {
+    return await new Promise( async (resolve, reject) => {
       if (!attrObj.name) attrObj.name = {}
       if (!attrObj.emails) attrObj.emails = { work: {} }
       if (!attrObj.phoneNumbers) attrObj.phoneNumbers = { work: {} }
@@ -294,35 +243,10 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 
       sql = sql.substr(0, sql.length - 1) // remove trailing ","
 
-      const connectionCfg: any = scimgateway.copyObj(config.connection)
-      if (ctx?.request?.header?.authorization) { // Auth PassThrough (don't use configuration password)
-        if (!connectionCfg.authentication) connectionCfg.authentication = {}
-        if (!connectionCfg.authentication.type) connectionCfg.authentication.type = 'default'
-        if (!connectionCfg.authentication.options) connectionCfg.authentication.options = {}
-        const [username, password] = getCtxAuth(ctx)
-        connectionCfg.authentication.options.password = password
-        if (username) connectionCfg.authentication.options.userName = username
-      }
-      const connection = new Connection(connectionCfg)
+      const sqlQuery = `update [Users] set ${sql} where UserID like '${id}'`
+      await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
 
-      connection.on('connect', function (err) {
-        if (err) {
-          const e = new Error(`modifyUser MSSQL client connect error: ${err.message}`)
-          return reject(e)
-        }
-        const sqlQuery = `update [User] set ${sql} where UserID like '${id}'`
-        const request = new Request(sqlQuery, function (err) {
-          if (err) {
-            connection.close()
-            const e = new Error(`modifyUser MSSQL client request: ${sqlQuery} error: ${err.message}`)
-            return reject(e)
-          }
-          connection.close()
-          resolve(null)
-        }) // request
-        connection.execSql(request)
-      }) // connection
-      connection.connect() // initialize the connection
+      resolve(null)
     }) // Promise
   } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
@@ -332,55 +256,165 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 // =================================================
 // getGroups
 // =================================================
-scimgateway.getGroups = async (baseEntity, getObj, attributes) => {
+scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   const action = 'getGroups'
   scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+
+  let sqlQuery
 
   // mandatory if-else logic - start
   if (getObj.operator) {
     if (getObj.operator === 'eq' && ['id', 'displayName', 'externalId'].includes(getObj.attribute)) {
-      // mandatory - unique filtering - single unique user to be returned - correspond to getUser() in versions < 4.x.x
+      // mandatory - unique filtering - single unique user to be returned - correspond to getGroup() in versions < 4.x.x
+      sqlQuery = `select * from [Groups] where GroupID = '${getObj.value}'`
     } else if (getObj.operator === 'eq' && getObj.attribute === 'members.value') {
       // mandatory - return all groups the user 'id' (getObj.value) is member of - correspond to getGroupMembers() in versions < 4.x.x
-      // Resources = [{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }]
+      sqlQuery = `select * from [Groups] join [Users2Group] on Groups.GroupID = Users2Group.GroupID where Users2Group.UserID = '${getObj.value}'`
     } else {
       // optional - simpel filtering
+      throw new Error(`${action} error: not supporting simple filtering: ${getObj.rawFilter}`)
     }
   } else if (getObj.rawFilter) {
     // optional - advanced filtering having and/or/not - use getObj.rawFilter
+    throw new Error(`${action} not error: supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreGroups() in versions < 4.x.x
+    sqlQuery = 'select * from [Groups]'
   }
   // mandatory if-else logic - end
+  if (!sqlQuery) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
 
-  return { Resources: [] } // groups not supported - returning empty Resources
+  try {
+    return await new Promise( async (resolve, reject) => {
+      const ret = { // itemsPerPage will be set by scimgateway
+        Resources: [],
+        totalResults: null
+      }
+
+      const groups = await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+
+      for (const group of groups) {
+        const scimGroup = {
+          id: group.GroupID.value ? group.GroupID.value : undefined,
+          displayName: group.GroupID.value ? group.GroupID.value : undefined,
+          active: group.Enabled.value === 'true' || false,
+          members: []
+        }
+
+        const sqlQuery = `select UserID from [Users2Group] where GroupID = '${scimGroup.id}'`
+        const members = await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+        for (const member of members) {
+          const scimMember = {
+            value: member.UserID.value,
+            display: member.UserID.value
+          }
+          scimGroup.members.push(scimMember)
+        }
+
+        ret.Resources.push(scimGroup)
+      }
+
+      resolve(ret)
+    })       // Promise
+  } catch (err) {
+    throw new Error(`${action} error: ${err.message}`)
+  }
 }
 
 // =================================================
 // createGroup
 // =================================================
-scimgateway.createGroup = async (baseEntity, groupObj) => {
+scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   const action = 'createGroup'
   scimgateway.logDebug(baseEntity, `handling "${action}" groupObj=${JSON.stringify(groupObj)}`)
-  throw new Error(`${action} error: ${action} is not supported`)
+
+  try {
+    return await new Promise( async (resolve, reject) => {
+      const insert = {
+        GroupID: `'${groupObj.displayName}'`,
+        Enabled: (groupObj.active) ? `'${groupObj.active}'` : '\'false\''
+      }
+
+      const sqlQuery = `insert into [Groups] (GroupID, Enabled) values (${insert.GroupID}, ${insert.Enabled})`
+      await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+
+      for (const member of  groupObj.members) {
+        const sqlQuery = `insert into [Users2Group] (UserID, GroupID) values ('${member.value}', ${insert.GroupID})`
+        await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+        .catch(e => console.warn(`${e}`))
+      }
+
+      resolve(null)
+    }) // Promise
+  } catch (err) {
+    throw new Error(`${action} error: ${err.message}`)
+  }
 }
 
 // =================================================
 // deleteGroup
 // =================================================
-scimgateway.deleteGroup = async (baseEntity, id) => {
+scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
   const action = 'deleteGroup'
   scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
-  throw new Error(`${action} error: ${action} is not supported`)
+
+  try {
+    return await new Promise( async (resolve, reject) => {
+
+      const sqlQuery = `delete from [Groups] where GroupID = '${id}'`
+      await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+
+      resolve(null)
+    }) // Promise
+  } catch (err) {
+    throw new Error(`${action} error: ${err.message}`)
+  }
+
 }
 
 // =================================================
 // modifyGroup
 // =================================================
-scimgateway.modifyGroup = async (baseEntity, id, attrObj) => {
+scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyGroup'
   scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
-  throw new Error(`${action} error: ${action} is not supported`)
+
+  let sql = ''
+
+  if (attrObj.active !== undefined) sql += `Enabled='${attrObj.active}',`
+  sql = sql.substr(0, sql.length - 1) // remove trailing ","
+
+  const queries = []
+  if (sql) {
+    queries.push(`update [Groups] set ${sql} where GroupID like '${id}'`)
+  }
+
+  // This BLINDLY inserts all user/groups and gracefully breaks on PK violation
+  // for each existing membership
+  if (attrObj.members) {
+    attrObj.members.forEach((member) => {
+      if (member.operation == 'delete') {
+        queries.push(`delete from [Users2Group] where GroupID='${id}' and UserID='${member.value}'`)
+      } else {
+        queries.push(`insert into [Users2Group] (UserID, GroupID) values ('${member.value}','${id}')`)
+      }
+    })
+  }
+
+  const sqlQuery = queries.join(';')
+
+  try {
+    return await new Promise(async (resolve, reject) => {
+      if (sqlQuery) {
+        scimgateway.logger.debug(`sqlQuery: ${sqlQuery}`)
+        await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+      }
+
+      resolve(null)
+    }) // Promise
+  } catch (err) {
+    throw new Error(`${action} error: ${err.message}`)
+  }
 }
 
 // =================================================
@@ -398,6 +432,42 @@ const getCtxAuth = (ctx: undefined | Record<string, any>) => {
   if (username) return [username, password] // basic auth
   else return [undefined, authToken] // bearer auth
 }
+
+const connectionCfg = (ctx: undefined | Record<string, any>) => {
+  const connectionCfg = scimgateway.copyObj(config.connection)
+  if (ctx?.request?.header?.authorization) { // Auth PassThrough (don't use configuration password)
+    if (!connectionCfg.authentication) connectionCfg.authentication = {}
+    if (!connectionCfg.authentication.type) connectionCfg.authentication.type = 'default'
+    if (!connectionCfg.authentication.options) connectionCfg.authentication.options = {}
+    const [username, password] = getCtxAuth(ctx)
+    connectionCfg.authentication.options.password = password
+    if (username) connectionCfg.authentication.options.userName = username
+  }
+  return connectionCfg
+}
+
+const query = (sql, ctx) => new Promise( (resolve, reject) => {
+  const connection = new Connection(connectionCfg(ctx))
+
+  connection.connect((err) => {
+    if (err) {
+      const e = new Error(`MSSQL client connect error: ${err.message}`)
+      reject(e)
+    } else {
+      const request = new Request(sql, (err, rowCount, rows) => {
+        if (err) {
+          connection.close()
+          const e = new Error(`MSSQL client request: ${sql} Error: ${err.message}`)
+          reject(e)
+        } else {
+          connection.close()
+          resolve(rows)
+        }
+      })
+      connection.execSql(request)
+    }
+  })
+})
 
 //
 // Cleanup on exit
