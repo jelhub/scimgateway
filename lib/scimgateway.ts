@@ -2688,21 +2688,21 @@ export class ScimGateway {
   * logDebug logs debug message
   **/
   logDebug(baseEntity: string | undefined, msg: string) {
-    this.logger.debug(`${this.pluginName}[${baseEntity}]} ${msg}`)
+    this.logger.debug(`${this.pluginName}[${baseEntity}] ${msg}`)
   }
 
   /**
   * logInfo logs info message
   **/
   logInfo(baseEntity: string | undefined, msg: string) {
-    this.logger.info(`${this.pluginName}[${baseEntity}]} ${msg}`)
+    this.logger.info(`${this.pluginName}[${baseEntity}] ${msg}`)
   }
 
   /**
   * logError logs error message
   **/
   logError(baseEntity: string | undefined, msg: string) {
-    this.logger.error(`${this.pluginName}[${baseEntity}]} ${msg}`)
+    this.logger.error(`${this.pluginName}[${baseEntity}] ${msg}`)
   }
 
   /**
@@ -2919,15 +2919,28 @@ export class ScimGateway {
       if (!this.helperRest) this.helperRest = new HelperRest(this, { entity: { undefined: { connection: this.config.scimgateway.email } } })
       if (this.config.scimgateway.email.auth?.options?.tenantIdGUID) {
         // Graph API
+        let content: string
+        if (isHtml) { // ExO workaround for national special caracters in html content - require singleValueExtendedProperties being used
+          var enc = new TextEncoder() // utf-8
+          const buf = enc.encode(msgObj.content)
+          content = new TextDecoder('windows-1252').decode(buf)
+        } else content = msgObj.content
+
         const emailMessage: Record<string, any> = {
           message: {
             subject: msgObj.subject ? msgObj.subject : 'SCIM Gateway message',
             body: {
-              content: msgObj.content,
+              content,
               contentType: isHtml ? 'HTML' : 'Text',
             },
             toRecipients: [],
             ccRecipients: [],
+            singleValueExtendedProperties: [ // force using ExO header: Content-Type: text/plain; charset="utf-8"
+              {
+                id: 'Integer 0x3fde', // Content-Type header - can be verifed by checking raw mail
+                value: '65001', // text/plain; charset="utf-8"
+              },
+            ],
           },
           saveToSentItems: 'false',
         }
