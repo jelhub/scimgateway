@@ -460,6 +460,21 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **email.emailOnError.cc** - Optional comma separated list of cc mail addresses
 - **email.emailOnError.subject** - Optional mail subject, default `SCIM Gateway error message`
 
+	Configuration notes when using default configuration oauth and tenantIdGUID - Microsoft Exchange Online (ExO):
+
+	- Entra ID application must have application permissions "**Mail.Send**"  
+	- To prevent the sending of emails from any defined mailboxes, an ExO **ApplicationAccessPolicy** must be defined through PowerShell.  
+	
+		First create a mail-enabled security-group that only includes those users (mailboxes) the application is allowed to send from  
+		Note, "mail enabled security" group cannot be created from portal, only from admin or admin.exchange console
+		  
+			##Connect to Exchange
+			Install-Module -Name ExchangeOnlineManagement
+			Connect-ExchangeOnline
+			 
+			##Create ApplicationAccessPolicy
+			New-ApplicationAccessPolicy -AppId $AppClientID -PolicyScopeGroupId $MailEnabledSecurityGrpId -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
+
 - **stream** - See [SCIM Stream](https://elshaug.xyz/docs/scim-stream) for configuration details
 
 - **endpoint** - Contains endpoint specific configuration according to our **plugin code**. 
@@ -1097,14 +1112,90 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-### v5.0.6  
+### v5.0.7
+
+[Fixed]
+- mail sending option introduced in v5.0.6 did not fully support national special charcters when using Microsoft Exchange Online and html formatted email
+
+[Improved]
+
+
+### v5.0.7
 
 [Improved]
 
 - new configuration option: `scimgateway.idleTimeout` default 120, sets the the number of seconds to wait before timing out a connection due to inactivity
-- new configuration option: `scimgateway.email` replacing legacy `scimgateway.emailOnError` (legacy still supported). Email now support oauth authentication configuration which is default and recommended for Microsoft Exchange Online.
-- removed configuration option: `scimgateway.payloadSize` Bun using default maxRequestBodySize 128MB
-- plugin may send email using method scimgateway.sendMail()
+- deprecated configuration option: `scimgateway.payloadSize` Bun using default maxRequestBodySize 128MB
+- new configuration option: `scimgateway.email` replacing legacy `scimgateway.emailOnError` (legacy still supported). Email now support oauth authentication  
+
+old configuration:
+
+	{
+	  "scimgateway": {
+	    ...
+	    "emailOnError": {
+	      "smtp": {
+	        "enabled": false,
+	        "host": null,
+	        "port": 587,
+	        "proxy": null,
+	        "authenticate": true,
+	        "username": null,
+	        "password": null,
+	        "sendInterval": 15,
+	        "to": null,
+	        "cc": null
+	      }
+	    },
+	    ...
+	  },
+	  ...
+	}
+
+
+new configuration:  
+Using Microsoft Exchange Online and oauth authencation which also is default and recommended by Microsoft    
+For other mail servers and options like SMTP AUTH (basic/oauth), please see configuration description  
+Plugin may also send mail using method scimgateway.sendMail()  
+
+	{
+	  "scimgateway": {
+	    ...
+	    "email": {
+	      "auth": {
+	        "type": "oauth",
+	        "options": {
+	          "tenantIdGUID": null,
+	          "clientId": null,
+	          "clientSecret": null
+	        }
+	      },
+	      "emailOnError": {
+	        "enabled": false,
+	        "from": null,
+	        "to": null
+	      }
+	    },
+	    ...
+	  },
+	  ...
+	}
+    
+Configuration notes when using oauth and tenantIdGUID - Microsoft Exchange Online (ExO):  
+
+- Entra ID application must have application permissions "**Mail.Send**"  
+- To prevent the sending of emails from any defined mailboxes, an ExO **ApplicationAccessPolicy** must be defined through PowerShell.  
+
+	First create a mail-enabled security-group that only includes those users (mailboxes) the application is allowed to send from  
+	Note, "mail enabled security" group cannot be created from portal, only from admin or admin.exchange console
+	  
+		##Connect to Exchange
+		Install-Module -Name ExchangeOnlineManagement
+		Connect-ExchangeOnline
+		 
+		##Create ApplicationAccessPolicy
+		New-ApplicationAccessPolicy -AppId $AppClientID -PolicyScopeGroupId $MailEnabledSecurityGrpId -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
+
 
 ### v5.0.5  
 

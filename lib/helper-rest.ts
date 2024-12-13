@@ -297,7 +297,7 @@ export class HelperRest {
           } catch (err: any) {
             throw new Error(`tls configuration error: ${err.message}`)
           }
-          if (Object.prototype.hasOwnProperty.call(connOpt?.tls, 'rejectUnauthorized')) {
+          if (connOpt.tls && Object.prototype.hasOwnProperty.call(connOpt.tls, 'rejectUnauthorized')) {
             if (connOpt.tls.rejectUnauthorized !== false && connOpt.tls.rejectUnauthorized !== true) {
               delete connOpt.tls.rejectUnauthorized
             }
@@ -405,13 +405,18 @@ export class HelperRest {
       let dataString = ''
       if (body) {
         if (options.headers['Content-Type']) {
-          if (options.headers['Content-Type'].toLowerCase() === 'application/x-www-form-urlencoded') {
+          const type: string = options.headers['Content-Type'].toLowerCase().trim()
+          if (type.startsWith('application/x-www-form-urlencoded')) {
             if (typeof body === 'string') dataString = body
             else dataString = querystring.stringify(body) // JSON to query string syntax + URL encoded
-          } else dataString = JSON.stringify(body)
+          } else {
+            if (typeof body === 'string') dataString = body
+            else dataString = JSON.stringify(body)
+          }
         } else {
           options.headers['Content-Type'] = 'application/json; charset=utf-8'
-          dataString = JSON.stringify(body)
+          if (typeof body === 'string') dataString = body
+          else dataString = JSON.stringify(body)
         }
         options.headers['Content-Length'] = Buffer.byteLength(dataString, 'utf8')
         options.body = dataString
