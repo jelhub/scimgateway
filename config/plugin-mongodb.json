@@ -58,8 +58,8 @@
       ],
       "bearerOAuth": [
         {
-          "client_id": null,
-          "client_secret": null,
+          "clientId": null,
+          "clientSecret": null,
           "readOnly": false,
           "baseEntities": []
         }
