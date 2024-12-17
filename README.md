@@ -258,8 +258,8 @@ Below shows an example of config\plugin-saphana.json
           ],
           "bearerOAuth": [
             {
-              "client_id": null,
-              "client_secret": null,
+              "clientId": null,
+              "clientSecret": null,
               "readOnly": false,
               "baseEntities": []
             }
@@ -398,7 +398,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs` or absolute path being used. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.
 
-- **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`client_id`** and **`client_secret`** are mandatory. client_secret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. http://localhost:8880/oauth/token
+- **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`clientId`** and **`clientSecret`** are mandatory. clientSecret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. http://localhost:8880/oauth/token
 
 - **auth.passThrough** - Setting **auth.passThrough.enabled=true** will bypass SCIM Gateway authentication. Gateway will instead pass ctx containing authentication header to the plugin. Plugin could then use this information for endpoint authentication and we don't have any password/token stored at the gateway. Note, this also requires plugin binary having `scimgateway.authPassThroughAllowed = true` and endpoint logic for handling/passing ctx.request.header.authorization
 
@@ -462,18 +462,18 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 	Configuration notes when using default configuration oauth and tenantIdGUID - Microsoft Exchange Online (ExO):
 
-	- Entra ID application must have application permissions "**Mail.Send**"  
-	- To prevent the sending of emails from any defined mailboxes, an ExO **ApplicationAccessPolicy** must be defined through PowerShell.  
+	- Entra ID application must have application permissions `Mail.Send`  
+	- To prevent the sending of emails from any defined mailboxes, an ExO `ApplicationAccessPolicy` must be defined through PowerShell.  
 	
 		First create a mail-enabled security-group that only includes those users (mailboxes) the application is allowed to send from  
-		Note, "mail enabled security" group cannot be created from portal, only from admin or admin.exchange console
+		Note, `mail enabled security group` cannot be created from portal, only from admin or admin.exchange console
 		  
 			##Connect to Exchange
 			Install-Module -Name ExchangeOnlineManagement
 			Connect-ExchangeOnline
 			 
 			##Create ApplicationAccessPolicy
-			New-ApplicationAccessPolicy -AppId $AppClientID -PolicyScopeGroupId $MailEnabledSecurityGrpId -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
+			New-ApplicationAccessPolicy -AppId <AppClientID> -PolicyScopeGroupId <MailEnabledSecurityGrpId> -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
 
 - **stream** - See [SCIM Stream](https://elshaug.xyz/docs/scim-stream) for configuration details
 
@@ -1111,6 +1111,15 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.0.8
+
+[Fixed]
+
+- Ensure Bun compatibility with Azure Reverse Proxy for large and long running response
+- HelperRest was not compatible with Node.js
+- plugin-mssql, some error handling should not throw an error
+- Configuration files updated according to the v5 configuration syntax of `scimgateway.auth.bearerOAuth` - `clientId/clientSecret` now replacing deprecated `client_id/client_secret`
+
 ### v5.0.7
 
 [Improved]
@@ -1155,9 +1164,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 **new configuration:**  
-Using Microsoft Exchange Online and oauth authencation which also is default and recommended by Microsoft    
-For other mail servers and options like SMTP AUTH (basic/oauth), please see configuration description  
-Plugin may also send mail using method scimgateway.sendMail()  
+Using Microsoft Exchange Online and oauth authencation which also is default and recommended by Microsoft. For other mail servers and options like SMTP AUTH (basic/oauth), please see configuration description. Plugin may also send mail using method scimgateway.sendMail()
 
 	{
 	  "scimgateway": {
@@ -1184,18 +1191,18 @@ Plugin may also send mail using method scimgateway.sendMail()
     
 Configuration notes when using oauth and tenantIdGUID - Microsoft Exchange Online (ExO):  
 
-- Entra ID application must have application permissions "**Mail.Send**"  
-- To prevent the sending of emails from any defined mailboxes, an ExO **ApplicationAccessPolicy** must be defined through PowerShell.  
+- Entra ID application must have application permissions `Mail.Send`  
+- To prevent the sending of emails from any defined mailboxes, an ExO `ApplicationAccessPolicy` must be defined through PowerShell.  
 
 	First create a mail-enabled security-group that only includes those users (mailboxes) the application is allowed to send from  
-	Note, "mail enabled security" group cannot be created from portal, only from admin or admin.exchange console
+	Note, `mail enabled security group` cannot be created from portal, only from admin or admin.exchange console
 	  
 		##Connect to Exchange
 		Install-Module -Name ExchangeOnlineManagement
 		Connect-ExchangeOnline
 		 
 		##Create ApplicationAccessPolicy
-		New-ApplicationAccessPolicy -AppId $AppClientID -PolicyScopeGroupId $MailEnabledSecurityGrpId -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
+		New-ApplicationAccessPolicy -AppId <AppClientID> -PolicyScopeGroupId <MailEnabledSecurityGrpId> -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
 
 
 ### v5.0.5  
@@ -1308,7 +1315,7 @@ Besides going from JavaScript to TypeScript, following can be mentioned:
 
 * Use scimgateway.HelperRest() for REST functionlity, also supports Auth PassThrough
 * scimgateway.endpointMapper() may be used for inbound/outbound attribute mappings
-* In general when using TypeScript, variables should be type defined: `let isDone: boolean = false`, `catch (err: any)`, ...
+* In general when using TypeScript, variables should be type-defined: `let isDone: boolean = false`, `catch (err: any)`, ...
 
 ### v4.5.12
 
