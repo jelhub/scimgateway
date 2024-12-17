@@ -113,14 +113,13 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   if (!sqlQuery) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
 
   try {
-    return await new Promise(async (resolve, reject) => {
+    return await new Promise(async (resolve) => {
       const ret: any = { // itemsPerPage will be set by scimgateway
         Resources: [],
         totalResults: null,
       }
 
-      const users: any[] = await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
-
+      const users: any[] = await query(sqlQuery, ctx).catch(err => scimgateway.logWarn(baseEntity, `${action} warning: ${err.message}`))
       for (const user of users) {
         const scimUser = {
           id: user.UserID.value ? user.UserID.value : undefined,
@@ -152,7 +151,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   scimgateway.logDebug(baseEntity, `handling "${action}" userObj=${JSON.stringify(userObj)}`)
 
   try {
-    return await new Promise(async (resolve, reject) => {
+    return await new Promise(async (resolve) => {
       if (!userObj.name) userObj.name = {}
       if (!userObj.emails) userObj.emails = { work: {} }
       if (!userObj.phoneNumbers) userObj.phoneNumbers = { work: {} }
@@ -171,7 +170,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
       const sqlQuery = `insert into [Users] (UserID, Enabled, Password, FirstName, MiddleName, LastName, Email, MobilePhone)
                 values (${insert.UserID}, ${insert.Enabled}, ${insert.Password}, ${insert.FirstName}, ${insert.MiddleName}, ${insert.LastName}, ${insert.Email}, ${insert.MobilePhone})`
 
-      await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+      await query(sqlQuery, ctx).catch(err => scimgateway.logWarn(baseEntity, `${action} warning: ${err.message}`))
 
       resolve(null)
     }) // Promise
@@ -188,10 +187,9 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
 
   try {
-    return await new Promise(async (resolve, reject) => {
-
+    return await new Promise(async (resolve) => {
       const sqlQuery = `delete from [Users] where UserID = '${id}'`
-      await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+      await query(sqlQuery, ctx).catch(err => scimgateway.logWarn(baseEntity, `${action} warning: ${err.message}`))
 
       resolve(null)
     }) // Promise
@@ -208,7 +206,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
   try {
-    return await new Promise(async (resolve, reject) => {
+    return await new Promise(async (resolve) => {
       if (!attrObj.name) attrObj.name = {}
       if (!attrObj.emails) attrObj.emails = { work: {} }
       if (!attrObj.phoneNumbers) attrObj.phoneNumbers = { work: {} }
@@ -244,7 +242,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
       sql = sql.substr(0, sql.length - 1) // remove trailing ","
 
       const sqlQuery = `update [Users] set ${sql} where UserID like '${id}'`
-      await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+      await query(sqlQuery, ctx).catch(err => scimgateway.logWarn(baseEntity, `${action} warning: ${err.message}`))
 
       resolve(null)
     }) // Promise
@@ -285,13 +283,13 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   if (!sqlQuery) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
 
   try {
-    return await new Promise(async (resolve, reject) => {
+    return await new Promise(async (resolve) => {
       const ret: any = { // itemsPerPage will be set by scimgateway
         Resources: [],
         totalResults: null,
       }
 
-      const groups: any[] = await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+      const groups: any[] = await query(sqlQuery, ctx).catch(err => scimgateway.logWarn(baseEntity, `${action} warning: ${err.message}`))
 
       for (const group of groups) {
         const scimGroup: Record<string, any> = {
@@ -302,7 +300,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
         }
 
         const sqlQuery = `select UserID from [Users2Group] where GroupID = '${scimGroup.id}'`
-        const members = await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+        const members = await query(sqlQuery, ctx).catch(err => scimgateway.logWarn(baseEntity, `${action} warning: ${err.message}`))
         for (const member of members) {
           const scimMember = {
             value: member.UserID.value,
@@ -315,7 +313,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       }
 
       resolve(ret)
-    })       // Promise
+    }) // Promise
   } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
@@ -329,23 +327,23 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   scimgateway.logDebug(baseEntity, `handling "${action}" groupObj=${JSON.stringify(groupObj)}`)
 
   try {
-    return await new Promise(async (resolve, reject) => {
+    return await new Promise(async (resolve) => {
       const insert = {
         GroupID: `'${groupObj.displayName}'`,
         Enabled: (groupObj.active) ? `'${groupObj.active}'` : '\'false\'',
       }
 
       const sqlQuery = `insert into [Groups] (GroupID, Enabled) values (${insert.GroupID}, ${insert.Enabled})`
-      await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+      await query(sqlQuery, ctx).catch(err => scimgateway.logWarn(baseEntity, `${action} warning: ${err.message}`))
 
-    if (Array.isArray(groupObj.members) && groupObj.members) {
+      if (Array.isArray(groupObj.members) && groupObj.members) {
         for (const member of groupObj.members) {
           const sqlQuery = `insert into [Users2Group] (UserID, GroupID) values ('${member.value}', ${insert.GroupID})`
-          await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+          await query(sqlQuery, ctx).catch(err => scimgateway.logWarn(baseEntity, `${action} warning: ${err.message}`))
         }
-    }
+      }
 
-    resolve(null)
+      resolve(null)
     }) // Promise
   } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
@@ -360,17 +358,15 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
   scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
 
   try {
-    return await new Promise(async (resolve, reject) => {
-
+    return await new Promise(async (resolve) => {
       const sqlQuery = `delete from [Groups] where GroupID = '${id}'`
-      await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+      await query(sqlQuery, ctx).catch(err => scimgateway.logWarn(baseEntity, `${action} warning: ${err.message}`))
 
       resolve(null)
     }) // Promise
   } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
-
 }
 
 // =================================================
@@ -405,10 +401,10 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const sqlQuery = queries.join(';')
 
   try {
-    return await new Promise(async (resolve, reject) => {
+    return await new Promise(async (resolve) => {
       if (sqlQuery) {
-        scimgateway.logger.debug(`sqlQuery: ${sqlQuery}`)
-        await query(sqlQuery, ctx).catch(e => console.warn(`${e}`))
+        scimgateway.logDebug(baseEntity, `sqlQuery: ${sqlQuery}`)
+        await query(sqlQuery, ctx).catch(err => scimgateway.logWarn(baseEntity, `${action} warning: ${err.message}`))
       }
 
       resolve(null)
@@ -447,7 +443,7 @@ const connectionCfg = (ctx: undefined | Record<string, any>) => {
   return connectionCfg
 }
 
-const query: (sql: string, ctx: any) => Promise<any> = (sql, ctx) => new Promise( (resolve, reject) => {
+const query: (sql: string, ctx: any) => Promise<any> = (sql, ctx) => new Promise((resolve, reject) => {
   const connection = new Connection(connectionCfg(ctx))
 
   connection.connect((err) => {
