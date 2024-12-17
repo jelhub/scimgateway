@@ -2711,6 +2711,13 @@ export class ScimGateway {
   }
 
   /**
+  * logWarn logs warning message
+  **/
+  logWarn(baseEntity: string | undefined, msg: string) {
+    this.logger.warn(`${this.pluginName}[${baseEntity}] ${msg}`)
+  }
+
+  /**
   * logError logs error message
   **/
   logError(baseEntity: string | undefined, msg: string) {
