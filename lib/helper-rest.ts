@@ -4,7 +4,7 @@ import { Buffer } from 'node:buffer'
 import fs from 'node:fs'
 import querystring from 'querystring'
 import * as utils from './utils.ts'
-import ScimGateway from 'scimgateway'
+// import type { ScimGateway } from 'scimgateway' // comment out for supporting Node.js, using type any and no IntelliSense
 
 /**
  * HelperRest includes function doRequest() for doing REST calls
@@ -13,12 +13,12 @@ export class HelperRest {
   private lock = new utils.Lock()
   private _serviceClient: Record<string, any> = {}
   private config_entity: any
-  private scimgateway: ScimGateway
+  private scimgateway: any
   private idleTimeout: number
   private graphUrl = 'https://graph.microsoft.com/beta' // beta instead of 'v1.0' gives all user attributes when no $select
 
-  constructor(scimgateway: ScimGateway, optionalEntities?: Record<string, any>) {
-    if (!(scimgateway instanceof ScimGateway)) throw new Error('HelperRest initialization error: argument scimgateway is not of type ScimGateway')
+  constructor(scimgateway: any, optionalEntities?: Record<string, any>) {
+    if (!scimgateway || !scimgateway.gwName) throw new Error('HelperRest initialization error: argument scimgateway is not of type ScimGateway')
     this.scimgateway = scimgateway
     this.idleTimeout = (scimgateway as any)?.config?.scimgateway.idleTimeout || 120
     this.idleTimeout = this.idleTimeout - 1
