@@ -1,13 +1,13 @@
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { URL } from 'url'
 import { Buffer } from 'node:buffer'
+import { samlAssertion } from './samlAssertion.ts' // prereq: saml
 import fs from 'node:fs'
 import querystring from 'querystring'
 import * as utils from './utils.ts'
-// import type { ScimGateway } from 'scimgateway' // comment out for supporting Node.js, using type any and no IntelliSense
 
 /**
- * HelperRest includes function doRequest() for doing REST calls
+ * HelperRest includes function doRequest() for executing REST calls
  */
 export class HelperRest {
   private lock = new utils.Lock()
@@ -118,6 +118,31 @@ export class HelperRest {
         }
         break
 
+      case 'oauthSamlAssertion':
+        tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
+        const context = null
+        const cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.cert).toString()
+        const key = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.key).toString()
+
+        const issuer = `scimgateway/${this.scimgateway.pluginName}`
+        const lifetime = 3600
+        const clientId = this.config_entity[baseEntity].connection.auth.options.clientId
+        const nameId = this.config_entity[baseEntity].connection.auth.options.userId
+        const userIdentifierFormat = 'userName'
+        const tokenEndpoint = tokenUrl
+        const audience = `scimgateway/${this.scimgateway.pluginName}`
+        const delay = 1
+
+        const assertion = await samlAssertion.run(context, cert, key, issuer, lifetime, clientId, nameId, userIdentifierFormat, tokenEndpoint, audience, delay)
+        form = {
+          token_url: tokenUrl,
+          grant_type: 'urn:ietf:params:oauth:grant-type:saml2-bearer',
+          client_id: clientId,
+          company_id: this.config_entity[baseEntity].connection.auth.options.companyId,
+          assertion: assertion,
+        }
+        break
+
       default:
         this.lock.release()
         throw new Error(`getAccessToken() none supported entity.${baseEntity}.connection.auth.type: '${this.config_entity[baseEntity]?.connection?.auth?.type}'`)
@@ -176,7 +201,7 @@ export class HelperRest {
    * @param baseEntity baseEntity
    * @param method GET/PATCH/PUT/DELETE
    * @param path e.g., /Users having baseUrl from configuration added, or full url e.g. https://mycompany.com/Users
-   * @param opt optional, connection optios
+   * @param opt optional, connection options
    * @param ctx optional, ctx included if using Auth PassThrough
    * @returns client.options needed for connect
    */
@@ -255,7 +280,7 @@ export class HelperRest {
                 const err = new Error(`auth type 'oauth' - missing configuration entity.${baseEntity}.connection.auth.options.clientId/clientSecret`)
                 throw err
               }
-              param.accessToken = await this.getAccessToken(baseEntity, ctx) // support Auth PassThrough
+              param.accessToken = await this.getAccessToken(baseEntity, ctx)
               param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
               break
             case 'token':
@@ -263,7 +288,7 @@ export class HelperRest {
                 const err = new Error(`missing configuration entity.${baseEntity}.connection.auth.options.tokenUrl/password`)
                 throw err
               }
-              param.accessToken = await this.getAccessToken(baseEntity, ctx) // support Auth PassThrough
+              param.accessToken = await this.getAccessToken(baseEntity, ctx)
               param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
               break
             case 'bearer':
@@ -272,6 +297,15 @@ export class HelperRest {
                 throw err
               }
               param.options.headers['Authorization'] = 'Bearer ' + Buffer.from(this.config_entity[baseEntity].connection.auth.options.token).toString('base64')
+              break
+            case 'oauthSamlAssertion':
+              if (!this.config_entity[baseEntity]?.connection?.auth?.options?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.companyId
+                || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key) {
+                const err = new Error(`auth type 'oauthSamlAssertion' - missing configuration entity.${baseEntity}.connection.auth.options...`)
+                throw err
+              }
+              param.accessToken = await this.getAccessToken(baseEntity, ctx)
+              param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
               break
             default:
             // no auth
@@ -426,6 +460,7 @@ export class HelperRest {
       const timeout = setTimeout(() => controller.abort(), options.abortTimeout ? options.abortTimeout * 1000 : this.idleTimeout * 1000) // 120 seconds default abort timeout
       options.signal = signal
       const url = `${options.protocol}//${options.host}${options.port ? ':' + options.port : ''}${options.path}`
+      if (path.includes(')?$') && !options.headers['Accept-Encoding']) options.headers['Accept-Encoding'] = 'identity' // workaround for bun fetch error: "Decompression error: ShortRead" - have seen this error using OData with "<some-path>('xxx')?$expand=" or "<some-path>('xxx')?$select=" ref: https://github.com/oven-sh/bun/issues/8017
       // execute request
       const f = await fetch(url, options)
       clearTimeout(timeout)
@@ -534,15 +569,20 @@ export class HelperRest {
   *     "entity": {
   *       "undefined": {
   *         "connection": {
-  *           "baseUrls": [
+  *           "baseUrls": [  // ignored when using option tenantIdGUID
   *             "<baseUrl>", // "https://host1.company.com:8880",
   *             "<baseUrl2>" // optional using several baseUrls for failover
   *           ],
   *          "auth": {
-  *            "type": "<type>"",
+  *            "type": "<type>",
   *            "options": { <auth.options> }
   *           },
   *           "options": { <connection.options> }
+  *           "proxy": {
+  *             "host": "<host>", // http://proxy-host:1234
+  *             "username": "<username>", // username if authentication is required
+  *             "password": "<password>" // password if authentication is required
+  *           }
   *         }
   *       }
   *     }
@@ -551,11 +591,11 @@ export class HelperRest {
   * ```
   * type defines authentication being used  
   * if type not defined, no authentication used  
-  * valid type is: `basic`, `oauth`, `token` or `bearer`   
+  * valid type is: `basic`, `oauth`, `token`, `bearer` or `oauthSamlAssertion`  
   * 
   * for each valid type there are different auth.options  
   * 
-  * type=**basic**, auth.options:
+  * type=**"basic"** having auth.options:
   * ```
   * {
   *   "options": {
@@ -565,11 +605,11 @@ export class HelperRest {
   * }
   * ```
   * 
-  * type=**oauth**, auth.options:
+  * type=**"oauth"** having auth.options:
   * ```
   * {
   *   "options": {
-  *     "tenantIdGUID": "<Entra ID tenantIdGUID", // only defined when using Entra ID
+  *     "tenantIdGUID": "<Entra ID tenantIdGUID", // simplified configuration for using Microsoft Graph API
   *     "tokenUrl": "<tokenUrl>", // not used when tenantIdGUID defined
   *     "clientId": "<clientId",
   *     "clientSecret": "<clientSecret>"
@@ -577,7 +617,7 @@ export class HelperRest {
   * }
   * ```
   * 
-  * type=**token**, auth.options:
+  * type=**"token"** having auth.options:
   * ```
   * {
   *   "options": {
@@ -588,11 +628,27 @@ export class HelperRest {
   * }
   * ```
   * 
-  * type=**bearer**, auth.options:
+  * type=**"bearer"** having auth.options:
   * ```
   * {
   *   "options": {
   *     "token": "<bearer token to be used">
+  *   }
+  * }
+  * ```
+  * 
+  * type=**"oauthSamlAssertion"** having auth.options:
+  * ```
+  * {
+  *   "options": {
+  *     "tokenUrl": "<tokenUrl>",
+  *     "clientId": "<clientId>",
+  *     "companyId": "<companyId>",
+  *     "userId": "<userId>",
+  *     "certificate": {
+  *       "key": "<key-file-name>", // location: config/certs
+  *       "cert": "<cert-file-name>", // location: config/certs
+  *     }
   *   }
   * }
   * ```
