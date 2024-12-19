@@ -1111,6 +1111,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.0.9
+
+[Improved]
+
+- HelperRest doRequest() now support configuration auth type `oauthSamlAssertion` for OAuth SAML token assertion. Please see code editor method IntelliSense for details
+
 ### v5.0.8
 
 [Fixed]
