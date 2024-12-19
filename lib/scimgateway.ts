@@ -2382,9 +2382,9 @@ export class ScimGateway {
             controller.close()
           },
         })
-        response = new Response(body ? stream : undefined, { status: ctx.response.status, headers: ctx.response.headers })
+        response = new Response(body ? stream : body, { status: ctx.response.status, headers: ctx.response.headers })
       } else {
-        response = new Response(body ? body : undefined, { status: ctx.response.status, headers: ctx.response.headers })
+        response = new Response(body, { status: ctx.response.status, headers: ctx.response.headers })
       }
       logResult(ctx)
       return response
