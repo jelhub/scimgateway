@@ -1111,6 +1111,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.0.10
+
+[Improved]
+
+- OAuth token request now accept missing or invalid Content-Type header 
+
 ### v5.0.9
 
 [Improved]
