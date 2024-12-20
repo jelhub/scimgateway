@@ -830,7 +830,20 @@ export class ScimGateway {
       let jsonBody = ctx.request.body
       try {
         if (!jsonBody) throw new Error('missing body')
-        if (typeof jsonBody !== 'object') throw new Error('body is not JSON')
+        if (typeof jsonBody !== 'object') { // might have application/x-www-form-urlencoded body, but incorrect Content-Type header
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] continue request validation even though incorrect body vs header Content-Type: ${ctx.request.headers.get('content-type')}`)
+          const arr = jsonBody.split('&')
+          const body: Record<string, any> = {}
+          arr.forEach((kv: string) => {
+            const a = kv.split('=')
+            if (a.length === 2) {
+              body[a[0]] = decodeURIComponent(a[1])
+            }
+          })
+          if (Object.keys(body).length < 1) throw new Error('body is not JSON nor application/x-www-form-urlencoded')
+          ctx.request.body = body // now json - ensure final info log will be masked
+          jsonBody = body
+        }
         jsonBody = utils.copyObj(jsonBody) // no changes to original
       } catch (err: any) {
         logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] token request error: ${err.message}`)
@@ -875,7 +888,7 @@ export class ScimGateway {
         }
         if (!token) {
           err = 'invalid_client'
-          errDescr = 'incorrect or missing clientId/clientSecret'
+          errDescr = 'incorrect or missing client_id/client_secret'
           if (pwErrCount < 3) {
             pwErrCount += 1
           } else { // delay brute force attempts
@@ -2283,13 +2296,13 @@ export class ScimGateway {
         body = JSON.parse(bodyString)
       } catch (err: any) {
         const contentType = request.headers.get('content-type')
-        if (contentType && contentType.toLowerCase() === 'application/x-www-form-urlencoded') {
+        if (contentType && contentType.toLowerCase().startsWith('application/x-www-form-urlencoded')) {
           const arr = bodyString.split('&') // "grant_type=client_credentials&client_id=id&client_secret=secret"
           body = {}
           arr.forEach((kv: string) => {
             const a = kv.split('=')
             if (a.length === 2) {
-              body[a[0]] = a[1]
+              body[a[0]] = decodeURIComponent(a[1])
             }
           })
         } else if (bodyString) body = bodyString
