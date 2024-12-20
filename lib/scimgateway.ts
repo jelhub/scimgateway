@@ -1021,7 +1021,6 @@ export class ScimGateway {
           }
         }
 
-        userObj = utilsScim.addPrimaryAttrs(userObj)
         scimdata = utils.stripObj(userObj, ctx.query.attributes, ctx.query.excludedAttributes)
         scimdata = utilsScim.addSchemas(scimdata, isScimv2, handle.description, undefined)
 
@@ -1272,7 +1271,6 @@ export class ScimGateway {
         if (this.config.scimgateway.scim.skipMetaLocation) location = undefined
         else if (ctx.query.attributes || (ctx.query.excludedAttributes && ctx.query.excludedAttributes.includes('meta'))) location = undefined
         for (let i = 0; i < scimdata.Resources.length; i++) {
-          scimdata.Resources[i] = utilsScim.addPrimaryAttrs(scimdata.Resources[i])
           scimdata.Resources[i] = utils.stripObj(scimdata.Resources[i], ctx.query.attributes, ctx.query.excludedAttributes)
         }
         scimdata = utilsScim.addResources(scimdata, ctx.query.startIndex, ctx.query.sortBy, ctx.query.sortOrder)
@@ -1453,7 +1451,6 @@ export class ScimGateway {
           ctx.response.headers.set('Location', location)
         }
         delete jsonBody.password
-        jsonBody = utilsScim.addPrimaryAttrs(jsonBody)
         jsonBody = utilsScim.addSchemas(jsonBody, isScimv2, handle.description, undefined)
         ctx.response.status = 201
         ctx.response.body = JSON.stringify(jsonBody)
@@ -1671,7 +1668,7 @@ export class ScimGateway {
           const location = ctx.origin + ctx.path
           ctx.response.headers.set('Location', location)
         }
-        const userObj = utilsScim.addPrimaryAttrs(scimdata.Resources[0])
+        const userObj = scimdata.Resources[0]
         scimdata = utils.stripObj(userObj, ctx.query.attributes, ctx.query.excludedAttributes)
         scimdata = utilsScim.addSchemas(scimdata, isScimv2, handle.description, undefined)
         ctx.response.status = 200

@@ -793,7 +793,19 @@ export function addSchemas(data: Record<string, any>, isScimv2: boolean, type?: 
         } else if (key === 'password') delete data.Resources[i].password // exclude password, null and empty object/array
         else if (data.Resources[i][key] === null) delete data.Resources[i][key]
         else if (JSON.stringify(data.Resources[i][key]) === '{}') delete data.Resources[i][key]
-        else if (Array.isArray(data.Resources[i][key]) && data.Resources[i][key].length < 1) delete data.Resources[i][key]
+        else if (Array.isArray(data.Resources[i][key])) {
+          if (data.Resources[i][key].length < 1) delete data.Resources[i][key]
+          else if (key !== 'members' && key !== 'groups') { // any primary attribute should be boolean
+            for (let j = 0; j < data.Resources[i][key].length; j++) {
+              let el = data.Resources[i][key][j]
+              if (typeof el !== 'object') break
+              if (el.type && el.primary && typeof el.primary === 'string') {
+                if (el.primary.toLowerCase() === 'true') el.primary = true
+                else if (el.primary.toLowerCase() === 'false') el.primary = false
+              }
+            }
+          }
+        }
       }
       if (Object.keys(data.Resources[i]).length === 0) {
         data.Resources.splice(i, 1) // delete
@@ -827,35 +839,23 @@ export function addSchemas(data: Record<string, any>, isScimv2: boolean, type?: 
       } else if (key === 'password') delete data.password // exclude password, null and empty object/array
       else if (data[key] === null) delete data[key]
       else if (JSON.stringify(data[key]) === '{}') delete data[key]
-      else if (Array.isArray(data[key]) && data[key].length < 1) delete data[key]
+      else if (Array.isArray(data[key])) {
+        if (data[key].length < 1) delete data[key]
+        else if (key !== 'members' && key !== 'groups') { // any primary attribute should be boolean
+          for (let j = 0; j < data[key].length; j++) {
+            let el = data[key][j]
+            if (typeof el !== 'object') break
+            if (el.type && el.primary && typeof el.primary === 'string') {
+              if (el.primary.toLowerCase() === 'true') el.primary = true
+              else if (el.primary.toLowerCase() === 'false') el.primary = false
+            }
+          }
+        }
+      }
     }
   }
 
   return data
-}
-
-// addPrimaryAttrs cheks for primary attributes (only for roles) and add them as standalone attributes
-// some IdP's may check for these e.g. Azure
-// e.g. {roles: [{value: "val1", primary: "True"}]}
-// gives:
-// { roles: [{value: "val1", primary: "True"}],
-//   roles[primary eq "True"].value: "val1",
-//   roles[primary eq "True"].primary: "True"}]
-// }
-export function addPrimaryAttrs(obj: Record<string, any>) {
-  const key = 'roles'
-  if (!obj || typeof obj !== 'object') return obj
-  if (!obj[key] || !Array.isArray(obj[key])) return obj
-  const o = utils.copyObj(obj)
-  const index = o[key].findIndex((el: Record<string, any>) => (el.primary === true || (typeof el.primary === 'string' && el.primary.toLowerCase() === 'true')))
-  if (index >= 0) {
-    const prim = o[key][index]
-    for (const k in prim) {
-      const primKey = `${key}[primary eq ${typeof prim.primary === 'string' ? `"${prim.primary}"` : prim.primary}].${k}` // roles[primary eq true].value / roles[primary eq "True"].value``
-      o[primKey] = prim[k] // { roles[primary eq true].value : "some-value" }
-    }
-  }
-  return o
 }
 
 //
@@ -900,7 +900,7 @@ export function jsonErr(scimVersion: string | number, pluginName: string, htmlEr
 
   if (scimVersion !== '2.0' && scimVersion !== 2) { // v1.1
     errJson
-    = {
+      = {
         Errors: [
           {
             description: msg,
@@ -910,7 +910,7 @@ export function jsonErr(scimVersion: string | number, pluginName: string, htmlEr
       }
   } else { // v2.0
     errJson
-    = {
+      = {
         schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'],
         scimType,
         detail: msg,
