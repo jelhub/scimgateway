@@ -1111,6 +1111,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.0.11
+
+[Fixed]
+
+- OAuth token response on error missing error_description in v5
+- HelperRest doRequest() now also includes retry logic on invalid token that has not expired - will renew token 
+
 ### v5.0.10
 
 [Improved]
