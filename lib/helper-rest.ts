@@ -166,13 +166,11 @@ export class HelperRest {
       const response = await this.doRequest(baseEntity, method, tokenUrl, form, ctx, connOpt)
       if (!response.body) {
         const err = new Error(`[${action}] No data retrieved from: ${method} ${tokenUrl}`)
-        this.lock.release()
         throw (err)
       }
       const jbody = response.body
       if (jbody.error) {
         const err = new Error(`[${action}] Error message: ${jbody.error_description}`)
-        this.lock.release()
         throw (err)
       }
       if (this.config_entity[baseEntity]?.connection?.auth?.type === 'token') { // in case response using token instead of access_token
@@ -180,7 +178,6 @@ export class HelperRest {
         else if (jbody.accessToken) jbody.access_token = jbody.accessToken
       }
       if (!jbody.access_token) {
-        this.lock.release()
         const err = new Error(`[${action}] Error message: Retrieved invalid token response`)
         throw (err)
       }
@@ -229,7 +226,7 @@ export class HelperRest {
               this._serviceClient[baseEntity][clientIdentifier].accessToken = accessToken
               this._serviceClient[baseEntity][clientIdentifier].options.headers['Authorization'] = ` Bearer ${accessToken.access_token}`
             } catch (err) {
-              delete this._serviceClient[baseEntity][clientIdentifier]
+              if (this._serviceClient[baseEntity]) delete this._serviceClient[baseEntity][clientIdentifier]
               const newErr = err
               throw newErr
             }
@@ -517,9 +514,6 @@ export class HelperRest {
     } catch (err: any) { // includes failover/retry logic based on config baseUrls array
       let statusCode
       try { statusCode = JSON.parse(err.message).statusCode } catch (e) { void 0 }
-      if (statusCode === 404) { // not logged as error, let caller decide e.g. getUser-manager
-        this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
-      } else this.scimgateway.logError(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
       const clientIdentifier = this.getClientIdentifier(ctx)
       if (err.message.includes('ratelimit')) { // have seen throttling not follow standard 429/retry-after, but instead using 500 and error message only
         if (!retryAfter) retryAfter = 60
@@ -527,13 +521,17 @@ export class HelperRest {
       if (!retryCount) retryCount = 0
       let urlObj
       try { urlObj = new URL(path) } catch (err) { void 0 }
-      if (!urlObj && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || retryAfter)) {
+      let isServiceClient = !urlObj && this._serviceClient[baseEntity] && this._serviceClient[baseEntity][clientIdentifier] && !this.lock.isLocked() // !isLocked to avoid retry ongoing doRequest with failing getAccessToken()
+      let oAuthTokeErr = statusCode === 401 && this.config_entity[baseEntity].connection?.auth?.type && this.config_entity[baseEntity].connection.auth.type.startsWith('oauth')
+      if (isServiceClient && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || oAuthTokeErr || retryAfter)) {
+        this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
         if (retryAfter) {
           this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} throttle/ratelimit error - awaiting ${retryAfter} seconds before automatic retry`)
           await new Promise(resolve => setTimeout(function () {
             resolve(null)
           }, retryAfter * 1000))
         }
+        if (oAuthTokeErr && this._serviceClient[baseEntity]) delete this._serviceClient[baseEntity][clientIdentifier] // ensure new getAccessToken request - token used should not have been expired, but rejected for other reason e.g. token server restart and no persistent token store?
         if (retryCount < this.config_entity[baseEntity].connection.baseUrls.length) {
           retryCount++
           this.updateServiceClient(baseEntity, clientIdentifier, { baseUrl: this.config_entity[baseEntity].connection.baseUrls[retryCount - 1] })
@@ -541,13 +539,19 @@ export class HelperRest {
           const ret = await this.doRequestHandler(baseEntity, method, path, body, ctx, opt, retryCount) // retry
           return ret // problem fixed
         } else {
+          if (statusCode === 404) { // not logged as error e.g. getUser-manager
+            this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
+          } else this.scimgateway.logError(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} 11Error Response = ${err.message}`)
           throw err
         }
       } else {
+        if (statusCode === 404) { // not logged as error e.g. getUser-manager
+          this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
+        } else this.scimgateway.logError(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
         if (statusCode === 401 && this._serviceClient[baseEntity]) {
           delete this._serviceClient[baseEntity][clientIdentifier]
         }
-        throw err // CA IM retries getUser failure once (retry 6 times on ECONNREFUSED)
+        throw err // Symantec IM retries getUser 6 times on ECONNREFUSED
       }
     }
   }
