@@ -698,7 +698,6 @@ export class ScimGateway {
           }
           if (tokenObj.baseEntities) {
             if (Array.isArray(tokenObj.baseEntities) && tokenObj.baseEntities.length > 0) {
-              if (!baseEntity) return reject(new Error(`baseEntity=${baseEntity} not allowed for this bearerOAuth according to bearerOAuth configuration baseEntitites=${tokenObj.baseEntities}`))
               if (!tokenObj.baseEntities.includes(baseEntity)) return reject(new Error(`baseEntity=${baseEntity} not allowed for this bearerOAuth according to bearerOAuth configuration baseEntitites=${tokenObj.baseEntities}`))
             }
           }
@@ -706,7 +705,11 @@ export class ScimGateway {
           return resolve(true)
         } else {
           for (let i = 0; i < arr.length; i++) { // resolve if token memory store have been cleared because of a gateway restart
-            if (utils.getEncrypted(authToken, arr[i].client_secret) === arr[i].client_secret && !arr[i].isTokenRequested) {
+            if (arr[i].isTokenRequested || !arr[i].clientSecret) continue
+            if (arr[i].baseEntities && Array.isArray(arr[i].baseEntities) && arr[i].baseEntities.length > 0) {
+              if (!arr[i].baseEntities.includes(baseEntity)) continue
+            }
+            if (utils.getEncrypted(authToken, arr[i].clientSecret) === arr[i].clientSecret) {
               arr[i].isTokenRequested = true // flagged as true to not allow repeated resolvements because token will also be cleared when expired
               const baseEntities = utils.copyObj(arr[i].baseEntities)
               let expires
@@ -774,8 +777,21 @@ export class ScimGateway {
         if (ctx.request.url !== '/favicon.ico') logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${err.message}`)
         return false
       } catch (err: any) {
-        if (authType === 'Bearer') ctx.response.headers.set('WWW-Authenticate', 'Bearer realm=""')
-        else ctx.response.headers.set('WWW-Authenticate', 'Basic realm=""')
+        if (authType === 'Bearer') {
+          let str = 'realm=""'
+          if (err?.name === 'invalid_token') {
+            str += `, error="${err.name}"`
+            if (err.message) {
+              str += `, error_description="${err.message}"`
+              const errMsg = {
+                error: err.name,
+                error_description: err.message,
+              }
+              ctx.response.body = JSON.stringify(errMsg)
+            }
+          }
+          ctx.response.headers.set('WWW-Authenticate', `Bearer ${str}`)
+        } else ctx.response.headers.set('WWW-Authenticate', 'Basic realm=""')
         if (pwErrCount < 3) {
           pwErrCount += 1
           logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ctx.request.url} ${err.message}`)
