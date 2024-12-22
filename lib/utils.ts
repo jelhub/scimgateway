@@ -14,18 +14,20 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { EventEmitter } from 'node:events'
 
-// mutual exclusion ref: https://thecodebarbarian.com/mutual-exclusion-patterns-with-node-promises
+/** Lock implements mutual exclusion
+ *  reference: https://thecodebarbarian.com/mutual-exclusion-patterns-with-node-promises
+ */
 export class Lock {
-  private _locked: boolean
+  private _locked = false
   private _ee: any
   constructor() {
     this._locked = false
     this._ee = new EventEmitter()
   }
 
+  /** If nobody has the lock, take it and resolve immediately else wait until released */
   acquire() {
     return new Promise((resolve) => {
-      // If nobody has the lock, take it and resolve immediately
       if (!this._locked) {
         // Safe because JS doesn't interrupt you on synchronous operations,
         // so no need for compare-and-swap or anything like that.
@@ -45,10 +47,15 @@ export class Lock {
     })
   }
 
+  /** Release the lock immediately */
   release() {
-    // Release the lock immediately
     this._locked = false
     setImmediate(() => this._ee.emit('release'))
+  }
+
+  /** Return status of lock true/false */
+  isLocked(): boolean {
+    return this._locked
   }
 }
 
