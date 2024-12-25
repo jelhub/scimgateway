@@ -49,9 +49,9 @@ export class HelperRest {
   * @returns user_secret
   **/
   private getClientIdentifier(ctx: Record<string, any> | undefined): string {
-    if (!ctx?.headers?.authorization) return 'undefined'
+    if (!ctx?.headers?.get('authorization')) return 'undefined'
     const [user, secret] = this.getCtxAuth(ctx)
-    return `${encodeURIComponent(user)}_${encodeURIComponent(secret)}` // user_password or undefined_password
+    return `${encodeURIComponent(user)}_${encodeURIComponent(secret ? secret.slice(0, 20) : secret)}` // user_password or undefined_password
   }
 
   /**
@@ -60,8 +60,8 @@ export class HelperRest {
   * @returns [username, secret]
   **/
   private getCtxAuth(ctx: Record<string, any> | undefined): any[] {
-    if (!ctx?.headers?.authorization) return []
-    const [authType, authToken] = (ctx.headers.authorization || '').split(' ') // [0] = 'Basic' or 'Bearer'
+    if (!ctx?.headers?.get('authorization')) return []
+    const [authType, authToken] = (ctx.headers.get('authorization') || '').split(' ') // [0] = 'Basic' or 'Bearer'
     let username, password
     if (authType === 'Basic') [username, password] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
     if (username) return [username, password] // basic auth
@@ -261,8 +261,8 @@ export class HelperRest {
 
         // Supporting  no auth, header based auth (e.g., config {"options":{"headers":{"APIkey":"123"}}}),
         // basicAuth, bearerAuth, oauth, tokenAuth and auth PassTrough using request header authorization
-        if (ctx?.headers?.authorization) { // Auth PassThrough using ctx header
-          param.options.headers['Authorization'] = ctx.headers.authorization
+        if (ctx?.headers?.get('authorization')) { // Auth PassThrough using ctx header
+          param.options.headers['Authorization'] = ctx.headers.get('authorization')
         } else {
           switch (this.config_entity[baseEntity]?.connection?.auth?.type) {
             case 'basic':
