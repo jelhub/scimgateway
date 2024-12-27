@@ -18,7 +18,7 @@ Latest news:
 
 - Major version **v5.0.0** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
-- Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway
+- Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. E.g., using Entra ID application OAuth
 - Supports OAuth Client Credentials authentication
 - Major version **v4.0.0** getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure IP-range  
@@ -1110,6 +1110,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.0.12
+
+[Fixed]
+
+- HelperRest doRequest() incorrect Auth PassThrough handling
+
+[Improved]  
+
+- Dependencies bump  
+
 
 ### v5.0.11
 
