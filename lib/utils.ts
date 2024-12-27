@@ -613,3 +613,53 @@ export const createRandomPassword = function (len: number, ...set: string[]) {
   }
   return res
 }
+
+/**
+ * formUrlEncodedToJSON converts application/x-www-form-urlencoded request body to json
+  * @param body http request body string
+  * @returns json formatted body
+ */
+export const formUrlEncodedToJSON = function (body?: string): Record<string, any> {
+  if (!body) return {}
+  const arr = body.split('&') // "grant_type=client_credentials&client_id=id&client_secret=secret"
+  const json: Record<string, any> = {}
+  for (const kv of arr) {
+    const a = kv.split('=')
+    if (a.length === 2) {
+      try {
+        json[a[0]] = decodeURIComponent(a[1])
+      } catch (err) { return {} }
+    }
+  }
+  return json
+}
+
+/**
+ * formDataMultipartToJSON converts multipart/form-data request body to json - Content-Type: multipart/form-data;boundary="<some-delimiter>"
+  * @param body request body
+  * @param boundary the boundary/delimiter defiend in header Content-Type: multipart/form-data;boundary="<some-delimiter>"
+  * @returns json formatted body
+ */
+export const formDataMultipartToJSON = function (body?: string, boundary?: string): Record<string, any> {
+  if (!body) return {} // --delimiter123\nContent-Disposition: form-data; name="field1"\n\nvalue1\n--delimiter123\nContent-Disposition: form-data; name="field2"; filename="example.txt"\n\nvalue2
+  if (!boundary) { // if boundary is missing, try to infer it
+    const inferredBoundary = body.match(/^--([^\r\n]+)/)
+    if (inferredBoundary) {
+      boundary = inferredBoundary[1]
+    } else return {} // No boundary found
+  }
+  const parts = body.split(`--${boundary}`).filter(part => part.trim() && !part.includes('--'))
+  const json: Record<string, any> = {}
+  for (const part of parts) {
+    const [headers, value] = part.split(/\r?\n\r?\n/)
+    const nameMatch = headers.match(/name="([^"]+)"/)
+    if (nameMatch) {
+      const key = nameMatch[1]
+      json[key] = value.trim()
+      try {
+        json[key] = decodeURIComponent(json[key])
+      } catch (err) { return {} }
+    }
+  }
+  return json
+}
