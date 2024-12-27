@@ -44,31 +44,6 @@ export class HelperRest {
   }
 
   /**
-  * getClientIdentifier returns a unique client identifier having format user_secret
-  * @param ctx having format { autorization: "<type>:xxxxx" }
-  * @returns user_secret
-  **/
-  private getClientIdentifier(ctx: Record<string, any> | undefined): string {
-    if (!ctx?.headers?.get('authorization')) return 'undefined'
-    const [user, secret] = this.getCtxAuth(ctx)
-    return `${encodeURIComponent(user)}_${encodeURIComponent(secret ? secret.slice(0, 20) : secret)}` // user_password or undefined_password
-  }
-
-  /**
-  * getCtxAuth returns [username, secret] based on Auth PassThrough autorization header included in ctx
-  * @param ctx includes Auth PassThrough having format {headers:{autorization:"<type>:xxxxx"}}
-  * @returns [username, secret]
-  **/
-  private getCtxAuth(ctx: Record<string, any> | undefined): any[] {
-    if (!ctx?.headers?.get('authorization')) return []
-    const [authType, authToken] = (ctx.headers.get('authorization') || '').split(' ') // [0] = 'Basic' or 'Bearer'
-    let username, password
-    if (authType === 'Basic') [username, password] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
-    if (username) return [username, password] // basic auth
-    else return [undefined, authToken] // bearer auth
-  }
-
-  /**
    * getAccessToken returns oauth accesstoken object
    * @param baseEntity 
    * @param ctx 
@@ -76,12 +51,11 @@ export class HelperRest {
    */
   public async getAccessToken(baseEntity: string, ctx?: Record<string, any> | undefined) { // public in case token is needed for other logic e.g. sending mail
     await this.lock.acquire()
-    const clientIdentifier = this.getClientIdentifier(ctx)
     const d = Math.floor(Date.now() / 1000) // seconds (unix time)
-    if (this._serviceClient[baseEntity] && this._serviceClient[baseEntity][clientIdentifier] && this._serviceClient[baseEntity][clientIdentifier].accessToken
-      && (this._serviceClient[baseEntity][clientIdentifier].accessToken.validTo >= d + 30)) { // avoid simultaneously token requests
+    if (this._serviceClient[baseEntity] && this._serviceClient[baseEntity].accessToken
+      && (this._serviceClient[baseEntity].accessToken.validTo >= d + 30)) { // avoid simultaneously token requests
       this.lock.release()
-      return this._serviceClient[baseEntity][clientIdentifier].accessToken
+      return this._serviceClient[baseEntity].accessToken
     }
 
     const action = 'getAccessToken'
@@ -213,20 +187,19 @@ export class HelperRest {
       //
       // path (no url) - default approach and client will be cached based on config
       //
-      const clientIdentifier = this.getClientIdentifier(ctx)
-      if (this._serviceClient[baseEntity] && this._serviceClient[baseEntity][clientIdentifier]) { // serviceClient already exist - token specific
+      if (this._serviceClient[baseEntity]) { // serviceClient already exist - token specific
         this.scimgateway.logDebug(baseEntity, `${action}: Using existing client`)
-        if (this._serviceClient[baseEntity][clientIdentifier].accessToken) {
+        if (this._serviceClient[baseEntity].accessToken) {
           // check if token refresh is needed when using oauth
           const d = Math.floor(Date.now() / 1000) // seconds (unix time)
-          if (this._serviceClient[baseEntity][clientIdentifier].accessToken.validTo < d + 30) { // less than 30 sec before token expiration
-            this.scimgateway.logDebug(baseEntity, `${action}: Accesstoken about to expire in ${this._serviceClient[baseEntity][clientIdentifier].accessToken.validTo - d} seconds`)
+          if (this._serviceClient[baseEntity].accessToken.validTo < d + 30) { // less than 30 sec before token expiration
+            this.scimgateway.logDebug(baseEntity, `${action}: Accesstoken about to expire in ${this._serviceClient[baseEntity].accessToken.validTo - d} seconds`)
             try {
               const accessToken = await this.getAccessToken(baseEntity, ctx)
-              this._serviceClient[baseEntity][clientIdentifier].accessToken = accessToken
-              this._serviceClient[baseEntity][clientIdentifier].options.headers['Authorization'] = ` Bearer ${accessToken.access_token}`
+              this._serviceClient[baseEntity].accessToken = accessToken
+              this._serviceClient[baseEntity].options.headers['Authorization'] = ` Bearer ${accessToken.access_token}`
             } catch (err) {
-              if (this._serviceClient[baseEntity]) delete this._serviceClient[baseEntity][clientIdentifier]
+              delete this._serviceClient[baseEntity]
               const newErr = err
               throw newErr
             }
@@ -260,53 +233,49 @@ export class HelperRest {
         }
 
         // Supporting  no auth, header based auth (e.g., config {"options":{"headers":{"APIkey":"123"}}}),
-        // basicAuth, bearerAuth, oauth, tokenAuth and auth PassTrough using request header authorization
-        if (ctx?.headers?.get('authorization')) { // Auth PassThrough using ctx header
-          param.options.headers['Authorization'] = ctx.headers.get('authorization')
-        } else {
-          switch (this.config_entity[baseEntity]?.connection?.auth?.type) {
-            case 'basic':
-              if (!this.config_entity[baseEntity]?.connection?.auth?.options?.username || !this.config_entity[baseEntity]?.connection?.auth?.options?.password) {
-                const err = new Error(`auth type 'basic' - missing configuration entity.${baseEntity}.connection.auth.options.username/password`)
-                throw err
-              }
-              param.options.headers['Authorization'] = 'Basic ' + Buffer.from(`${this.config_entity[baseEntity].connection.auth.options.username}:${this.config_entity[baseEntity].connection.auth.options.password}`).toString('base64')
-              break
-            case 'oauth':
-              if (!this.config_entity[baseEntity]?.connection?.auth?.options?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.clientSecret) {
-                const err = new Error(`auth type 'oauth' - missing configuration entity.${baseEntity}.connection.auth.options.clientId/clientSecret`)
-                throw err
-              }
-              param.accessToken = await this.getAccessToken(baseEntity, ctx)
-              param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
-              break
-            case 'token':
-              if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl || !this.config_entity[baseEntity]?.connection?.auth?.options?.password) {
-                const err = new Error(`missing configuration entity.${baseEntity}.connection.auth.options.tokenUrl/password`)
-                throw err
-              }
-              param.accessToken = await this.getAccessToken(baseEntity, ctx)
-              param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
-              break
-            case 'bearer':
-              if (!this.config_entity[baseEntity]?.connection?.auth?.options?.token) {
-                const err = new Error(`missing configuration entity.${baseEntity}.connection.auth.options.token`)
-                throw err
-              }
-              param.options.headers['Authorization'] = 'Bearer ' + Buffer.from(this.config_entity[baseEntity].connection.auth.options.token).toString('base64')
-              break
-            case 'oauthSamlAssertion':
-              if (!this.config_entity[baseEntity]?.connection?.auth?.options?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.companyId
-                || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key) {
-                const err = new Error(`auth type 'oauthSamlAssertion' - missing configuration entity.${baseEntity}.connection.auth.options...`)
-                throw err
-              }
-              param.accessToken = await this.getAccessToken(baseEntity, ctx)
-              param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
-              break
-            default:
-            // no auth
-          }
+        // basicAuth, bearerAuth, oauth, tokenAuth, oauthSamlAssertion and auth PassTrough using request header authorization
+        switch (this.config_entity[baseEntity]?.connection?.auth?.type) {
+          case 'basic':
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.username || !this.config_entity[baseEntity]?.connection?.auth?.options?.password) {
+              const err = new Error(`auth type 'basic' - missing configuration entity.${baseEntity}.connection.auth.options.username/password`)
+              throw err
+            }
+            param.options.headers['Authorization'] = 'Basic ' + Buffer.from(`${this.config_entity[baseEntity].connection.auth.options.username}:${this.config_entity[baseEntity].connection.auth.options.password}`).toString('base64')
+            break
+          case 'oauth':
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.clientSecret) {
+              const err = new Error(`auth type 'oauth' - missing configuration entity.${baseEntity}.connection.auth.options.clientId/clientSecret`)
+              throw err
+            }
+            param.accessToken = await this.getAccessToken(baseEntity, ctx)
+            param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
+            break
+          case 'token':
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl || !this.config_entity[baseEntity]?.connection?.auth?.options?.password) {
+              const err = new Error(`missing configuration entity.${baseEntity}.connection.auth.options.tokenUrl/password`)
+              throw err
+            }
+            param.accessToken = await this.getAccessToken(baseEntity, ctx)
+            param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
+            break
+          case 'bearer':
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.token) {
+              const err = new Error(`missing configuration entity.${baseEntity}.connection.auth.options.token`)
+              throw err
+            }
+            param.options.headers['Authorization'] = 'Bearer ' + Buffer.from(this.config_entity[baseEntity].connection.auth.options.token).toString('base64')
+            break
+          case 'oauthSamlAssertion':
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.companyId
+              || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key) {
+              const err = new Error(`auth type 'oauthSamlAssertion' - missing configuration entity.${baseEntity}.connection.auth.options...`)
+              throw err
+            }
+            param.accessToken = await this.getAccessToken(baseEntity, ctx)
+            param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
+            break
+          default:
+            // no auth or PassTrough
         }
 
         // proxy
@@ -342,19 +311,21 @@ export class HelperRest {
         }
 
         if (!this._serviceClient[baseEntity]) this._serviceClient[baseEntity] = {}
-        if (!this._serviceClient[baseEntity][clientIdentifier]) this._serviceClient[baseEntity][clientIdentifier] = {}
-        this._serviceClient[baseEntity][clientIdentifier] = param // serviceClient created
+        this._serviceClient[baseEntity] = param // serviceClient created
 
-        // OData support - note, not using [clientIdentifier]
+        // OData support
         this._serviceClient[baseEntity].nextLink = {} // OData pagination (Entra ID)
         this._serviceClient[baseEntity].nextLink.users = null
         this._serviceClient[baseEntity].nextLink.groups = null
       }
 
-      const cli: any = utils.copyObj(this._serviceClient[baseEntity][clientIdentifier]) // client ready
+      if (ctx?.headers?.get) { // Auth PassThrough using ctx header
+        this._serviceClient[baseEntity].options.headers['Authorization'] = ctx.headers.get('authorization')
+      }
+      const cli: any = utils.copyObj(this._serviceClient[baseEntity]) // client ready
 
       // failover support
-      path = this._serviceClient[baseEntity][clientIdentifier].baseUrl + path
+      path = this._serviceClient[baseEntity].baseUrl + path
       urlObj = new URL(path)
       cli.options.host = urlObj.hostname
       cli.options.port = urlObj.port
@@ -410,11 +381,10 @@ export class HelperRest {
   /**
    * updateServiceClient merges obj with _serviceClient
    * @param baseEntity 
-   * @param clientIdentifier 
    * @param obj 
    */
-  private updateServiceClient(baseEntity: string, clientIdentifier: string, obj: any) {
-    if (this._serviceClient[baseEntity] && this._serviceClient[baseEntity][clientIdentifier]) this._serviceClient[baseEntity][clientIdentifier] = utils.extendObj(this._serviceClient[baseEntity][clientIdentifier], obj)
+  private updateServiceClient(baseEntity: string, obj: any) {
+    if (this._serviceClient[baseEntity]) this._serviceClient[baseEntity] = utils.extendObj(this._serviceClient[baseEntity], obj)
   }
 
   /**
@@ -514,14 +484,13 @@ export class HelperRest {
     } catch (err: any) { // includes failover/retry logic based on config baseUrls array
       let statusCode
       try { statusCode = JSON.parse(err.message).statusCode } catch (e) { void 0 }
-      const clientIdentifier = this.getClientIdentifier(ctx)
       if (err.message.includes('ratelimit')) { // have seen throttling not follow standard 429/retry-after, but instead using 500 and error message only
         if (!retryAfter) retryAfter = 60
       }
       if (!retryCount) retryCount = 0
       let urlObj
       try { urlObj = new URL(path) } catch (err) { void 0 }
-      let isServiceClient = !urlObj && this._serviceClient[baseEntity] && this._serviceClient[baseEntity][clientIdentifier] && !this.lock.isLocked() // !isLocked to avoid retry ongoing doRequest with failing getAccessToken()
+      let isServiceClient = !urlObj && this._serviceClient[baseEntity] && !this.lock.isLocked() // !isLocked to avoid retry ongoing doRequest with failing getAccessToken()
       let oAuthTokeErr = statusCode === 401 && this.config_entity[baseEntity].connection?.auth?.type && this.config_entity[baseEntity].connection.auth.type.startsWith('oauth')
       if (isServiceClient && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || oAuthTokeErr || retryAfter)) {
         this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
@@ -531,27 +500,27 @@ export class HelperRest {
             resolve(null)
           }, retryAfter * 1000))
         }
-        if (oAuthTokeErr && this._serviceClient[baseEntity]) delete this._serviceClient[baseEntity][clientIdentifier] // ensure new getAccessToken request - token used should not have been expired, but rejected for other reason e.g. token server restart and no persistent token store?
         if (retryCount < this.config_entity[baseEntity].connection.baseUrls.length) {
           retryCount++
-          this.updateServiceClient(baseEntity, clientIdentifier, { baseUrl: this.config_entity[baseEntity].connection.baseUrls[retryCount - 1] })
+          this.updateServiceClient(baseEntity, { baseUrl: this.config_entity[baseEntity].connection.baseUrls[retryCount - 1] })
           this.scimgateway.logDebug(baseEntity, `${(this.config_entity[baseEntity].connection.baseUrls.length > 1) ? 'failover ' : ''}retry[${retryCount}] using baseUrl = ${this._serviceClient[baseEntity].baseUrl}`)
+          if (oAuthTokeErr) {
+            delete this._serviceClient[baseEntity] // ensure new getAccessToken request - token used should not have been expired, but rejected for other reason e.g. token server restart and no persistent token store?
+          }
           const ret = await this.doRequestHandler(baseEntity, method, path, body, ctx, opt, retryCount) // retry
           return ret // problem fixed
         } else {
           if (statusCode === 404) { // not logged as error e.g. getUser-manager
             this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
-          } else this.scimgateway.logError(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} 11Error Response = ${err.message}`)
+          } else this.scimgateway.logError(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
           throw err
         }
       } else {
         if (statusCode === 404) { // not logged as error e.g. getUser-manager
           this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
         } else this.scimgateway.logError(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
-        if (statusCode === 401 && this._serviceClient[baseEntity]) {
-          delete this._serviceClient[baseEntity][clientIdentifier]
-        }
-        throw err // Symantec IM retries getUser 6 times on ECONNREFUSED
+        if (statusCode === 401) delete this._serviceClient[baseEntity]
+        throw err
       }
     }
   }
