@@ -842,21 +842,16 @@ export class ScimGateway {
         ctx.response.status = 500
         return
       }
-
       let jsonBody = ctx.request.body
       try {
         if (!jsonBody) throw new Error('missing body')
-        if (typeof jsonBody !== 'object') { // might have application/x-www-form-urlencoded body, but incorrect Content-Type header
+        if (typeof jsonBody !== 'object') { // might have application/x-www-form-urlencoded or multipart/form-data body, but incorrect Content-Type header
           logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] continue request validation even though incorrect body vs header Content-Type: ${ctx.request.headers.get('content-type')}`)
-          const arr = jsonBody.split('&')
-          const body: Record<string, any> = {}
-          arr.forEach((kv: string) => {
-            const a = kv.split('=')
-            if (a.length === 2) {
-              body[a[0]] = decodeURIComponent(a[1])
-            }
-          })
-          if (Object.keys(body).length < 1) throw new Error('body is not JSON nor application/x-www-form-urlencoded')
+          let body = utils.formUrlEncodedToJSON(jsonBody)
+          if (Object.keys(body).length < 1) {
+            body = utils.formDataMultipartToJSON(jsonBody)
+            if (Object.keys(body).length < 1) throw new Error('body is not JSON, application/x-www-form-urlencoded nor multipart/form-data')
+          }
           ctx.request.body = body // now json - ensure final info log will be masked
           jsonBody = body
         }
@@ -2310,14 +2305,9 @@ export class ScimGateway {
       } catch (err: any) {
         const contentType = request.headers.get('content-type')
         if (contentType && contentType.toLowerCase().startsWith('application/x-www-form-urlencoded')) {
-          const arr = bodyString.split('&') // "grant_type=client_credentials&client_id=id&client_secret=secret"
-          body = {}
-          arr.forEach((kv: string) => {
-            const a = kv.split('=')
-            if (a.length === 2) {
-              body[a[0]] = decodeURIComponent(a[1])
-            }
-          })
+          body = utils.formUrlEncodedToJSON(bodyString)
+        } else if (contentType && contentType.toLowerCase().startsWith('multipart/form-data')) {
+          body = utils.formDataMultipartToJSON(bodyString)
         } else if (bodyString) body = bodyString
       }
 
