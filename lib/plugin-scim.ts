@@ -24,8 +24,6 @@
 //
 // =================================================================================
 
-'use strict'
-
 // for supporting nodejs running scimgateway package directly, using dynamic import instead of: import { ScimGateway } from 'scimgateway'
 // scimgateway also inclues HelperRest: import { ScimGateway, HelperRest } from 'scimgateway'
 

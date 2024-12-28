@@ -8,8 +8,6 @@
 //          Optional SCIM Stream subscriber/publisher
 // =================================================================================
 
-'use strict'
-
 import { createServer as httpCreateServer } from 'node:http'
 import { createServer as httpsCreateServer } from 'node:https'
 import { type IncomingMessage, type ServerResponse } from 'node:http'

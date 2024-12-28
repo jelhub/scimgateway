@@ -17,8 +17,6 @@
 // Currently no other attributes needed for maintaining saml users
 // =================================================================================
 
-'use strict'
-
 import hdb from 'hdb' // prereq: bun install hdb
 // for supporting nodejs running scimgateway package directly, using dynamic import instead of: import { ScimGateway } from 'scimgateway'
 // scimgateway also inclues HelperRest: import { ScimGateway, HelperRest } from 'scimgateway'

@@ -1,5 +1,3 @@
-'use strict'
-
 import { fileURLToPath } from 'url'
 import dot from 'dot-object'
 import fs from 'node:fs'

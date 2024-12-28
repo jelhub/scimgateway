@@ -3,10 +3,7 @@
 //
 // Author:  Jarle Elshaug
 //
-// Note, don't use arrow functions
 // ==================================
-
-'use strict'
 
 import * as crypto from 'node:crypto'
 import id from 'node-machine-id'

@@ -27,8 +27,6 @@
 //
 // =================================================================================
 
-'use strict'
-
 import soap from 'soap' // prereq: bun install soap
 import path from 'node:path'
 // for supporting nodejs running scimgateway package directly, using dynamic import instead of: import { ScimGateway } from 'scimgateway'

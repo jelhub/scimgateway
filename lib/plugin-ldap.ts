@@ -79,8 +79,6 @@
 //
 // =================================================================================
 
-'use strict'
-
 import ldap from 'ldapjs'
 // @ts-expect-error missing type definitions
 import { BerReader } from '@ldapjs/asn1'
