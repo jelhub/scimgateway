@@ -1111,6 +1111,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.0.13
+
+[Improved]  
+
+- scim-stream, using the new reorganized nats.js v3 client library
+- cosmetics, `use strict` not needed and removed because ES modules are always strict mode
+
 ### v5.0.12
 
 [Fixed]
