@@ -408,41 +408,43 @@ export class ScimGateway {
     if (!this.config.scimgateway.email.auth) this.config.scimgateway.email.auth = {}
     if (!this.config.scimgateway.email.auth.options) this.config.scimgateway.email.auth.options = {}
     if (!this.config.scimgateway.email.emailOnError) this.config.scimgateway.email.emailOnError = {}
+    if (!this.config.scimgateway.email.emailOnError) this.config.scimgateway.email.proxy = {}
 
     if (!this.config.scimgateway.stream) this.config.scimgateway.stream = {}
     if (!this.config.scimgateway.stream.subscriber) this.config.scimgateway.stream.subscriber = {}
     if (!this.config.scimgateway.stream.publisher) this.config.scimgateway.stream.publisher = {}
 
     // start - legacy support
-    if (!this.config.scimgateway.emailOnError) this.config.scimgateway.emailOnError = {}
-    if (!this.config.scimgateway.emailOnError.smtp) this.config.scimgateway.emailOnError.smtp = {}
-    if (this.config.scimgateway.emailOnError.smtp.host) {
-      this.config.scimgateway.email.host = this.config.scimgateway.emailOnError.smtp.host
+    if (this.config.scimgateway?.emailOnError?.smtp?.host) {
+      this.config.scimgateway.email.auth.options.host = this.config.scimgateway.emailOnError.smtp.host
     }
-    if (this.config.scimgateway.emailOnError.smtp.port) {
-      this.config.scimgateway.email.port = this.config.scimgateway.emailOnError.smtp.port
+    if (this.config.scimgateway?.emailOnError?.smtp?.port) {
+      this.config.scimgateway.email.auth.options.port = this.config.scimgateway.emailOnError.smtp.port
     }
-    if (this.config.scimgateway.emailOnError.smtp.proxy) {
+    if (this.config.scimgateway?.emailOnError?.smtp?.proxy) {
       this.config.scimgateway.email.proxy = this.config.scimgateway.emailOnError.smtp.proxy
     }
-    if (this.config.scimgateway.emailOnError.smtp.username) {
+    if (this.config.scimgateway?.emailOnError?.smtp?.username) {
       this.config.scimgateway.email.emailOnError.from = this.config.scimgateway.emailOnError.smtp.username
       this.config.scimgateway.email.auth.options.username = this.config.scimgateway.emailOnError.smtp.username
     }
-    if (this.config.scimgateway.emailOnError.smtp.password) {
+    if (this.config.scimgateway?.emailOnError?.smtp?.password) {
       this.config.scimgateway.email.auth.options.password = this.config.scimgateway.emailOnError.smtp.password
-      this.config.scimgateway.email.auth.type = 'basic'
+      this.config.scimgateway.email.auth.type = 'smtp'
     }
-    if (this.config.scimgateway.emailOnError.smtp.enabled) {
+    if (this.config.scimgateway?.emailOnError?.smtp?.enabled) {
       this.config.scimgateway.email.emailOnError.enabled = this.config.scimgateway.emailOnError.smtp.enabled
     }
-    if (this.config.scimgateway.emailOnError.smtp.sendInterval) {
+    if (this.config.scimgateway?.emailOnError?.smtp?.sendInterval) {
       this.config.scimgateway.email.emailOnError.sendInterval = this.config.scimgateway.emailOnError.smtp.sendInterval
     }
-    if (this.config.scimgateway.emailOnError.smtp.to) {
+    if (this.config.scimgateway?.emailOnError?.smtp?.subject) {
+      this.config.scimgateway.email.emailOnError.subject = this.config.scimgateway.emailOnError.smtp.subject
+    }
+    if (this.config.scimgateway?.emailOnError?.smtp?.to) {
       this.config.scimgateway.email.emailOnError.to = this.config.scimgateway.emailOnError.smtp.to
     }
-    if (this.config.scimgateway.emailOnError.smtp.cc) {
+    if (this.config.scimgateway?.emailOnError?.smtp?.cc) {
       this.config.scimgateway.email.emailOnError.cc = this.config.scimgateway.emailOnError.smtp.cc
     }
     // end - legacy support
@@ -2657,12 +2659,8 @@ export class ScimGateway {
       setTimeout(function () { // release lock after "sendInterval" minutes
         isMailLock = false
       }, (this.config.scimgateway.email.emailOnError.sendInterval || 15) * 1000 * 60)
-      const msgHtml = `<html><body> 
-        <p>${msg}</p> 
-        <br> 
-        <p><strong>This is an automatically generated email - please do NOT reply to this email or forward to others</strong></p> 
-        </body></html>`
 
+      const msgHtml = `<html><body><pre style="font-family: monospace; white-space: pre-wrap;">${msg}</pre><br/><p><strong>This is an automatically generated email - please do NOT reply to this email or forward to others</strong></p></body></html>`
       const msgObj = {
         from: this.config.scimgateway.email.emailOnError.from,
         to: this.config.scimgateway.email.emailOnError.to,
@@ -2947,33 +2945,24 @@ export class ScimGateway {
       logger.error(`${gwName}[${pluginName}] sendMail failed: missing or invalid msgObj argument`)
       return
     }
+    if (!isHtml) {
+      isHtml = true
+      msgObj.content = `<html><body><pre style="font-family: monospace; white-space: pre-wrap;">${msgObj.content}</pre></body></html>`
+    }
 
     if (authType === 'oauth') {
       if (!this.helperRest) this.helperRest = new HelperRest(this, { entity: { undefined: { connection: this.config.scimgateway.email } } })
-      if (this.config.scimgateway.email.auth?.options?.tenantIdGUID) {
+      if (this.config.scimgateway.email.auth?.options?.tenantIdGUID) { // ExO
         // Graph API
-        let content: string
-        if (isHtml) { // ExO workaround for national special caracters in html content - require singleValueExtendedProperties being used
-          var enc = new TextEncoder() // utf-8
-          const buf = enc.encode(msgObj.content)
-          content = new TextDecoder('windows-1252').decode(buf)
-        } else content = msgObj.content
-
         const emailMessage: Record<string, any> = {
           message: {
             subject: msgObj.subject ? msgObj.subject : 'SCIM Gateway message',
             body: {
-              content,
+              content: msgObj.content,
               contentType: isHtml ? 'HTML' : 'Text',
             },
             toRecipients: [],
             ccRecipients: [],
-            singleValueExtendedProperties: [ // force using ExO header: Content-Type: text/plain; charset="utf-8"
-              {
-                id: 'Integer 0x3fde', // Content-Type header - can be verifed by checking raw mail
-                value: '65001', // text/plain; charset="utf-8"
-              },
-            ],
           },
           saveToSentItems: 'false',
         }
@@ -2983,7 +2972,7 @@ export class ScimGateway {
           for (let i = 0; i < arr.length; i++) {
             emailMessage.message.toRecipients.push({
               emailAddress: {
-                address: arr[i],
+                address: arr[i].trim(),
               },
             })
           }
@@ -2993,7 +2982,7 @@ export class ScimGateway {
           for (let i = 0; i < arr.length; i++) {
             emailMessage.message.ccRecipients.push({
               emailAddress: {
-                address: arr[i],
+                address: arr[i].trim(),
               },
             })
           }
@@ -3009,29 +2998,33 @@ export class ScimGateway {
           logger.error(`${gwName}[${pluginName}] sendMail subject '${emailMessage.message.subject}' sending failed: ${err.message}`)
         }
         return
+      } else {
+        logger.error(`${gwName}[${pluginName}] sendMail error: type oauth only supports ExO and requires configuration scimgateway.email.auth.options.tenantIdGUID`)
+        return
       }
     }
 
-    // nodemailer
-    if (!this.config.scimgateway?.email?.host) {
-      logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending failed: some missing scimgateway.email configuration`)
+    if (authType !== 'smtp') {
+      logger.error(`${gwName}[${pluginName}] sendMail error: configuration scimgateway.email.auth.type must be set to oauth or smtp`)
       return
     }
+
+    // nodemailer - SMTP Auth
     const smtpConfig: { [key: string]: any } = {
-      host: this.config.scimgateway.email.host, // e.g. smtp.office365.com
-      port: this.config.scimgateway.email.port || 587,
-      proxy: this.config.scimgateway.email.proxy || null,
-      secure: (this.config.scimgateway.email.port === 465), // false on 25/587
+      host: this.config.scimgateway?.email?.auth?.options?.host, // e.g. smtp.office365.com
+      port: this.config.scimgateway?.email?.auth?.options?.port || 587,
+      secure: (this.config.scimgateway?.email?.auth?.options?.port === 465), // false on 25/587
       tls: { ciphers: 'TLSv1.2' },
+      proxy: this.config.scimgateway?.email?.proxy,
     }
-    if (authType) {
-      smtpConfig.auth = {}
-      if (authType === 'basic') {
-        smtpConfig.auth.user = this.config.scimgateway.email.auth.options.username
-        smtpConfig.auth.pass = this.config.scimgateway.email.auth.options.password
-      } else if (authType === 'oauth') {
-        smtpConfig.auth.type = 'OAuth2'
-      }
+
+    smtpConfig.auth = {}
+    smtpConfig.auth.user = this.config.scimgateway?.email?.auth?.options?.username
+    smtpConfig.auth.pass = this.config.scimgateway?.email?.auth?.options?.password
+
+    if (!this.config.scimgateway?.email?.auth?.options?.host || !this.config.scimgateway?.email?.auth?.options?.username) {
+      logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending error: missing scimgateway.email.options configuration for auth type smtp`)
+      return
     }
 
     const transporter = nodemailer.createTransport(smtpConfig)
@@ -3041,20 +3034,6 @@ export class ScimGateway {
       to: msgObj.to, // list of receivers - comma separated
       cc: msgObj.cc,
       subject: msgObj.subject ? msgObj.subject : 'SCIM Gateway message',
-    }
-
-    if (authType === 'oauth') {
-      mailOptions.auth = {}
-      mailOptions.auth.user = msgObj.from
-      transporter.set('oauth2_provision_cb', async (user, renew, callback) => {
-        const aObj = await this.helperRest.getAccessToken('undefined')
-        const accessToken = aObj ? aObj?.access_token : null
-        if (!accessToken) {
-          return callback(new Error('missing access token'))
-        } else {
-          return callback(null, accessToken)
-        }
-      })
     }
 
     if (isHtml) mailOptions.html = msgObj.content
