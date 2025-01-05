@@ -16,6 +16,7 @@ Validated through IdP's:
 
 Latest news:  
 
+- Email, onError and sendMail() supports modern REST OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlAssertion, oauthJwtAssertion and Auth PassTrough 
 - Major version **v5.0.0** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. E.g., using Entra ID application OAuth
@@ -436,18 +437,18 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
           "2603:1056:2000::/48",
           "2603:1057:2::/48"
         ]
-- **email** - Contains configuration for sending email from plugin or automated error notifications emailOnError. Note, for emailOnError only the first error will be sent until sendInterval have passed
-- **email.host** - Mailserver e.g. "smtp.gmail.com" - mandatory when not using tenantIdGUID (Microsoft)
-- **email.port** - Port used by mailserver e.g. 587, 25 or 465 - mandatory when not using tenantIdGUID (Microsoft)
+- **email** - Contains configuration for sending email from plugin or automated error notifications emailOnError. Note, for emailOnError only the first error will be sent until sendInterval have passed. Supporting both SMTP Auth and modern REST OAuth. For OAuth, currently Microsoft Exchange Online (ExO) and Google Workspace Gmail are supported
 - **email.auth** - Authentication configuration
-- **email.auth.type** - `basic` or `oauth`
-- **email.auth.options** - Authentication configuration options - note, different options for type basic and oauth
-- **email.auth.options.username (basic)** - Mail account for authentication normally same as sender of the email, e.g. "user@gmail.com"
-- **email.auth.options.password (basic)** - Mail account password
-- **email.auth.options.tenantIdGUID (oauth)** - Entra ID tenant id, mandatory/recommended when using Microsoft Exchange Online
-- **email.auth.options.tokenUrl (oauth)** - Token endpoint, mandatory when not using tenantIdGUID (Microsoft Exchange Online)
-- **email.auth.options.clientId (oauth)** - Client ID
-- **email.auth.options.clientSecret (oauth)** - Client Secret
+- **email.auth.type** - `oauth` or `smtp`
+- **email.auth.options** - Authentication options - note, different options for type oauth and smtp
+- **email.auth.options.tenantIdGUID (oauth/ExO)** - Entra ID tenant id, mandatory/recommended when using Microsoft Exchange Online
+- **email.auth.options.clientId (oauth/ExO)** - Client ID
+- **email.auth.options.clientSecret (oauth/ExO)** - Client Secret
+- **email.auth.options.serviceAccountKeyFile (oauth/Gmail)** - Google Service Account key json-file name located in the `package-root>\config\certs` directory unless absolute path being defined
+- **email.auth.options.host (smtp)** - Mailserver e.g. "smtp.gmail.com" - mandatory for smtp
+- **email.auth.options.port (smtp)** - Port used by mailserver e.g. 587, 25 or 465 - mandatory for smtp
+- **email.auth.options.username (smtp)** - Mail account for authentication normally same as sender of the email, e.g. "user@gmail.com"
+- **email.auth.options.password (smtp)** - Mail account password
 - **email.proxy** - Proxy configuration if using mailproxy
 - **email.proxy.host** - Proxy host e.g. `http://proxy-host:1234`
 - **email.proxy.username** - username if authentication is required
@@ -455,12 +456,12 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **email.emailOnError** - Contains configuration for sending error notifications by email. Note, only the first error will be sent until sendInterval have passed
 - **email.emailOnError.enabled** - true or false, value set to true will enable email notifications
 - **email.emailOnError.sendInterval** - Default 15. Mail notifications on error are deferred until sendInterval **minutes** have passed since the last notification.
-- **email.emailOnError.from** - Sender email addresses e.g: "noreply@example.com", note must correspond with email.auth.options being used and mailserver configuration
+- **email.emailOnError.from** - Sender email addresses e.g: "noreply@example.com". **Mandatory for oauth**. For smtp email.auth.options.username will be used
 - **email.emailOnError.to** - Comma separated list of recipients email addresses e.g: "someone@example.com"
 - **email.emailOnError.cc** - Optional comma separated list of cc mail addresses
 - **email.emailOnError.subject** - Optional mail subject, default `SCIM Gateway error message`
 
-	Configuration notes when using default configuration oauth and tenantIdGUID - Microsoft Exchange Online (ExO):
+	**Configuration notes for Microsoft Exchange Online (ExO):**
 
 	- Entra ID application must have application permissions `Mail.Send`  
 	- To prevent the sending of emails from any defined mailboxes, an ExO `ApplicationAccessPolicy` must be defined through PowerShell.  
@@ -475,9 +476,33 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 			##Create ApplicationAccessPolicy
 			New-ApplicationAccessPolicy -AppId <AppClientID> -PolicyScopeGroupId <MailEnabledSecurityGrpId> -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
 
+	**Configuration notes for Google Workspace Gmail:**
+
+	- https://console.cloud.google.com
+		- IAM & Admin > Service Accounts > Create Service Account
+			- Name=email-sender  
+			- Create and Continue
+			- Grant this service account access to project - not needed
+			- Grant users access to this service - not needed  
+		- IAM & Admin > Service Accounts > "email-sender" account > Keys    
+			- Add Key > Create new key > JSON
+			- download json `serviceAccountKeyFile` file, refere to configuration `email.auth.options.serviceAccountKeyFile`
+
+	- https://admin.google.com
+		- Security > Access and data control > API controls
+			- Manage Domain Wide Delegation > Add new
+			- Client ID = id of service account created
+			- OAuth scope = https://www.googleapis.com/auth/gmail.send  
+	 
+	- https://admin.google.com
+		- Billing > Subscriptions - verify Google Workspace license
+		- Directory > Users > "user"
+		- Licenses > Edit > enable Google Workspace license  
+		`email.onerror.from` mail address must have Google Workspace Business license
+
 - **stream** - See [SCIM Stream](https://elshaug.xyz/docs/scim-stream) for configuration details
 
-- **endpoint** - Contains endpoint specific configuration according to our **plugin code**. 
+- **endpoint** - Contains endpoint specific configuration according to customized **plugin code**. 
 
 #### Configuration notes
 
@@ -1110,6 +1135,15 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.0.14
+
+[Improved]
+
+- email now supports Google Workspace Gmail using REST OAuth
+- email workaround for ExO national characters introduced in v5.0.7 not needed anymore - ExO/GraphApi seems to have been fixed
+- some minor cosmetics on email message layout formatting when using plain text message
+- HelperRest now includes authentication type `oauthJwtAssertion`
 
 ### v5.0.13
 
