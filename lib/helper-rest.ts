@@ -2,6 +2,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent'
 import { URL } from 'url'
 import { Buffer } from 'node:buffer'
 import { samlAssertion } from './samlAssertion.ts' // prereq: saml
+import { sign as jwtSign } from 'jsonwebtoken'
 import fs from 'node:fs'
 import querystring from 'querystring'
 import * as utils from './utils.ts'
@@ -16,6 +17,7 @@ export class HelperRest {
   private scimgateway: any
   private idleTimeout: number
   private graphUrl = 'https://graph.microsoft.com/beta' // beta instead of 'v1.0' gives all user attributes when no $select
+  private googleUrl = 'https://www.googleapis.com'
 
   constructor(scimgateway: any, optionalEntities?: Record<string, any>) {
     if (!scimgateway || !scimgateway.gwName) throw new Error('HelperRest initialization error: argument scimgateway is not of type ScimGateway')
@@ -32,6 +34,11 @@ export class HelperRest {
         if (this.config_entity[baseEntity]?.connection?.auth?.options?.tenantIdGUID) { // Entra ID, setting baseUrls to graph
           if (this.config_entity[baseEntity]?.connection?.auth?.type === 'oauth') {
             this.config_entity[baseEntity].connection.baseUrls = [this.graphUrl]
+          }
+        } else if (this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile) { // Google, setting baseUrls to googleapis
+          const type = this.config_entity[baseEntity]?.connection?.auth?.type
+          if (type === 'oauthJwtAssertion' || type === 'oauth') { // includes oauth because of email.auth.type
+            this.config_entity[baseEntity].connection.baseUrls = [this.googleUrl]
           }
         }
         connectionFound = true
@@ -107,13 +114,57 @@ export class HelperRest {
         const audience = `scimgateway/${this.scimgateway.pluginName}`
         const delay = 1
 
-        const assertion = await samlAssertion.run(context, cert, key, issuer, lifetime, clientId, nameId, userIdentifierFormat, tokenEndpoint, audience, delay)
         form = {
           token_url: tokenUrl,
           grant_type: 'urn:ietf:params:oauth:grant-type:saml2-bearer',
           client_id: clientId,
           company_id: this.config_entity[baseEntity].connection.auth.options.companyId,
-          assertion: assertion,
+          assertion: await samlAssertion.run(context, cert, key, issuer, lifetime, clientId, nameId, userIdentifierFormat, tokenEndpoint, audience, delay),
+        }
+        break
+
+      case 'oauthJwtAssertion':
+        let privateKey = ''
+        let jwtAttr: Record<string, any> = {}
+        const serviceAccountKeyFile = this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile
+
+        if (serviceAccountKeyFile) { // Google Service Account key json-file
+          const gkey: Record<string, any> = await (async () => {
+            try {
+              const jsonObject = await import(serviceAccountKeyFile, { assert: { type: 'json' } })
+              return jsonObject.default // access the object via the `default` property
+            } catch (err: any) {
+              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - serviceAccountKeyFile error: ${err.message}`)
+            }
+          })()
+
+          tokenUrl = gkey.token_uri // https://oauth2.googleapis.com/token
+          privateKey = gkey.private_key
+          jwtAttr = {
+            scope: this.config_entity[baseEntity]?.connection?.auth?.options?.scope, // https://www.googleapis.com/auth/gmail.send
+            sub: this.config_entity[baseEntity]?.connection?.auth?.options?.subject, // firstname.lastname@mycompany.com
+            iss: gkey.client_email, // service account email/user
+            aud: gkey.token_uri,
+            iat: Math.floor(Date.now() / 1000), // issued at
+            exp: Math.floor(Date.now() / 1000) + (60 * 60), // expiration time
+          }
+        } else { // standard JWT requires all configuation set
+          tokenUrl = this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl
+          const privateKeyFile = this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key
+          if (privateKeyFile) privateKey = fs.readFileSync(privateKeyFile).toString()
+          jwtAttr = {
+            scope: this.config_entity[baseEntity]?.connection?.auth?.options?.scope,
+            sub: this.config_entity[baseEntity]?.connection?.auth?.options?.subject,
+            iss: this.config_entity[baseEntity]?.connection?.auth?.options?.issuer,
+            aud: this.config_entity[baseEntity]?.connection?.auth?.options?.audience,
+            iat: Math.floor(Date.now() / 1000),
+            exp: Math.floor(Date.now() / 1000) + (60 * 60),
+          }
+        }
+
+        form = {
+          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+          assertion: jwtSign(jwtAttr, privateKey, { algorithm: 'RS256' }),
         }
         break
 
@@ -232,19 +283,28 @@ export class HelperRest {
           },
         }
 
-        // Supporting  no auth, header based auth (e.g., config {"options":{"headers":{"APIkey":"123"}}}),
-        // basicAuth, bearerAuth, oauth, tokenAuth, oauthSamlAssertion and auth PassTrough using request header authorization
+        // Support  no auth, header based auth (e.g., config {"options":{"headers":{"APIkey":"123"}}}),
+        // basicAuth, bearerAuth, oauth, tokenAuth, oauthSamlAssertion, oauthJwtAssertion and auth PassTrough using request header authorization
+
+        let orgConnection: any
+        if (opt?.connection) { // allow overriding/extending configuration connection by caller argument opt.connection
+          let org = this.config_entity[baseEntity]?.connection
+          orgConnection = utils.copyObj(org)
+          if (!org) org = {}
+          org = utils.extendObj(org, opt.connection)
+        }
+
         switch (this.config_entity[baseEntity]?.connection?.auth?.type) {
           case 'basic':
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.username || !this.config_entity[baseEntity]?.connection?.auth?.options?.password) {
-              const err = new Error(`auth type 'basic' - missing configuration entity.${baseEntity}.connection.auth.options.username/password`)
+              const err = new Error(`auth.type 'basic' - missing configuration entity.${baseEntity}.connection.auth.options.username/password`)
               throw err
             }
             param.options.headers['Authorization'] = 'Basic ' + Buffer.from(`${this.config_entity[baseEntity].connection.auth.options.username}:${this.config_entity[baseEntity].connection.auth.options.password}`).toString('base64')
             break
           case 'oauth':
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.clientSecret) {
-              const err = new Error(`auth type 'oauth' - missing configuration entity.${baseEntity}.connection.auth.options.clientId/clientSecret`)
+              const err = new Error(`auth.type 'oauth' - missing configuration entity.${baseEntity}.connection.auth.options.clientId/clientSecret`)
               throw err
             }
             param.accessToken = await this.getAccessToken(baseEntity, ctx)
@@ -268,14 +328,40 @@ export class HelperRest {
           case 'oauthSamlAssertion':
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.companyId
               || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key) {
-              const err = new Error(`auth type 'oauthSamlAssertion' - missing configuration entity.${baseEntity}.connection.auth.options...`)
+              const err = new Error(`auth.type 'oauthSamlAssertion' - missing configuration entity.${baseEntity}.connection.auth.options...`)
               throw err
             }
             param.accessToken = await this.getAccessToken(baseEntity, ctx)
             param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
             break
+          case 'oauthJwtAssertion':
+            if (this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile) { // Google Service Account
+              if (!this.config_entity[baseEntity]?.connection?.auth?.options?.scope || !this.config_entity[baseEntity]?.connection?.auth?.options?.subject) {
+                const err = new Error(`auth.type 'oauthJwtAssertion' - using auth.options 'serviceAccountKeyFile' also requires mandatory configuration entity.${baseEntity}.connection.auth.options.scope/subject`)
+                throw err
+              }
+            } else if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl
+              || !this.config_entity[baseEntity]?.connection?.auth?.options?.scope
+              || !this.config_entity[baseEntity]?.connection?.auth?.options?.subject
+              || !this.config_entity[baseEntity]?.connection?.auth?.options?.issuer
+              || !this.config_entity[baseEntity]?.connection?.auth?.options?.audience
+              || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key
+            ) {
+              const err = new Error(`auth.type 'oauthJwtAssertion' - when not using auth.options 'serviceAccountKeyFile' which is related to Google, following auth.options is mandatory: tokenUrl, scope, subject, issuer, audience, certificate.key`)
+              throw err
+            }
+
+            param.accessToken = await this.getAccessToken(baseEntity, ctx)
+            param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
+            break
+
           default:
             // no auth or PassTrough
+        }
+
+        if (orgConnection) {
+          this.config_entity[baseEntity].connection = orgConnection // reset back to original
+          if (opt?.connection) delete opt.connection
         }
 
         // proxy
@@ -334,7 +420,10 @@ export class HelperRest {
       // adding none static
       cli.options.method = method
       cli.options.path = `${urlObj.pathname}${urlObj.search}`
-      if (opt) cli.options = utils.extendObj(cli.options, opt) // merge with argument options
+      if (opt) {
+        if (opt?.connection) delete opt.connection // only used for internal connection options
+        cli.options = utils.extendObj(cli.options, opt) // merge with argument options
+      }
 
       return cli // final client
     }
@@ -582,9 +671,9 @@ export class HelperRest {
   * ```
   * {
   *   "options": {
-  *     "tenantIdGUID": "<Entra ID tenantIdGUID", // simplified configuration for using Microsoft Graph API
-  *     "tokenUrl": "<tokenUrl>", // not used when tenantIdGUID defined
-  *     "clientId": "<clientId",
+  *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Microsoft Graph API - baseUrls automatically set to [https://graph.microsoft.com/beta]
+  *     "tokenUrl": "<tokenUrl>", // not used when tenantIdGUID defined - baseUrls required
+  *     "clientId": "<clientId>",
   *     "clientSecret": "<clientSecret>"
   *   }
   * }
@@ -622,6 +711,32 @@ export class HelperRest {
   *       "key": "<key-file-name>", // location: config/certs
   *       "cert": "<cert-file-name>", // location: config/certs
   *     }
+  *   }
+  * }
+  * ```
+  * 
+  * type=**"oauthJwtAssertion"** having auth.options:
+  * ```
+  * // Google API - baseUrls automatically set to [https://www.googleapis.com]
+  * {
+  *   "options": {
+  *     "serviceAccountKeyFile": "<Google Service Account key file name>", // located in ./config/certs
+  *     "scope": "<jwt-scope>"
+  *     "subject": "<jwt-subject>
+  *   }
+  * }
+  * 
+  * // General JWT API - baseUrls required
+  * {
+  *   "options": {
+  *     "tokenUrl":  "<tokenUrl",
+  *     "scope": "<jwt-scope>",
+  *     "subject": "<jwt-subject>",
+  *     "issuer": "<jwt-issuer>",
+  *     "audience": "<jwt-audience>",
+  *     "certificate": {
+  *       "key": "<signing-key-file-name>"
+  *      }
   *   }
   * }
   * ```
