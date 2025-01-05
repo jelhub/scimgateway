@@ -2952,8 +2952,8 @@ export class ScimGateway {
 
     if (authType === 'oauth') {
       if (!this.helperRest) this.helperRest = new HelperRest(this, { entity: { undefined: { connection: this.config.scimgateway.email } } })
-      if (this.config.scimgateway.email.auth?.options?.tenantIdGUID) { // ExO
-        // Graph API
+      if (this.config.scimgateway.email.auth?.options?.tenantIdGUID) {
+        // Microsoft Exchange Online (ExO) - using Graph API
         const emailMessage: Record<string, any> = {
           message: {
             subject: msgObj.subject ? msgObj.subject : 'SCIM Gateway message',
@@ -2998,10 +2998,34 @@ export class ScimGateway {
           logger.error(`${gwName}[${pluginName}] sendMail subject '${emailMessage.message.subject}' sending failed: ${err.message}`)
         }
         return
-      } else {
-        logger.error(`${gwName}[${pluginName}] sendMail error: type oauth only supports ExO and requires configuration scimgateway.email.auth.options.tenantIdGUID`)
+      } else if (this.config.scimgateway.email.auth?.options?.serviceAccountKeyFile) {
+        // Google Workspace Gmail
+        if (!msgObj.to) msgObj.to = ''
+        if (!msgObj.cc) msgObj.cc = ''
+
+        let mimeMessage = `From: ${msgObj.from}
+To: ${msgObj.to}
+Cc: ${msgObj.cc}
+Subject: ${msgObj.subject}
+MIME-Version: 1.0
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+`
+        mimeMessage += msgObj.content
+        const encodedMessage = btoa(mimeMessage)
+        const emailMessage = { raw: encodedMessage }
+        const path = `/gmail/v1/users/${msgObj.from}/messages/send`
+        try { // using opt connection argument type=oauthJwtAssertion and options scope/subject because we want to keep simplified email.auth.type=oauth and options serviceAccountKeyFile
+          await this.helperRest.doRequest('undefined', 'POST', path, emailMessage, null, { connection: { auth: { type: 'oauthJwtAssertion', options: { scope: 'https://www.googleapis.com/auth/gmail.send', subject: msgObj.from } } } })
+          logger.debug(`${gwName}[${pluginName}] sendMail subject '${emailMessage}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
+        } catch (err: any) {
+          logger.error(`${gwName}[${pluginName}] sendMail subject '${emailMessage}' sending failed: ${err.message}`)
+        }
         return
       }
+      logger.error(`${gwName}[${pluginName}] sendMail error: type oauth supports only ExO (scimgateway.email.auth.options.tenantIdGUID) or Google Workspace Gmail (scimgateway.email.auth.options.serviceAccountKeyFile)`)
+      return
     }
 
     if (authType !== 'smtp') {
@@ -3095,6 +3119,12 @@ export class ScimGateway {
         dotConfig[key] = keyFile
         const addKey = key.replace(`.${lastKey}`, '.publicKeyContent')
         dotConfig[addKey] = fs.readFileSync(keyFile)
+      } else if (key.endsWith('.serviceAccountKeyFile')) { // Google Service Account Key json-file
+        let keyFile = path.join(this.configDir, '/certs/', dotConfig[key])
+        if (dotConfig[key].startsWith('/') || dotConfig[key].includes('\\')) {
+          keyFile = dotConfig[key]
+        }
+        dotConfig[key] = keyFile
       }
 
       // process env, file and text
