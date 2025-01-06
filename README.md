@@ -537,7 +537,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 			##Create ApplicationAccessPolicy
 			New-ApplicationAccessPolicy -AppId <AppClientID> -PolicyScopeGroupId <MailEnabledSecurityGrpId> -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
 
-- Email, using Google Workspace Gmail:
+- Email, using Google Workspace Gmail
 
 	- https://console.cloud.google.com
 		- IAM & Admin > Service Accounts > Create Service Account
