@@ -553,7 +553,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		- Security > Access and data control > API controls
 			- Manage Domain Wide Delegation > Add new
 			- Client ID = id of service account created
-			- OAuth scope = https://www.googleapis.com/auth/gmail.send  
+			- OAuth scope = `https://www.googleapis.com/auth/gmail.send`  
 	 
 	- https://admin.google.com
 		- Billing > Subscriptions - verify Google Workspace license
