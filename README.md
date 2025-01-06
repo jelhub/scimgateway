@@ -559,7 +559,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		- Billing > Subscriptions - verify Google Workspace license
 		- Directory > Users > "user"
 		- Licenses > Edit > enable Google Workspace license  
-		`email.onerror.from` mail address must have Google Workspace license
+		`email.emailOnError.from` mail address must have Google Workspace license
 
 
 ## Manual startup    
