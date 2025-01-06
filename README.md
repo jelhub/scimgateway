@@ -16,7 +16,7 @@ Validated through IdP's:
 
 Latest news:  
 
-- Email, onError and sendMail() supports modern REST OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlAssertion, oauthJwtAssertion and Auth PassTrough 
+- Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlAssertion, oauthJwtAssertion and Auth PassTrough 
 - Major version **v5.0.0** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. E.g., using Entra ID application OAuth
@@ -437,7 +437,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
           "2603:1056:2000::/48",
           "2603:1057:2::/48"
         ]
-- **email** - Contains configuration for sending email from plugin or automated error notifications emailOnError. Note, for emailOnError only the first error will be sent until sendInterval have passed. Supporting both SMTP Auth and modern REST OAuth. For OAuth, currently Microsoft Exchange Online (ExO) and Google Workspace Gmail are supported
+- **email** - Sending email from plugin or automated error notifications emailOnError. For emailOnError only the first error will be sent until sendInterval have passed. Supporting both SMTP Auth and modern REST OAuth. For OAuth, currently Microsoft Exchange Online (ExO) and Google Workspace Gmail are supported - see configuration notes
 - **email.auth** - Authentication configuration
 - **email.auth.type** - `oauth` or `smtp`
 - **email.auth.options** - Authentication options - note, different options for type oauth and smtp
@@ -460,45 +460,6 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **email.emailOnError.to** - Comma separated list of recipients email addresses e.g: "someone@example.com"
 - **email.emailOnError.cc** - Optional comma separated list of cc mail addresses
 - **email.emailOnError.subject** - Optional mail subject, default `SCIM Gateway error message`
-
-	**Configuration notes for Microsoft Exchange Online (ExO):**
-
-	- Entra ID application must have application permissions `Mail.Send`  
-	- To prevent the sending of emails from any defined mailboxes, an ExO `ApplicationAccessPolicy` must be defined through PowerShell.  
-	
-		First create a mail-enabled security-group that only includes those users (mailboxes) the application is allowed to send from  
-		Note, `mail enabled security group` cannot be created from portal, only from admin or admin.exchange console
-		  
-			##Connect to Exchange
-			Install-Module -Name ExchangeOnlineManagement
-			Connect-ExchangeOnline
-			 
-			##Create ApplicationAccessPolicy
-			New-ApplicationAccessPolicy -AppId <AppClientID> -PolicyScopeGroupId <MailEnabledSecurityGrpId> -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
-
-	**Configuration notes for Google Workspace Gmail:**
-
-	- https://console.cloud.google.com
-		- IAM & Admin > Service Accounts > Create Service Account
-			- Name=email-sender  
-			- Create and Continue
-			- Grant this service account access to project - not needed
-			- Grant users access to this service - not needed  
-		- IAM & Admin > Service Accounts > "email-sender" account > Keys    
-			- Add Key > Create new key > JSON
-			- download json `serviceAccountKeyFile` file, refere to configuration `email.auth.options.serviceAccountKeyFile`
-
-	- https://admin.google.com
-		- Security > Access and data control > API controls
-			- Manage Domain Wide Delegation > Add new
-			- Client ID = id of service account created
-			- OAuth scope = https://www.googleapis.com/auth/gmail.send  
-	 
-	- https://admin.google.com
-		- Billing > Subscriptions - verify Google Workspace license
-		- Directory > Users > "user"
-		- Licenses > Edit > enable Google Workspace license  
-		`email.onerror.from` mail address must have Google Workspace Business license
 
 - **stream** - See [SCIM Stream](https://elshaug.xyz/docs/scim-stream) for configuration details
 
@@ -560,6 +521,45 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		  "plugin-soap.endpoint.password": "secret"
 		}  
 
+
+- Email, using Microsoft Exchange Online (ExO)
+
+	- Entra ID application must have application permissions `Mail.Send`  
+	- To prevent the sending of emails from any defined mailboxes, an ExO `ApplicationAccessPolicy` must be defined through PowerShell.  
+	
+		First create a mail-enabled security-group that only includes those users (mailboxes) the application is allowed to send from  
+		Note, `mail enabled security group` cannot be created from portal, only from admin or admin.exchange console
+		  
+			##Connect to Exchange
+			Install-Module -Name ExchangeOnlineManagement
+			Connect-ExchangeOnline
+			 
+			##Create ApplicationAccessPolicy
+			New-ApplicationAccessPolicy -AppId <AppClientID> -PolicyScopeGroupId <MailEnabledSecurityGrpId> -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
+
+- Email, using Google Workspace Gmail:
+
+	- https://console.cloud.google.com
+		- IAM & Admin > Service Accounts > Create Service Account
+			- Name=email-sender  
+			- Create and Continue
+			- Grant this service account access to project - not needed
+			- Grant users access to this service - not needed  
+		- IAM & Admin > Service Accounts > "email-sender" account > Keys    
+			- Add Key > Create new key > JSON
+			- download json `serviceAccountKeyFile` file, refere to configuration `email.auth.options.serviceAccountKeyFile`
+
+	- https://admin.google.com
+		- Security > Access and data control > API controls
+			- Manage Domain Wide Delegation > Add new
+			- Client ID = id of service account created
+			- OAuth scope = https://www.googleapis.com/auth/gmail.send  
+	 
+	- https://admin.google.com
+		- Billing > Subscriptions - verify Google Workspace license
+		- Directory > Users > "user"
+		- Licenses > Edit > enable Google Workspace license  
+		`email.onerror.from` mail address must have Google Workspace license
 
 
 ## Manual startup    
