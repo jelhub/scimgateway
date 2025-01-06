@@ -547,7 +547,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 			- Grant users access to this service - not needed  
 		- IAM & Admin > Service Accounts > "email-sender" account > Keys    
 			- Add Key > Create new key > JSON
-			- download json `serviceAccountKeyFile` file, refere to configuration `email.auth.options.serviceAccountKeyFile`
+			- download json Service Account Key file, refere to configuration `email.auth.options.serviceAccountKeyFile`
 
 	- https://admin.google.com
 		- Security > Access and data control > API controls
