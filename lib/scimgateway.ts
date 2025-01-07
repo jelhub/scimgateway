@@ -2949,6 +2949,9 @@ export class ScimGateway {
       isHtml = true
       msgObj.content = `<html><body><pre style="font-family: monospace; white-space: pre-wrap;">${msgObj.content}</pre></body></html>`
     }
+    if (!msgObj.to) msgObj.to = ''
+    if (!msgObj.cc) msgObj.cc = ''
+    if (!msgObj.subject) msgObj.subject = 'SCIM Gateway message'
 
     if (authType === 'oauth') {
       if (!this.helperRest) this.helperRest = new HelperRest(this, { entity: { undefined: { connection: this.config.scimgateway.email } } })
@@ -2956,7 +2959,7 @@ export class ScimGateway {
         // Microsoft Exchange Online (ExO) - using Graph API
         const emailMessage: Record<string, any> = {
           message: {
-            subject: msgObj.subject ? msgObj.subject : 'SCIM Gateway message',
+            subject: msgObj.subject,
             body: {
               content: msgObj.content,
               contentType: isHtml ? 'HTML' : 'Text',
@@ -2993,16 +2996,13 @@ export class ScimGateway {
         const path = `/users/${msgObj.from}/sendMail`
         try {
           await this.helperRest.doRequest('undefined', 'POST', path, emailMessage)
-          logger.debug(`${gwName}[${pluginName}] sendMail subject '${emailMessage.message.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
+          logger.debug(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
         } catch (err: any) {
-          logger.error(`${gwName}[${pluginName}] sendMail subject '${emailMessage.message.subject}' sending failed: ${err.message}`)
+          logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
         }
         return
       } else if (this.config.scimgateway.email.auth?.options?.serviceAccountKeyFile) {
         // Google Workspace Gmail
-        if (!msgObj.to) msgObj.to = ''
-        if (!msgObj.cc) msgObj.cc = ''
-
         let mimeMessage = `From: ${msgObj.from}
 To: ${msgObj.to}
 Cc: ${msgObj.cc}
@@ -3016,11 +3016,11 @@ Content-Transfer-Encoding: quoted-printable
         const encodedMessage = btoa(mimeMessage)
         const emailMessage = { raw: encodedMessage }
         const path = `/gmail/v1/users/${msgObj.from}/messages/send`
-        try { // using opt connection argument type=oauthJwtAssertion and options scope/subject because we want to keep simplified email.auth.type=oauth and options serviceAccountKeyFile
-          await this.helperRest.doRequest('undefined', 'POST', path, emailMessage, null, { connection: { auth: { type: 'oauthJwtAssertion', options: { scope: 'https://www.googleapis.com/auth/gmail.send', subject: msgObj.from } } } })
-          logger.debug(`${gwName}[${pluginName}] sendMail subject '${emailMessage}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
+        try { // using opt connection argument type=oauthJwtBearer and options scope/subject because we want to keep simplified email.auth.type=oauth and options serviceAccountKeyFile
+          await this.helperRest.doRequest('undefined', 'POST', path, emailMessage, null, { connection: { auth: { type: 'oauthJwtBearer', options: { scope: 'https://www.googleapis.com/auth/gmail.send', subject: msgObj.from } } } })
+          logger.debug(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
         } catch (err: any) {
-          logger.error(`${gwName}[${pluginName}] sendMail subject '${emailMessage}' sending failed: ${err.message}`)
+          logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
         }
         return
       }
@@ -3057,15 +3057,15 @@ Content-Transfer-Encoding: quoted-printable
       from: msgObj.from, // sender address
       to: msgObj.to, // list of receivers - comma separated
       cc: msgObj.cc,
-      subject: msgObj.subject ? msgObj.subject : 'SCIM Gateway message',
+      subject: msgObj.subject,
     }
 
     if (isHtml) mailOptions.html = msgObj.content
     else mailOptions.text = msgObj.content
 
     transporter.sendMail(mailOptions, function (err) {
-      if (err != null) logger.error(`${gwName}[${pluginName}] sendMail subject '${mailOptions.subject}' sending failed: ${err.message}`)
-      else logger.debug(`${gwName}[${pluginName}] sendMail subject '${mailOptions.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
+      if (err != null) logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
+      else logger.debug(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
     })
   }
 
