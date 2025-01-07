@@ -16,7 +16,7 @@ Validated through IdP's:
 
 Latest news:  
 
-- Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlAssertion, oauthJwtAssertion and Auth PassTrough 
+- Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlBearer, oauthJwtBearer and Auth PassTrough 
 - Major version **v5.0.0** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. E.g., using Entra ID application OAuth
@@ -1009,17 +1009,17 @@ For JavaScript coding editor you may use [Visual Studio Code](https://code.visua
 
 Preparation:
 
-* Copy "best matching" example plugin e.g. `lib\plugin-mssql.ts` and `config\plugin-mssql.json` and rename both copies to your plugin name prefix e.g. plugin-mine.ts and plugin-mine.json (for SOAP Webservice endpoint we might use plugin-soap as a template) 
+* Copy "best matching" example plugin e.g. `lib\plugin-mssql.ts` and `config\plugin-mssql.json` and rename both copies to your plugin name prefix e.g. plugin-mine.ts and plugin-mine.json 
 * Edit plugin-mine.json and define a unique port number for the gateway setting  
 * Edit index.ts and include your plugin in the startup e.g. `const plugins = ['mine']');`  
-* Start SCIM Gateway and verify. If using CA Provisioning you could setup a SCIM endpoint using the port number you defined  
+* Start SCIM Gateway and verify using using your own SCIM API requests or your IdP/IGA system.  
 
 Now we are ready for custom coding by editing plugin-mine.ts
-Coding should be done step by step and each step should be verified and tested before starting the next (they are all highlighted by comments in existing code).  
+Coding should be done step by step and each step should be verified and tested before starting the next 
 
-1. **Turn off group functionality** - getGroups to return empty response  
+1. **Turn off group functionality** - getGroups to return empty response (gateway automatically use getGroups for some of the methods if groups not included)  
 Please see plugin-saphana that do not use groups.
-2. **getUsers** (test provisioning retrieve accounts)
+2. **getUsers** (test provisioning retrieve all accounts and single account)
 4. **createUser** (test provisioning new account)
 5. **deleteUser** (test provisioning delete account)
 6. **modifyUser** (test provisioning modify account)
@@ -1135,6 +1135,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.0.15
+
+[Improved]
+
+- HelperRest, auth.type=oauthSamlAssertion and auth.type=oauthJwtAssertion have been updated to `oauthSamlBearer` and `oauthJwtBearer` for consistency
 
 ### v5.0.14
 
