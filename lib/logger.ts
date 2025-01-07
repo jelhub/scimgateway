@@ -49,7 +49,7 @@ export class Log {
     )
   }
 
-  private maskSecret = winston.format((info) => {
+  private maskSecret = winston.format((info: any) => {
     // mask json secrets
     let rePattern = new RegExp(this.reJson, 'i')
     let msg: string = info.message
