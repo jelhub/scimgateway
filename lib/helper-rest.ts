@@ -37,7 +37,7 @@ export class HelperRest {
           }
         } else if (this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile) { // Google, setting baseUrls to googleapis
           const type = this.config_entity[baseEntity]?.connection?.auth?.type
-          if (type === 'oauthJwtAssertion' || type === 'oauth') { // includes oauth because of email.auth.type
+          if (type === 'oauthJwtBearer' || type === 'oauth') { // includes oauth because of email.auth.type
             this.config_entity[baseEntity].connection.baseUrls = [this.googleUrl]
           }
         }
@@ -99,7 +99,7 @@ export class HelperRest {
         }
         break
 
-      case 'oauthSamlAssertion':
+      case 'oauthSamlBearer':
         tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
         const context = null
         const cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.cert).toString()
@@ -123,7 +123,7 @@ export class HelperRest {
         }
         break
 
-      case 'oauthJwtAssertion':
+      case 'oauthJwtBearer':
         let privateKey = ''
         let jwtAttr: Record<string, any> = {}
         const serviceAccountKeyFile = this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile
@@ -284,7 +284,7 @@ export class HelperRest {
         }
 
         // Support  no auth, header based auth (e.g., config {"options":{"headers":{"APIkey":"123"}}}),
-        // basicAuth, bearerAuth, oauth, tokenAuth, oauthSamlAssertion, oauthJwtAssertion and auth PassTrough using request header authorization
+        // basicAuth, bearerAuth, oauth, tokenAuth, oauthSamlBearer, oauthJwtBearer and auth PassTrough using request header authorization
 
         let orgConnection: any
         if (opt?.connection) { // allow overriding/extending configuration connection by caller argument opt.connection
@@ -325,19 +325,19 @@ export class HelperRest {
             }
             param.options.headers['Authorization'] = 'Bearer ' + Buffer.from(this.config_entity[baseEntity].connection.auth.options.token).toString('base64')
             break
-          case 'oauthSamlAssertion':
+          case 'oauthSamlBearer':
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.companyId
               || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key) {
-              const err = new Error(`auth.type 'oauthSamlAssertion' - missing configuration entity.${baseEntity}.connection.auth.options...`)
+              const err = new Error(`auth.type 'oauthSamlBearer' - missing configuration entity.${baseEntity}.connection.auth.options...`)
               throw err
             }
             param.accessToken = await this.getAccessToken(baseEntity, ctx)
             param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
             break
-          case 'oauthJwtAssertion':
+          case 'oauthJwtBearer':
             if (this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile) { // Google Service Account
               if (!this.config_entity[baseEntity]?.connection?.auth?.options?.scope || !this.config_entity[baseEntity]?.connection?.auth?.options?.subject) {
-                const err = new Error(`auth.type 'oauthJwtAssertion' - using auth.options 'serviceAccountKeyFile' also requires mandatory configuration entity.${baseEntity}.connection.auth.options.scope/subject`)
+                const err = new Error(`auth.type 'oauthJwtBearer' - using auth.options 'serviceAccountKeyFile' also requires mandatory configuration entity.${baseEntity}.connection.auth.options.scope/subject`)
                 throw err
               }
             } else if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl
@@ -347,7 +347,7 @@ export class HelperRest {
               || !this.config_entity[baseEntity]?.connection?.auth?.options?.audience
               || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key
             ) {
-              const err = new Error(`auth.type 'oauthJwtAssertion' - when not using auth.options 'serviceAccountKeyFile' which is related to Google, following auth.options is mandatory: tokenUrl, scope, subject, issuer, audience, certificate.key`)
+              const err = new Error(`auth.type 'oauthJwtBearer' - when not using auth.options 'serviceAccountKeyFile' which is related to Google, following auth.options is mandatory: tokenUrl, scope, subject, issuer, audience, certificate.key`)
               throw err
             }
 
@@ -653,7 +653,7 @@ export class HelperRest {
   * ```
   * type defines authentication being used  
   * if type not defined, no authentication used  
-  * valid type is: `basic`, `oauth`, `token`, `bearer` or `oauthSamlAssertion`  
+  * valid type is: `basic`, `oauth`, `token`, `bearer` or `oauthSamlBearer`  
   * 
   * for each valid type there are different auth.options  
   * 
@@ -699,7 +699,7 @@ export class HelperRest {
   * }
   * ```
   * 
-  * type=**"oauthSamlAssertion"** having auth.options:
+  * type=**"oauthSamlBearer"** having auth.options:
   * ```
   * {
   *   "options": {
@@ -715,7 +715,7 @@ export class HelperRest {
   * }
   * ```
   * 
-  * type=**"oauthJwtAssertion"** having auth.options:
+  * type=**"oauthJwtBearer"** having auth.options:
   * ```
   * // Google API - baseUrls automatically set to [https://www.googleapis.com]
   * {
