@@ -1,12 +1,9 @@
-'use strict'
-
 import { expect, test, describe } from 'bun:test'
-import * as server from 'supertest'
 import * as mongodb from '../../lib/plugin-mongodb'
 // eslint-disable-next-line @typescript-eslint/no-unused-expressions
 mongodb
 
-const server_8885 = server.agent('http://localhost:8885')
+const baseUrl = 'http://localhost:8885'
 const auth = 'Basic ' + Buffer.from('gwadmin:password').toString('base64')
 const options = {
   headers: {
@@ -15,13 +12,21 @@ const options = {
   },
 }
 
+async function fetchSCIM(method: string, endpoint: string, body?: any, headers?: any) {
+  const response = await fetch(`${baseUrl}${endpoint}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const data = response.status !== 204 ? await response.json() : null
+  return { status: response.status, body: data }
+}
+
 describe('plugin-mongodb', async () => {
   test('getUsers all test (1)', async () => {
-    const res = await server_8885.get('/Users'
-      + '?startIndex=1&count=100')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Users?startIndex=1&count=100', undefined, options.headers)
     const users = res?.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(users.totalResults).toBe(2)
     expect(users.itemsPerPage).toBe(2)
     expect(users.startIndex).toBe(1)
@@ -41,11 +46,9 @@ describe('plugin-mongodb', async () => {
   })
 
   test('getUsers all test (2)', async () => {
-    const res = await server_8885.get('/Users'
-      + '?attributes=userName&startIndex=1&count=100')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Users?attributes=userName&startIndex=1&count=100', undefined, options.headers)
     const users = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(users.totalResults).toBe(2)
     expect(users.itemsPerPage).toBe(2)
     expect(users.startIndex).toBe(1)
@@ -59,10 +62,9 @@ describe('plugin-mongodb', async () => {
   })
 
   test('getUsers unique test (1)', async () => {
-    const res = await server_8885.get('/Users/bjensen')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Users/bjensen', undefined, options.headers)
     const user = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('bjensen')
     expect(user.active).toBe(true)
@@ -85,11 +87,11 @@ describe('plugin-mongodb', async () => {
   })
 
   test('getUsers unique test (2)', async () => {
-    const res = await server_8885.get('/Users'
-      + '?filter=userName eq "bjensen"&attributes=ims,locale,name.givenName,externalId,preferredLanguage,userType,id,title,timezone,name.middleName,name.familyName,nickName,name.formatted,meta.location,userName,name.honorificSuffix,meta.version,meta.lastModified,meta.created,name.honorificPrefix,emails,phoneNumbers,photos,x509Certificates.value,profileUrl,roles,active,addresses,displayName,entitlements')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Users'
+      + '?filter=userName eq "bjensen"&attributes=ims,locale,name.givenName,externalId,preferredLanguage,userType,id,title,timezone,name.middleName,name.familyName,nickName,name.formatted,meta.location,userName,name.honorificSuffix,meta.version,meta.lastModified,meta.created,name.honorificPrefix,emails,phoneNumbers,photos,x509Certificates.value,profileUrl,roles,active,addresses,displayName,entitlements',
+    undefined, options.headers)
     const user = res?.body?.Resources[0]
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('bjensen')
     expect(user.active).toBe(true)
@@ -106,11 +108,11 @@ describe('plugin-mongodb', async () => {
   })
 
   test('getUsers filter test (1)', async () => {
-    const res = await server_8885.get('/Users'
-      + '?filter=emails.value eq "bjensen@example.com"&attributes=emails,id,name.givenName')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Users'
+      + '?filter=emails.value eq "bjensen@example.com"&attributes=emails,id,name.givenName',
+    undefined, options.headers)
     const users = res?.body?.Resources
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(users.length).toBe(1)
     expect(users[0]).toBeDefined()
     expect(users[0].emails[0].value).toBe('bjensen@example.com')
@@ -123,22 +125,20 @@ describe('plugin-mongodb', async () => {
   })
 
   test('getUsers filter test (2)', async () => {
-    const res = await server_8885.get('/Users'
-      + '?filter=meta.created gte "2010-01-01T00:00:00Z"&attributes=userName,id,name.familyName,meta.created&sortBy=name.familyName&sortOrder=descending')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Users'
+      + '?filter=meta.created gte "2010-01-01T00:00:00Z"&attributes=userName,id,name.familyName,meta.created&sortBy=name.familyName&sortOrder=descending',
+    undefined, options.headers)
     const users = res?.body?.Resources
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(users.length).toBe(2)
     expect(users[0].id).toBe('jsmith')
     expect(users[1].id).toBe('bjensen')
   })
 
   test('getGroups all test (1)', async () => {
-    const res = await server_8885.get('/Groups'
-      + '?startIndex=1&count=100')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Groups?startIndex=1&count=100', undefined, options.headers)
     const groups = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(groups.totalResults).toBe(2)
     expect(groups.itemsPerPage).toBe(2)
     expect(groups.startIndex).toBe(1)
@@ -152,11 +152,11 @@ describe('plugin-mongodb', async () => {
   })
 
   test('getGroups all test (2)', async () => {
-    const res = await server_8885.get('/Groups'
-      + '?attributes=displayName&startIndex=1&count=100')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Groups'
+      + '?attributes=displayName&startIndex=1&count=100',
+    undefined, options.headers)
     const groups = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(groups.totalResults).toBe(2)
     expect(groups.itemsPerPage).toBe(2)
     expect(groups.startIndex).toBe(1)
@@ -170,10 +170,9 @@ describe('plugin-mongodb', async () => {
   })
 
   test('getGroups unique test (1)', async () => {
-    const res = await server_8885.get('/Groups/Admins')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Groups/Admins', undefined, options.headers)
     const group = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(group).toBeDefined()
     expect(group.schemas).toBeDefined()
     expect(group.meta.location).toBeDefined()
@@ -184,11 +183,11 @@ describe('plugin-mongodb', async () => {
   })
 
   test('getGroups unique test (2)', async () => {
-    const res = await server_8885.get('/Groups'
-      + '?filter=displayName eq "Admins"&attributes=externalId,id,members.value,displayName')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Groups'
+      + '?filter=displayName eq "Admins"&attributes=externalId,id,members.value,displayName',
+    undefined, options.headers)
     const groups = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(groups).toBeDefined()
     expect(groups.schemas).toBeDefined()
     expect(groups.Resources[0].displayName).toBe('Admins')
@@ -198,11 +197,11 @@ describe('plugin-mongodb', async () => {
   })
 
   test('getGroups members test', async () => {
-    const res = await server_8885.get('/Groups'
-      + '?filter=members.value eq "bjensen"&attributes=members.value,displayName')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Groups'
+      + '?filter=members.value eq "bjensen"&attributes=members.value,displayName',
+    undefined, options.headers)
     const groupMembers = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(groupMembers).toBeDefined()
     expect(groupMembers.Resources[0].displayName).toBe('Admins')
     expect(groupMembers.Resources[0].members[0].value).toBe('bjensen')
@@ -243,18 +242,15 @@ describe('plugin-mongodb', async () => {
         test2: 'yyy',
       },
     }
-    const res = await server_8885.post('/Users')
-      .set(options.headers)
-      .send(newUser)
-    expect(res.statusCode).toBe(201)
+    const res = await fetchSCIM('POST', '/Users', newUser, options.headers)
+    expect(res.status).toBe(201)
     expect(res.body.meta.location).toBe('http://localhost:8885/Users/jgilber')
   })
 
   test('getUser just created test', async () => {
-    const res = await server_8885.get('/Users/jgilber')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Users/jgilber', undefined, options.headers)
     const user = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('jgilber')
     expect(user.active).toBe(true)
@@ -374,17 +370,14 @@ describe('plugin-mongodb', async () => {
         },
       ],
     }
-    const res = await server_8885.patch('/Users/jgilber')
-      .set(options.headers)
-      .send(user)
-    expect(res.statusCode).toBe(200)
+    const res = await fetchSCIM('PATCH', '/Users/jgilber', user, options.headers)
+    expect(res.status).toBe(200)
   })
 
   test('getUser just modified test', async () => {
-    const res = await server_8885.get('/Users/jgilber')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Users/jgilber', undefined, options.headers)
     const user = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('jgilber')
     expect(user.active).toBe(false) // modified
@@ -435,11 +428,9 @@ describe('plugin-mongodb', async () => {
         { value: 'Admins', display: 'Admins' },
       ],
     }
-    const res = await server_8885.put('/Users/jgilber')
-      .set(options.headers)
-      .send(putUser)
+    const res = await fetchSCIM('PUT', '/Users/jgilber', putUser, options.headers)
     const user = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('jgilber')
     expect(user.active).toBe(false)
@@ -462,9 +453,8 @@ describe('plugin-mongodb', async () => {
   })
 
   test('deleteUser test', async () => {
-    const res = await server_8885.delete('/Users/jgilber')
-      .set(options.headers)
-    expect(res.statusCode).toBe(204)
+    const res = await fetchSCIM('DELETE', '/Users/jgilber', undefined, options.headers)
+    expect(res.status).toBe(204)
   })
 
   test('createGroup test', async () => {
@@ -475,56 +465,52 @@ describe('plugin-mongodb', async () => {
         value: 'bjensen',
       }],
     }
-    const res = await server_8885.post('/Groups')
-      .set(options.headers)
-      .send(newGroup)
-    expect(res.statusCode).toBe(201)
+    const res = await fetchSCIM('POST', '/Groups', newGroup, options.headers)
+    expect(res.status).toBe(201)
     expect(res.body.meta.location).toBe('http://localhost:8885/Groups/GoGoLoki')
   })
 
   test('getGroup just created test', async () => {
-    const res = await server_8885.get('/Groups/GoGoLoki')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Groups/GoGoLoki', undefined, options.headers)
     const group = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(group).toBeDefined()
     expect(group.displayName).toBe('GoGoLoki')
     expect(group.id).toBe('GoGoLoki')
   })
 
   test('modifyGroupMembers test (1)', async () => {
-    const res = await server_8885.patch('/Groups/GoGoLoki?attributes=members')
-      .set(options.headers)
-      // .send({ members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
-      .send({
-        Operations: [
-          {
-            op: 'add',
-            path: 'members',
-            value: [
-              { value: 'jsmith' },
-            ],
-          },
-          {
-            op: 'remove',
-            path: 'members',
-            value: [
-              { value: 'bjensen' },
-            ],
-          },
-        ],
-      })
+    const payload = {
+      Operations: [
+        {
+          op: 'add',
+          path: 'members',
+          value: [
+            { value: 'jsmith' },
+          ],
+        },
+        {
+          op: 'remove',
+          path: 'members',
+          value: [
+            { value: 'bjensen' },
+          ],
+        },
+      ],
+    }
+    // payload = { members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] } // scim v1.1
+
+    const res = await fetchSCIM('PATCH', '/Groups/GoGoLoki?attributes=members', payload, options.headers)
     const group = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(group.members).toBeDefined()
     expect(group.schemas[0]).toBe('urn:ietf:params:scim:schemas:core:2.0:Group')
   })
 
   test('getGroup just modified members test', async () => {
-    const res = await server_8885.get('/Groups/GoGoLoki')
-      .set(options.headers)
+    const res = await fetchSCIM('GET', '/Groups/GoGoLoki', undefined, options.headers)
     const group = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(group).toBeDefined()
     expect(group.displayName).toBe('GoGoLoki')
     expect(group.id).toBe('GoGoLoki')
@@ -533,8 +519,7 @@ describe('plugin-mongodb', async () => {
   })
 
   test('deleteGroup test', async () => {
-    const res = await server_8885.delete('/Groups/GoGoLoki')
-      .set(options.headers)
-    expect(res.statusCode).toBe(204)
+    const res = await fetchSCIM('DELETE', '/Groups/GoGoLoki', undefined, options.headers)
+    expect(res.status).toBe(204)
   })
 })

@@ -1,13 +1,11 @@
 // https://bun.sh/docs/test/writing
-'use strict'
 
 import { expect, test, describe } from 'bun:test'
-import * as server from 'supertest'
 import * as loki from '../../lib/plugin-loki'
 // eslint-disable-next-line @typescript-eslint/no-unused-expressions
 loki
 
-const server_8880 = server.agent('http://localhost:8880')
+const baseUrl = 'http://localhost:8880'
 const auth = 'Basic ' + Buffer.from('gwadmin:password').toString('base64')
 const options = {
   std: {
@@ -23,13 +21,37 @@ const options = {
   },
 }
 
+async function fetchSCIM(method: string, endpoint: string, body?: any, headers?: any) {
+  const response = await fetch(`${baseUrl}${endpoint}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const data = response.status !== 204 ? await response.json() : null
+  return { status: response.status, body: data }
+}
+
 describe('plugin-loki', async () => {
+  test('ServiceProviderConfigs test', async () => {
+    const response: any = await fetchSCIM('GET', '/ServiceProviderConfigs', undefined, options.std.headers)
+    expect(response.status).toBe(200)
+    expect(response.body.schemas).toContain('urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig')
+  })
+
+  test('Schemas test', async () => {
+    const response: any = await fetchSCIM('GET', '/Schemas', undefined, options.std.headers)
+    expect(response.status).toBe(200)
+    expect(Array.isArray(response.body.Resources)).toBe(true)
+    response.body.Resources.forEach((schema: any) => {
+      expect(schema.id).toBeDefined()
+      expect(schema.name).toBeDefined()
+    })
+  })
+
   test('getUsers all test (1)', async () => {
-    const res = await server_8880.get('/Users'
-      + '?startIndex=1&count=100')
-      .set(options.std.headers)
-    const users = res?.body
-    expect(res.statusCode).toBe(200)
+    const response: any = await fetchSCIM('GET', '/Users?startIndex=1&count=100', undefined, options.std.headers)
+    const users = response?.body
+    expect(response.status).toBe(200)
     expect(users.totalResults).toBe(2)
     expect(users.itemsPerPage).toBe(2)
     expect(users.startIndex).toBe(1)
@@ -49,11 +71,9 @@ describe('plugin-loki', async () => {
   })
 
   test('getUsers all test (2)', async () => {
-    const res = await server_8880.get('/Users'
-      + '?attributes=userName&startIndex=1&count=100')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Users?attributes=userName&startIndex=1&count=100', undefined, options.std.headers)
     const users = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(users.totalResults).toBe(2)
     expect(users.itemsPerPage).toBe(2)
     expect(users.startIndex).toBe(1)
@@ -67,10 +87,9 @@ describe('plugin-loki', async () => {
   })
 
   test('getUsers unique test (1)', async () => {
-    const res = await server_8880.get('/Users/bjensen')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Users/bjensen', undefined, options.std.headers)
     const user = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('bjensen')
     expect(user.active).toBe(true)
@@ -93,11 +112,11 @@ describe('plugin-loki', async () => {
   })
 
   test('getUsers unique test (2)', async () => {
-    const res = await server_8880.get('/Users'
-      + '?filter=userName eq "bjensen"&attributes=ims,locale,name.givenName,externalId,preferredLanguage,userType,id,title,timezone,name.middleName,name.familyName,nickName,name.formatted,meta.location,userName,name.honorificSuffix,meta.version,meta.lastModified,meta.created,name.honorificPrefix,emails,phoneNumbers,photos,x509Certificates.value,profileUrl,roles,active,addresses,displayName,entitlements')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Users'
+      + '?filter=userName eq "bjensen"&attributes=ims,locale,name.givenName,externalId,preferredLanguage,userType,id,title,timezone,name.middleName,name.familyName,nickName,name.formatted,meta.location,userName,name.honorificSuffix,meta.version,meta.lastModified,meta.created,name.honorificPrefix,emails,phoneNumbers,photos,x509Certificates.value,profileUrl,roles,active,addresses,displayName,entitlements',
+    undefined, options.std.headers)
     const user = res?.body?.Resources[0]
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('bjensen')
     expect(user.active).toBe(true)
@@ -114,11 +133,11 @@ describe('plugin-loki', async () => {
   })
 
   test('getUsers filter test (1)', async () => {
-    const res = await server_8880.get('/Users'
-      + '?filter=emails.value eq "bjensen@example.com"&attributes=emails,id,name.givenName')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Users'
+      + '?filter=emails.value eq "bjensen@example.com"&attributes=emails,id,name.givenName',
+    undefined, options.std.headers)
     const users = res?.body?.Resources
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(users.length).toBe(1)
     expect(users[0]).toBeDefined()
     expect(users[0].emails[0].value).toBe('bjensen@example.com')
@@ -131,22 +150,22 @@ describe('plugin-loki', async () => {
   })
 
   test('getUsers filter test (2)', async () => {
-    const res = await server_8880.get('/Users'
-      + '?filter=meta.created gte "2010-01-01T00:00:00Z"&attributes=userName,id,name.familyName,meta.created&sortBy=name.familyName&sortOrder=descending')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Users'
+      + '?filter=meta.created gte "2010-01-01T00:00:00Z"&attributes=userName,id,name.familyName,meta.created&sortBy=name.familyName&sortOrder=descending',
+    undefined, options.std.headers)
     const users = res?.body?.Resources
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(users.length).toBe(2)
     expect(users[0].id).toBe('jsmith')
     expect(users[1].id).toBe('bjensen')
   })
 
   test('getGroups all test (1)', async () => {
-    const res = await server_8880.get('/Groups'
-      + '?startIndex=1&count=100')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups'
+      + '?startIndex=1&count=100',
+    undefined, options.std.headers)
     const groups = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(groups.totalResults).toBe(2)
     expect(groups.itemsPerPage).toBe(2)
     expect(groups.startIndex).toBe(1)
@@ -160,11 +179,11 @@ describe('plugin-loki', async () => {
   })
 
   test('getGroups all test (2)', async () => {
-    const res = await server_8880.get('/Groups'
-      + '?attributes=displayName&startIndex=1&count=100')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups'
+      + '?attributes=displayName&startIndex=1&count=100',
+    undefined, options.std.headers)
     const groups = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(groups.totalResults).toBe(2)
     expect(groups.itemsPerPage).toBe(2)
     expect(groups.startIndex).toBe(1)
@@ -178,10 +197,9 @@ describe('plugin-loki', async () => {
   })
 
   test('getGroups unique test (1)', async () => {
-    const res = await server_8880.get('/Groups/Admins')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups/Admins', undefined, options.std.headers)
     const group = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(group).toBeDefined()
     expect(group.schemas).toBeDefined()
     expect(group.meta.location).toBeDefined()
@@ -192,11 +210,11 @@ describe('plugin-loki', async () => {
   })
 
   test('getGroups unique test (2)', async () => {
-    const res = await server_8880.get('/Groups'
-      + '?filter=displayName eq "Admins"&attributes=externalId,id,members.value,displayName')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups'
+      + '?filter=displayName eq "Admins"&attributes=externalId,id,members.value,displayName',
+    undefined, options.std.headers)
     const groups = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(groups).toBeDefined()
     expect(groups.schemas).toBeDefined()
     expect(groups.Resources[0].displayName).toBe('Admins')
@@ -206,11 +224,11 @@ describe('plugin-loki', async () => {
   })
 
   test('getGroups members test', async () => {
-    const res = await server_8880.get('/Groups'
-      + '?filter=members.value eq "bjensen"&attributes=members.value,displayName')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups'
+      + '?filter=members.value eq "bjensen"&attributes=members.value,displayName',
+    undefined, options.std.headers)
     const groupMembers = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(groupMembers).toBeDefined()
     expect(groupMembers.Resources[0].displayName).toBe('Admins')
     expect(groupMembers.Resources[0].members[0].value).toBe('bjensen')
@@ -251,18 +269,15 @@ describe('plugin-loki', async () => {
         test2: 'yyy',
       },
     }
-    const res = await server_8880.post('/Users')
-      .set(options.content.headers)
-      .send(newUser)
-    expect(res.statusCode).toBe(201)
+    const res = await fetchSCIM('POST', '/Users', newUser, options.content.headers)
+    expect(res.status).toBe(201)
     expect(res.body.meta.location).toBe('http://localhost:8880/Users/jgilber')
   })
 
   test('getUser just created test', async () => {
-    const res = await server_8880.get('/Users/jgilber')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Users/jgilber', undefined, options.std.headers)
     const user = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('jgilber')
     expect(user.active).toBe(true)
@@ -382,17 +397,14 @@ describe('plugin-loki', async () => {
         },
       ],
     }
-    const res = await server_8880.patch('/Users/jgilber')
-      .set(options.content.headers)
-      .send(user)
-    expect(res.statusCode).toBe(200)
+    const res = await fetchSCIM('PATCH', '/Users/jgilber', user, options.content.headers)
+    expect(res.status).toBe(200)
   })
 
   test('getUser just modified test', async () => {
-    const res = await server_8880.get('/Users/jgilber')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Users/jgilber', undefined, options.std.headers)
     const user = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('jgilber')
     expect(user.active).toBe(false) // modified
@@ -445,11 +457,9 @@ describe('plugin-loki', async () => {
       ],
     }
 
-    const res = await server_8880.put('/Users/jgilber')
-      .set(options.content.headers)
-      .send(putUser)
+    const res = await fetchSCIM('PUT', '/Users/jgilber', putUser, options.content.headers)
     const user = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('jgilber')
     expect(user.active).toBe(false)
@@ -472,9 +482,8 @@ describe('plugin-loki', async () => {
   })
 
   test('deleteUser test', async () => {
-    const res = await server_8880.delete('/Users/jgilber')
-      .set(options.std.headers)
-    expect(res.statusCode).toBe(204)
+    const res = await fetchSCIM('DELETE', '/Users/jgilber', undefined, options.std.headers)
+    expect(res.status).toBe(204)
   })
 
   test('createGroup test', async () => {
@@ -485,56 +494,52 @@ describe('plugin-loki', async () => {
         value: 'bjensen',
       }],
     }
-    const res = await server_8880.post('/Groups')
-      .set(options.content.headers)
-      .send(newGroup)
-    expect(res.statusCode).toBe(201)
+    const res = await fetchSCIM('POST', '/Groups', newGroup, options.content.headers)
+    expect(res.status).toBe(201)
     expect(res.body.meta.location).toBe('http://localhost:8880/Groups/GoGoLoki')
   })
 
   test('getGroup just created test', async () => {
-    const res = await server_8880.get('/Groups/GoGoLoki')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups/GoGoLoki', undefined, options.std.headers)
     const group = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(group).toBeDefined()
     expect(group.displayName).toBe('GoGoLoki')
     expect(group.id).toBe('GoGoLoki')
   })
 
   test('modifyGroupMembers test', async () => {
-    const res = await server_8880.patch('/Groups/GoGoLoki?attributes=members')
-      .set(options.content.headers)
-      // .send({ members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] }) // scim v1.1
-      .send({
-        Operations: [
-          {
-            op: 'add',
-            path: 'members',
-            value: [
-              { value: 'jsmith' },
-            ],
-          },
-          {
-            op: 'remove',
-            path: 'members',
-            value: [
-              { value: 'bjensen' },
-            ],
-          },
-        ],
-      })
+    const body = {
+      Operations: [
+        {
+          op: 'add',
+          path: 'members',
+          value: [
+            { value: 'jsmith' },
+          ],
+        },
+        {
+          op: 'remove',
+          path: 'members',
+          value: [
+            { value: 'bjensen' },
+          ],
+        },
+      ],
+    }
+    // body = { members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] } // scim v1.1
+
+    const res = await fetchSCIM('PATCH', '/Groups/GoGoLoki?attributes=members', body, options.content.headers)
     const group = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(group.members).toBeDefined()
     expect(group.schemas[0]).toBe('urn:ietf:params:scim:schemas:core:2.0:Group')
   })
 
   test('getGroup just modified members test', async () => {
-    const res = await server_8880.get('/Groups/GoGoLoki')
-      .set(options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups/GoGoLoki', undefined, options.std.headers)
     const group = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(group).toBeDefined()
     expect(group.displayName).toBe('GoGoLoki')
     expect(group.id).toBe('GoGoLoki')
@@ -553,19 +558,16 @@ describe('plugin-loki', async () => {
         value: 'jsmith',
       }],
     }
-    const res = await server_8880.put('/Groups/GoGoLoki')
-      .set(options.content.headers)
-      .send(obj)
+    const res = await fetchSCIM('PUT', '/Groups/GoGoLoki', obj, options.content.headers)
     const group = res.body
-    expect(res.statusCode).toBe(200)
+    expect(res.status).toBe(200)
     expect(group.displayName).toBe('NewGoGoLoki')
     expect(group.members.length).toBe(2)
     expect(group.meta.location).toBe('http://localhost:8880/Groups/GoGoLoki')
   })
 
   test('deleteGroup test', async () => {
-    const res = await server_8880.delete('/Groups/GoGoLoki')
-      .set(options.std.headers)
-    expect(res.statusCode).toBe(204)
+    const res = await fetchSCIM('DELETE', '/Groups/GoGoLoki', undefined, options.std.headers)
+    expect(res.status).toBe(204)
   })
 })
