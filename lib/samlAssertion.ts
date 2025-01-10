@@ -1,4 +1,5 @@
 //
+// File: samlAssertion.ts
 // Purpose: create SAML token assertion that can be used by OAuth token request having grant type saml2-bearer
 // Based on: https://github.com/edersouza38/insomnia-plugin-sfsf-samlassertion
 //
