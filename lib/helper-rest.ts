@@ -1,7 +1,16 @@
+// =================================================================================
+// File:    helper-rest.ts
+//
+// Author:  Jarle Elshaug
+//
+// Purpose: HelperRest class for executing REST calls supporting various auth types
+//          Plugins may use this class: import { HelperRest } from 'scimgateway'
+// =================================================================================
+
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { URL } from 'url'
 import { Buffer } from 'node:buffer'
-import { samlAssertion } from './samlAssertion.ts' // prereq: saml
+import { samlAssertion } from './samlAssertion.ts'
 import { sign as jwtSign } from 'jsonwebtoken'
 import fs from 'node:fs'
 import querystring from 'querystring'
@@ -428,9 +437,9 @@ export class HelperRest {
       return cli // final client
     }
     //
-    // url path - none config based and used as is (no cache)
+    // url path - none config based (enpoint.entity) and used as is (no cache)
     //
-    this.scimgateway.logDebug(baseEntity, `${action}: Using none config based client`)
+    this.scimgateway.logDebug(baseEntity, `${action}: Using raw client`)
     let options: any = {
       json: true,
       headers: {
@@ -440,7 +449,7 @@ export class HelperRest {
       port: urlObj.port,
       protocol: urlObj.protocol,
       method: method,
-      path: urlObj.pathname,
+      path: urlObj.pathname + urlObj.search,
     }
 
     // proxy
