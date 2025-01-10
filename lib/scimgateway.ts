@@ -2370,6 +2370,47 @@ export class ScimGateway {
       return ctx
     }
 
+    /** 
+     * onChainingHandler - chain request to another SCIM Gateway, like a reverse proxy
+     * @param ctx original Context - ctx.response will become updated based on chain response
+     * @returns true if chainingHandler is used, false if not
+    **/
+    const onChainingHandler = async (ctx: Context): Promise<boolean> => {
+      const chainingBaseUrl = this.config.scimgateway.chainingBaseUrl // http(s)://<host>:<port>
+      if (!chainingBaseUrl) return false
+      if (!this.helperRest) this.helperRest = this.newHelperRest()
+      try {
+        new URL(chainingBaseUrl)
+      } catch (err: any) {
+        ctx.response.status = 500
+        logger.error(`${gwName}[${pluginName}] onChainingHandler error: configuration scimgateway.chainingBaseUrl must use correct syntax 'http(s)://host:port' error: ${err.message}`)
+        return true
+      }
+      try {
+        const url = new URL(ctx.request.url)
+        const method = ctx.request.method
+        const chainUrl = ctx.request.url.replace(url.origin, chainingBaseUrl)
+        const options = { headers: { Authorization: ctx.request.headers.get('authorization') } }
+        const result = await this.helperRest.doRequest('undefined', method, chainUrl, undefined, undefined, options)
+        ctx.response.status = result.statusCode
+        try {
+          ctx.response.body = JSON.stringify(result.body)
+        } catch (err) {
+          ctx.response.body = result.body
+        }
+      } catch (err: any) {
+        try {
+          const jBody = JSON.parse(err.message) // check for SCIM error response
+          ctx.response.status = jBody?.body?.statusCode || jBody?.statusCode || 500
+          ctx.response.body = err.message
+        } catch (parseErr) {
+          ctx.response.status = 500
+          logger.error(`${gwName}[${pluginName}] onChainingHandler error: ${err.message}`)
+        }
+      }
+      return true
+    }
+
     const onAfterHandle = async (ctx: Context): Promise<Response> => {
       if (!ctx.response.status) ctx.response.status = 200
       switch (ctx.response.status) {
@@ -2381,6 +2422,9 @@ export class ScimGateway {
           break
         case 404:
           if (!ctx.response.body) ctx.response.body = 'NOT_FOUND'
+          break
+        case 500:
+          if (!ctx.response.body) ctx.response.body = 'Internal Server Error'
           break
       }
       const body = ctx.response.body
@@ -2438,6 +2482,8 @@ export class ScimGateway {
         if (ctx.response.status) { // 401/Unauthorized - 404/NOT_FOUND
           return await onAfterHandle(ctx)
         }
+        if (await onChainingHandler(ctx)) return await onAfterHandle(ctx)
+
         const apiEndpoint = `${ctx.routeObj.method} ${ctx.routeObj.handle}`
         switch (apiEndpoint) {
           case 'GET users':
@@ -2610,11 +2656,13 @@ export class ScimGateway {
         }
         server.listen(this.config.scimgateway.port, hostname)
       }
-      logger.info(`${gwName}[${pluginName}] now listening SCIM ${this.config.scimgateway.scim.version}${tls.key || tls.pfx ? ' TLS' : ''} at ${hostname || '0.0.0.0'}:${this.config.scimgateway.port}...${this.config.scimgateway.stream.subscriber.enabled ? '' : '\n'}`)
+      logger.info(`${gwName}[${pluginName}] now listening SCIM ${this.config.scimgateway.scim.version}${tls.key || tls.pfx ? ' TLS' : ''} at ${hostname || '0.0.0.0'}:${this.config.scimgateway.port}...${this.config.scimgateway.stream.subscriber.enabled || this.config.scimgateway.chainingBaseUrl ? '' : '\n'}`)
+      if (this.config.scimgateway.chainingBaseUrl) logger.info(`${gwName}[${pluginName}] using remote gateway ${this.config.scimgateway.chainingBaseUrl}\n`)
     }
 
     // starting SCIM Stream subscribers
-    if (this.config.scimgateway.stream.subscriber.enabled && this.config.scimgateway.stream.subscriber.entity && Object.keys(this.config.scimgateway.stream.subscriber.entity).length > 0) {
+    if (this.config.scimgateway.stream.subscriber.enabled && this.config.scimgateway.stream.subscriber.entity
+      && Object.keys(this.config.scimgateway.stream.subscriber.entity).length > 0 && !this.config.scimgateway.chainingBaseUrl) {
       logger.info(`${gwName}[${pluginName}] starting SCIM Stream subscribers...`)
       const sub: any = new stream.Subscriber(this)
       for (const baseEntity in this.config.scimgateway.stream.subscriber.entity) {
@@ -2627,7 +2675,8 @@ export class ScimGateway {
     }
 
     // starting SCIM Stream publisher
-    if (this.config.scimgateway.stream.publisher.enabled && this.config.scimgateway.stream.publisher.entity && Object.keys(this.config.scimgateway.stream.publisher.entity).length > 0) {
+    if (this.config.scimgateway.stream.publisher.enabled && this.config.scimgateway.stream.publisher.entity
+      && Object.keys(this.config.scimgateway.stream.publisher.entity).length > 0 && !this.config.scimgateway.chainingBaseUrl) {
       logger.info(`${gwName}[${pluginName}] starting SCIM Stream publishers...`)
       const pub: any = new stream.Publisher(this)
       for (const baseEntity in this.config.scimgateway.stream.publisher.entity) {
@@ -2943,7 +2992,7 @@ export class ScimGateway {
     if (!msgObj.subject) msgObj.subject = 'SCIM Gateway message'
 
     if (authType === 'oauth') {
-      if (!this.helperRest) this.helperRest = new HelperRest(this, { entity: { undefined: { connection: this.config.scimgateway.email } } })
+      if (!this.helperRest) this.helperRest = this.newHelperRest()
       if (this.config.scimgateway.email.auth?.options?.tenantIdGUID) {
         // Microsoft Exchange Online (ExO) - using Graph API
         const emailMessage: Record<string, any> = {
@@ -3236,6 +3285,14 @@ Content-Transfer-Encoding: quoted-printable
       BearerOAuth: foundBearerOAuth,
       PassThrough: foundPassThrough,
     }
+  }
+
+  /** 
+   * newHelerRest returns a new HelperRest that includs email connection  
+   * This to ensure same instance can be used globally for scimgateway
+   */
+  private newHelperRest() {
+    return new HelperRest(this, { entity: { undefined: { connection: this.config.scimgateway.email } } })
   }
 } // class scimgateway
 
