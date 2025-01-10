@@ -2390,18 +2390,7 @@ export class ScimGateway {
           ctx.response.headers.set('content-type', 'application/scim+json; charset=utf-8')
         } catch (err) { void 0 }
       }
-      let response: Response
-      if (typeof Bun !== 'undefined') {
-        const stream = new ReadableStream({ // ensure Bun compatibility with Azure Reverse Proxy for large and long running response - header set by Bun: Transfer-Encoding: 'chunked'
-          start(controller) {
-            controller.enqueue(body)
-            controller.close()
-          },
-        })
-        response = new Response(body ? stream : body, { status: ctx.response.status, headers: ctx.response.headers })
-      } else {
-        response = new Response(body, { status: ctx.response.status, headers: ctx.response.headers })
-      }
+      const response = new Response(body, { status: ctx.response.status, headers: ctx.response.headers })
       logResult(ctx)
       return response
     }
