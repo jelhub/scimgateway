@@ -2390,8 +2390,9 @@ export class ScimGateway {
         const url = new URL(ctx.request.url)
         const method = ctx.request.method
         const chainUrl = ctx.request.url.replace(url.origin, chainingBaseUrl)
+        const body = ctx.request.body
         const options = { headers: { Authorization: ctx.request.headers.get('authorization') } }
-        const result = await this.helperRest.doRequest('undefined', method, chainUrl, undefined, undefined, options)
+        const result = await this.helperRest.doRequest('undefined', method, chainUrl, body, undefined, options)
         ctx.response.status = result.statusCode
         try {
           ctx.response.body = JSON.stringify(result.body)
@@ -2401,8 +2402,8 @@ export class ScimGateway {
       } catch (err: any) {
         try {
           const jBody = JSON.parse(err.message) // check for SCIM error response
-          ctx.response.status = jBody?.body?.statusCode || jBody?.statusCode || 500
-          ctx.response.body = err.message
+          ctx.response.status = jBody?.body?.status || jBody?.statusCode || 500
+          ctx.response.body = jBody.body ? JSON.stringify(jBody.body) : err.message
         } catch (parseErr) {
           ctx.response.status = 500
           logger.error(`${gwName}[${pluginName}] onChainingHandler error: ${err.message}`)
