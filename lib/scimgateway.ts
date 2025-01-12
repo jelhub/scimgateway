@@ -305,6 +305,7 @@ export class ScimGateway {
   deleteApi!: (baseEntity: string, id: string, ctx?: undefined | Record<string, any>) => any
 
   constructor() {
+    const funcHandler: any = {}
     const startTime = utils.timestamp()
 
     // need requester/plugin full path for setting pluginName and configDir
@@ -819,6 +820,7 @@ export class ScimGateway {
       tx = utilsScim.addSchemas(tx, isScimv2, undefined, undefined)
       ctx.response.body = JSON.stringify(tx)
     }
+    funcHandler.getHandlerSchemas = getHandlerSchemas
 
     // scimv1 = GET /ServiceProviderConfigs, scimv2 GET /ServiceProviderConfig
     const getHandlerServiceProviderConfig = async (ctx: Context) => {
@@ -833,6 +835,7 @@ export class ScimGateway {
       }
       ctx.response.body = JSON.stringify(tx)
     }
+    funcHandler.getHandlerServiceProviderConfig = getHandlerServiceProviderConfig
 
     // oauth token request, POST /oauth/token
     const postHandlerOauthToken = async (ctx: Context) => {
@@ -980,24 +983,11 @@ export class ScimGateway {
 
       logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Get ${handle.description}s] ${getObj.attribute}=${getObj.value}`)
 
-      let res
       try {
         const ob = utils.copyObj(getObj)
         const attributes = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
-        if (this.config.scimgateway.stream.publisher.enabled) {
-          const streamObj = {
-            func: handle.getMethod,
-            baseEntity: baseEntity,
-            obj: ob,
-            attributes,
-            ctxPassThrough: ctx.passThrough,
-          }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "${handle.getMethod}" to SCIM Stream and awaiting result`)
-          res = await this.pub.publish(streamObj)
-        } else {
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" and awaiting result`)
-          res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
-        }
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" and awaiting result`)
+        let res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
 
         let scimdata: { [key: string]: any } = {
           Resources: [],
@@ -1051,6 +1041,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
       }
     }
+    funcHandler.getHandlerId = getHandlerId
 
     // ==========================================
     //           getUsers
@@ -1191,77 +1182,65 @@ export class ScimGateway {
         let res: any
         const obj: any = utils.copyObj(getObj)
         const attributes = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
-        if (this.config.scimgateway.stream.publisher.enabled) {
-          const streamObj = {
-            func: handle.getMethod,
-            baseEntity: baseEntity,
-            obj,
-            attributes,
-            ctxPassThrough: ctx.passThrough,
-          }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "${handle.getMethod}" to SCIM Stream and awaiting result`)
-          res = await this.pub.publish(streamObj)
-        } else {
-          if (!obj.operator && obj.rawFilter && obj.rawFilter.includes(' or ')) {
-            // advanced filtering using or logic - used by One Identity Manager
-            // e.g.: (id eq "bjensen") or (id eq "jsmith")
-            // handled by scimgateway instead of plugins if supported operator being used
-            const arr = obj.rawFilter.split(' or ')
-            let getObjArr: object[] = []
-            for (let i = 0; i < arr.length; i++) {
-              arr[i] = arr[i].replace(/\(/g, '').replace(/\)/g, '').trim()
-              const arrFilter = arr[i].split(' ')
-              if (arrFilter.length === 3 || (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"'))) {
-                const o: any = {}
-                o.attribute = arrFilter[0] // id
-                o.operator = arrFilter[1].toLowerCase() // eq
-                o.value = decodeURIComponent(arrFilter.slice(2).join(' ').replace(/"/g, '')) // bjensen
-                getObjArr.push(o)
-              } else {
-                getObjArr = []
-                break
-              }
-            }
-            if (getObjArr.length > 0) {
-              const getObj = async (o: Record<string, any>) => {
-                return await (this as any)[handle.getMethod](baseEntity, o, attributes, ctx.passThrough)
-              }
-              const chunk = 5
-              const chunkRes: Record<string, any>[] = []
-              logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" with chunks and awaiting result`)
-              do {
-                const arrChunk = getObjArr.splice(0, chunk)
-                const results = await Promise.allSettled(arrChunk.map(o => getObj(o))) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
-                const errors = results.filter(result => result.status === 'rejected').map(result => result.reason.message)
-                if (errors.length > 0) {
-                  const errMsg = `${handle.getMethod} with chunks returned errors: ${errors.join(', ')}`
-                  throw new Error(errMsg)
-                }
-                const arrArr = results.map(result => result?.value?.Resources)
-                for (let i = 0; i < arrArr.length; i++) {
-                  Array.prototype.push.apply(chunkRes, arrArr[i])
-                }
-              } while (getObjArr.length > 0)
-              res = { Resources: chunkRes }
+        if (!obj.operator && obj.rawFilter && obj.rawFilter.includes(' or ')) {
+          // advanced filtering using or logic - used by One Identity Manager
+          // e.g.: (id eq "bjensen") or (id eq "jsmith")
+          // handled by scimgateway instead of plugins if supported operator being used
+          const arr = obj.rawFilter.split(' or ')
+          let getObjArr: object[] = []
+          for (let i = 0; i < arr.length; i++) {
+            arr[i] = arr[i].replace(/\(/g, '').replace(/\)/g, '').trim()
+            const arrFilter = arr[i].split(' ')
+            if (arrFilter.length === 3 || (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"'))) {
+              const o: any = {}
+              o.attribute = arrFilter[0] // id
+              o.operator = arrFilter[1].toLowerCase() // eq
+              o.value = decodeURIComponent(arrFilter.slice(2).join(' ').replace(/"/g, '')) // bjensen
+              getObjArr.push(o)
+            } else {
+              getObjArr = []
+              break
             }
           }
+          if (getObjArr.length > 0) {
+            const getObj = async (o: Record<string, any>) => {
+              return await (this as any)[handle.getMethod](baseEntity, o, attributes, ctx.passThrough)
+            }
+            const chunk = 5
+            const chunkRes: Record<string, any>[] = []
+            logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" with chunks and awaiting result`)
+            do {
+              const arrChunk = getObjArr.splice(0, chunk)
+              const results = await Promise.allSettled(arrChunk.map(o => getObj(o))) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
+              const errors = results.filter(result => result.status === 'rejected').map(result => result.reason.message)
+              if (errors.length > 0) {
+                const errMsg = `${handle.getMethod} with chunks returned errors: ${errors.join(', ')}`
+                throw new Error(errMsg)
+              }
+              const arrArr = results.map(result => result?.value?.Resources)
+              for (let i = 0; i < arrArr.length; i++) {
+                Array.prototype.push.apply(chunkRes, arrArr[i])
+              }
+            } while (getObjArr.length > 0)
+            res = { Resources: chunkRes }
+          }
+        }
 
-          if (!res) { // standard
-            logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" and awaiting result`)
-            res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
-          }
-          // check for user attribute groups and include if needed
-          if (Array.isArray(res?.Resources)) {
-            if (handle.getMethod === handler.users.getMethod) {
-              let arrAttr: string[] = []
-              if (ctx.query.attributes) arrAttr = ctx.query.attributes.split(',')
-              if ((!ctx.query.attributes || arrAttr.includes('groups'))) { // include groups
-                for (let i = 0; i < res.Resources.length; i++) {
-                  const userObj = res.Resources[i]
-                  if (!userObj.id) break
-                  if (userObj.groups) break
-                  userObj.groups = await getMemberOf(baseEntity, userObj.id, handler.groups.getMethod, ctx.passThrough)
-                }
+        if (!res) { // standard
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" and awaiting result`)
+          res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
+        }
+        // check for user attribute groups and include if needed
+        if (Array.isArray(res?.Resources)) {
+          if (handle.getMethod === handler.users.getMethod) {
+            let arrAttr: string[] = []
+            if (ctx.query.attributes) arrAttr = ctx.query.attributes.split(',')
+            if ((!ctx.query.attributes || arrAttr.includes('groups'))) { // include groups
+              for (let i = 0; i < res.Resources.length; i++) {
+                const userObj = res.Resources[i]
+                if (!userObj.id) break
+                if (userObj.groups) break
+                userObj.groups = await getMemberOf(baseEntity, userObj.id, handler.groups.getMethod, ctx.passThrough)
               }
             }
           }
@@ -1296,6 +1275,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
       }
     }
+    funcHandler.getHandler = getHandler
 
     // ==========================================
     //           createUser
@@ -1355,73 +1335,39 @@ export class ScimGateway {
       delete jsonBody.id // in case included in request
       const addGrps: any = []
       try {
-        let res
-        if (this.config.scimgateway.stream.publisher.enabled) {
-          const streamObj = {
-            func: handle.createMethod,
-            baseEntity: baseEntity,
-            obj: scimdata,
-            ctxPassThrough: ctx.passThrough,
-          }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "${handle.createMethod}" to SCIM Stream and awaiting result`)
-          res = await this.pub.publish(streamObj)
-        } else {
-          if (scimdata.groups && Array.isArray(scimdata.groups) && handle.createMethod === 'createUser') {
-            if (!this.config.scimgateway.scim.groupMemberOfUser) {
-              for (let i = 0; i < scimdata.groups.length; i++) {
-                if (!scimdata.groups[i].value) continue
-                addGrps.push(decodeURIComponent(scimdata.groups[i].value))
-              }
-              delete scimdata.groups
+        if (scimdata.groups && Array.isArray(scimdata.groups) && handle.createMethod === 'createUser') {
+          if (!this.config.scimgateway.scim.groupMemberOfUser) {
+            for (let i = 0; i < scimdata.groups.length; i++) {
+              if (!scimdata.groups[i].value) continue
+              addGrps.push(decodeURIComponent(scimdata.groups[i].value))
             }
+            delete scimdata.groups
           }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.createMethod}" and awaiting result`)
-          res = await (this as any)[handle.createMethod](baseEntity, scimdata, ctx.passThrough)
         }
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.createMethod}" and awaiting result`)
+        const res = await (this as any)[handle.createMethod](baseEntity, scimdata, ctx.passThrough)
         for (const key in res) { // merge any result e.g: {'id': 'xxxx'}
           jsonBody[key] = res[key]
         }
 
         if (!jsonBody.id) { // retrieve all attributes including id
-          let res
+          let res: any
           try {
             if (handle.createMethod === 'createUser') {
               let ob = {}
               const attributes: string[] = []
               if (jsonBody.userName) ob = { attribute: 'userName', operator: 'eq', value: jsonBody.userName }
               else if (jsonBody.externalId) ob = { attribute: 'externalId', operator: 'eq', value: jsonBody.externalId }
-              if (this.config.scimgateway.stream.publisher.enabled) {
-                const streamObj = {
-                  func: handle.getMethod,
-                  baseEntity: baseEntity,
-                  obj: ob,
-                  attributes,
-                  ctxPassThrough: ctx.passThrough,
-                }
-                res = await this.pub.publish(streamObj)
-              } else {
-                res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
-              }
+              res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
             } else if (handle.createMethod === 'createGroup') {
               let ob = {}
               const attributes: string[] = []
               if (jsonBody.externalId) ob = { attribute: 'externalId', operator: 'eq', value: jsonBody.externalId }
               else if (jsonBody.displayName) ob = { attribute: 'displayName', operator: 'eq', value: jsonBody.displayName }
-              if (this.config.scimgateway.stream.publisher.enabled) {
-                const streamObj = {
-                  func: handle.getMethod,
-                  baseEntity: baseEntity,
-                  obj: ob,
-                  attributes,
-                  ctxPassThrough: ctx.passThrough,
-                }
-                res = await this.pub.publish(streamObj)
-              } else {
-                res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
-              }
+              res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
             }
           } catch (err) { void 0 }
-          let obj
+          let obj: any
           if (res.Resources && Array.isArray(res.Resources) && res.Resources.length === 1) {
             obj = res.Resources[0]
           }
@@ -1430,18 +1376,7 @@ export class ScimGateway {
 
         if (addGrps.length > 0 && handle.createMethod === 'createUser') { // add group membership
           const addGroups = async (groupId: string) => {
-            if (this.config.scimgateway.stream.publisher.enabled) {
-              const streamObj = {
-                func: handler.groups.modifyMethod,
-                baseEntity: baseEntity,
-                id: groupId,
-                obj: { members: [{ value: jsonBody.id }] },
-                ctxPassThrough: ctx.passThrough,
-              }
-              return await this.pub.publish(streamObj)
-            } else {
-              return await (this as any)[handler.groups.modifyMethod](baseEntity, groupId, { members: [{ value: jsonBody.id }] }, ctx.passThrough)
-            }
+            return await (this as any)[handler.groups.modifyMethod](baseEntity, groupId, { members: [{ value: jsonBody.id }] }, ctx.passThrough)
           }
           const res = await Promise.allSettled(addGrps.map((groupId: string) => addGroups(groupId)))
           const errAdd = res.filter(result => result.status === 'rejected').map(result => result.reason.message)
@@ -1459,7 +1394,9 @@ export class ScimGateway {
           const location = ctx.origin + `${ctx.path}/${jsonBody.id}`
           if (!jsonBody.meta) jsonBody.meta = {}
           jsonBody.meta.location = location
-          ctx.response.headers.set('Location', location)
+          const response = ctx.response as any
+          if (!response.headers) response.headers = {}
+          response.headers.Location = location
         }
         delete jsonBody.password
         jsonBody = utilsScim.addSchemas(jsonBody, isScimv2, handle.description, undefined)
@@ -1473,6 +1410,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
       }
     } // post
+    funcHandler.postHandler = postHandler
 
     // ==========================================
     //           deleteUser
@@ -1497,32 +1435,21 @@ export class ScimGateway {
       logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Delete ${handle.description}] id=${id}`)
 
       try {
-        if (this.config.scimgateway.stream.publisher.enabled) {
-          const streamObj = {
-            func: handle.deleteMethod,
-            baseEntity: baseEntity,
-            id,
-            ctxPassThrough: ctx.passThrough,
-          }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "${handle.deleteMethod}" to SCIM Stream and awaiting result`)
-          await this.pub.publish(streamObj)
-        } else {
-          if (handle.deleteMethod === 'deleteUser') {
-            // remove user from groups before deleting user
-            const groups = await getMemberOf(baseEntity, id, handler.groups.getMethod, ctx.passThrough)
-            if (Array.isArray(groups) && groups.length > 0) {
-              const revokeGroupMember = async (grpId: string) => {
-                return await (this as any)[handler.groups.modifyMethod](baseEntity, grpId, { members: [{ operation: 'delete', value: id }] }, ctx.passThrough)
-              }
-              await Promise.allSettled(groups.map((grp: any) => {
-                if (grp.value) return revokeGroupMember(grp.value)
-                return Promise.resolve()
-              })) // result not handled - ignore any failures
+        if (handle.deleteMethod === 'deleteUser') {
+          // remove user from groups before deleting user
+          const groups = await getMemberOf(baseEntity, id, handler.groups.getMethod, ctx.passThrough)
+          if (Array.isArray(groups) && groups.length > 0) {
+            const revokeGroupMember = async (grpId: string) => {
+              return await (this as any)[handler.groups.modifyMethod](baseEntity, grpId, { members: [{ operation: 'delete', value: id }] }, ctx.passThrough)
             }
+            await Promise.allSettled(groups.map((grp: any) => {
+              if (grp.value) return revokeGroupMember(grp.value)
+              return Promise.resolve()
+            })) // result not handled - ignore any failures
           }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.deleteMethod}" and awaiting result`)
-          await (this as any)[handle.deleteMethod](baseEntity, id, ctx.passThrough)
         }
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.deleteMethod}" and awaiting result`)
+        await (this as any)[handle.deleteMethod](baseEntity, id, ctx.passThrough)
         ctx.response.status = 204
       } catch (err: any) {
         ctx.response.status = 500
@@ -1530,7 +1457,8 @@ export class ScimGateway {
         if (customErrorCode) ctx.response.status = customErrorCode
         ctx.response.body = JSON.stringify(e)
       }
-    } // delete
+    }
+    funcHandler.deleteHandler = deleteHandler
 
     // ==========================================
     //          modifyUser
@@ -1589,27 +1517,11 @@ export class ScimGateway {
       }
       try {
         let res: any
-        if (this.config.scimgateway.stream.publisher.enabled) {
-          const streamObj: { [key: string]: any } = {
-            func: handle.modifyMethod,
-            baseEntity: baseEntity,
-            id,
-            obj: scimdata,
-            ctxPassThrough: ctx.passThrough,
-          }
-          if (Array.isArray(scimdata.members) && scimdata.members.length === 0 && handle.modifyMethod === 'modifyGroup') {
-            streamObj.func = 'replaceUsrGrp'
-            streamObj.handle = ctx.routeObj.handle
-          }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "${handle.modifyMethod}" to SCIM Stream and awaiting result`)
-          res = await this.pub.publish(streamObj)
+        if (Array.isArray(scimdata.members) && scimdata.members.length === 0 && handle.modifyMethod === 'modifyGroup') {
+          res = await replaceUsrGrp(ctx.routeObj.handle, baseEntity, id, scimdata, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough)
         } else {
-          if (Array.isArray(scimdata.members) && scimdata.members.length === 0 && handle.modifyMethod === 'modifyGroup') {
-            res = await replaceUsrGrp(ctx.routeObj.handle, baseEntity, id, scimdata, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough)
-          } else {
-            logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.modifyMethod}" and awaiting result`)
-            res = await (this as any)[handle.modifyMethod](baseEntity, id, scimdata, ctx.passThrough)
-          }
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.modifyMethod}" and awaiting result`)
+          res = await (this as any)[handle.modifyMethod](baseEntity, id, scimdata, ctx.passThrough)
         }
 
         if (groups.length > 0 && handle.modifyMethod === 'modifyUser') { // modify user includes groups, add/remove group membership
@@ -1617,18 +1529,7 @@ export class ScimGateway {
             const groupId = groupsObj.value
             const memberObj: any = { value: id }
             if (groupsObj.operation) memberObj.operation = groupsObj.operation
-            if (this.config.scimgateway.stream.publisher.enabled) {
-              const streamObj = {
-                func: handler.groups.modifyMethod,
-                baseEntity: baseEntity,
-                id: groupId,
-                obj: { members: [memberObj] },
-                ctxPassThrough: ctx.passThrough,
-              }
-              return await this.pub.publish(streamObj)
-            } else {
-              return await (this as any)[handler.groups.modifyMethod](baseEntity, groupId, { members: [memberObj] }, ctx.passThrough)
-            }
+            return await (this as any)[handler.groups.modifyMethod](baseEntity, groupId, { members: [memberObj] }, ctx.passThrough)
           }
           const res = await Promise.allSettled(groups.map((groupsObj: Record<string, any>) => updateGroup(groupsObj)))
           const errRes = res.filter(result => result.status === 'rejected').map(result => result.reason.message)
@@ -1639,26 +1540,14 @@ export class ScimGateway {
         }
 
         if (!res) { // include full object in response, TODO: include groups
-          if (handle.getMethod !== handler.users.getMethod && handle.getMethod !== handler.groups.getMethod && !this.config.scimgateway.stream.publisher.enabled) { // getUsers or getGroups not implemented
+          if (handle.getMethod !== handler.users.getMethod && handle.getMethod !== handler.groups.getMethod) { // getUsers or getGroups not implemented
             ctx.response.status = 204
             return
           }
           const ob = { attribute: 'id', operator: 'eq', value: id }
           const attributes = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
-          if (this.config.scimgateway.stream.publisher.enabled) {
-            const streamObj = {
-              func: handle.getMethod,
-              baseEntity: baseEntity,
-              obj: ob,
-              attributes,
-              ctxPassThrough: ctx.passThrough,
-            }
-            logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "${handle.getMethod}" to SCIM Stream and awaiting result`)
-            res = await this.pub.publish(streamObj)
-          } else {
-            logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" and awaiting result`)
-            res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
-          }
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" and awaiting result`)
+          res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
         }
 
         scimdata = {
@@ -1677,7 +1566,9 @@ export class ScimGateway {
         }
         if (!this.config.scimgateway.scim.skipMetaLocation) {
           const location = ctx.origin + ctx.path
-          ctx.response.headers.set('Location', location)
+          const response = ctx.response as any
+          if (!response.headers) response.headers = {}
+          response.headers.Location = location
         }
         const userObj = scimdata.Resources[0]
         scimdata = utils.stripObj(userObj, ctx.query.attributes, ctx.query.excludedAttributes)
@@ -1691,6 +1582,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
       }
     } // patch
+    funcHandler.patchHandler = patchHandler
 
     // ==========================================
     //          Replace User
@@ -1758,11 +1650,11 @@ export class ScimGateway {
           let currentGroups
           if (currentObj.groups && Array.isArray(currentObj.groups)) currentGroups = currentObj.groups
           else { // try to get current groups the standard way
-            let res
+            let res: any
             try {
               res = await (this as any)[handler.groups.getMethod](baseEntity, { attribute: 'members.value', operator: 'eq', value: decodeURIComponent(id) }, ['id', 'displayName'], ctxPassThrough)
               logger.debug(`${gwName}[${pluginName}][${baseEntity}] "${handler.groups.getMethod}" result: ${res ? JSON.stringify(res) : ''}`)
-            } catch (err) { void 0 } // method may be implemented but throwing error like groups not supported/implemented
+            } catch (err) { void 0 } // method may be implemented, but throwing error like groups not supported/implemented
             currentGroups = []
             if (res && res.Resources && Array.isArray(res.Resources) && res.Resources.length > 0) {
               for (let i = 0; i < res.Resources.length; i++) {
@@ -1846,19 +1738,7 @@ export class ScimGateway {
       try {
         if (!obj) throw new Error('missing body')
         if (typeof obj !== 'object') throw new Error('body is not JSON')
-        if (this.config.scimgateway.stream.publisher.enabled) {
-          const streamObj = {
-            func: 'replaceUsrGrp',
-            handle: handle,
-            baseEntity: baseEntity,
-            originalUrl: ctx.origin + ctx.path,
-            id: id,
-            obj: obj,
-            ctxPassThrough: ctx.passThrough,
-          }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing replaceUsrGrp to SCIM Stream and awaiting result`)
-          await this.pub.publish(streamObj)
-        } else await replaceUsrGrp(handle, baseEntity, id, obj, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough)
+        await replaceUsrGrp(handle, baseEntity, id, obj, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough)
         await getHandlerId(ctx) // ctx.response.body now updated with userObject to be returned
         if (ctx.response.status && ctx.response.status !== 200) { // clear any get error
           ctx.response.body = undefined
@@ -1871,6 +1751,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
       }
     }
+    funcHandler.putHandler = putHandler
 
     // ==========================================
     //           API POST (no SCIM)
@@ -1893,20 +1774,8 @@ export class ScimGateway {
         return
       }
       try {
-        let result: Record<string, any>
-        if (this.config.scimgateway.stream.publisher.enabled) {
-          const streamObj = {
-            func: 'postApi',
-            baseEntity: baseEntity,
-            obj: obj,
-            ctxPassThrough: ctx.passThrough,
-          }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "postApi" to SCIM Stream and awaiting result`)
-          result = await this.pub.publish(streamObj)
-        } else {
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "postApi" and awaiting result`)
-          result = await this.postApi(baseEntity, obj, ctx.passThrough)
-        }
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "postApi" and awaiting result`)
+        let result = await this.postApi(baseEntity, obj, ctx.passThrough)
         if (result) {
           if (typeof result === 'object') result = { result: result }
           else {
@@ -1930,6 +1799,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
       }
     } // post
+    funcHandler.postApiHandler = postApiHandler
 
     // ==========================================
     //           API PUT (no SCIM)
@@ -1956,21 +1826,8 @@ export class ScimGateway {
       }
 
       try {
-        let result: Record<string, any>
-        if (this.config.scimgateway.stream.publisher.enabled) {
-          const streamObj = {
-            func: 'putApi',
-            baseEntity: baseEntity,
-            id,
-            obj: obj,
-            ctxPassThrough: ctx.passThrough,
-          }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "putApi" to SCIM Stream and awaiting result`)
-          result = await this.pub.publish(streamObj)
-        } else {
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "putApi" and awaiting result`)
-          result = await this.putApi(baseEntity, id, obj, ctx.passThrough)
-        }
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "putApi" and awaiting result`)
+        let result = await this.putApi(baseEntity, id, obj, ctx.passThrough)
         if (result) {
           if (typeof result === 'object') result = { result }
           else {
@@ -1993,6 +1850,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
       }
     } // put
+    funcHandler.putApiHandler = putApiHandler
 
     // ==========================================
     //           API PATCH (no SCIM)
@@ -2018,21 +1876,8 @@ export class ScimGateway {
         return
       } else {
         try {
-          let result: Record<string, any>
-          if (this.config.scimgateway.stream.publisher.enabled) {
-            const streamObj = {
-              func: 'patchApi',
-              baseEntity: baseEntity,
-              id,
-              obj: body,
-              ctxPassThrough: ctx.passThrough,
-            }
-            logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "patchApi" to SCIM Stream and awaiting result`)
-            result = await this.pub.publish(streamObj)
-          } else {
-            logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "patchApi" and awaiting result`)
-            result = await this.patchApi(baseEntity, id, body, ctx.passThrough)
-          }
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "patchApi" and awaiting result`)
+          let result = await this.patchApi(baseEntity, id, body, ctx.passThrough)
           if (result) {
             if (typeof result === 'object') result = { result }
             else {
@@ -2056,6 +1901,7 @@ export class ScimGateway {
         }
       }
     } // patch
+    funcHandler.patchApiHandler = patchApiHandler
 
     // ==========================================
     //           API GET (no SCIM)
@@ -2075,22 +1921,8 @@ export class ScimGateway {
       else logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [GET ${handle}]`)
 
       try {
-        let result: any
-        if (this.config.scimgateway.stream.publisher.enabled) {
-          const streamObj = {
-            func: 'getApi',
-            baseEntity: baseEntity,
-            id,
-            query: ctx.query,
-            obj: body,
-            ctxPassThrough: ctx.passThrough,
-          }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "getApi" to SCIM Stream and awaiting result`)
-          result = await this.pub.publish(streamObj)
-        } else {
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "getApi" and awaiting result`)
-          result = await this.getApi(baseEntity, id, ctx.query, body, ctx.passThrough)
-        }
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "getApi" and awaiting result`)
+        let result = await this.getApi(baseEntity, id, ctx.query, body, ctx.passThrough)
         if (result) {
           if (typeof result === 'object') result = { result }
           else {
@@ -2113,6 +1945,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
       }
     }
+    funcHandler.getApiHandler = getApiHandler
 
     // ==========================================
     //           API DELETE (no SCIM)
@@ -2126,20 +1959,8 @@ export class ScimGateway {
       logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [DELETE ${ctx.routeObj.handle} ] id=${id}`)
       try {
         if (!id || id.includes('/')) throw new Error('missing id')
-        let result: Record<string, any>
-        if (this.config.scimgateway.stream.publisher.enabled) {
-          const streamObj = {
-            func: 'deleteApi',
-            baseEntity: baseEntity,
-            id,
-            ctxPassThrough: ctx.passThrough,
-          }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] publishing "deleteApi" to SCIM Stream and awaiting result`)
-          result = await this.pub.publish(streamObj)
-        } else {
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "deleteApi" and awaiting result`)
-          result = await this.deleteApi(baseEntity, id, ctx.passThrough)
-        }
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "deleteApi" and awaiting result`)
+        let result = await this.deleteApi(baseEntity, id, ctx.passThrough)
         if (result) {
           if (typeof result === 'object') result = { result: result }
           else {
@@ -2158,6 +1979,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
       }
     } // delete
+    funcHandler.deleteApiHandler = deleteApiHandler
 
     // ==========================================
     //   GET Application Roles based on groups
@@ -2373,20 +2195,23 @@ export class ScimGateway {
     /** 
      * onChainingHandler - chain request to another SCIM Gateway, like a reverse proxy
      * @param ctx original Context - ctx.response will become updated based on chain response
-     * @returns true if chainingHandler is used, false if not
     **/
-    const onChainingHandler = async (ctx: Context): Promise<boolean> => {
+    const onChainingHandler = async (ctx: Context) => {
       const chainingBaseUrl = this.config.scimgateway.chainingBaseUrl // http(s)://<host>:<port>
-      if (!chainingBaseUrl) return false
-      if (!this.helperRest) this.helperRest = this.newHelperRest()
+      if (!chainingBaseUrl) {
+        ctx.response.status = 500
+        logger.error(`${gwName}[${pluginName}] onChainingHandler error: configuration scimgateway.chainingBaseUrl missing`)
+        return
+      }
       try {
         new URL(chainingBaseUrl)
       } catch (err: any) {
         ctx.response.status = 500
         logger.error(`${gwName}[${pluginName}] onChainingHandler error: configuration scimgateway.chainingBaseUrl must use correct syntax 'http(s)://host:port' error: ${err.message}`)
-        return true
+        return
       }
       try {
+        if (!this.helperRest) this.helperRest = this.newHelperRest()
         const url = new URL(ctx.request.url)
         const method = ctx.request.method
         const chainUrl = ctx.request.url.replace(url.origin, chainingBaseUrl)
@@ -2409,7 +2234,21 @@ export class ScimGateway {
           logger.error(`${gwName}[${pluginName}] onChainingHandler error: ${err.message}`)
         }
       }
-      return true
+    }
+
+    const onPublisherHandler = async (ctx: Context) => {
+      if (!this.pub) {
+        ctx.response.status = 500
+        logger.error(`${gwName}[${pluginName}] onPublisherHandler error: publisher not initialized`)
+        return
+      }
+      try {
+        ctx.response = await this.pub.publish({ ctx })
+      } catch (err: any) {
+        ctx.response.status = 500
+        logger.error(`${gwName}[${pluginName}] onPublisherHandler error: ${err.message}`)
+        return
+      }
     }
 
     const onAfterHandle = async (ctx: Context): Promise<Response> => {
@@ -2478,12 +2317,22 @@ export class ScimGateway {
         throw new Error(msg)
       }
 
+      const isPublisherEnabled = this.config.scimgateway.stream.publisher.enabled
+      const isChainingEnabled = this.config.scimgateway.chainingBaseUrl
+
       async function route(req: Request, ip: string): Promise<Response> {
         const ctx = await onBeforeHandle(req, ip)
         if (ctx.response.status) { // 401/Unauthorized - 404/NOT_FOUND
           return await onAfterHandle(ctx)
         }
-        if (await onChainingHandler(ctx)) return await onAfterHandle(ctx)
+        if (isPublisherEnabled) {
+          await onPublisherHandler(ctx)
+          return await onAfterHandle(ctx)
+        }
+        if (isChainingEnabled) {
+          await onChainingHandler(ctx)
+          return await onAfterHandle(ctx)
+        }
 
         const apiEndpoint = `${ctx.routeObj.method} ${ctx.routeObj.handle}`
         switch (apiEndpoint) {
@@ -2663,9 +2512,9 @@ export class ScimGateway {
 
     // starting SCIM Stream subscribers
     if (this.config.scimgateway.stream.subscriber.enabled && this.config.scimgateway.stream.subscriber.entity
-      && Object.keys(this.config.scimgateway.stream.subscriber.entity).length > 0 && !this.config.scimgateway.chainingBaseUrl) {
+      && Object.keys(this.config.scimgateway.stream.subscriber.entity).length > 0) {
       logger.info(`${gwName}[${pluginName}] starting SCIM Stream subscribers...`)
-      const sub: any = new stream.Subscriber(this)
+      const sub: any = new stream.Subscriber(this, funcHandler)
       for (const baseEntity in this.config.scimgateway.stream.subscriber.entity) {
         const cfgSub: any = utils.copyObj(this.config.scimgateway.stream.subscriber.entity[baseEntity])
         cfgSub.baseUrls = this.config.scimgateway.stream.baseUrls
@@ -2677,7 +2526,7 @@ export class ScimGateway {
 
     // starting SCIM Stream publisher
     if (this.config.scimgateway.stream.publisher.enabled && this.config.scimgateway.stream.publisher.entity
-      && Object.keys(this.config.scimgateway.stream.publisher.entity).length > 0 && !this.config.scimgateway.chainingBaseUrl) {
+      && Object.keys(this.config.scimgateway.stream.publisher.entity).length > 0) {
       logger.info(`${gwName}[${pluginName}] starting SCIM Stream publishers...`)
       const pub: any = new stream.Publisher(this)
       for (const baseEntity in this.config.scimgateway.stream.publisher.entity) {
