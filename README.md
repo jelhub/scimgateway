@@ -16,6 +16,7 @@ Validated through IdP's:
 
 Latest news:  
 
+- By configuring the chainingBaseUrl, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway beave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
 - Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlBearer, oauthJwtBearer and Auth PassTrough 
 - Major version **v5.0.0** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
@@ -185,7 +186,7 @@ For Node.js (and also Bun), we might set the property `scimgateway_postinstall_s
 	// example starting all default plugins:
 	// const plugins = ['loki', 'scim', 'entra-id', 'ldap', 'mssql', 'api', 'mongodb', 'saphana', 'soap']
 
-	const plugins = ['ldap']
+	const plugins = ['loki']
 	
 	for (const plugin of plugins) {
 	  try {
@@ -354,6 +355,8 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted.
 
+- **chainingBaseUrl** - baseUrl for chaining anohter gateway, syntax: `http(s)://host:port`. If defined, gateway beave much like a reverse proxy, validating authorization unless PassThrough mode is enabled. See `Configuration notes` for details
+
 - **idleTimeout** - default 120, sets the the number of seconds to wait before timing out a connection due to inactivity
 
 - **scim.version** - "1.1" or "2.0". Default is "2.0".
@@ -399,7 +402,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs` or absolute path being used. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.
 
-- **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`clientId`** and **`clientSecret`** are mandatory. clientSecret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. http://localhost:8880/oauth/token
+- **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`clientId`** and **`clientSecret`** are mandatory. clientSecret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. `http://localhost:8880/oauth/token`
 
 - **auth.passThrough** - Setting **auth.passThrough.enabled=true** will bypass SCIM Gateway authentication. Gateway will instead pass ctx containing authentication header to the plugin. Plugin could then use this information for endpoint authentication and we don't have any password/token stored at the gateway. Note, this also requires plugin binary having `scimgateway.authPassThroughAllowed = true` and endpoint logic for handling/passing ctx.request.header.authorization
 
@@ -441,9 +444,9 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **email.auth** - Authentication configuration
 - **email.auth.type** - `oauth` or `smtp`
 - **email.auth.options** - Authentication options - note, different options for type oauth and smtp
-- **email.auth.options.tenantIdGUID (oauth/ExO)** - Entra ID tenant id, mandatory/recommended when using Microsoft Exchange Online
-- **email.auth.options.clientId (oauth/ExO)** - Client ID
-- **email.auth.options.clientSecret (oauth/ExO)** - Client Secret
+- **email.auth.options.tenantIdGUID (oauth/ExO)** - Entra tenant id or domain name
+- **email.auth.options.clientId (oauth/ExO)** - Entra OAuth application Client ID
+- **email.auth.options.clientSecret (oauth/ExO)** - Entra OAuth application Client Secret
 - **email.auth.options.serviceAccountKeyFile (oauth/Gmail)** - Google Service Account key json-file name located in the `package-root>\config\certs` directory unless absolute path being defined
 - **email.auth.options.host (smtp)** - Mailserver e.g. "smtp.gmail.com" - mandatory for smtp
 - **email.auth.options.port (smtp)** - Port used by mailserver e.g. 587, 25 or 465 - mandatory for smtp
@@ -560,6 +563,50 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		- Directory > Users > "user"
 		- Licenses > Edit > enable Google Workspace license  
 		`email.emailOnError.from` mail address must have Google Workspace license
+
+- Gateway chainging and chainingBaseUrl configuration
+
+	By configuring the `chainingBaseUrl`, it is possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway behave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
+	
+		{
+		  "scimgateway": {
+		    ...
+		    "chainingBaseUrl": "https:\\gateway2:8880",
+		    ...
+		    "auth": {
+		      ...
+		      "passThrough": {
+		        "enabled": false,
+		        "readOnly": false,
+		        "baseEntities": []
+		      }
+			  ...
+		    }
+		  },
+		  ...
+		}
+	
+	
+	Using above configuration example on gateway1, incoming requests will be routed to `https:\\gateway2:8880`
+	
+	The plugin and its associated authentication configuration can mirror the setup running on the final gateway. However, in chaining mode, the plugin binary is used solely for initializing and configuring the gateway. This allows for the use of a simplified `plugin-<name>.ts` binary containing only the essential mandatory components:
+		
+		// start - mandatory plugin initialization
+		const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
+		  try {
+		    return (await import('scimgateway')).ScimGateway
+		  } catch (err) {
+		    const source = './scimgateway.ts'
+		    return (await import(source)).ScimGateway
+		  }
+		})()
+		const scimgateway = new ScimGateway()
+		const config = scimgateway.getConfig()
+		scimgateway.authPassThroughAllowed = false
+		// end - mandatory plugin initialization
+
+	Using `scimgateway.authPassThroughAllowed = true` and `plugin-<name>.json` configuration `scimgateway.auth.passThrough=true` enables Authentication PassTrhough
+
 
 
 ## Manual startup    
@@ -1135,6 +1182,15 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.1.0
+
+[Improved]
+
+- By configuring the `chainingBaseUrl`, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway beave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
+
+	Please see `Configuration notes` for details	
+
 
 ### v5.0.15
 

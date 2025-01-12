@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "5.0.15",
+  "version": "5.1.0",
   "type": "module",
   "description": "Using SCIM protocol as a gateway for user provisioning to other endpoints",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
@@ -71,7 +71,6 @@
     "@types/passport-azure-ad": "^4.3.6",
     "@typescript-eslint/eslint-plugin": "^8.12.2",
     "@typescript-eslint/parser": "^8.12.2",
-    "eslint": "^9.13.0",
-    "supertest": "^7.0.0"
+    "eslint": "^9.13.0"
   }
 }
