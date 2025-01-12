@@ -59,10 +59,8 @@ Shows how to implement a highly configurable multi tenant or multi endpoint solu
 
 * **SCIM** (REST Webservice)  
 Demonstrates user provisioning towards REST-Based endpoint (type SCIM)  
-Using plugin Loki as SCIM endpoint  
+Using plugin Loki as SCIM endpoint through HelperRest  
 Can be used as SCIM version-gateway e.g. 1.1=>2.0 or 2.0=>1.1  
-Can be used to chain several gateways  
-
 
 * **Soap** (SOAP Webservice)  
 Demonstrates user provisioning towards SOAP-Based endpoint  
@@ -78,7 +76,7 @@ Demonstrates SAP HANA specific user provisioning
 
 * **Entra ID** (REST Webservices)  
 Entra ID user provisioning including license management (App Service plans) e.g. Office 365  
-Using Microsoft Graph API  
+Using Microsoft Graph API through HelperRest  
 Using customized SCIM attributes according to Microsoft Graph API  
 Includes Symantec/Broadcom/CA ConnectorXpress metafile for creating provisioning "Azure - ScimGateway" endpoint type  
 
@@ -88,7 +86,7 @@ Pre-configured for Microsoft Active Directory
 Using endpointMapper (like plugin-entra-id) for attribute mapping flexibility  
 
 * **API** (REST Webservices)  
-Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete  
+Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete combined with HelperRest  
 None SCIM plugin, becomes what you want it to become.  
 Methods included can also be used in standard SCIM plugins  
 Endpoint complexity could be put in this plugin, and client could instead communicate through Gateway using your own simplified REST specification.  
@@ -210,6 +208,7 @@ Below shows an example of config\plugin-saphana.json
 	  "scimgateway": {
 	    "port": 8884,
 	    "localhostonly": false,
+	    "chainingBaseUrl": null,
         "scim": {
           "version": "2.0",
           "skipTypeConvert" : false,
