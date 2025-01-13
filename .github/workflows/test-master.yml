@@ -14,7 +14,6 @@ jobs:
     env:
       FORCE_COLOR: "1"
       TERM: "xterm-256color"
-      NODE_ENV: "test"
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
