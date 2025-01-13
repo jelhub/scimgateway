@@ -1182,6 +1182,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.1.1
+
+[Fixed]
+
+- SCIM Gatway failed to start on linux using Bun >= v1.1.43
+
 ### v5.1.0
 
 [Improved]
