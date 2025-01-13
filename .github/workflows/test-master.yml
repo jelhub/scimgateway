@@ -11,7 +11,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    env:
+      FORCE_COLOR: "1"
+      TERM: "xterm-256color"
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
