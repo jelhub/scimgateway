@@ -13,4 +13,4 @@ install:
 
 # Run the Bun test runner
 script:
-  - bun test
+  - bun run test
