@@ -525,7 +525,6 @@ export class HelperRest {
       const timeout = setTimeout(() => controller.abort(), options.abortTimeout ? options.abortTimeout * 1000 : this.idleTimeout * 1000) // 120 seconds default abort timeout
       options.signal = signal
       const url = `${options.protocol}//${options.host}${options.port ? ':' + options.port : ''}${options.path}`
-      if (path.includes(')?$') && !options.headers['Accept-Encoding']) options.headers['Accept-Encoding'] = 'identity' // workaround for bun fetch error: "Decompression error: ShortRead" - have seen this error using OData with "<some-path>('xxx')?$expand=" or "<some-path>('xxx')?$select=" ref: https://github.com/oven-sh/bun/issues/8017
       // execute request
       const f = await fetch(url, options)
       clearTimeout(timeout)
