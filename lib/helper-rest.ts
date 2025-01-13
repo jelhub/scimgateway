@@ -11,7 +11,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent'
 import { URL } from 'url'
 import { Buffer } from 'node:buffer'
 import { samlAssertion } from './samlAssertion.ts'
-import { sign as jwtSign } from 'jsonwebtoken'
+import * as jsonwebtoken from 'jsonwebtoken'
 import fs from 'node:fs'
 import querystring from 'querystring'
 import * as utils from './utils.ts'
@@ -173,7 +173,7 @@ export class HelperRest {
 
         form = {
           grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-          assertion: jwtSign(jwtAttr, privateKey, { algorithm: 'RS256' }),
+          assertion: jsonwebtoken.sign(jwtAttr, privateKey, { algorithm: 'RS256' }),
         }
         break
 
