@@ -1186,7 +1186,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 [Fixed]
 
-- SCIM Gatway failed to start on linux using Bun >= v1.1.43
+- SCIM Gateway failed to start on linux using Bun >= v1.1.43
 
 ### v5.1.0
 
