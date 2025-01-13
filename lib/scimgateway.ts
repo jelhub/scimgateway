@@ -319,15 +319,27 @@ export class ScimGateway {
         break
       }
     }
+    /*
+    const testCases = [ // Bun >= 1.1.43 and node.js
+      '    at C:\\xxx\\yyy\\scimgateway\\lib\\plugin-loki.ts:41:21',
+      '    at /xxx/yyy/scimgateway/lib/plugin-loki.ts:41:21',
+      '    at file:///C:/xxx/yyy/scimgateway/lib/plugin-loki.ts:41:21',
+    ];
+
+    const testCases = [ // Bun < v1.1.43;
+      '    at module code (C:\\xxx\\yyy\\scimgateway\\lib\\plugin-loki.ts:41:21)',
+      '    at module code (/xxx/yyy/scimgateway/lib/plugin-loki.ts:41:21)',
+    ];
+    */
     if (callerLine) {
-      let match = callerLine.match(/(?:\()([^)]+):\d+:\d+(?:\))/)
+      let match = callerLine.match(/at\s+(?:file:\/\/\/)?((?:[A-Za-z]:[\\/]|\/)[^:]+)/) // Bun >= v1.1.43 and node.js
       if (match && match[1]) {
         requester = match[1]
       }
       if (!requester) {
-        match = callerLine.match(/.*(file:\/\/\/)?([A-Za-z]:[/\\].*?):\d+:\d+(?:\))?/) // nodejs
-        if (match && match[2]) {
-          requester = match[2]
+        match = callerLine.match(/\((.+?):\d+:\d+\)/) // Bun < v1.1.43
+        if (match && match[1]) {
+          requester = match[1]
         }
       }
     }
