@@ -13,7 +13,7 @@ import { createServer as httpsCreateServer } from 'node:https'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import { createChecker } from 'is-in-subnet'
 import { BearerStrategy, type IBearerStrategyOptionWithRequest } from 'passport-azure-ad'
-import { fileURLToPath } from 'url'
+import { fileURLToPath } from 'node:url'
 import { Log } from './logger.ts'
 import passport from 'passport'
 import dot from 'dot-object'
@@ -307,43 +307,21 @@ export class ScimGateway {
   constructor() {
     const funcHandler: any = {}
     const startTime = utils.timestamp()
-
-    // need requester/plugin full path for setting pluginName and configDir
-    const originalStackTrace = new Error().stack
-    const stackLines = originalStackTrace ? originalStackTrace.split('\n') : ''
     let requester: string = ''
-    let callerLine = ''
-    for (let i = 0; i < stackLines.length; i++) {
-      if (stackLines[i].includes('new ScimGateway') && i < stackLines.length - 1) {
-        callerLine = stackLines[i + 1]
-        break
+    {
+      let _prepareStackTrace = Error.prepareStackTrace
+      Error.prepareStackTrace = (_, stack) => {
+        return stack.map((callSite) => {
+          return callSite.getFileName()
+        })
       }
+      const e = new Error()
+      requester = e.stack?.[1] || ''
+      try { // node.js using url-path win: file:///path - linux: file://path
+        requester = fileURLToPath(requester)
+      } catch (err) { void 0 }
+      Error.prepareStackTrace = _prepareStackTrace
     }
-    /*
-    const testCases = [ // Bun >= 1.1.43 and node.js
-      '    at C:\\xxx\\yyy\\scimgateway\\lib\\plugin-loki.ts:41:21',
-      '    at /xxx/yyy/scimgateway/lib/plugin-loki.ts:41:21',
-      '    at file:///C:/xxx/yyy/scimgateway/lib/plugin-loki.ts:41:21',
-    ];
-
-    const testCases = [ // Bun < v1.1.43;
-      '    at module code (C:\\xxx\\yyy\\scimgateway\\lib\\plugin-loki.ts:41:21)',
-      '    at module code (/xxx/yyy/scimgateway/lib/plugin-loki.ts:41:21)',
-    ];
-    */
-    if (callerLine) {
-      let match = callerLine.match(/at\s+(?:file:\/\/\/)?((?:[A-Za-z]:[\\/]|\/)[^:]+)/) // Bun >= v1.1.43 and node.js
-      if (match && match[1]) {
-        requester = match[1]
-      }
-      if (!requester) {
-        match = callerLine.match(/\((.+?):\d+:\d+\)/) // Bun < v1.1.43
-        if (match && match[1]) {
-          requester = match[1]
-        }
-      }
-    }
-
     let pluginName = path.basename(requester)
     pluginName = pluginName.substring(0, pluginName.lastIndexOf('.')) || pluginName
     let pluginDir = path.dirname(requester)
