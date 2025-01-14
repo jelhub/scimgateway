@@ -1182,6 +1182,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.1.2
+
+[Improved]
+
+- Simplified some initialization logic
+
 ### v5.1.1
 
 [Fixed]
