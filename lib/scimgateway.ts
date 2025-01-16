@@ -34,7 +34,6 @@ export class ScimGateway {
   private scimDef: any
   private countries: any
   private multiValueTypes: any
-  private replaceUsrGrp: any
   private getMemberOf: any
   private getAppRoles: any
   private pub: any
@@ -1716,7 +1715,7 @@ export class ScimGateway {
         }
       }
     } // replaceUsrGrp
-    this.replaceUsrGrp = replaceUsrGrp
+    funcHandler.replaceUsrGrp = replaceUsrGrp
 
     const putHandler = async (ctx: Context) => {
       const handle = ctx.routeObj.handle // Users/Groups
