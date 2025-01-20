@@ -132,16 +132,13 @@
     "entity": {
       "undefined": {
         "connection": {
-          "baseUrls": [
-            "not in use for Entra ID when tenantIdGUID is defined"
-          ],
+          "baseUrls": [],
           "auth": {
             "type": "oauth",
             "options": {
-              "tokenUrl": "oauth token_url - not in use when tenantIdGUID is defined",
-              "tenantIdGUID": "Entra ID Tenant ID (GUID) or Primary domain name - only used by plugin-entra-id",
-              "clientId": "oauth client_id - Entra ID: Application ID",
-              "clientSecret": "oauth client_secret - Entra ID: generated application secret value"
+              "tenantIdGUID": "Entra ID Tenant ID (GUID)",
+              "clientId": "Entra ID Application ID",
+              "clientSecret": "Entra ID Application secret value"
             }
           },
           "proxy": {
