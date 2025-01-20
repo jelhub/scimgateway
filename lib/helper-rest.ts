@@ -40,17 +40,24 @@ export class HelperRest {
     for (const baseEntity in this.config_entity) {
       entityFound = true
       if (this.config_entity[baseEntity]?.connection) {
-        if (this.config_entity[baseEntity]?.connection?.auth?.options?.tenantIdGUID) { // Entra ID, setting baseUrls to graph
-          if (this.config_entity[baseEntity]?.connection?.auth?.type === 'oauth') {
-            this.config_entity[baseEntity].connection.baseUrls = [this.graphUrl]
-          }
-        } else if (this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile) { // Google, setting baseUrls to googleapis
-          const type = this.config_entity[baseEntity]?.connection?.auth?.type
-          if (type === 'oauthJwtBearer' || type === 'oauth') { // includes oauth because of email.auth.type
-            this.config_entity[baseEntity].connection.baseUrls = [this.googleUrl]
+        connectionFound = true
+        const type = this.config_entity[baseEntity].connection?.auth?.type
+        if (type === 'oauthJwtBearer' || type === 'oauth') { // includes oauth because of email.auth.type
+          // set default baseUrls for Entra ID and Google if not already defined
+          if (this.config_entity[baseEntity]?.connection?.auth?.options?.tenantIdGUID) { // Entra ID, setting baseUrls to graph
+            if (!this.config_entity[baseEntity].connection.baseUrls) {
+              this.config_entity[baseEntity].connection.baseUrls = [this.graphUrl]
+            } else if (this.config_entity[baseEntity].connection.baseUrls?.length < 1) {
+              this.config_entity[baseEntity].connection.baseUrls = [this.graphUrl]
+            }
+          } else if (this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile) { // Google, setting baseUrls to googleapis
+            if (!this.config_entity[baseEntity].connection.baseUrls) {
+              this.config_entity[baseEntity].connection.baseUrls = [this.googleUrl]
+            } else if (this.config_entity[baseEntity].connection.baseUrls?.length < 1) {
+              this.config_entity[baseEntity].connection.baseUrls = [this.googleUrl]
+            }
           }
         }
-        connectionFound = true
       }
     }
     let errMsg = ''
@@ -80,123 +87,232 @@ export class HelperRest {
     let form: object
     let resource = ''
 
-    switch (this.config_entity[baseEntity]?.connection?.auth?.type) {
-      case 'oauth':
-        try {
-          const urlObj = new URL(this.config_entity[baseEntity].connection.baseUrls[0])
-          resource = urlObj.origin
-        } catch (err) { void 0 }
-        if (this.config_entity[baseEntity].connection.auth?.options?.tenantIdGUID) { // Azure
-          tokenUrl = `https://login.microsoftonline.com/${this.config_entity[baseEntity].connection.auth.options.tenantIdGUID}/oauth2/token`
-        } else {
-          tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
-        }
-        form = {
-          grant_type: 'client_credentials',
-          client_id: this.config_entity[baseEntity].connection.auth.options.clientId,
-          client_secret: this.config_entity[baseEntity].connection.auth.options.clientSecret,
-          scope: this.config_entity[baseEntity].connection.auth.options.scope || null,
-          resource: resource || null, // "https://graph.microsoft.com"
-        }
-        break
-
-      case 'token':
-        tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
-        form = { // example username/password in body
-          username: this.config_entity[baseEntity].connection.auth.options.username,
-          password: this.config_entity[baseEntity].connection.auth.options.password,
-        }
-        break
-
-      case 'oauthSamlBearer':
-        tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
-        const context = null
-        const cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.cert).toString()
-        const key = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.key).toString()
-
-        const issuer = `scimgateway/${this.scimgateway.pluginName}`
-        const lifetime = 3600
-        const clientId = this.config_entity[baseEntity].connection.auth.options.clientId
-        const nameId = this.config_entity[baseEntity].connection.auth.options.userId
-        const userIdentifierFormat = 'userName'
-        const tokenEndpoint = tokenUrl
-        const audience = `scimgateway/${this.scimgateway.pluginName}`
-        const delay = 1
-
-        form = {
-          token_url: tokenUrl,
-          grant_type: 'urn:ietf:params:oauth:grant-type:saml2-bearer',
-          client_id: clientId,
-          company_id: this.config_entity[baseEntity].connection.auth.options.companyId,
-          assertion: await samlAssertion.run(context, cert, key, issuer, lifetime, clientId, nameId, userIdentifierFormat, tokenEndpoint, audience, delay),
-        }
-        break
-
-      case 'oauthJwtBearer':
-        let privateKey = ''
-        let jwtAttr: Record<string, any> = {}
-        const serviceAccountKeyFile = this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile
-
-        if (serviceAccountKeyFile) { // Google Service Account key json-file
-          const gkey: Record<string, any> = await (async () => {
-            try {
-              const jsonObject = await import(serviceAccountKeyFile, { assert: { type: 'json' } })
-              return jsonObject.default // access the object via the `default` property
-            } catch (err: any) {
-              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - serviceAccountKeyFile error: ${err.message}`)
-            }
-          })()
-
-          tokenUrl = gkey.token_uri // https://oauth2.googleapis.com/token
-          privateKey = gkey.private_key
-          jwtAttr = {
-            scope: this.config_entity[baseEntity]?.connection?.auth?.options?.scope, // https://www.googleapis.com/auth/gmail.send
-            sub: this.config_entity[baseEntity]?.connection?.auth?.options?.subject, // firstname.lastname@mycompany.com
-            iss: gkey.client_email, // service account email/user
-            aud: gkey.token_uri,
-            iat: Math.floor(Date.now() / 1000), // issued at
-            exp: Math.floor(Date.now() / 1000) + (60 * 60), // expiration time
-          }
-        } else { // standard JWT requires all configuation set
-          tokenUrl = this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl
-          const privateKeyFile = this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key
-          if (privateKeyFile) privateKey = fs.readFileSync(privateKeyFile).toString()
-          jwtAttr = {
-            scope: this.config_entity[baseEntity]?.connection?.auth?.options?.scope,
-            sub: this.config_entity[baseEntity]?.connection?.auth?.options?.subject,
-            iss: this.config_entity[baseEntity]?.connection?.auth?.options?.issuer,
-            aud: this.config_entity[baseEntity]?.connection?.auth?.options?.audience,
-            iat: Math.floor(Date.now() / 1000),
-            exp: Math.floor(Date.now() / 1000) + (60 * 60),
-          }
-        }
-
-        form = {
-          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-          assertion: jsonwebtoken.sign(jwtAttr, privateKey, { algorithm: 'RS256' }),
-        }
-        break
-
-      default:
-        this.lock.release()
-        throw new Error(`getAccessToken() none supported entity.${baseEntity}.connection.auth.type: '${this.config_entity[baseEntity]?.connection?.auth?.type}'`)
-    }
-
-    if (!tokenUrl) {
-      this.lock.release()
-      throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing tokenUrl or tenantIdGUID configuration`)
-    }
-
-    this.scimgateway.logDebug(baseEntity, `${action}: Retrieving accesstoken`)
-    const method = 'POST'
-    let connOpt: any = {}
-    if (this.config_entity[baseEntity].connection.options && typeof this.config_entity[baseEntity].connection.options === 'object') {
-      connOpt = utils.copyObj(this.config_entity[baseEntity].connection.options)
-    }
-    if (!connOpt.headers) connOpt.headers = {}
-    connOpt.headers['Content-Type'] = 'application/x-www-form-urlencoded' // body must be query string formatted (no JSON)
-
     try {
+      switch (this.config_entity[baseEntity]?.connection?.auth?.type) {
+        case 'oauth':
+          try {
+            const urlObj = new URL(this.config_entity[baseEntity].connection.baseUrls[0])
+            resource = urlObj.origin
+          } catch (err) { void 0 }
+          if (this.config_entity[baseEntity].connection.auth?.options?.tenantIdGUID) { // Azure
+            tokenUrl = `https://login.microsoftonline.com/${this.config_entity[baseEntity].connection.auth.options.tenantIdGUID}/oauth2/token`
+          } else {
+            tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
+          }
+          form = {
+            grant_type: 'client_credentials',
+            client_id: this.config_entity[baseEntity].connection.auth.options.clientId,
+            client_secret: this.config_entity[baseEntity].connection.auth.options.clientSecret,
+            scope: this.config_entity[baseEntity].connection.auth.options.scope || null,
+            resource: resource || null, // "https://graph.microsoft.com"
+          }
+          break
+
+        case 'token':
+          tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
+          form = { // example username/password in body
+            username: this.config_entity[baseEntity].connection.auth.options.username,
+            password: this.config_entity[baseEntity].connection.auth.options.password,
+          }
+          break
+
+        case 'oauthSamlBearer':
+          tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
+          const context = null
+          const cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.cert).toString()
+          const key = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.key).toString()
+
+          const issuer = `scimgateway/${this.scimgateway.pluginName}`
+          const lifetime = 3600
+          const clientId = this.config_entity[baseEntity].connection.auth.options.clientId
+          const nameId = this.config_entity[baseEntity].connection.auth.options.userId
+          const userIdentifierFormat = 'userName'
+          const tokenEndpoint = tokenUrl
+          const audience = `scimgateway/${this.scimgateway.pluginName}`
+          const delay = 1
+
+          form = {
+            token_url: tokenUrl,
+            grant_type: 'urn:ietf:params:oauth:grant-type:saml2-bearer',
+            client_id: clientId,
+            company_id: this.config_entity[baseEntity].connection.auth.options.companyId,
+            assertion: await samlAssertion.run(context, cert, key, issuer, lifetime, clientId, nameId, userIdentifierFormat, tokenEndpoint, audience, delay),
+          }
+          break
+
+        case 'oauthJwtBearer':
+          let jwtClaims: jsonwebtoken.JwtPayload | Record<string, any> = {}
+          let jwtOpts: jsonwebtoken.SignOptions = {}
+          const serviceAccountKeyFile = this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile
+          const tenantIdGUID = this.config_entity[baseEntity]?.connection?.auth?.options?.tenantIdGUID
+
+          if (tenantIdGUID) {
+            // Microsoft Entra ID
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.cert) {
+              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.certificate.key/cert configuration`)
+            }
+            tokenUrl = `https://login.microsoftonline.com/${tenantIdGUID}/oauth2/v2.0/token` // `https://login.microsoftonline.com/${tenantIdGUID}/oauth2/token`
+            let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?._key || ''
+            let cert = this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?._cert || ''
+            if (!privateKey || !cert) {
+              privateKey = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.key, 'utf-8') || ''
+              cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.cert, 'utf-8') || ''
+              if (privateKey) this.config_entity[baseEntity].connection.auth.options.certificate._key = privateKey
+              if (cert) this.config_entity[baseEntity].connection.auth.options.certificate._cert = cert
+            }
+            if (!privateKey || !cert) {
+              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.certificate.key/cert file content`)
+            }
+
+            const jwtPayload: jsonwebtoken.JwtPayload = {
+              sub: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
+              iss: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
+              aud: `https://login.microsoftonline.com/${tenantIdGUID}/v2.0`,
+              iat: Math.floor(Date.now() / 1000) - 60,
+              exp: Math.floor(Date.now() / 1000) + 3600,
+              jti: crypto.randomUUID(),
+              nbf: Math.floor(Date.now() / 1000) - 60,
+            }
+            jwtClaims = {
+              ...jwtPayload,
+            }
+
+            const base64Thumbprint = utils.getBase64CertificateThumbprint(cert, 'sha1') // xt5=>sha1, x5t#S256=>sha256
+            jwtOpts = {
+              algorithm: 'RS256',
+              header: {
+                typ: 'JWT',
+                alg: 'RS256',
+                x5t: base64Thumbprint,
+              },
+            }
+
+            /* Microsoft recommended modern x5t#S256 does not work using self-signed certificate
+            const base64Thumbprint = utils.getBase64CertificateThumbprint(cert, 'sha256')
+            jwtOpts = {
+              algorithm: 'PS256',
+              header: {
+                'typ': 'JWT',
+                'alg': 'PS256',
+                'x5t#S256': base64Thumbprint,
+              },
+            }
+            */
+
+            let scope = 'https://graph.microsoft.com/.default'
+            try {
+              const urlObj = new URL(this.config_entity[baseEntity].connection.baseUrls[0])
+              scope = urlObj.origin + '/.default' // for application exposed api's and included permissions use: api://${this.config_entity[baseEntity]?.connection?.auth?.options?.clientId}/.default
+            } catch (err) { void 0 }
+
+            form = {
+              scope,
+              grant_type: 'client_credentials',
+              client_id: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
+              client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+              client_assertion: jsonwebtoken.sign(jwtClaims, privateKey, jwtOpts),
+            }
+          } else if (serviceAccountKeyFile) {
+            // Google - using Service Account key json-file
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.scope || !this.config_entity[baseEntity]?.connection?.auth?.options?.subject) {
+              const err = new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - using auth.options 'serviceAccountKeyFile' requires mandatory configuration entity.${baseEntity}.connection.auth.options.scope/subject`)
+              throw err
+            }
+            let gkey: Record<string, any> = this.config_entity[baseEntity]?.connection?.auth?.options?._gkey
+            if (!gkey) {
+              gkey = await (async () => {
+                try {
+                  const jsonObject = await import(serviceAccountKeyFile, { assert: { type: 'json' } })
+                  return jsonObject.default // access the object via the `default` property
+                } catch (err: any) {
+                  throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - serviceAccountKeyFile error: ${err.message}`)
+                }
+              })()
+              this.config_entity[baseEntity].connection.auth.options._gkey = gkey
+            }
+
+            tokenUrl = gkey.token_uri // https://oauth2.googleapis.com/token
+            const privateKey = gkey.private_key
+            const jwtPayload: jsonwebtoken.JwtPayload = {
+              sub: this.config_entity[baseEntity]?.connection?.auth?.options?.subject, // firstname.lastname@mycompany.com
+              iss: gkey.client_email, // service account email/user
+              aud: gkey.token_uri,
+              iat: Math.floor(Date.now() / 1000) - 60, // issued at
+              exp: Math.floor(Date.now() / 1000) + 3600, // expiration time
+            }
+            jwtClaims = {
+              ...jwtPayload,
+              scope: this.config_entity[baseEntity]?.connection?.auth?.options?.scope, // https://www.googleapis.com/auth/gmail.send
+            }
+            jwtOpts = {
+              algorithm: 'RS256',
+              header: {
+                typ: 'JWT',
+                alg: 'RS256',
+                kid: gkey.client_id,
+              },
+            }
+            form = {
+              grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+              assertion: jsonwebtoken.sign(jwtClaims, privateKey, jwtOpts),
+            }
+          } else {
+            // standard JWT - requires all configuation: tokenUrl, rawJwtPayload and certificate.key
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl
+              || !this.config_entity[baseEntity]?.connection?.auth?.options?.rawJwtPayload
+              || typeof this.config_entity[baseEntity]?.connection?.auth?.options?.rawJwtPayload !== 'object') {
+              throw new Error(`auth.type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no tenantIdGUID/serviceAccountKeyFile using raw) - missing configuration entity.${baseEntity}.connection.auth.options.tokenUrl/rawJwtPayload`)
+            }
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key) {
+              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no tenantIdGUID/serviceAccountKeyFile using raw) - missing options.certificate.key configuration`)
+            }
+            tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
+            let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?._key || ''
+            if (!privateKey) {
+              privateKey = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.key, 'utf-8') || ''
+              if (privateKey) this.config_entity[baseEntity].connection.auth.options.certificate._key = privateKey
+            }
+
+            let jwtPayload = this.config_entity[baseEntity].connection.auth.options.rawJwtPayload
+            if (!jwtPayload.iat) jwtPayload.iat = Math.floor(Date.now() / 1000) - 60
+            if (!jwtPayload.exp) jwtPayload.exp = Math.floor(Date.now() / 1000) + 3600
+
+            jwtClaims = {
+              ...jwtPayload,
+            }
+            jwtOpts = {
+              algorithm: 'RS256',
+              header: {
+                typ: 'JWT',
+                alg: 'RS256',
+              },
+            }
+
+            form = {
+              grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+              assertion: jsonwebtoken.sign(jwtClaims, privateKey, jwtOpts),
+            }
+          }
+
+          break
+
+        default:
+          throw new Error(`getAccessToken() none supported entity.${baseEntity}.connection.auth.type: '${this.config_entity[baseEntity]?.connection?.auth?.type}'`)
+      }
+
+      if (!tokenUrl) {
+        throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing tokenUrl`)
+      }
+
+      this.scimgateway.logDebug(baseEntity, `${action}: Retrieving accesstoken`)
+      const method = 'POST'
+      let connOpt: any = {}
+      if (this.config_entity[baseEntity].connection.options && typeof this.config_entity[baseEntity].connection.options === 'object') {
+        connOpt = utils.copyObj(this.config_entity[baseEntity].connection.options)
+      }
+      if (!connOpt.headers) connOpt.headers = {}
+      connOpt.headers['Content-Type'] = 'application/x-www-form-urlencoded' // body must be query string formatted (no JSON)
+
       const response = await this.doRequest(baseEntity, method, tokenUrl, form, ctx, connOpt)
       if (!response.body) {
         const err = new Error(`[${action}] No data retrieved from: ${method} ${tokenUrl}`)
@@ -344,22 +460,9 @@ export class HelperRest {
             param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
             break
           case 'oauthJwtBearer':
-            if (this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile) { // Google Service Account
-              if (!this.config_entity[baseEntity]?.connection?.auth?.options?.scope || !this.config_entity[baseEntity]?.connection?.auth?.options?.subject) {
-                const err = new Error(`auth.type 'oauthJwtBearer' - using auth.options 'serviceAccountKeyFile' also requires mandatory configuration entity.${baseEntity}.connection.auth.options.scope/subject`)
-                throw err
-              }
-            } else if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl
-              || !this.config_entity[baseEntity]?.connection?.auth?.options?.scope
-              || !this.config_entity[baseEntity]?.connection?.auth?.options?.subject
-              || !this.config_entity[baseEntity]?.connection?.auth?.options?.issuer
-              || !this.config_entity[baseEntity]?.connection?.auth?.options?.audience
-              || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key
-            ) {
-              const err = new Error(`auth.type 'oauthJwtBearer' - when not using auth.options 'serviceAccountKeyFile' which is related to Google, following auth.options is mandatory: tokenUrl, scope, subject, issuer, audience, certificate.key`)
-              throw err
-            }
-
+            // auth.options.tenantIdGUID => Microsoft Entra ID
+            // auth.options.serviceAccountKeyFile => Google Service Account
+            // also support custom using tokenUrl/rawJwtPayload
             param.accessToken = await this.getAccessToken(baseEntity, ctx)
             param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
             break
@@ -679,8 +782,8 @@ export class HelperRest {
   * ```
   * {
   *   "options": {
-  *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Microsoft Graph API - baseUrls automatically set to [https://graph.microsoft.com/beta]
-  *     "tokenUrl": "<tokenUrl>", // not used when tenantIdGUID defined - baseUrls required
+  *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Entra ID authentication - if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
+  *     "tokenUrl": "<tokenUrl>", // must be set if not using tenantIdGUID
   *     "clientId": "<clientId>",
   *     "clientSecret": "<clientSecret>"
   *   }
@@ -725,26 +828,40 @@ export class HelperRest {
   * 
   * type=**"oauthJwtBearer"** having auth.options:
   * ```
-  * // Google API - baseUrls automatically set to [https://www.googleapis.com]
+  * // Microsoft Entra ID
   * {
   *   "options": {
-  *     "serviceAccountKeyFile": "<Google Service Account key file name>", // located in ./config/certs
-  *     "scope": "<jwt-scope>"
+  *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Entra ID authentication, if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
+  *     "clientId": "<clientId>",
+  *     "certificate": { // files located in ./config/certs
+  *       "key": "key.pem",
+  *       "cert": "cert.pem"
+  *     }
+  *   }
+  * }
+  * 
+  * // Google Cloud Platform - GCP
+  * {
+  *   "options": {
+  *     "serviceAccountKeyFile": "<Google Service Account key file name>", // located in ./config/certs. If baseUrls not defined, baseUrls automatically set to [https://www.googleapis.com]
+  *     "scope": "<jwt-scope>",
   *     "subject": "<jwt-subject>
   *   }
   * }
   * 
-  * // General JWT API - baseUrls required
+  * // General JWT API
   * {
   *   "options": {
   *     "tokenUrl":  "<tokenUrl",
-  *     "scope": "<jwt-scope>",
-  *     "subject": "<jwt-subject>",
-  *     "issuer": "<jwt-issuer>",
-  *     "audience": "<jwt-audience>",
   *     "certificate": {
-  *       "key": "<signing-key-file-name>"
-  *      }
+  *       "key": "<signing-key-file-name>" // key.pem file located in ./config/certs
+  *      },
+  *     "rawJwtPayload": {
+  *       "sub": "<subject>",
+  *       "iss": "<issuer>",
+  *       "aud": "<audience>",
+  *       ...
+  *     }
   *   }
   * }
   * ```
