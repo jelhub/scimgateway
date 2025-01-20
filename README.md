@@ -415,7 +415,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
   
 	Example of how to make a self signed certificate:  
 
-		openssl.exe req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj "/O=My Company/OU=Testing/CN=SCIM Gateway" -addext "subjectAltName=DNS:localhost,DNS:127.0.0.1,DNS:*.mycompany.com" -addext "extendedKeyUsage=serverAuth" -addext "keyUsage=digitalSignature"
+		openssl.exe req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj "/O=My Company/OU=Application/CN=SCIM Gateway" -addext "subjectAltName=DNS:localhost,DNS:127.0.0.1,DNS:*.mycompany.com" -addext "extendedKeyUsage=serverAuth" -addext "keyUsage=digitalSignature"
   
     Note, when using Symantec/Broadcom Provisioning, the "certificate authority - CA" also must be imported on the Connector Server. For self-signed certificate, CA and the certificate (public key) is the same.  
 
