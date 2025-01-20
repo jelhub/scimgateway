@@ -2872,7 +2872,9 @@ export class ScimGateway {
 
         const path = `/users/${msgObj.from}/sendMail`
         try {
-          await this.helperRest.doRequest('undefined', 'POST', path, emailMessage)
+          if (this.config.scimgateway.email.auth?.options?.certificate?.key && this.config.scimgateway.email.auth?.options?.certificate?.cert) {
+            await this.helperRest.doRequest('undefined', 'POST', path, emailMessage, null, { connection: { auth: { type: 'oauthJwtBearer' } } })
+          } else await this.helperRest.doRequest('undefined', 'POST', path, emailMessage)
           logger.debug(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
         } catch (err: any) {
           logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
