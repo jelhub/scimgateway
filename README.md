@@ -7,7 +7,7 @@ Author: Jarle Elshaug
 
 Validated through IdP's:  
 
-- Symantec/Broadcom/CA Identity Manager
+- Symantec/Broadcom Identity Manager
 - Microsoft Entra ID  
 - One Identity Manager/OneLogin  
 - Okta 
@@ -78,7 +78,7 @@ Demonstrates SAP HANA specific user provisioning
 Entra ID user provisioning including license management (App Service plans) e.g. Office 365  
 Using Microsoft Graph API through HelperRest  
 Using customized SCIM attributes according to Microsoft Graph API  
-Includes Symantec/Broadcom/CA ConnectorXpress metafile for creating provisioning "Azure - ScimGateway" endpoint type  
+Includes Symantec/Broadcom ConnectorXpress metafile for creating provisioning "Azure - ScimGateway" endpoint type  
 
 * **LDAP** (Directory)  
 Fully functional LDAP plugin  
@@ -122,8 +122,6 @@ If internet connection is blocked, we could install on another machine and copy 
 #### Startup and verify default Loki plugin 
 
 	bun c:\my-scimgateway
-
-	If using Node.js instead of Bun, scimgateway must be downloaded from github and startup: node --experimental-strip-types c:\my-scimgateway\index.ts
 	
 	Start a browser (note, Edge do not pop-up logon dialog box when using http)
 
@@ -152,6 +150,8 @@ If internet connection is blocked, we could install on another machine and copy 
 
 >Tip, take a look at bun test scripts located in `node_modules\scimgateway\test\lib`
 
+> If using Node.js instead of Bun, scimgateway must be downloaded from github and startup:  
+node --experimental-strip-types c:\my-scimgateway\index.ts
 
 #### Upgrade SCIM Gateway  
 
@@ -413,13 +413,11 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		  "ca": null
 		}  
   
-    Example of how to make a self signed certificate:  
+	Example of how to make a self signed certificate:  
 
-		openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj "/O=Testing/OU=SCIM Gateway/CN=<FQDN>" -config "<path>\openssl.cnf"
-
-    `<FQDN>` is Fully Qualified Domain Name of the host having SCIM Gateway installed
+		openssl.exe req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj "/O=My Company/OU=Testing/CN=SCIM Gateway" -addext "subjectAltName=DNS:localhost,DNS:127.0.0.1,DNS:*.mycompany.com" -addext "extendedKeyUsage=serverAuth" -addext "keyUsage=digitalSignature"
   
-    Note, when using Symantec/Broadcom/CA Provisioning, the "certificate authority - CA" also have to be imported on the Connector Server. For self-signed certificate CA and the certificate (public key) is the same.  
+    Note, when using Symantec/Broadcom Provisioning, the "certificate authority - CA" also must be imported on the Connector Server. For self-signed certificate, CA and the certificate (public key) is the same.  
 
     PFX / PKCS#12 bundle can be used instead of key/cert/ca e.g: 
 
@@ -428,7 +426,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
           "password": "password"
         }
 
-	Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install ScimGatway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
+	Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install gateway locally on the manager (e.g. on the provisioning Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
 - **ipAllowList** - Array of one or more IPv4/IPv6 subnets (CIDR) allowed for incoming traffic.  E.g. using Entra ID as IdP, we would like to restrict access to IP addresses used by Azure. Azure IP-range can be downloaded from: [https://azureipranges.azurewebsites.net](https://azureipranges.azurewebsites.net), enter **AzureActiveDirectory** in the search list and select JSON download. Copy the "addressPrefixes" array content and paste into ipAllowList array. CIDR single IP-host syntax is a.b.c.d/32. Note, front-end HTTP proxy or a load balancer must include client IP-address in the **X-Forwarded-For** header. Configuration example:  
 
@@ -605,8 +603,6 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		// end - mandatory plugin initialization
 
 	Using `scimgateway.authPassThroughAllowed = true` and `plugin-<name>.json` configuration `scimgateway.auth.passThrough=true` enables Authentication PassTrhough
-
-
 
 ## Manual startup    
 
@@ -795,16 +791,11 @@ Some notes related to Entra ID:
 - Deleting a user in Entra ID sends a modify user `{"active":"False"}` which means user should be disabled. This logic is default set in attribute mappings expression rule `Switch([IsSoftDeleted], , "False", "True", "True", "False")`. Standard SCIM "DELETE" method seems not to be used.  
 
 
-## CA Identity Manager as IdP using SCIM Gateway  
+## Symantec Identity Manager as IdP using SCIM Gateway  
 
-Using Symantec/Broadcom/CA Identity Manger, plugin configuration might have to use **SCIM Version "1.1"** (scimgateway.scim.version).  
+Using Symantec/Broadcom Identity Manger, plugin configuration must use **SCIM Version "1.1"** (scimgateway.scim.version).  
 
-In the Provisioning Manager we have to use  
-
-
-`Endpoint type = SCIM (DYN Endpoint)`  
-
-or create our own custom endpoint type based on this one  
+In the Provisioning Manager we could use `Endpoint type = SCIM (DYN Endpoint)` or create our own custom endpoint type based on this one  
 
 SCIM endpoint configuration example for Loki plugin (plugin-loki)
 
@@ -829,13 +820,10 @@ http://localhost:8880/client-b
 
 Each baseEntity should then be defined in the plugin configuration file with custom attributes needed. Please see examples in plugin-soap.json
 
-IM 12.6 SP7 (and above) also supports pagination for SCIM endpoint (data transferred in bulks - endpoint explore of users). Loki plugin supports pagination. Other plugin may ignore this setting.  
-
-
 ## Entra ID provisioning  
 Using plugin-entra-id we could do user provisioning towards Entra ID   
 
-For testing purposes we could get an Azure free account 
+For testing purposes we could get an Azure free account
 
 ### Entra ID configuration 
 
@@ -861,25 +849,30 @@ For testing purposes we could get an Azure free account
 		- Application permissions
 		- Directory - Directory.ReadWriteAll
 		- Organization - Organization.ReadWrite.All
-		- Click "Add permissions"  
-		Note, we also have to go to Enterprise application to grant these consents  
-- Microsoft Entra ID - Enterprise applications - SCIM Gateway Inbound
-	- Permissions:
-		- Click "Grant admin consent for [tenant name]"
-		- In the logon dialog, logon as global administrator
-		- In permissions request dialog, click "Accept"
-		- Click "Refresh", directory and organization permissions are now listed and OK
+		- Click "Add permissions"
+	- API permissions: - Grant Admin consent  
+		 Or we could go to Enterprise application to grant these consents:  
+		- Microsoft Entra ID - Enterprise applications - SCIM Gateway Inbound
+			- Permissions:
+				- Click "Grant admin consent for [tenant name]"
+				- In the logon dialog, logon as global administrator
+				- In permissions request dialog, click "Accept"
+				- Click "Refresh", directory and organization permissions are now listed and OK
 
 
-**For some odd reasons Application needs to be member of "User administrator" for having privileges to manage office/mobile phone on users that is member of any administrator roles** 
+**Seems Application needs to be member of "User administrator" for having privileges to manage office/mobile phone on users that is member of any administrator roles** 
 
 Also note, enable/disable user (accountEnabled - through Graph API) will fail if user have an "Administrator" role other than above mentioned "User Administrator" e.g. "Group Administrator"/"Application Administrator". To be sure we can enable/disable all users,  application needs to be member of **"Global administrator"** - 62e90394-69f5-4237-9190-012177145e10.  
  
-- Microsoft Entra ID - Roles and administration
-	- Click on role **"User administrator"**
+- Microsoft Entra ID - Manage - Roles and administrators
+	- Search: User administrator
+	- Click on role **User administrator**
 	- Click "Add assignments"
-	- Search: SCIM Gateway Inbound (application name)
-	- Select the application that shows up and click "Add"
+	- Click "No member selected" to add members
+	- Search: SCIM Gateway Inbound (name of the application we have created)
+	- Select the application name that shows up and click "Add"
+	- Click Next
+	- Assignment type=Active and enable "Permanent assigned", add some justification text and click "Assign"
 
 ### SCIM Gateway configuration  
 
@@ -890,7 +883,7 @@ Set plugin to be started to `entra-id`
 
 **Edit plugin-entra-id.json**
 
-Note, for Symantec/Broadcom/CA Provisioning we must use SCIM version 1.1 
+Note, for Symantec/Broadcom Provisioning we must use SCIM version 1.1 
  
 	scimgateway: {
 	  "scim": {
@@ -964,7 +957,7 @@ For additional details, see baseEntity description.
 
 Note, we should normally use certificate (https) for communicating with SCIM Gateway unless we install gateway locally on the manager (e.g. on the CA Connector Server). When installed on the manager, we could use `http://localhost:port` or `http://127.0.0.1:port` which will not be passed down to the data link layer for transmission. We could then also set {"localhostonly": true}  
 
-### Using Symantec/Broadcom/CA Provisioning   
+### Using Symantec/Broadcom Provisioning   
 Create a new endpoint type "Azure - ScimGateway"  
 
 - Start SCIM Gateway
@@ -1181,6 +1174,39 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.1.3
+
+[Fixed]
+
+- HelperRest, auth.type=`oauthJwtBearer` and auth.options=`tenantIdGUID`
+
+	Configuration example using Entra ID application having uploaded cert.pem as certificate secret:
+	
+		"endpoint": {
+		  "entity": {
+		    "undefined": {
+		      "connection": {
+		        "baseUrls": [],
+		        "auth": {
+		          "type": "oauthJwtBearer",
+		          "options": {
+		            "tenantIdGUID": "Entra ID Tenant ID (GUID)",
+		            "clientId": "<application clientId>",
+		            "certificate": { // files located in ./config/certs
+		              "key": "key.pem",
+		              "cert": "cert.pem"
+		            }
+		          }
+		        }
+		      }
+		    }
+		  }
+		}
+
+	Please see code editor method HelperRest doRequest() IntelliSense for details
+
+	Note, this fix may break `plugin-entra-id` if baseUrls configuration not empty. If baseUrl not empty, it will be used. If empty, baseUrl will automatically be set according to graph api when using tenantIdGUID definition
 
 ### v5.1.2
 
