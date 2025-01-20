@@ -96,7 +96,7 @@ export class Log {
       customMaskXml = customMasking.join('"?|')
       customMaskXml = '|' + customMaskXml + '"?'
     }
-    this.reJson = `^.*"(password|access_token|client_secret|assertion${customMaskJson})" ?: ?"([^"]+)".*`
+    this.reJson = `^.*"(password|access_token|client_secret|assertion|client_assertion${customMaskJson})" ?: ?"([^"]+)".*`
     this.reXml = `^.*(credentials"?|PasswordText"?|PasswordDigest"?|password"?${customMaskXml})>([^<]+)</.*`
 
     const trans: any = [
