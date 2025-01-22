@@ -2123,8 +2123,7 @@ export class ScimGateway {
       }
 
       let path = url.pathname
-      let length = path.length
-      if (path.slice(length - 1) === '/' && length > 1) path = path.slice(0, -1)
+      if (path.slice(-1) === '/' && path.length > 1) path = path.slice(0, -1)
 
       const ctx: Context = {
         request: { // not using request as-is becuase body is stream and read once
