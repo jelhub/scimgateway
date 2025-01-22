@@ -1175,6 +1175,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.1.4
+
+[Fixed]
+
+- Postinstall failed using the new Bun v1.2.0
+
 ### v5.1.3
 
 [Fixed]
