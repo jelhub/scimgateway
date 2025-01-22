@@ -2122,6 +2122,10 @@ export class ScimGateway {
         } else if (bodyString) body = bodyString
       }
 
+      let path = url.pathname
+      let length = path.length
+      if (path.slice(length - 1) === '/' && length > 1) path = path.slice(0, -1)
+
       const ctx: Context = {
         request: { // not using request as-is becuase body is stream and read once
           method: request.method,
@@ -2141,7 +2145,7 @@ export class ScimGateway {
           id: id,
         },
         perfStart: performance.now(),
-        path: url.pathname,
+        path,
         query: {},
         ip: getIpFromHeader(request.headers) || directIp,
         origin: getOriginFromHeader(request.headers) || url.origin,
