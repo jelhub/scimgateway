@@ -6,7 +6,7 @@ import fs from 'node:fs'
 
 function fsExistsSync(f: string) {
   try {
-    fs.accessSync(f)
+    fs.statSync(f)
     return true
   } catch (e) {
     return false
@@ -23,7 +23,6 @@ if (fsExistsSync('./node_modules')) process.exit(0) // global package - quit - n
 if (!fsExistsSync('../../config')) fs.mkdirSync('../../config')
 if (!fsExistsSync('../../config/certs')) fs.mkdirSync('../../config/certs')
 if (!fsExistsSync('../../config/wsdls')) fs.mkdirSync('../../config/wsdls')
-if (!fsExistsSync('../../config/schemas')) fs.mkdirSync('../../config/schemas')
 if (!fsExistsSync('../../config/docker')) fs.mkdirSync('../../config/docker')
 if (!fsExistsSync('../../lib')) fs.mkdirSync('../../lib')
 
