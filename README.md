@@ -150,7 +150,7 @@ If internet connection is blocked, we could install on another machine and copy 
 
 >Tip, take a look at bun test scripts located in `node_modules\scimgateway\test\lib`
 
-> If using Node.js instead of Bun, scimgateway must be downloaded from github and startup:  
+> If using Node.js instead of Bun, scimgateway must be downloaded from github because Node.js does not support native typescript used by modules. Startup will then be:  
 node --experimental-strip-types c:\my-scimgateway\index.ts
 
 #### Upgrade SCIM Gateway  
