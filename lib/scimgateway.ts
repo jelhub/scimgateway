@@ -305,7 +305,6 @@ export class ScimGateway {
 
   constructor() {
     const funcHandler: any = {}
-    const startTime = utils.timestamp()
     let requester: string = ''
     {
       let _prepareStackTrace = Error.prepareStackTrace
@@ -374,7 +373,6 @@ export class ScimGateway {
 
     const oAuthTokenExpire = 3600 // seconds
     let pwErrCount = 0
-    let requestCounter = 0
     let isMailLock = false
     let ipAllowListChecker: any
     let server: any
@@ -554,9 +552,9 @@ export class ScimGateway {
       if (authType === 'Basic') [userName] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
       if (!userName && authType === 'Bearer') userName = 'token'
       if (ctx.response.status && (ctx.response.status < 200 || ctx.response.status > 299)) {
-        logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${ctx.response.body}${(this.config.scimgateway.log.loglevel.file === 'debug' && ctx.request.url !== '/ping') ? '\n' : ''}`)
+        if (ctx.response.status === 404) logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${ctx.response.body}${(this.config.scimgateway.log.loglevel.file === 'debug' && ctx.request.url !== '/ping') ? '\n' : ''}`)
+        else logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${ctx.response.body}${(this.config.scimgateway.log.loglevel.file === 'debug' && ctx.request.url !== '/ping') ? '\n' : ''}`)
       } else logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${ctx.response.status} ${userName} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${ctx.response.body}${(this.config.scimgateway.log.loglevel.file === 'debug' && ctx.request.url !== '/ping') ? '\n' : ''}`)
-      requestCounter += 1 // logged on exit (not win process termination)
     }
 
     // start auth methods - used by auth
@@ -2558,9 +2556,6 @@ export class ScimGateway {
         }
       }
       logger.debug(`${gwName}[${pluginName}] received terminate/kill signal - closing connections and exit`)
-      logger.setLoglevelConsole('info')
-      logger.setLoglevelFile('info')
-      logger.info(`${gwName}[${pluginName}] pheww... ${requestCounter} requests have been processed in the period ${startTime} - ${utils.timestamp()}\n`)
       logger.close()
       if (server) {
         if (typeof Bun !== 'undefined') {
