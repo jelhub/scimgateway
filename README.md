@@ -36,7 +36,7 @@ Latest news:
 
 ## Overview  
 
-With SCIM Gateway, user management is facilitated through the utilization of the REST-based SCIM 1.1 or 2.0 protocol. The gateway acts as a translator for incoming SCIM requests, seamlessly enabling the exposure of CRUD functionality (create, read, update, and delete user/group) towards destinations. This is achieved through the implementation of endpoint-specific protocols, ensuring precise and efficient provisioning with diverse endpoints.  
+SCIM Gateway facilitates user management using the standardized REST-based SCIM 1.1 or 2.0 protocol, offering easier, more powerful, and consistent provisioning while avoiding vendor lock-in. Acting as a translator for incoming SCIM requests, the gateway seamlessly enables CRUD functionality (create, read, update, and delete) for users and groups. By implementing endpoint-specific protocols, it ensures precise and efficient provisioning across diverse destinations. With the gateway, your diverse destinations effectively become SCIM endpoints, streamlining integration and simplifying user management.  
 
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
@@ -1147,7 +1147,7 @@ If using REST, we could also include the HelperRest:
 	...
 	// end - mandatory plugin initialization
 
-Plugins should include following SCIM methods:  
+Plugins should include following SCIM Gateway methods:  
 
 * scimgateway.getUsers()  
 * scimgateway.createUser()  
@@ -1174,6 +1174,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.1.5
+
+[Improved]
+
+- 404 NOT_FOUND is now logged as a warning instead of error
 
 ### v5.1.4
 
