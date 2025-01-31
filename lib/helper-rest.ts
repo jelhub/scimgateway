@@ -128,10 +128,10 @@ export class HelperRest {
           const tokenEndpoint = tokenUrl
           const delay = 1
 
-          // mandatory: clientId, companyId and userId (nameId)
+          // mandatory: clientId, companyId and nameId
           const clientId = this.config_entity[baseEntity].connection.auth.options.samlPayload.clientId
           const companyId = this.config_entity[baseEntity].connection.auth.options.samlPayload.companyId
-          const userId = this.config_entity[baseEntity].connection.auth.options.samlPayload.userId
+          const nameId = this.config_entity[baseEntity].connection.auth.options.samlPayload.nameId
           const userIdentifierFormat = this.config_entity[baseEntity].connection.auth.options.samlPayload.userIdentifierFormat || 'userName'
           const lifetime = this.config_entity[baseEntity].connection.auth.options.samlPayload.lifetime || 3600
           const issuer = this.config_entity[baseEntity].connection.auth.options.samlPayload.clientId || `https://scimgateway.${this.scimgateway.pluginName}.com`
@@ -142,7 +142,7 @@ export class HelperRest {
             grant_type: 'urn:ietf:params:oauth:grant-type:saml2-bearer',
             client_id: clientId,
             company_id: companyId,
-            assertion: await samlAssertion.run(context, cert, key, issuer, lifetime, clientId, userId, userIdentifierFormat, tokenEndpoint, audience, delay),
+            assertion: await samlAssertion.run(context, cert, key, issuer, lifetime, clientId, nameId, userIdentifierFormat, tokenEndpoint, audience, delay),
           }
           break
 
@@ -825,7 +825,7 @@ export class HelperRest {
   *     "samlPayload": {
   *       "clientId": "<clientId>",
   *       "companyId": "<companyId>",
-  *       "userId": "<userId>",  // nameId
+  *       "nameId": "<nameId>",
   *       "lifetime": "<optional>"
   *       "issuer": "<optional>",
   *       "userIdentifierFormat": "<optional>",
