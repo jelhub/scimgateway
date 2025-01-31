@@ -2538,12 +2538,12 @@ export class ScimGateway {
         isMailLock = false
       }, (this.config.scimgateway.email.emailOnError.sendInterval || 15) * 1000 * 60)
 
-      const msgHtml = `<html><body><pre style="font-family: monospace; white-space: pre-wrap;">${msg}</pre><br/><p><strong>This is an automatically generated email - please do NOT reply to this email or forward to others</strong></p></body></html>`
+      const msgHtml = `<html><body><pre style="font-family: monospace; white-space: pre-wrap;">${msg}</pre><br/><p><strong>This is an automatically generated email - please do NOT reply to this email</strong></p></body></html>`
       const msgObj = {
         from: this.config.scimgateway.email.emailOnError.from,
         to: this.config.scimgateway.email.emailOnError.to,
         cc: this.config.scimgateway.email.emailOnError.cc,
-        subject: this.config.scimgateway.email.emailOnError.subject ? this.config.scimgateway.email.emailOnError.subject : 'SCIM Gateway error message',
+        subject: this.config.scimgateway.email.emailOnError.subject || 'SCIM Gateway error message',
         content: msgHtml,
       }
       this.sendMail(msgObj, true)
@@ -2870,9 +2870,7 @@ export class ScimGateway {
 
         const path = `/users/${msgObj.from}/sendMail`
         try {
-          if (this.config.scimgateway.email.auth?.options?.certificate?.key && this.config.scimgateway.email.auth?.options?.certificate?.cert) {
-            await this.helperRest.doRequest('undefined', 'POST', path, emailMessage, null, { connection: { auth: { type: 'oauthJwtBearer' } } })
-          } else await this.helperRest.doRequest('undefined', 'POST', path, emailMessage)
+          await this.helperRest.doRequest('undefined', 'POST', path, emailMessage)
           logger.debug(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
         } catch (err: any) {
           logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
@@ -2894,7 +2892,7 @@ Content-Transfer-Encoding: quoted-printable
         const emailMessage = { raw: encodedMessage }
         const path = `/gmail/v1/users/${msgObj.from}/messages/send`
         try { // using opt connection argument type=oauthJwtBearer and options scope/subject because we want to keep simplified email.auth.type=oauth and options serviceAccountKeyFile
-          await this.helperRest.doRequest('undefined', 'POST', path, emailMessage, null, { connection: { auth: { type: 'oauthJwtBearer', options: { scope: 'https://www.googleapis.com/auth/gmail.send', subject: msgObj.from } } } })
+          await this.helperRest.doRequest('undefined', 'POST', path, emailMessage, null, { connection: { auth: { type: 'oauthJwtBearer', options: { jwtPayload: { scope: 'https://www.googleapis.com/auth/gmail.send', subject: msgObj.from } } } } })
           logger.debug(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
         } catch (err: any) {
           logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
