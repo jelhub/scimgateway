@@ -655,20 +655,20 @@ Example using basic auth:
 
 	"connection": {
 	  "baseUrls": [
-		"https://localhost:8880"
+	    "https://localhost:8880"
 	  ],
 	  "auth": {
-		"type": "basic",
-		"options": {
-		  "username": "gwadmin",
-		  "password": "password"
-		}
+	    "type": "basic",
+	    "options": {
+	      "username": "gwadmin",
+	      "password": "password"
+	    }
 	  },
 	  "options": {
-		"tls": {
-		  "rejectUnauthorized": false,
-		  "ca": "ca.pem"
-		}
+	    "tls": {
+	      "rejectUnauthorized": false,
+	      "ca": "ca.pem"
+	    }
 	  }
 	}
 
@@ -677,12 +677,12 @@ Example Entra ID (plugin-entra-id) using clientId/clientSecret:
 	"connection": {
 	  "baseUrls": [],
 	  "auth": {
-		"type": "oauth",
-		"options": {
-		  "tenantIdGUID": "<tenantId>",
-		  "clientId": "<clientId",
-		  "clientSecret": "<clientSecret>"
-		}
+	    "type": "oauth",
+	    "options": {
+	      "tenantIdGUID": "<tenantId>",
+	      "clientId": "<clientId",
+	      "clientSecret": "<clientSecret>"
+	    }
 	  }
 	}
 
@@ -691,15 +691,15 @@ Example Entra ID (plugin-entra-id) using certificate secret:
 	"connection": {
 	  "baseUrls": [],
 	  "auth": {
-		"type": "oauth",
-		"options": {
-		  "tenantIdGUID": "<tenantId>",
-		  "clientId": "<clientId",
-		  "tls": {
+	    "type": "oauth",
+	    "options": {
+	      "tenantIdGUID": "<tenantId>",
+	      "clientId": "<clientId",
+	      "tls": {
 	        "key": "key.pem",
 	        "cert": "cert.pem"
-          }
-		}
+	      }
+	    }
 	  }
 	}
 
@@ -708,12 +708,12 @@ Example using general OAuth:
 	"connection": {
 	  "baseUrls": ["endpointUrl"],
 	  "auth": {
-		"type": "oauth",
-		"options": {
-		  "tokenUrl": "<tokenUrl>"
-		  "clientId": "<clientId",
-		  "clientSecret": "<clientSecret>"
-		}
+	    "type": "oauth",
+	    "options": {
+	      "tokenUrl": "<tokenUrl>"
+	      "clientId": "<clientId",
+	      "clientSecret": "<clientSecret>"
+	    }
 	  }
 	}
 
