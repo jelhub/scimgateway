@@ -122,8 +122,8 @@ export class HelperRest {
         case 'oauthSamlBearer':
           tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
           const context = null
-          const cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.cert).toString()
-          const key = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.key).toString()
+          const cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.cert).toString()
+          const key = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key).toString()
 
           const tokenEndpoint = tokenUrl
           const delay = 1
@@ -151,19 +151,19 @@ export class HelperRest {
           let jwtOpts: jsonwebtoken.SignOptions = {}
 
           if (tenantIdGUID) { // Microsoft Entra ID
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.cert) {
-              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.certificate.key/cert configuration`)
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.cert) {
+              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.tls.key/cert configuration`)
             }
-            let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?._key || ''
-            let cert = this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?._cert || ''
+            let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._key || ''
+            let cert = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._cert || ''
             if (!privateKey || !cert) {
-              privateKey = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.key, 'utf-8') || ''
-              cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.cert, 'utf-8') || ''
-              if (privateKey) this.config_entity[baseEntity].connection.auth.options.certificate._key = privateKey
-              if (cert) this.config_entity[baseEntity].connection.auth.options.certificate._cert = cert
+              privateKey = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key, 'utf-8') || ''
+              cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.cert, 'utf-8') || ''
+              if (privateKey) this.config_entity[baseEntity].connection.auth.options.tls._key = privateKey
+              if (cert) this.config_entity[baseEntity].connection.auth.options.tls._cert = cert
             }
             if (!privateKey || !cert) {
-              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.certificate.key/cert file content`)
+              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.tls.key/cert file content`)
             }
 
             const jwtPayload: jsonwebtoken.JwtPayload = {
@@ -252,20 +252,20 @@ export class HelperRest {
               assertion: jsonwebtoken.sign(jwtClaims, privateKey, jwtOpts),
             }
           } else {
-            // standard JWT - requires all configuation: tokenUrl, jwtPayload and certificate.key
+            // standard JWT - requires all configuation: tokenUrl, jwtPayload and tls.key
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl
               || !this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload
               || typeof this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload !== 'object') {
               throw new Error(`auth.type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no tenantIdGUID/serviceAccountKeyFile using raw) - missing configuration entity.${baseEntity}.connection.auth.options.tokenUrl/jwtPayload`)
             }
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key) {
-              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no tenantIdGUID/serviceAccountKeyFile using raw) - missing options.certificate.key configuration`)
+            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.key) {
+              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no tenantIdGUID/serviceAccountKeyFile using raw) - missing options.tls.key configuration`)
             }
             tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
-            let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?._key || ''
+            let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._key || ''
             if (!privateKey) {
-              privateKey = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.certificate.key, 'utf-8') || ''
-              if (privateKey) this.config_entity[baseEntity].connection.auth.options.certificate._key = privateKey
+              privateKey = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key, 'utf-8') || ''
+              if (privateKey) this.config_entity[baseEntity].connection.auth.options.tls._key = privateKey
             }
 
             let jwtPayload = this.config_entity[baseEntity].connection.auth.options.jwtPayload
@@ -417,8 +417,8 @@ export class HelperRest {
         // may use configuration type='oauth' and auto corrected to 'oauthJwtBearer'
         if (this.config_entity[baseEntity]?.connection?.auth?.type == 'oauth') {
           if (this.config_entity[baseEntity].connection.auth?.options?.tenantIdGUID) {
-            if (this.config_entity[baseEntity].connection.auth.options?.certificate?.cert
-              && this.config_entity[baseEntity].connection.auth.options?.certificate?.key
+            if (this.config_entity[baseEntity].connection.auth.options?.tls?.cert
+              && this.config_entity[baseEntity].connection.auth.options?.tls?.key
               && this.config_entity[baseEntity].connection.auth.options.clientId
             ) this.config_entity[baseEntity].connection.auth.type = 'oauthJwtBearer'
           } else if (this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile) {
@@ -459,8 +459,8 @@ export class HelperRest {
             break
           case 'oauthSamlBearer':
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.samlPayload?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.samlPayload?.companyId
-              || !this.config_entity[baseEntity]?.connection?.auth?.options?.certificate?.key) {
-              const err = new Error(`auth.type 'oauthSamlBearer' - missing configuration entity.${baseEntity}.connection.auth.options.certificate and/or options.samlPayload.clientId/companyId`)
+              || !this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.key) {
+              const err = new Error(`auth.type 'oauthSamlBearer' - missing configuration entity.${baseEntity}.connection.auth.options.tls and/or options.samlPayload.clientId/companyId`)
               throw err
             }
             param.accessToken = await this.getAccessToken(baseEntity, ctx)
@@ -771,7 +771,7 @@ export class HelperRest {
   * ```
   * type defines authentication being used  
   * if type not defined, no authentication used  
-  * valid type is: `basic`, `oauth`, `token`, `bearer` or `oauthSamlBearer`  
+  * valid type is: `basic`, `oauth`, `token`, `bearer`, `oauthSamlBearer` or `oauthJwtBearer`  
   * 
   * for each valid type there are different auth.options  
   * 
@@ -831,7 +831,7 @@ export class HelperRest {
   *       "userIdentifierFormat": "<optional>",
   *       "audience": "<optional>"
   *     },
-  *     "certificate": {
+  *     "tls": {
   *       "key": "<key-file-name>", // location: config/certs
   *       "cert": "<cert-file-name>", // location: config/certs
   *     }
@@ -846,7 +846,7 @@ export class HelperRest {
   *   "options": {
   *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Entra ID authentication, if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
   *     "clientId": "<clientId>",
-  *     "certificate": { // files located in ./config/certs
+  *     "tls": { // files located in ./config/certs
   *       "key": "key.pem",
   *       "cert": "cert.pem"
   *     }
@@ -866,7 +866,7 @@ export class HelperRest {
   * {
   *   "options": {
   *     "tokenUrl":  "<tokenUrl",
-  *     "certificate": {
+  *     "tls": {
   *       "key": "<signing-key-file-name>" // key.pem file located in ./config/certs
   *      },
   *     "jwtPayload": {
