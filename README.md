@@ -465,7 +465,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **endpoint** - Contains endpoint specific configuration according to customized **plugin code**. 
 
-#### Configuration notes
+### Configuration notes - general
 
 - Custom Schemas, ServiceProviderConfig and ResourceType can be used if `./lib/scimdef-v2.json or scimdef-v1.json` exists. Original scimdef-v2.json/scimdef-v1.json can be copied from node_modules/scimgateway/lib to your plugin/lib and customized.
 - Using reverse proxy and we want ipAllowList and correct meta.location response, following headers must be set by proxy: `X-Forwarded-For`, `X-Forwarded-Proto` and `X-Forwarded-Host`  
@@ -521,88 +521,204 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		  "plugin-soap.endpoint.password": "secret"
 		}  
 
+### Configuration notes - Email, using Microsoft Exchange Online (ExO)
 
-- Email, using Microsoft Exchange Online (ExO)
-
-	- Entra ID application must have application permissions `Mail.Send`  
-	- To prevent the sending of emails from any defined mailboxes, an ExO `ApplicationAccessPolicy` must be defined through PowerShell.  
+- Entra ID application must have application permissions `Mail.Send`  
+- To prevent the sending of emails from any defined mailboxes, an ExO `ApplicationAccessPolicy` must be defined through PowerShell.  
 	
-		First create a mail-enabled security-group that only includes those users (mailboxes) the application is allowed to send from  
-		Note, `mail enabled security group` cannot be created from portal, only from admin or admin.exchange console
-		  
-			##Connect to Exchange
-			Install-Module -Name ExchangeOnlineManagement
-			Connect-ExchangeOnline
-			 
-			##Create ApplicationAccessPolicy
-			New-ApplicationAccessPolicy -AppId <AppClientID> -PolicyScopeGroupId <MailEnabledSecurityGrpId> -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
+	First create a mail-enabled security-group that only includes those users (mailboxes) the application is allowed to send from  
+	Note, `mail enabled security group` cannot be created from portal, only from admin or admin.exchange console
+			  
+		##Connect to Exchange
+		Install-Module -Name ExchangeOnlineManagement
+		Connect-ExchangeOnline
+		 
+		##Create ApplicationAccessPolicy
+		New-ApplicationAccessPolicy -AppId <AppClientID> -PolicyScopeGroupId <MailEnabledSecurityGrpId> -AccessRight RestrictAccess -Description "Restrict app to specific mailboxes"
 
-- Email, using Google Workspace Gmail
+### Configuration notes - Email, using Google Workspace Gmail
 
-	- https://console.cloud.google.com
-		- IAM & Admin > Service Accounts > Create Service Account
-			- Name=email-sender  
-			- Create and Continue
-			- Grant this service account access to project - not needed
-			- Grant users access to this service - not needed  
-		- IAM & Admin > Service Accounts > "email-sender" account > Keys    
-			- Add Key > Create new key > JSON
-			- download json Service Account Key file, refere to configuration `email.auth.options.serviceAccountKeyFile`
+- https://console.cloud.google.com
+	- IAM & Admin > Service Accounts > Create Service Account
+		- Name=email-sender  
+		- Create and Continue
+		- Grant this service account access to project - not needed
+		- Grant users access to this service - not needed  
+	- IAM & Admin > Service Accounts > "email-sender" account > Keys    
+		- Add Key > Create new key > JSON
+		- download json Service Account Key file, refere to configuration `email.auth.options.serviceAccountKeyFile`
 
-	- https://admin.google.com
-		- Security > Access and data control > API controls
-			- Manage Domain Wide Delegation > Add new
-			- Client ID = id of service account created
-			- OAuth scope = `https://www.googleapis.com/auth/gmail.send`  
-	 
-	- https://admin.google.com
-		- Billing > Subscriptions - verify Google Workspace license
-		- Directory > Users > "user"
-		- Licenses > Edit > enable Google Workspace license  
-		`email.emailOnError.from` mail address must have Google Workspace license
+- https://admin.google.com
+	- Security > Access and data control > API controls
+		- Manage Domain Wide Delegation > Add new
+		- Client ID = id of service account created
+		- OAuth scope = `https://www.googleapis.com/auth/gmail.send`  
+ 
+- https://admin.google.com
+	- Billing > Subscriptions - verify Google Workspace license
+	- Directory > Users > "user"
+	- Licenses > Edit > enable Google Workspace license  
+	`email.emailOnError.from` mail address must have Google Workspace license
 
-- Gateway chainging and chainingBaseUrl configuration
+### Configuration notes - Gateway chainging and chainingBaseUrl
 
-	By configuring the `chainingBaseUrl`, it is possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway behave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
-	
-		{
-		  "scimgateway": {
-		    ...
-		    "chainingBaseUrl": "https:\\gateway2:8880",
-		    ...
-		    "auth": {
-		      ...
-		      "passThrough": {
-		        "enabled": false,
-		        "readOnly": false,
-		        "baseEntities": []
-		      }
-			  ...
-		    }
-		  },
+By configuring the `chainingBaseUrl`, it is possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway behave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
+
+	{
+	  "scimgateway": {
+	    ...
+	    "chainingBaseUrl": "https:\\gateway2:8880",
+	    ...
+	    "auth": {
+	      ...
+	      "passThrough": {
+	        "enabled": false,
+	        "readOnly": false,
+	        "baseEntities": []
+	      }
 		  ...
-		}
-	
-	
-	Using above configuration example on gateway1, incoming requests will be routed to `https:\\gateway2:8880`
-	
-	The plugin and its associated authentication configuration can mirror the setup running on the final gateway. However, in chaining mode, the plugin binary is used solely for initializing and configuring the gateway. This allows for the use of a simplified `plugin-<name>.ts` binary containing only the essential mandatory components:
-		
-		// start - mandatory plugin initialization
-		const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
-		  try {
-		    return (await import('scimgateway')).ScimGateway
-		  } catch (err) {
-		    const source = './scimgateway.ts'
-		    return (await import(source)).ScimGateway
-		  }
-		})()
-		const scimgateway = new ScimGateway()
-		const config = scimgateway.getConfig()
-		scimgateway.authPassThroughAllowed = false
-		// end - mandatory plugin initialization
+	    }
+	  },
+	  ...
+	}
 
-	Using `scimgateway.authPassThroughAllowed = true` and `plugin-<name>.json` configuration `scimgateway.auth.passThrough=true` enables Authentication PassTrhough
+
+Using above configuration example on gateway1, incoming requests will be routed to `https:\\gateway2:8880`
+
+The plugin and its associated authentication configuration can mirror the setup running on the final gateway. However, in chaining mode, the plugin binary is used solely for initializing and configuring the gateway. This allows for the use of a simplified `plugin-<name>.ts` binary containing only the essential mandatory components:
+	
+	// start - mandatory plugin initialization
+	const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
+	  try {
+	    return (await import('scimgateway')).ScimGateway
+	  } catch (err) {
+	    const source = './scimgateway.ts'
+	    return (await import(source)).ScimGateway
+	  }
+	})()
+	const scimgateway = new ScimGateway()
+	const config = scimgateway.getConfig()
+	scimgateway.authPassThroughAllowed = false
+	// end - mandatory plugin initialization
+
+Using `scimgateway.authPassThroughAllowed = true` and `plugin-<name>.json` configuration `scimgateway.auth.passThrough=true` enables Authentication PassTrhough
+
+### Configuration notes - HelperRest used by plugins  
+For REST endpoints, plugins may use HelperRest to simplify authentication and communication  
+doRequest() executes REST request and return response  
+`doRequest(<baseEntity>, <method>, <path>, <body>, <ctx>, <options>)`
+
+* baseEntity - 'undefined' if not used and must correspond with endpoint configuration that defines baseUrls and connection options.
+* method - GET, PATCH, PUT, DELETE
+* path - either full url or just the path that will be added to baseUrl. Using full url will override baseUrl. Using path is preferred because of auth caching logic and simplicity
+* body - optional body to be used	
+* ctx - optional, passing authorization header if Auth PassThrough is enabled
+* opt - optional, connection options that will extend/override any endpoint.entity.undefined.connection definitions
+
+Configuration showing connection settings:  
+
+	{
+	  "scimgateway": {
+	    ...
+	  }
+	  "endpoint": {
+	    "entity": {
+	      "undefined": {
+	        "connection": {
+	          "baseUrls": [],
+	          "auth": {
+	            "type": "xxx",
+	            "options": {
+				  ...
+				  "jwtPayload": {},
+				  "samlPayload": {},
+				  "tls": {} // files located in ./config/certs
+				}
+	          },
+	          "options": {
+			    "headers": {},
+	            "tls": {} // files located in ./config/certs
+	          },
+	          "proxy": {}
+	        }
+	      }
+	    }
+	  }
+	}
+
+
+* baseUrls - Endpoint URL. Several may be defined for failower. There are retry logic on connection failures
+* auth.type - defines authentication being used: `basic`, `oauth`, `token`, `bearer`, `oauthSamlBearer` or `oauthJwtBearer`
+* auth.options - for each valid type there are different options. tenantIdGUID is special for Entra ID and serviceAccountKeyFile is special for Google. Using these will simplify and reduce options to be included. Also note we do not need to include baseUrls when using tenantIdGUID/serviceAccountKeyFile as long as endpoint is Entra ID (Microsoft Graph) or Google.
+
+Example using basic auth:  
+
+	"connection": {
+	  "baseUrls": [
+		"https://localhost:8880"
+	  ],
+	  "auth": {
+		"type": "basic",
+		"options": {
+		  "username": "gwadmin",
+		  "password": "password"
+		}
+	  },
+	  "options": {
+		"tls": {
+		  "rejectUnauthorized": false,
+		  "ca": "ca.pem"
+		}
+	  }
+	}
+
+Example Entra ID (plugin-entra-id) using clientId/clientSecret:  
+
+	"connection": {
+	  "baseUrls": [],
+	  "auth": {
+		"type": "oauth",
+		"options": {
+		  "tenantIdGUID": "<tenantId>",
+		  "clientId": "<clientId",
+		  "clientSecret": "<clientSecret>"
+		}
+	  }
+	}
+
+Example Entra ID (plugin-entra-id) using certificate secret:  
+
+	"connection": {
+	  "baseUrls": [],
+	  "auth": {
+		"type": "oauth",
+		"options": {
+		  "tenantIdGUID": "<tenantId>",
+		  "clientId": "<clientId",
+		  "tls": {
+	        "key": "key.pem",
+	        "cert": "cert.pem"
+          }
+		}
+	  }
+	}
+
+Example using general OAuth:  
+
+	"connection": {
+	  "baseUrls": ["endpointUrl"],
+	  "auth": {
+		"type": "oauth",
+		"options": {
+		  "tokenUrl": "<tokenUrl>"
+		  "clientId": "<clientId",
+		  "clientSecret": "<clientSecret>"
+		}
+	  }
+	}
+
+Please see code editor method HelperRest doRequest() IntelliSense for type and option details
+
 
 ## Manual startup    
 
@@ -1175,6 +1291,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.1.6
+
+[Improved]
+
+- HelperRest, payload/claims configuration now defined in auth.options.jwtPayload and auth.options.samlPayload. Previously all was defiend in auth.options
+- README configuration notes updated
+
 ### v5.1.5
 
 [Improved]
@@ -1205,7 +1328,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 		          "options": {
 		            "tenantIdGUID": "Entra ID Tenant ID (GUID)",
 		            "clientId": "<application clientId>",
-		            "certificate": { // files located in ./config/certs
+		            "tls": { // files located in ./config/certs
 		              "key": "key.pem",
 		              "cert": "cert.pem"
 		            }
