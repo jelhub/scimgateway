@@ -636,7 +636,7 @@ Configuration showing connection settings:
 	            }
 	          },
 	          "options": {
-			    "headers": {},
+	            "headers": {},
 	            "tls": {} // files located in ./config/certs
 	          },
 	          "proxy": {}
