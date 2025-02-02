@@ -629,11 +629,11 @@ Configuration showing connection settings:
 	          "auth": {
 	            "type": "xxx",
 	            "options": {
-				  ...
-				  "jwtPayload": {},
-				  "samlPayload": {},
-				  "tls": {} // files located in ./config/certs
-				}
+	              ...
+	              "jwtPayload": {},
+	              "samlPayload": {},
+	              "tls": {} // files located in ./config/certs
+	            }
 	          },
 	          "options": {
 			    "headers": {},
