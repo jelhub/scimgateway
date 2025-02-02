@@ -706,7 +706,7 @@ Example Entra ID (plugin-entra-id) using certificate secret:
 Example using general OAuth:  
 
 	"connection": {
-	  "baseUrls": ["endpointUrl"],
+	  "baseUrls": [<"endpointUrl">],
 	  "auth": {
 	    "type": "oauth",
 	    "options": {
