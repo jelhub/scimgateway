@@ -196,7 +196,8 @@ For Node.js (and also Bun), we might set the property `scimgateway_postinstall_s
 	}
 
 
-Each endpoint plugin needs a TypeScript file (.ts) and a configuration file (.json). **They both must have the same naming prefix**. For SAP Hana endpoint we have:  
+Each endpoint plugin needs a TypeScript file (.ts) and a configuration file (.json).  
+**They both must have the same naming prefix**. For SAP Hana endpoint we have:  
 >lib\plugin-saphana.ts  
 >config\plugin-saphana.json
 
@@ -410,7 +411,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 		"certificate": {
 		  "key": "key.pem",
 		  "cert": "cert.pem",
-		  "ca": null
+		  "ca": "ca.pem" // if several: "ca": ["ca1.pem", "ca2.pem"]
 		}  
   
 	Example of how to make a self signed certificate:  
@@ -1290,6 +1291,16 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.1.7
+
+[Fixed]
+
+- Using gateway certificate CA, the CA did not load correctly. It now also supports an array of multiple CAs.
+
+[Improved]  
+
+- Dependencies bump
 
 ### v5.1.6
 
