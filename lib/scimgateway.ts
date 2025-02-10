@@ -2290,14 +2290,20 @@ export class ScimGateway {
         hostname = 'localhost'
       }
       try {
-        // using fs.readFileSync() instead of Bun.file() for nodejs compability
+        // using fs.readFileSync() instead of Bun.file() for nodejs compatibility
         if (this.config.scimgateway?.certificate?.key && this.config.scimgateway?.certificate?.cert) {
           // TLS
           tls.key = this.config.scimgateway.certificate.key ? fs.readFileSync(this.config.scimgateway.certificate.key) : undefined
           tls.cert = this.config.scimgateway.certificate.cert ? fs.readFileSync(this.config.scimgateway.certificate.cert) : undefined
-          // loading tls.ca would require client certificates to be used
+          if (this.config.scimgateway?.certificate?.ca) {
+            if (Array.isArray(this.config.scimgateway.certificate.ca)) {
+              for (let i = 0; i < this.config.scimgateway.certificate.ca.length; i++) {
+                this.config.scimgateway.certificate.ca[i] = fs.readFileSync(this.config.scimgateway.certificate.ca[i])
+              }
+            } else tls.ca = fs.readFileSync(this.config.scimgateway.certificate.ca)
+          }
         } else if (this.config.scimgateway?.certificate?.pfx && this.config.scimgateway?.certificate?.pfx?.bundle) {
-          // TLS PFX / PKCS#12
+          // TODO: PFX/PKC#12 currently not supported by Bun
           tls.pfx = this.config.scimgateway.certificate.pfx.bundle ? fs.readFileSync(this.config.scimgateway.certificate.pfx.bundle) : undefined
           tls.passphrase = this.config.scimgateway.certificate.pfx.password ? utils.getSecret('scimgateway.certificate.pfx.password', this.configFile) : undefined
         }
@@ -2979,7 +2985,7 @@ Content-Transfer-Encoding: quoted-printable
 
       // certificate full path
       if (key.includes('.certificate.') || key.includes('.tls.')) {
-        if (key.endsWith('.key') || key.endsWith('.cert') || key.endsWith('.ca') || key.endsWith('.pfx.bundle')) {
+        if (key.endsWith('.key') || key.endsWith('.cert') || key.endsWith('.ca') || key.includes('.ca[') || key.endsWith('.pfx.bundle')) {
           let keyFile = path.join(this.configDir, '/certs/', dotConfig[key])
           if (dotConfig[key].startsWith('/') || dotConfig[key].includes('\\')) {
             keyFile = dotConfig[key]
