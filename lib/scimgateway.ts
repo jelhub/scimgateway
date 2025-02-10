@@ -2544,7 +2544,7 @@ export class ScimGateway {
         isMailLock = false
       }, (this.config.scimgateway.email.emailOnError.sendInterval || 15) * 1000 * 60)
 
-      const msgHtml = `<html><body><pre style="font-family: monospace; white-space: pre-wrap;">${msg}</pre><br/><p><strong>This is an automatically generated email - please do NOT reply to this email</strong></p></body></html>`
+      const msgHtml = `<html><body><pre style="font-family: monospace; white-space: pre-wrap;">${msg}</pre><br/><p>This is an automatically generated email - please do NOT reply to this email</p></body></html>`
       const msgObj = {
         from: this.config.scimgateway.email.emailOnError.from,
         to: this.config.scimgateway.email.emailOnError.to,
