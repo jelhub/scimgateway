@@ -190,8 +190,7 @@ For Node.js (and also Bun), we might set the property `scimgateway_postinstall_s
 	  try {
 	    await import(`./lib/plugin-${plugin}.ts`)
 	  } catch (err: any) {
-	    console.error(`plugin-${plugin} startup error: ${err.message}`)
-	    console.log()
+	    console.error(err)
 	  }
 	}
 

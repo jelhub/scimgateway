@@ -21,7 +21,6 @@ for (const plugin of plugins) {
   try {
     await import(`./lib/plugin-${plugin}.ts`)
   } catch (err: any) {
-    console.error(`plugin-${plugin} startup error: ${err.message}`)
-    console.log()
+    console.error(err)
   }
 }
