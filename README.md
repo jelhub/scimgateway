@@ -1291,6 +1291,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.1.8
+
+[Fixed]
+
+- plugin-ldap, dn that includes double underscore `__` not correctly handled
+
+
 ### v5.1.7
 
 [Fixed]
