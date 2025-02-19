@@ -978,9 +978,9 @@ const convertSidToString = (buf: any) => {
       const subAuthOffset = i * 4
       const tmp
         = pad(buf[11 + subAuthOffset].toString(16))
-        + pad(buf[10 + subAuthOffset].toString(16))
-        + pad(buf[9 + subAuthOffset].toString(16))
-        + pad(buf[8 + subAuthOffset].toString(16))
+          + pad(buf[10 + subAuthOffset].toString(16))
+          + pad(buf[9 + subAuthOffset].toString(16))
+          + pad(buf[8 + subAuthOffset].toString(16))
       sidString += `-${parseInt(tmp, 16)}`
     }
   } catch (err) {
@@ -1447,7 +1447,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
               if (obj.dn && obj.dn.indexOf('\\') > 0) {
                 // for OpenLDAP ensure dn is not hex escaped e.g.: cn=K\c3\bcrt => cn=Kürt
                 // because dn may be be used as value in standard attributes like group memberOf
-                obj.dn = obj.dn.replace(/\\\\/g, '__') // temp
+                obj.dn = obj.dn.replace(/\\\\/g, '\+\|\|_') // temp
                 let conv = obj.dn.replace(/\\([0-9A-Fa-f]{2})/g, (_: any, hex: any) => {
                   const intAscii = parseInt(hex, 16)
                   if (intAscii > 127) { // extended ascii - will be unescaped by decodeURIComponent
@@ -1456,7 +1456,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
                     return '\\' + String.fromCharCode(intAscii)
                   }
                 })
-                conv = conv.replace(/__/g, '\\\\')
+                conv = conv.replace(/\+\|\|_/g, '\\\\')
                 obj.dn = decodeURIComponent(conv)
               }
 
