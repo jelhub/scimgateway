@@ -56,7 +56,7 @@ const helper = new HelperRest(scimgateway)
 // =================================================
 scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   const action = 'getUsers'
-  scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
 
   const method = 'GET'
   let path
@@ -156,7 +156,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   const action = 'createUser'
-  scimgateway.logDebug(baseEntity, `handling "${action}" userObj=${JSON.stringify(userObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} userObj=${JSON.stringify(userObj)}`)
 
   if (!userObj.name) userObj.name = {}
   if (!userObj.emails) userObj.emails = { work: {} }
@@ -203,7 +203,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
 // =================================================
 scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   const action = 'deleteUser'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
 
   const method = 'DELETE'
   const path = `/Users/${id}`
@@ -225,7 +225,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyUser'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
   if (!attrObj.name) attrObj.name = {}
   if (!attrObj.emails) attrObj.emails = {}
@@ -308,7 +308,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 // =================================================
 scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   const action = 'getGroups'
-  scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
 
   const method = 'GET'
   let path
@@ -388,7 +388,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   const action = 'createGroup'
-  scimgateway.logDebug(baseEntity, `handling "${action}" groupObj=${JSON.stringify(groupObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)}`)
 
   const method = 'POST'
   const path = '/Groups'
@@ -410,7 +410,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 // =================================================
 scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
   const action = 'deleteGroup'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
 
   const method = 'DELETE'
   const path = `/Groups/${id}`
@@ -432,7 +432,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyGroup'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
   if (!attrObj.members) {
     throw new Error(`${action} error: only supports modification of members`)

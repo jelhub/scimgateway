@@ -60,7 +60,7 @@ const helper = new HelperRest(scimgateway)
 //
 scimgateway.postApi = async (baseEntity, apiObj, ctx) => {
   const action = 'postApi'
-  scimgateway.logDebug(baseEntity, `handling "${action}" apiObj=${JSON.stringify(apiObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} apiObj=${JSON.stringify(apiObj)}`)
 
   if ((typeof (apiObj) !== 'object') || (Object.keys(apiObj).length === 0)) {
     throw new Error('unsupported POST syntax')
@@ -88,7 +88,7 @@ scimgateway.postApi = async (baseEntity, apiObj, ctx) => {
 //
 scimgateway.putApi = async (baseEntity, id, apiObj, ctx) => {
   const action = 'putApi'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} apiObj=${JSON.stringify(apiObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} apiObj=${JSON.stringify(apiObj)}`)
 
   if ((typeof (apiObj) !== 'object') || (Object.keys(apiObj).length === 0)) {
     throw new Error('unsupported PUT syntax')
@@ -116,7 +116,7 @@ scimgateway.putApi = async (baseEntity, id, apiObj, ctx) => {
 //
 scimgateway.patchApi = async (baseEntity, id, apiObj, ctx) => {
   const action = 'patchApi'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} apiObj=${JSON.stringify(apiObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} apiObj=${JSON.stringify(apiObj)}`)
 
   if ((typeof (apiObj) !== 'object') || (Object.keys(apiObj).length === 0)) {
     throw new Error('unsupported PATCH syntax')
@@ -145,7 +145,7 @@ scimgateway.patchApi = async (baseEntity, id, apiObj, ctx) => {
 //
 scimgateway.getApi = async (baseEntity, id, apiQuery, apiObj, ctx) => {
   const action = 'getApi'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} apiQuery=${JSON.stringify(apiQuery)} apiObj=${JSON.stringify(apiObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} apiQuery=${JSON.stringify(apiQuery)} apiObj=${JSON.stringify(apiObj)}`)
 
   const method = 'GET'
   let path = '/products'
@@ -173,7 +173,7 @@ scimgateway.getApi = async (baseEntity, id, apiQuery, apiObj, ctx) => {
 //
 scimgateway.deleteApi = async (baseEntity, id, ctx) => {
   const action = 'deleteApi'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
 
   const method = 'DELETE'
   const path = `/products/${id}`

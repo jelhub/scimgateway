@@ -158,7 +158,7 @@ async function loadHandler(baseEntity: string, ctx: undefined | Record<string, a
 // =================================================
 scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   const action = 'getUsers'
-  scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -258,7 +258,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   const action = 'createUser'
-  scimgateway.logDebug(baseEntity, `handling "${action}" userObj=${JSON.stringify(userObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} userObj=${JSON.stringify(userObj)}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -307,7 +307,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
 // =================================================
 scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   const action = 'deleteUser'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -336,7 +336,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyUser'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -491,7 +491,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 // =================================================
 scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   const action = 'getGroups'
-  scimgateway.logDebug(baseEntity, `handling "${action}" getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -587,7 +587,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   const action = 'createGroup'
-  scimgateway.logDebug(baseEntity, `handling "${action}" groupObj=${JSON.stringify(groupObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -639,7 +639,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 // =================================================
 scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
   const action = 'deleteGroup'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -668,7 +668,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyGroup'
-  scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)}`)
 
   const clientIdentifier = await loadHandler(baseEntity, ctx) // includes Auth PassThrough logic and loaded only once
 
@@ -699,11 +699,11 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
         if (!el.value) {
           // members=[{"operation":"delete"}] => no value, delete all members
           await groups.updateOne({ id: groupObj.id }, { $set: { members: [] } })
-          scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} deleted all members`)
+          scimgateway.logDebug(baseEntity, `handling ${action} id=${id} deleted all members`)
           isModified = true
         } else {
           await groups.updateMany({ id: groupObj.id }, { $pull: { members: { value: el.value } } })
-          scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} deleted from group: ${el.value}`)
+          scimgateway.logDebug(baseEntity, `handling ${action} id=${id} deleted from group: ${el.value}`)
           isModified = true
         }
       } else { // Add member to group
@@ -717,7 +717,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
           if (usrs.length === 1 && usrs[0].id === el.value) {
             if (!groupObj.members.some((element: Record<string, any>) => element.value === el.value)) {
               await groups.updateMany({ id: groupObj.id }, { $push: { members: { display: usrs[0].displayName || el.value, value: el.value } } })
-              scimgateway.logDebug(baseEntity, `handling "${action}" id=${id} added member to group: ${el.value}`)
+              scimgateway.logDebug(baseEntity, `handling ${action} id=${id} added member to group: ${el.value}`)
               isModified = true
             }
           } else usersNotExist.push(el.value)
