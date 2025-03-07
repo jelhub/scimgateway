@@ -804,7 +804,7 @@ Example code using custom subscriber API for log collection and monitoring
 	    console.log('Now awaiting log events..\n')
 	
 	    while (true) {
-	      const { value, done } = await reader.read();
+	      const { value, done } = await reader.read()
 	      if (done) break;
 	      if (value.at(-1) !== '\n') continue
 	      const message = value.slice(0, -1)
