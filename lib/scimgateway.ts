@@ -14,7 +14,7 @@ import { type IncomingMessage, type ServerResponse } from 'node:http'
 import { createChecker } from 'is-in-subnet'
 import { BearerStrategy, type IBearerStrategyOptionWithRequest } from 'passport-azure-ad'
 import { fileURLToPath } from 'node:url'
-import { Log } from './logger.ts'
+import { Logger } from './logger.ts'
 import passport from 'passport'
 import dot from 'dot-object'
 import nodemailer from 'nodemailer'
@@ -356,10 +356,28 @@ export class ScimGateway {
       found = this.processConfig()
     } catch (err) { configErr = err }
 
-    const logger = new Log('info', this.config?.scimgateway?.log?.loglevel?.file, path.join(`${logDir}`, `${pluginName}.log`), pluginName, this.config?.scimgateway?.log?.customMasking)
+    const logger = new Logger(
+      pluginName,
+      {
+        type: 'console',
+        level: 'info', // will be set according to config during startup
+        customMasking: this.config?.scimgateway?.log?.customMasking,
+        colorize: this.config?.scimgateway?.log?.colorize,
+      },
+      {
+        type: 'file',
+        level: this.config?.scimgateway?.log?.loglevel?.file,
+        customMasking: this.config?.scimgateway?.log?.customMasking,
+        logDir,
+        logFileName: pluginName + '.log',
+        maxSize: this.config?.scimgateway?.log?.maxSize,
+        maxFiles: this.config?.scimgateway?.log?.maxFiles,
+      },
+    )
+
     if (configErr) {
       logger.error(`${gwName}[${pluginName}] ${configErr.message}`)
-      logger.error(`${gwName}[${pluginName}] stopping...\n`)
+      logger.error(`${gwName}[${pluginName}] stopping...`)
       throw (new Error('Using exception to stop further asynchronous code execution (ensure synchronous logger flush to logfile and exit program), please ignore this one...'))
     }
 
@@ -465,7 +483,7 @@ export class ScimGateway {
       getMethod: 'getAppRoles',
     }
     /** handlers supported url paths */
-    const handlers = ['users', 'groups', 'serviceplans', 'approles', 'api', 'schemas', 'serviceproviderconfig', 'serviceproviderconfigs']
+    const handlers = ['users', 'groups', 'serviceplans', 'approles', 'api', 'schemas', 'serviceproviderconfig', 'serviceproviderconfigs', 'logger']
 
     try {
       if (!fs.existsSync(configDir + '/wsdls')) fs.mkdirSync(configDir + '/wsdls')
@@ -551,18 +569,23 @@ export class ScimGateway {
       const [authType, authToken] = (ctx.request.headers.get('authorization') || '').split(' ') // [0] = 'Basic' or 'Bearer'
       if (authType === 'Basic') [userName] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
       if (!userName && authType === 'Bearer') userName = 'token'
+      let outbound = ctx.response.body
+      if (typeof outbound === 'string' && outbound.length > 1000) {
+        outbound = outbound.slice(0, 1000)
+        outbound += '...truncated because of length'
+      }
       if (ctx.response.status && (ctx.response.status < 200 || ctx.response.status > 299)) {
-        if (ctx.response.status === 404) logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${ctx.response.body}${(this.config.scimgateway.log.loglevel.file === 'debug' && ctx.request.url !== '/ping') ? '\n' : ''}`)
-        else logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${ctx.response.body}${(this.config.scimgateway.log.loglevel.file === 'debug' && ctx.request.url !== '/ping') ? '\n' : ''}`)
-      } else logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${ctx.response.status} ${userName} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${ctx.response.body}${(this.config.scimgateway.log.loglevel.file === 'debug' && ctx.request.url !== '/ping') ? '\n' : ''}`)
+        if (ctx.response.status === 404) logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
+        else logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
+      } else logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${ctx.response.status} ${userName} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
     }
 
     // start auth methods - used by auth
-    const basic = async (baseEntity: string, method: string, authType: string, authToken: string): Promise<boolean> => {
+    const basic = async (baseEntity: string, method: string, authType: string, authToken: string, path: string): Promise<boolean> => {
       return await new Promise((resolve, reject) => { // basic auth
         if (authType !== 'Basic') resolve(false)
         if (!found.Basic) resolve(false)
-        if (found.PassThrough && this.authPassThroughAllowed) resolve(false)
+        if (found.PassThrough && this.authPassThroughAllowed && !path.endsWith('/logger')) resolve(false) // Auth PassThrough browser logon dialog support
         const [userName, userPassword] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
         if (!userName || !userPassword) {
           return reject(new Error(`authentication failed for user ${userName}`))
@@ -718,8 +741,8 @@ export class ScimGateway {
       })
     }
 
-    const authPassThrough = async (baseEntity: string, method: string, authType: string, authToken: string): Promise<boolean> => {
-      if (!found.PassThrough || !this.authPassThroughAllowed) return false
+    const authPassThrough = async (baseEntity: string, method: string, authType: string, authToken: string, path: string): Promise<boolean> => {
+      if (!found.PassThrough || !this.authPassThroughAllowed || path.endsWith('/logger')) return false
       if (!authToken) return false
       if (authType === 'Basic') {
         const [userName, userPassword] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
@@ -741,12 +764,12 @@ export class ScimGateway {
       const [authType, authToken] = (ctx.request.headers.get('authorization') || '').split(' ') // [0] = 'Basic' or 'Bearer'
       try { // authenticate
         const arrResolve = await Promise.all([
-          basic(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
+          basic(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken, ctx.path),
           bearerToken(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           bearerJwtAzure(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           bearerJwt(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           bearerOAuth(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
-          authPassThrough(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
+          authPassThrough(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken, ctx.path),
         ])
           .catch((err) => { throw (err) })
         for (const i in arrResolve) {
@@ -823,6 +846,49 @@ export class ScimGateway {
       ctx.response.body = JSON.stringify(tx)
     }
     funcHandler.getHandlerServiceProviderConfig = getHandlerServiceProviderConfig
+
+    // getHandlerLogger implements SSE based online publisher for log events
+    const getHandlerLogger = async (ctx: Context) => {
+      const levelInt = logger.levelToInt(this.config?.scimgateway?.log?.loglevel?.push || 'info')
+      const encoder = new TextEncoder()
+
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode(`\u200B`))
+
+            const sub = async (msgObj: Record<string, any>) => {
+              if (logger.levelToInt(msgObj.level) < levelInt) return
+              controller.enqueue(encoder.encode(`${JSON.stringify(msgObj)}\n`))
+            }
+            logger.subscribe(sub)
+
+            const keepAliveInterval = setInterval(() => {
+              controller.enqueue(encoder.encode(`\u200B`)) // invisible keep-alive
+            }, 10000)
+
+            function cleanup() {
+              clearInterval(keepAliveInterval)
+              logger.unsubscribe(sub)
+              controller.close()
+            }
+
+            ctx.request.signal.onabort = cleanup // Bun
+            ctx.request?.raw?.socket?.on('close', cleanup) // Node detect when the client disconnects
+          },
+        }),
+        {
+          status: 200,
+          headers: {
+            'Connection': 'keep-alive',
+            'Content-Type': 'text/event-stream;charset=utf-8',
+            'Cache-Control': 'no-cache, no-transform',
+            'X-Accel-Buffering': 'no',
+            'Content-Encoding': 'identity',
+          },
+        },
+      )
+    }
 
     // oauth token request, POST /oauth/token
     const postHandlerOauthToken = async (ctx: Context) => {
@@ -968,12 +1034,12 @@ export class ScimGateway {
         value: id,
       }
 
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Get ${handle.description}s] ${getObj.attribute}=${getObj.value}`)
+      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Get ${handle.description}] ${getObj.attribute}=${getObj.value}`)
 
       try {
         const ob = utils.copyObj(getObj)
         const attributes = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" and awaiting result`)
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`)
         let res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
 
         let scimdata: { [key: string]: any } = {
@@ -1159,7 +1225,7 @@ export class ScimGateway {
 
       let info = ''
       if (getObj.operator === 'eq' && ['id', 'userName', 'externalId', 'displayName', 'members.value'].includes(getObj.attribute)) info = ` ${getObj.attribute}=${getObj.value}`
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Get ${handle.description}]${info}`)
+      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Get ${handle.description}s]${info}`)
       try {
         getObj.startIndex = ctx.query.startIndex ? parseInt(ctx.query.startIndex) : undefined
         getObj.count = ctx.query.count ? parseInt(ctx.query.count) : undefined
@@ -1195,7 +1261,7 @@ export class ScimGateway {
             }
             const chunk = 5
             const chunkRes: Record<string, any>[] = []
-            logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" with chunks and awaiting result`)
+            logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} with chunks and awaiting result`)
             do {
               const arrChunk = getObjArr.splice(0, chunk)
               const results = await Promise.allSettled(arrChunk.map(o => getObj(o))) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
@@ -1214,7 +1280,7 @@ export class ScimGateway {
         }
 
         if (!res) { // standard
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" and awaiting result`)
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`)
           res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
         }
         // check for user attribute groups and include if needed
@@ -1331,7 +1397,7 @@ export class ScimGateway {
             delete scimdata.groups
           }
         }
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.createMethod}" and awaiting result`)
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.createMethod} and awaiting result`)
         const res = await (this as any)[handle.createMethod](baseEntity, scimdata, ctx.passThrough)
         for (const key in res) { // merge any result e.g: {'id': 'xxxx'}
           jsonBody[key] = res[key]
@@ -1435,7 +1501,7 @@ export class ScimGateway {
             })) // result not handled - ignore any failures
           }
         }
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.deleteMethod}" and awaiting result`)
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.deleteMethod} and awaiting result`)
         await (this as any)[handle.deleteMethod](baseEntity, id, ctx.passThrough)
         ctx.response.status = 204
       } catch (err: any) {
@@ -1507,7 +1573,7 @@ export class ScimGateway {
         if (Array.isArray(scimdata.members) && scimdata.members.length === 0 && handle.modifyMethod === 'modifyGroup') {
           res = await replaceUsrGrp(ctx.routeObj.handle, baseEntity, id, scimdata, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough)
         } else {
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.modifyMethod}" and awaiting result`)
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.modifyMethod} and awaiting result`)
           res = await (this as any)[handle.modifyMethod](baseEntity, id, scimdata, ctx.passThrough)
         }
 
@@ -1533,7 +1599,7 @@ export class ScimGateway {
           }
           const ob = { attribute: 'id', operator: 'eq', value: id }
           const attributes = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "${handle.getMethod}" and awaiting result`)
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`)
           res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
         }
 
@@ -1581,7 +1647,7 @@ export class ScimGateway {
       id = decodeURIComponent(id)
 
       // get current object
-      logger.debug(`${gwName}[${pluginName}][${baseEntity}] calling "${handle.getMethod}" and awaiting result`)
+      logger.debug(`${gwName}[${pluginName}][${baseEntity}] calling ${handle.getMethod} and awaiting result`)
       const res = await (this as any)[handle.getMethod](baseEntity, { attribute: 'id', operator: 'eq', value: id }, [], ctxPassThrough)
       logger.debug(`${gwName}[${pluginName}][${baseEntity}] "${handle.getMethod}" result: ${res ? JSON.stringify(res) : ''}`)
       let currentObj
@@ -1624,7 +1690,7 @@ export class ScimGateway {
 
       // update object
       if (Object.keys(scimdata).length > 0) {
-        logger.debug(`${gwName}[${pluginName}][${baseEntity}] calling "${handle.modifyMethod}" and awaiting result`)
+        logger.debug(`${gwName}[${pluginName}][${baseEntity}] calling ${handle.modifyMethod} and awaiting result`)
         await (this as any)[handle.modifyMethod](baseEntity, id, scimdata, ctxPassThrough)
       }
 
@@ -1761,7 +1827,7 @@ export class ScimGateway {
         return
       }
       try {
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "postApi" and awaiting result`)
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling postApi and awaiting result`)
         let result = await this.postApi(baseEntity, obj, ctx.passThrough)
         if (result) {
           if (typeof result === 'object') result = { result: result }
@@ -1813,7 +1879,7 @@ export class ScimGateway {
       }
 
       try {
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "putApi" and awaiting result`)
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling putApi and awaiting result`)
         let result = await this.putApi(baseEntity, id, obj, ctx.passThrough)
         if (result) {
           if (typeof result === 'object') result = { result }
@@ -1863,7 +1929,7 @@ export class ScimGateway {
         return
       } else {
         try {
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "patchApi" and awaiting result`)
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling patchApi and awaiting result`)
           let result = await this.patchApi(baseEntity, id, body, ctx.passThrough)
           if (result) {
             if (typeof result === 'object') result = { result }
@@ -1908,7 +1974,7 @@ export class ScimGateway {
       else logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [GET ${handle}]`)
 
       try {
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "getApi" and awaiting result`)
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling getApi and awaiting result`)
         let result = await this.getApi(baseEntity, id, ctx.query, body, ctx.passThrough)
         if (result) {
           if (typeof result === 'object') result = { result }
@@ -1946,7 +2012,7 @@ export class ScimGateway {
       logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [DELETE ${ctx.routeObj.handle} ] id=${id}`)
       try {
         if (!id || id.includes('/')) throw new Error('missing id')
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling "deleteApi" and awaiting result`)
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling deleteApi and awaiting result`)
         let result = await this.deleteApi(baseEntity, id, ctx.passThrough)
         if (result) {
           if (typeof result === 'object') result = { result: result }
@@ -1988,7 +2054,7 @@ export class ScimGateway {
       try {
         const ob = { attribute: 'members.value', operator: 'eq', value: decodeURIComponent(id) }
         const attributes = ['id', 'displayName']
-        logger.debug(`${gwName}[${pluginName}][${baseEntity}] calling "${handler.groups.getMethod}" and awaiting result - groups to be included`)
+        logger.debug(`${gwName}[${pluginName}][${baseEntity}] calling ${handler.groups.getMethod} and awaiting result - groups to be included`)
         res = await (this as any)[handler.groups.getMethod](baseEntity, ob, attributes, ctxPassThrough)
       } catch (err) { void 0 }
       if (res && res.Resources && Array.isArray(res.Resources) && res.Resources.length > 0) {
@@ -2021,6 +2087,8 @@ export class ScimGateway {
       request: {
         method: string
         url: string
+        signal: AbortSignal
+        raw?: IncomingMessage
         headers: Headers
         body: any
       }
@@ -2087,7 +2155,7 @@ export class ScimGateway {
       return null
     }
 
-    const onBeforeHandle = async (request: Request, directIp: string): Promise<Context> => {
+    const onBeforeHandle = async (request: Request & { raw: IncomingMessage }, directIp: string): Promise<Context> => {
       const method = request.method
       const url = new URL(request.url)
 
@@ -2127,6 +2195,8 @@ export class ScimGateway {
         request: { // not using request as-is becuase body is stream and read once
           method: request.method,
           url: request.url,
+          signal: request.signal,
+          raw: request.raw,
           headers: request.headers,
           body: body,
         },
@@ -2316,7 +2386,7 @@ export class ScimGateway {
       const isPublisherEnabled = this.config.scimgateway.stream.publisher.enabled
       const isChainingEnabled = this.config.scimgateway.chainingBaseUrl
 
-      async function route(req: Request, ip: string): Promise<Response> {
+      async function route(req: Request & { raw: IncomingMessage }, ip: string): Promise<Response> {
         const ctx = await onBeforeHandle(req, ip)
         if (ctx.response.status) { // 401/Unauthorized - 404/NOT_FOUND
           return await onAfterHandle(ctx)
@@ -2348,6 +2418,8 @@ export class ScimGateway {
           case 'GET serviceproviderconfigs':
             await getHandlerServiceProviderConfig(ctx)
             return await onAfterHandle(ctx)
+          case 'GET logger':
+            return await getHandlerLogger(ctx) // no onAfterHandle
           case 'PATCH users':
           case 'PATCH groups':
             await patchHandler(ctx)
@@ -2386,13 +2458,15 @@ export class ScimGateway {
       if (typeof Bun !== 'undefined') {
         // this code will only run when the file is run with Bun
         if (tls.pfx && !tls.key) throw new Error('pfx is not supported for Bun')
+        let idleTimeout = this.config.scimgateway.idleTimeout || 120
+        if (idleTimeout < 10) idleTimeout = 10
         server = Bun.serve({
           port: this.config.scimgateway.port,
           reusePort: false,
-          idleTimeout: this.config.scimgateway.idleTimeout || 120,
+          idleTimeout,
           hostname, // hostname === 'localhost' ? hostname : undefined, // bun defaults to '0.0.0.0', but using '0.0.0.0.' or other ip like '127.0.0.1' becomes extremly slow - bun bug
           tls,
-          async fetch(req, srv) {
+          async fetch(req: Request & { raw: IncomingMessage }, srv) {
             // start route processing and return response
             return await route(req, srv.requestIP(req)?.address || '')
           },
@@ -2416,7 +2490,7 @@ export class ScimGateway {
         }
 
         // convert ReadableStream to string or Buffer
-        async function streamToString(stream: any) {
+        async function streamToString(stream: any): Promise<string> {
           const reader = stream.getReader()
           const decoder = new TextDecoder()
           let result = ''
@@ -2428,6 +2502,18 @@ export class ScimGateway {
           return result
         }
 
+        async function handleSSEStream(stream: ReadableStream | null, onMessage: (msg: string) => void) {
+          if (!stream) return
+          const reader = stream.getReader()
+          const decoder = new TextDecoder()
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            const chunck = decoder.decode(value, { stream: true })
+            onMessage(chunck)
+          }
+        }
+
         // use Fetch API like Bun, start common route() and return a nodejs (http.createServer) formatted response
         async function doFetchApi(req: IncomingMessage, res: ServerResponse) {
           // @ts-expect-error ignore the TypeScript error about 'encrypted' not existing on 'Socket'
@@ -2437,13 +2523,14 @@ export class ScimGateway {
             const requestBody = await getRequestBody(req)
             const body = ['GET', 'HEAD'].includes(req.method as string) ? undefined : requestBody.length > 0 ? requestBody : undefined
             // TODO fix below hardcoding
-            const request = new Request(new URL(req.url ?? '', `${protocol}://${req.headers.host}`), {
+            let request = new Request(new URL(req.url ?? '', `${protocol}://${req.headers.host}`), {
               method: req.method,
               headers: new Headers(req.headers as any),
               body: body,
               // @ts-expect-error duplex not defined in RequestInit interface
               duplex: body ? 'half' : undefined,
-            })
+            }) as Request & { raw: IncomingMessage }
+            request.raw = req
 
             // start route processing and retrieve response
             const response = await route(request, req.socket.remoteAddress || '')
@@ -2462,14 +2549,16 @@ export class ScimGateway {
             }
             res.writeHead(response.status as any, headers) // Set headers and status
 
-            if (response.body) {
-              if (response.body instanceof ReadableStream) {
+            if (response.body && response.body instanceof ReadableStream) {
+              if (response.headers.get('content-type')?.includes('text/event-stream')) {
+                handleSSEStream(response.body, (msg) => {
+                  res.write(msg)
+                })
+              } else {
                 const bodyText = await streamToString(response.body)
                 res.end(bodyText)
-              } else {
-                res.end(response.body)
               }
-            } else res.end()
+            }
           } catch (err: any) {
             logger.error(`${gwName} internal error: ${err.message}`)
             res.writeHead(500, { 'Content-Type': 'text/plain' })
@@ -2502,8 +2591,8 @@ export class ScimGateway {
         }
         server.listen(this.config.scimgateway.port, hostname)
       }
-      logger.info(`${gwName}[${pluginName}] now listening SCIM ${this.config.scimgateway.scim.version}${tls.key || tls.pfx ? ' TLS' : ''} at ${hostname || '0.0.0.0'}:${this.config.scimgateway.port}...${this.config.scimgateway.stream.subscriber.enabled || this.config.scimgateway.chainingBaseUrl ? '' : '\n'}`)
-      if (this.config.scimgateway.chainingBaseUrl) logger.info(`${gwName}[${pluginName}] using remote gateway ${this.config.scimgateway.chainingBaseUrl}\n`)
+      logger.info(`${gwName}[${pluginName}] now listening SCIM ${this.config.scimgateway.scim.version}${tls.key || tls.pfx ? ' TLS' : ''} at ${hostname || '0.0.0.0'}:${this.config.scimgateway.port}...`)
+      if (this.config.scimgateway.chainingBaseUrl) logger.info(`${gwName}[${pluginName}] using remote gateway ${this.config.scimgateway.chainingBaseUrl}`)
     }
 
     // starting SCIM Stream subscribers
@@ -2536,24 +2625,28 @@ export class ScimGateway {
 
     logger.setLoglevelConsole(this.config?.scimgateway?.log?.loglevel?.console) // revert temporary info console loglevel, use config
 
-    logger.setEmailOnError(async (msg: string) => { // logger sending email on error
-      if (!(this.config.scimgateway.email.emailOnError.enabled === true) || isMailLock) return null // not sending mail
-      isMailLock = true
+    if (this.config.scimgateway.email.emailOnError.enabled === true) {
+      logger.subscribe(async (msgObj: Record<string, any>) => { // emailOnError
+        if (msgObj.level !== 'error') return
+        if (isMailLock) return null // not sending new mail until lock released
+        isMailLock = true
 
-      setTimeout(function () { // release lock after "sendInterval" minutes
-        isMailLock = false
-      }, (this.config.scimgateway.email.emailOnError.sendInterval || 15) * 1000 * 60)
+        setTimeout(function () { // release lock after "sendInterval" minutes
+          isMailLock = false
+        }, (this.config.scimgateway.email.emailOnError.sendInterval || 15) * 1000 * 60)
 
-      const msgHtml = `<html><body><pre style="font-family: monospace; white-space: pre-wrap;">${msg}</pre><br/><p>This is an automatically generated email - please do NOT reply to this email</p></body></html>`
-      const msgObj = {
-        from: this.config.scimgateway.email.emailOnError.from,
-        to: this.config.scimgateway.email.emailOnError.to,
-        cc: this.config.scimgateway.email.emailOnError.cc,
-        subject: this.config.scimgateway.email.emailOnError.subject || 'SCIM Gateway error message',
-        content: msgHtml,
-      }
-      this.sendMail(msgObj, true)
-    })
+        const msgHtml = `<html><body><pre style="font-family: monospace; white-space: pre-wrap;">${JSON.stringify(msgObj)}</pre><br/><p>This is an automatically generated email - please do NOT reply to this email</p></body></html>`
+        const eObj = {
+          from: this.config.scimgateway.email.emailOnError.from,
+          to: this.config.scimgateway.email.emailOnError.to,
+          cc: this.config.scimgateway.email.emailOnError.cc,
+          subject: this.config.scimgateway.email.emailOnError.subject || 'SCIM Gateway error message',
+          content: msgHtml,
+        }
+        this.sendMail(eObj, true)
+        logger.debug(`${gwName}[${pluginName}] emailOnError sent to: ${eObj.to} cc: ${eObj.cc}`)
+      })
+    }
 
     const gracefulShutdown = async function () {
       if (server) {
