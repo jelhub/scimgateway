@@ -536,7 +536,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
         if (key.startsWith('lastLogon') && !isNaN(dotParse[key])) { // Active Directory date convert e.g. 132340394347050132 => "2020-05-15 20:03:54"
           const ll = new Date(parseInt(dotParse[key], 10) / 10000 - 11644473600000)
           dotParse[key] = ll.getFullYear() + '-'
-          + ('00' + (ll.getMonth() + 1)).slice(-2) + '-'
+          + ('00' + (ll.getMonth() + 1)).slice(-2) + '-' // eslint-disable-line
           + ('00' + ll.getDate()).slice(-2) + ' '
           + ('00' + (ll.getHours())).slice(-2) + ':'
           + ('00' + ll.getMinutes()).slice(-2) + ':'
