@@ -746,89 +746,89 @@ We may subscribe for online log events using `GET /logger` e.g.:
 We may configure read-only user/secret for log collection purpose    
 
 	"auth": {
-		"basic": [
-			{
-				"username": "gwadmin",
-				"password": "password",
-				"readOnly": false,
-				"baseEntities": []
-			},
-			{
-				"username": "gwread",
-				"password": "password",
-				"readOnly": true,
-				"baseEntities": []
-			}
-		],
-		"bearerToken": [
-			{
-				"token": "secret",
-				"readOnly": true,
-				"baseEntities": []
-			}
-		],
-		...
+	  "basic": [
+	    {
+	      "username": "gwadmin",
+	      "password": "password",
+	      "readOnly": false,
+	      "baseEntities": []
+	    },
+	    {
+	      "username": "gwread",
+	      "password": "password",
+	      "readOnly": true,
+	      "baseEntities": []
+	    }
+	  ],
+	  "bearerToken": [
+	    {
+	      "token": "secret",
+	      "readOnly": true,
+	      "baseEntities": []
+	    }
+	  ],
+	  ...
 	}
 
 push logger using default `info` log level  
 push log level may be customized by configuration  
 
 	"log": {
-		"loglevel": {
-			"push": "debug"
-		}
+	  "loglevel": {
+	    "push": "debug"
+	  }
 	}
 
 Example code using custom subscriber API for log collection and monitoring    
 
 	let headers = new Headers()
 	headers.append('Authorization', 'Basic ' + btoa('gwadmin' + ':' + 'password'))
-
+	
 	// message handling and custom logic
 	// we could also do JSON.parse(message) and granular filtering on log "level"
 	const messageHandler = async (message: string) => {
-		console.log(message)
+	  console.log(message)
 	}
-
+	
 	let ignoreCatch = false
 	do { // retry loop when connection closed or service unavailable
-		if (ignoreCatch) ignoreCatch = false
-
-		try {
-			const resp = await fetch("http://localhost:8880/logger", {
-				method: "GET",
-				headers: headers,
-			})
-
-			const reader = resp.body.pipeThrough(new TextDecoderStream()).getReader()
-			console.log('Now awaiting log events..\n')
-
-			while (true) {
-				const { value, done } = await reader.read();
-				if (done) break;
-				if (value.at(-1) !== '\n') continue
-				const message = value.slice(0, -1)
-				await messageHandler(message)
-			}
-
-			// shouldn't be here... authentication failure?
-			const e = {
-				url: resp.url,
-				status: resp.status,
-				statusText: resp.statusText
-			}
-			console.error('error', e)
-
-		} catch (err: any) {
-			if (['ConnectionClosed', 'ConnectionRefused'].includes(err.code)) {
-				console.log('Connection closed or service unavailable')
-				ignoreCatch = true
-				await Bun.sleep(10 * 1000)
-			} else console.error(err)
-		}
-
+	  if (ignoreCatch) ignoreCatch = false
+	
+	  try {
+	    const resp = await fetch("http://localhost:8880/logger", {
+	      method: "GET",
+	      headers: headers,
+	    })
+	
+	    const reader = resp.body.pipeThrough(new TextDecoderStream()).getReader()
+	    console.log('Now awaiting log events..\n')
+	
+	    while (true) {
+	      const { value, done } = await reader.read();
+	      if (done) break;
+	      if (value.at(-1) !== '\n') continue
+	      const message = value.slice(0, -1)
+	      await messageHandler(message)
+	    }
+	
+	    // shouldn't be here... authentication failure?
+	    const e = {
+ 	     url: resp.url,
+	      status: resp.status,
+	      statusText: resp.statusText
+	    }
+	    console.error('error', e)
+	
+	  } catch (err: any) {
+	    if (['ConnectionClosed', 'ConnectionRefused'].includes(err.code)) {
+	      console.log('Connection closed or service unavailable')
+	      ignoreCatch = true
+	      await Bun.sleep(10 * 1000)
+	    } else console.error(err)
+	  }
+	
 	} while (ignoreCatch)
-
+	
 	console.log('\n\ndone!')
 
 ## Manual startup    
