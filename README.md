@@ -16,6 +16,11 @@ Validated through IdP's:
 
 Latest news:  
 
+- Centralized logging and monitoring through online log subscription    
+using browser and url: https://host/logger  
+curl -N https://host/logger -u gwread:password  
+curl -N https://host/logger -H "Authorization: Bearer secret"  
+custom client API, see configuration notes  
 - By configuring the chainingBaseUrl, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway beave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
 - Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlBearer, oauthJwtBearer and Auth PassTrough 
 - Major version **v5.0.0** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
@@ -128,9 +133,12 @@ If internet connection is blocked, we could install on another machine and copy 
 	http://localhost:8880/ping
 	=> Health check with a "hello" response
 
-	http://localhost:8880/Users  
-	http://localhost:8880/Groups 
+	http://localhost:8880/Users
+	http://localhost:8880/Groups
 	=> Logon using gwadmin/password and two users and groups should be listed  
+
+	Start a new browser for log monitoring (info level)
+	using url: http://localhost:8880/logger
 
 	http://localhost:8880/Users/bjensen
 	http://localhost:8880/Groups/Admins
@@ -139,12 +147,12 @@ If internet connection is blocked, we could install on another machine and copy 
 	http://localhost:8880/Groups?filter=displayName eq "Admins"
 	=> Lists all attributes for specified user/group
 
-    http://localhost:8880/Groups?filter=displayName eq "Admins"&excludedAttributes=members
-    http://localhost:8880/Groups?filter=members.value eq "bjensen"&attributes=id,displayName,members.value
-    http://localhost:8880/Users?filter=userName eq "bjensen"&attributes=userName,id,name.givenName
-    http://localhost:8880/Users?filter=meta.created ge "2010-01-01T00:00:00Z"&attributes=userName,name.familyName,meta.created
-    http://localhost:8880/Users?filter=emails.value co "@example.com"&attributes=userName,name.familyName,emails&sortBy=name.familyName&sortOrder=descending
-    => Filtering and attribute examples
+	http://localhost:8880/Groups?filter=displayName eq "Admins"&excludedAttributes=members
+	http://localhost:8880/Groups?filter=members.value eq "bjensen"&attributes=id,displayName,members.value
+	http://localhost:8880/Users?filter=userName eq "bjensen"&attributes=userName,id,name.givenName
+	http://localhost:8880/Users?filter=meta.created ge "2010-01-01T00:00:00Z"&attributes=userName,name.familyName,meta.created
+	http://localhost:8880/Users?filter=emails.value co "@example.com"&attributes=userName,name.familyName,emails&sortBy=name.familyName&sortOrder=descending
+	=> Filtering and attribute examples
 
 	"Ctrl + c" to stop the SCIM Gateway
 
@@ -382,11 +390,19 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If set to `true`, only PUT body content will be replaced. Any additional existing user attributes and groups supported by plugin will remain as-is.
 
-- **log.loglevel.file** - off, error, info, or debug. Output to plugin-logfile e.g. `logs\plugin-saphana.log`
+- **log.loglevel.file** - off, debug, info, warn or error. Default off. Output to plugin-logfile e.g. `logs\plugin-saphana.log`
 
-- **log.loglevel.console** - off, error, info, or debug. Output to stdout and errors to stderr.
+- **log.loglevel.console** - off, debug, info, warn or error. Default off. Output to stdout and errors to stderr
+
+- **log.loglevel.push** - off, debug, info, warn or error. Default info. Push to stream that can be used by client subscriber
 
 - **log.customMasking** - array of attributes to be masked e.g. `"customMasking": ["SSN", "weight"]`. By default SCIM Gateway includes masking of some standard attributes like password.
+
+- **log.colorize** - default true, gives colorized and minimized console output, if redirected to stdout/stderr standard JSON formatted output and no colors. Set to false give standard JSON 
+
+- **log.maxSize** - default 20 (MB) log file size
+
+- **log.maxFiles** - default 5, keep only the last 5 logs - note, new and rotated file on startup
 
 - **auth** - Contains one or more authentication/authorization methods used by clients for accessing gateway - may also include:
   - **auth.xx.readOnly** - true/false, true gives read only access - only allowing `GET` requests for corresponding admin user
@@ -719,6 +735,101 @@ Example using general OAuth:
 
 Please see code editor method HelperRest doRequest() IntelliSense for type and option details
 
+### Configuration notes - Centralized logging and monitoring
+We may subscribe for online log events using `GET /logger` e.g.: 
+
+- using browser and url: https://host/logger  
+- curl -N https://host/logger -u gwread:password  
+- curl -N https://host/logger -H "Authorization: Bearer secret"  
+- custom client API
+
+We may configure read-only user/secret for log collection purpose    
+
+	"auth": {
+		"basic": [
+			{
+				"username": "gwadmin",
+				"password": "password",
+				"readOnly": false,
+				"baseEntities": []
+			},
+			{
+				"username": "gwread",
+				"password": "password",
+				"readOnly": true,
+				"baseEntities": []
+			}
+		],
+		"bearerToken": [
+			{
+				"token": "secret",
+				"readOnly": true,
+				"baseEntities": []
+			}
+		],
+		...
+	}
+
+push logger using default `info` log level  
+push log level may be customized by configuration  
+
+	"log": {
+		"loglevel": {
+			"push": "debug"
+		}
+	}
+
+Example code using custom subscriber API for log collection and monitoring    
+
+	let headers = new Headers()
+	headers.append('Authorization', 'Basic ' + btoa('gwadmin' + ':' + 'password'))
+
+	// message handling and custom logic
+	// we could also do JSON.parse(message) and granular filtering on log "level"
+	const messageHandler = async (message: string) => {
+		console.log(message)
+	}
+
+	let ignoreCatch = false
+	do { // retry loop when connection closed or service unavailable
+		if (ignoreCatch) ignoreCatch = false
+
+		try {
+			const resp = await fetch("http://localhost:8880/logger", {
+				method: "GET",
+				headers: headers,
+			})
+
+			const reader = resp.body.pipeThrough(new TextDecoderStream()).getReader()
+			console.log('Now awaiting log events..\n')
+
+			while (true) {
+				const { value, done } = await reader.read();
+				if (done) break;
+				if (value.at(-1) !== '\n') continue
+				const message = value.slice(0, -1)
+				await messageHandler(message)
+			}
+
+			// shouldn't be here... authentication failure?
+			const e = {
+				url: resp.url,
+				status: resp.status,
+				statusText: resp.statusText
+			}
+			console.error('error', e)
+
+		} catch (err: any) {
+			if (['ConnectionClosed', 'ConnectionRefused'].includes(err.code)) {
+				console.log('Connection closed or service unavailable')
+				ignoreCatch = true
+				await Bun.sleep(10 * 1000)
+			} else console.error(err)
+		}
+
+	} while (ignoreCatch)
+
+	console.log('\n\ndone!')
 
 ## Manual startup    
 
@@ -1290,6 +1401,21 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.2.0
+
+[Improved]
+
+- Logger have been redesigned
+
+	Supports console, file and push (client subscriber) logging  
+	Centralized logging and monitoring through online log subscription, see configuration notes  
+	JSON formatted log messages  
+	UTC (Coordinated Universal Time)  
+	File logging will rotate on startup  
+	File logging now includes configuration options for maxFiles and maxSize  
+	Console using default colorized and minimized output, if redirected to stdout/stderr standard JSON will be used and no color encoding  
+
 
 ### v5.1.8
 
