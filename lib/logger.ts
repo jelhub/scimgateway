@@ -1,198 +1,326 @@
 // ==============================================================
-// File:    logger.js
+// File:    logger.ts
 //
 // Author:  Jarle Elshaug
 // ==============================================================
 
-import winston, { Logger } from 'winston' // level: silly=0, debug=1, verbose=2, info=3, warn=4, error=5
+import { existsSync, renameSync, readdirSync, unlinkSync, mkdirSync, createWriteStream } from 'node:fs'
+import { join } from 'node:path'
+import diagnostics_channel from 'node:diagnostics_channel'
 
-// Wrong time if not setting timestamp. Timezone did not work.
-// moment-timezone is also an alternative to the timestamp() function.
-const timestamp = () => {
-  const pad = (n: number) => { return n < 10 ? '0' + n : n }
-  const d = new Date()
-  return d.getFullYear() + '-'
-    + pad(d.getMonth() + 1) + '-'
-    + pad(d.getDate()) + 'T'
-    + pad(d.getHours()) + ':'
-    + pad(d.getMinutes()) + ':'
-    + pad(d.getSeconds()) + '.'
-    + pad(d.getMilliseconds())
+let LOG_DIR = './logs'
+let LOG_FILE_PREFIX = 'app'
+let LOG_FILE_SUFFIX = 'log'
+let LOG_FILE_NAME = LOG_FILE_PREFIX + '.' + LOG_FILE_SUFFIX
+let LOG_FILE = LOG_DIR + '/' + LOG_FILE_NAME
+let MAX_LOG_SIZE = 20 * 1024 * 1024 // 20 MB max file size
+let MAX_LOG_FILES = 5 // keep only the last 5 logs - note, new and rotated file on startup
+const HIGH_WATER_MARK = 16 * 1024 // 16KB buffer size before auto-flushing
+
+// Node does not support "export enum LogLevel"
+// instead using LogLevel as object and the type "LogLevel"
+export const LogLevel = {
+  Off: 0,
+  Debug: 1,
+  Info: 2,
+  Warn: 3,
+  Error: 4,
+}
+type LogLevel = typeof LogLevel[keyof typeof LogLevel]
+
+// mapping log levels to their severity
+const LEVEL_TO_INT: Record<string, LogLevel> = {
+  off: LogLevel.Off,
+  debug: LogLevel.Debug,
+  info: LogLevel.Info,
+  warn: LogLevel.Warn,
+  error: LogLevel.Error,
 }
 
-export class Log {
-  private logger: Logger
-  private emailOnError: any
+const COLORS: Record<string, string> = {
+  reset: '\x1b[0m', // Reset color
+  debug: '\x1b[90m', // Gray
+  info: '\x1b[32m', // Green
+  warn: '\x1b[33m', // Yellow
+  error: '\x1b[31m', // Red
+}
+
+interface LoggerOptions {
+  type: 'console' | 'file'
+  level: 'off' | 'debug' | 'info' | 'warn' | 'error'
+  category?: string
+  customMasking?: string[]
+  logFileName?: string
+  logDir?: string
+  maxSize?: number
+  maxFiles?: number
+  colorize?: boolean
+}
+
+export class Logger {
+  private logStream: any // either Bun's FileSink or Node's WriteStream
+  private logChannel: diagnostics_channel.Channel
   private category: string
-  private transports: any[]
-  private reJson: string = ''
-  private reXml: string = ''
-  private arrValidLevel = ['off', 'silly', 'debug', 'verbose', 'info', 'warn', 'error']
+  private customMasking: string[] | undefined
+  private file: Record<string, any> | undefined
+  private console: Record<string, any> | undefined
+  private rotating = false
+  private buffer: string[] = []
+  private reJson: RegExp
+  private reXml: RegExp
+  private callbacks: Set<(message: any) => Promise<void>> = new Set()
 
-  private consoleFormat = winston.format.combine(
-    winston.format.colorize(),
-    winston.format.printf((info) => {
-      return `${timestamp()} ${this.category} ${info.level}: ${info.message}`
-    }),
-  )
-
-  private fileFormat = winston.format.combine(
-    winston.format.printf((info) => {
-      return `${timestamp()} ${info.level}: ${info.message}`
-    }),
-  )
-
-  private unColorize = () => {
-    return winston.format.combine(
-      this.consoleFormat,
-      winston.format.uncolorize(),
-    )
-  }
-
-  private maskSecret = winston.format((info: any) => {
-    // mask json secrets
-    let rePattern = new RegExp(this.reJson, 'i')
-    let msg: string = info.message
-    if (!msg) return info
-    let endPos = msg.length - 1
-    let found = false
-    do {
-      const arrMatches = msg.substring(0, endPos).match(rePattern)
-      if (Array.isArray(arrMatches) && arrMatches.length === 3) {
-        arrMatches[2] = arrMatches[2].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') // escaping special regexp characters
-        msg = msg.replace(new RegExp(arrMatches[2], 'g'), '********')
-        endPos = msg.indexOf('"********"') - 1
-        found = true
-      } else found = false
-    } while (found === true)
-
-    // mask xml/soap secrets
-    rePattern = new RegExp(this.reXml, 'i')
-    endPos = msg.length - 1
-    do {
-      const arrMatches = msg.substring(0, endPos).match(rePattern)
-      if (Array.isArray(arrMatches) && arrMatches.length === 3) {
-        arrMatches[2] = arrMatches[2].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
-        msg = msg.replace(new RegExp('>' + arrMatches[2] + '<', 'g'), '>********<')
-        endPos = msg.indexOf('>********<') - 1
-        found = true
-      } else found = false
-    } while (found === true)
-
-    if (info.level === 'error' && this.emailOnError) { // async promise without await
-      try { this.emailOnError(msg) } catch (err) { void 0 }
-    }
-    info.message = msg
-    return info
-  })
-
-  constructor(loglevelConsole: string, loglevelFile: string, logFile: string, category: string, customMasking?: string) { // { loglevel: { file: "debug", console: "debug" } }
+  constructor(category: string, ...options: LoggerOptions[]) {
+    if (!category) throw Error('Logger constructor missing mandatory category')
     this.category = category
+    for (const option of options) {
+      if (option.type === 'file') {
+        if (option.logDir) LOG_DIR = option.logDir
+        if (option.logFileName) LOG_FILE_NAME = option.logFileName
+        LOG_FILE = LOG_DIR + '/' + LOG_FILE_NAME
+        LOG_FILE_PREFIX = LOG_FILE_NAME.substring(0, LOG_FILE_NAME.lastIndexOf('.'))
+        LOG_FILE_SUFFIX = LOG_FILE_NAME.substring(LOG_FILE_NAME.lastIndexOf('.') + 1)
+
+        this.file = {
+          level: option.level || 'off',
+          logSize: 0,
+          maxSize: option.maxSize ? option.maxSize * 1024 * 1024 : MAX_LOG_SIZE,
+          maxFiles: option.maxFiles || MAX_LOG_FILES,
+        }
+      } else if (option.type === 'console') {
+        if (option.colorize === undefined) {
+          if (process.stdout.isTTY) option.colorize = true
+          else option.colorize = false // stdout/stderr redirect
+        }
+        this.console = { level: option.level, colorize: option.colorize }
+      }
+      if (option.customMasking) this.customMasking = option.customMasking
+    }
+
     let customMaskJson = ''
     let customMaskXml = ''
-    if (customMasking && Array.isArray(customMasking) && customMasking.length > 0) {
-      customMaskJson = customMasking.join('|')
+    if (this.customMasking && Array.isArray(this.customMasking) && this.customMasking.length > 0) {
+      customMaskJson = this.customMasking.join('|')
       customMaskJson = '|' + customMaskJson
-      customMaskXml = customMasking.join('"?|')
+      customMaskXml = this.customMasking.join('"?|')
       customMaskXml = '|' + customMaskXml + '"?'
     }
-    this.reJson = `^.*"(password|access_token|client_secret|assertion|client_assertion${customMaskJson})" ?: ?"([^"]+)".*`
-    this.reXml = `^.*(credentials"?|PasswordText"?|PasswordDigest"?|password"?${customMaskXml})>([^<]+)</.*`
+    this.reJson = new RegExp(
+      `("(password|access_token|client_secret|assertion|client_assertion|${customMaskJson})"\\s*:\\s*)"([^"]+)"`,
+      'gi',
+    )
+    this.reXml = new RegExp(
+      `(<(?:\\w+:)?(credentials"?|PasswordText"?|PasswordDigest"?|password"?|${customMaskXml})[^>]*>)([^<]+)(<\\/(:?\\w+:)?\\2>)`,
+      'gi',
+    )
 
-    const trans: any = [
-      new winston.transports.Console({ // note, console logging is synchronous e.g. node.js halts when console window is scrolled
-        level: (loglevelConsole && this.arrValidLevel.includes(loglevelConsole.toLowerCase())) ? loglevelConsole : 'debug',
-        handleExceptions: true,
-        stderrLevels: ['error'],
-        format: (process.stdout.isTTY) ? this.consoleFormat : this.unColorize(),
-        silent: (loglevelConsole && loglevelConsole === 'off') ? true : false,
-      }),
-    ]
-    if (loglevelFile && loglevelFile !== 'off' && logFile) {
-      trans.push(
-        new winston.transports.File({
-          level: (loglevelFile && this.arrValidLevel.includes(loglevelFile.toLowerCase())) ? loglevelFile : 'debug',
-          filename: logFile,
-          handleExceptions: true,
-          format: this.fileFormat,
-          maxsize: 1024 * 1024 * 20, // 20 MB
-          maxFiles: 5,
-        }),
-      )
+    this.logChannel = diagnostics_channel.channel(this.category)
+
+    if (this.file && LEVEL_TO_INT[this.file.level] > 0) {
+      if (!existsSync(LOG_DIR)) mkdirSync(LOG_DIR, { recursive: true })
+      else if (existsSync(LOG_FILE)) this.rotateExistingLog()
+      if (typeof Bun !== 'undefined') { // Bun
+        this.logStream = Bun.file(LOG_FILE).writer({ highWaterMark: HIGH_WATER_MARK })
+      } else { // Node.js
+        this.logStream = createWriteStream(LOG_FILE, { flags: 'a' })
+      }
+      this.subscribe(this.logToFile)
     }
-    if (!process.stdout.isTTY && loglevelConsole !== 'off') { // redirected stdout/stderr
-      trans.push(
-        new winston.transports.Stream({
-          stream: process.stdout,
-        }),
-      )
-      trans.push(
-        new winston.transports.Stream({
-          stream: process.stderr,
-        }),
-      )
+    if (this.console && LEVEL_TO_INT[this.console.level] > 0) {
+      this.subscribe(this.logToConsole)
     }
-
-    this.logger = winston.createLogger({
-      format: winston.format.combine(
-        this.maskSecret(),
-      ),
-      transports: trans,
-      exitOnError: false,
-    })
-    this.transports = this.logger.transports
-  } // constructor
-
-  silly(message: string): void {
-    this.logger.silly(message)
   }
 
-  debug(message: string): void {
-    this.logger.debug(message)
+  private maskSecret(msg: string): string {
+    if (!msg) return msg
+    // Mask JSON secrets
+    msg = msg.replace(
+      this.reJson,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      (_, keyValuePair, key) => `${keyValuePair}"********"`,
+    )
+    // Mask XML/Soap secrets
+    // console.log('XML matches found:', msg.match(this.reXml)
+    msg = msg.replace(
+      this.reXml,
+      (_, startTag, tagName, value, endTag) => `${startTag}********${endTag}`,
+    )
+
+    return msg
   }
 
-  info(message: string): void {
-    this.logger.info(message)
+  private async rotateExistingLog() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const archivedFile = `${LOG_DIR}/${LOG_FILE_PREFIX}-${timestamp}.${LOG_FILE_SUFFIX}`
+    renameSync(LOG_FILE, archivedFile)
+    this.cleanupOldLogs()
   }
 
-  warn(message: string): void {
-    this.logger.warn(message)
+  private async rotateLogs(isFlushRotate = false) {
+    if (!isFlushRotate && (this.rotating || !this.file)) return
+    this.rotating = true
+    try {
+      if (this.logStream) {
+        await this.logStream.end()
+      }
+      await this.rotateExistingLog()
+      if (typeof Bun !== 'undefined') {
+        this.logStream = Bun.file(LOG_FILE).writer({ highWaterMark: HIGH_WATER_MARK })
+      } else {
+        this.logStream = createWriteStream(LOG_FILE, { flags: 'a' })
+      }
+      this.flushBuffer()
+    } catch (error) {
+      console.error('Log rotation failed:', error)
+    } finally {
+      this.rotating = false
+    }
   }
 
-  error(message: string): void {
-    this.logger.error(message)
+  private cleanupOldLogs() {
+    if (!this.file) return
+    const logFiles = readdirSync(LOG_DIR)
+      .filter(file => file.startsWith(`${LOG_FILE_PREFIX}-`) && file.endsWith(`.${LOG_FILE_SUFFIX}`))
+      .sort((a, b) => b.localeCompare(a))
+
+    if (logFiles.length > this.file.maxFiles) {
+      logFiles.slice(this.file.maxFiles).forEach(file => unlinkSync(join(LOG_DIR, file)))
+    }
   }
 
-  setLoglevelConsole(loglevel: string): void {
-    if (!loglevel) return
-    if (!this.arrValidLevel.includes(loglevel.toLowerCase())) return
-    for (let i = 0; i < this.transports.length; i++) {
-      if (this.transports[i].name === 'console') {
-        if (loglevel === 'off') this.transports[i].silent = true
-        else this.transports[i].level = loglevel
-        break
+  private flushBuffer() {
+    let sizeWritten = 0
+    while (this.buffer.length > 0) {
+      const str = this.buffer.shift()
+      if (this.file && str) {
+        this.logStream.write(str)
+        sizeWritten += Buffer.byteLength(str, 'utf-8')
+        if (sizeWritten >= this.file.maxSize) break
       }
     }
-  }
-
-  setLoglevelFile(loglevel: string): void {
-    if (!loglevel) return
-    if (!this.arrValidLevel.includes(loglevel.toLowerCase())) return
-    for (let i = 0; i < this.transports.length; i++) {
-      if (this.transports[i].name === 'file') {
-        if (loglevel === 'off') this.transports[i].silent = true
-        else this.transports[i].level = loglevel
-        break
+    if (this.file) {
+      if (sizeWritten >= this.file.maxSize) {
+        this.rotateLogs(true)
       }
+      this.file.logSize = sizeWritten
     }
   }
 
-  setEmailOnError(fnx: any): void {
-    if (this.emailOnError) return
-    this.emailOnError = fnx
+  private logToFile = async (msgObj: Record<string, any>): Promise<boolean> => {
+    if (!this.file || !this.file.level || LEVEL_TO_INT[msgObj.level] < LEVEL_TO_INT[this.file.level] || LEVEL_TO_INT[this.file.level] === 0) return false
+    let logData = JSON.stringify(msgObj) + '\n'
+    if (this.rotating) {
+      this.buffer.push(logData)
+      return false
+    }
+    this.logStream.write(logData)
+    this.file.logSize += Buffer.byteLength(logData, 'utf-8')
+    // Rotate if max size reached
+    if (this.file.logSize >= this.file.maxSize) {
+      this.rotateLogs()
+    }
+    return true
   }
 
-  close(): void {
-    this.logger.close()
+  private logToConsole = async (msgObj: Record<string, any>): Promise<boolean> => {
+    if (!this.console || !this.console.level || LEVEL_TO_INT[msgObj.level] < LEVEL_TO_INT[this.console.level] || LEVEL_TO_INT[this.console.level] === 0) return false
+    let logData = ''
+    if (this.console.colorize) {
+      const color = COLORS[msgObj.level] || COLORS.reset
+      logData = `${msgObj.time} ${this.category} ${color}${msgObj.level}${COLORS.reset}: ${msgObj.message}\n`
+    } else logData = JSON.stringify(msgObj) + '\n'
+    if (LEVEL_TO_INT[msgObj.level] >= LEVEL_TO_INT['error']) {
+      if (typeof Bun !== 'undefined') Bun.write(Bun.stderr, logData)
+      else process.stderr.write(logData)
+    } else {
+      if (typeof Bun !== 'undefined') Bun.write(Bun.stdout, logData)
+      else process.stdout.write(logData)
+    }
+    return true
   }
-} // class
+
+  /**
+  * log message with log level
+  * @param level log level
+  * @param message the message that will be logged
+  */
+  private async log(level: 'debug' | 'info' | 'warn' | 'error', message: string) {
+    const time = new Date().toISOString()
+    message = this.maskSecret(message)
+    const msgObj: Record<string, any> = {
+      time,
+      category: this.category,
+      level,
+      message,
+    }
+    this.logChannel.publish(msgObj)
+  }
+
+  public debug(message: string) {
+    this.log('debug', message)
+  }
+
+  public info(message: string) {
+    this.log('info', message)
+  }
+
+  public warn(message: string) {
+    this.log('warn', message)
+  }
+
+  public error(message: string) {
+    this.log('error', message)
+  }
+
+  /**
+  * setLoglevelConsole set console log level
+  * @param level log level
+  */
+  public levelToInt(level: string): number {
+    return LEVEL_TO_INT[level] || LogLevel.Info
+  }
+
+  /**
+  * levelToInt returns the integer value of level
+  * @param level log level: "off", "debug",  "info", "warn" or "error"
+  */
+  public setLoglevelConsole(loglevel: string): void {
+    if (this?.console?.level) this.console.level = loglevel
+  }
+
+  /**
+  * setLoglevelFile set file log level
+  * @param level log level: "off", "debug",  "info", "warn" or "error"
+  */
+  public setLoglevelFile(loglevel: string): void {
+    if (this?.file?.level) this.file.level = loglevel
+  }
+
+  /**
+  * close will close all subscribtions and the logger
+  */
+  public async close() {
+    this.callbacks.forEach(callback => this.unsubscribe(callback))
+    if (this.logStream) {
+      await this.logStream.end()
+    }
+  }
+
+  /**
+   * subscribe sets a callback function to be called for subscribing to JSON log message
+   * @param callback callback function
+   */
+  public subscribe(callback: any) {
+    diagnostics_channel.subscribe(this.category, callback)
+    this.callbacks.add(callback)
+  }
+
+  /**
+   * unsubscribe from previous subscription callback
+   * @param callback callback function
+   */
+  public unsubscribe(callback: any) {
+    diagnostics_channel.unsubscribe(this.category, callback)
+    this.callbacks.delete(callback)
+  }
+}
