@@ -808,7 +808,7 @@ Example code using custom subscriber API for log collection and monitoring
 	      if (done) break;
 	      if (value.at(-1) !== '\n') continue
 	      const message = value.slice(0, -1)
-	      await messageHandler(message)
+	      messageHandler(message) // consider using await
 	    }
 	
 	    // shouldn't be here... authentication failure?
