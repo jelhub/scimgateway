@@ -15,11 +15,10 @@ Validated through IdP's:
 - SailPoint/IdentityNow  
 
 Latest news:  
-
-- Centralized logging and monitoring through online log subscription    
+ 
+- Remote real-time log subscription for monitoring and centralized logging  
 using browser and url: https://host/logger  
 curl -N https://host/logger -u gwread:password  
-curl -N https://host/logger -H "Authorization: Bearer secret"  
 custom client API, see configuration notes  
 - By configuring the chainingBaseUrl, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway beave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
 - Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlBearer, oauthJwtBearer and Auth PassTrough 
@@ -735,8 +734,8 @@ Example using general OAuth:
 
 Please see code editor method HelperRest doRequest() IntelliSense for type and option details
 
-### Configuration notes - Centralized logging and monitoring
-We may subscribe for online log events using `GET /logger` e.g.: 
+### Configuration notes - Remote real-time log subscription
+We may have monitoring and centralized logging through remote real-time log subscription
 
 - using browser and url: https://host/logger  
 - curl -N https://host/logger -u gwread:password  
@@ -808,7 +807,7 @@ Example code using custom subscriber API for log collection and monitoring
 	      if (done) break;
 	      if (value.at(-1) !== '\n') continue
 	      const message = value.slice(0, -1)
-	      messageHandler(message) // consider using await
+	      messageHandler(message)
 	    }
 	
 	    // shouldn't be here... authentication failure?
@@ -1409,12 +1408,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 - Logger have been redesigned
 
 	Supports console, file and push (client subscriber) logging  
-	Centralized logging and monitoring through online log subscription, see configuration notes  
+	Remote real-time log subscription, see configuration notes  
 	JSON formatted log messages  
 	UTC (Coordinated Universal Time)  
 	File logging will rotate on startup  
 	File logging now includes configuration options for maxFiles and maxSize  
-	Console using default colorized and minimized output, if redirected to stdout/stderr standard JSON will be used and no color encoding  
+	Console using default colorized and minimized output. If redirecting stdout/stderr, standard JSON will be used and no color encoding  
 
 
 ### v5.1.8
