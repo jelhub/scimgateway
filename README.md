@@ -22,7 +22,7 @@ curl -N https://host/logger -u gwread:password
 custom client API, see configuration notes  
 - By configuring the chainingBaseUrl, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway beave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
 - Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlBearer, oauthJwtBearer and Auth PassTrough 
-- Major version **v5.0.0** marks a shift to native TypeScript support and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
+- Major version **v5.0.0** marks a shift from JavaScript to native TypeScript and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. E.g., using Entra ID application OAuth
 - Supports OAuth Client Credentials authentication
@@ -1400,6 +1400,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.2.1
+
+[Fixed]
+
+- Logger did not use the correct plugin rollover filename when the gateway ran multiple plugins
 
 ### v5.2.0
 
