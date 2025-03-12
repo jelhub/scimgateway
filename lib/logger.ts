@@ -8,15 +8,6 @@ import { existsSync, renameSync, readdirSync, unlinkSync, mkdirSync, createWrite
 import { join } from 'node:path'
 import diagnostics_channel from 'node:diagnostics_channel'
 
-let LOG_DIR = './logs'
-let LOG_FILE_PREFIX = 'app'
-let LOG_FILE_SUFFIX = 'log'
-let LOG_FILE_NAME = LOG_FILE_PREFIX + '.' + LOG_FILE_SUFFIX
-let LOG_FILE = LOG_DIR + '/' + LOG_FILE_NAME
-let MAX_LOG_SIZE = 20 * 1024 * 1024 // 20 MB max file size
-let MAX_LOG_FILES = 5 // keep only the last 5 logs - note, new and rotated file on startup
-const HIGH_WATER_MARK = 16 * 1024 // 16KB buffer size before auto-flushing
-
 // Node does not support "export enum LogLevel"
 // instead using LogLevel as object and the type "LogLevel"
 export const LogLevel = {
@@ -57,6 +48,29 @@ interface LoggerOptions {
   colorize?: boolean
 }
 
+/**
+ * Example: 
+  ```
+  const logger = new Logger(
+    'plugin-loki',
+    {
+      type: 'console',
+      level: 'error',
+      customMasking: null,
+      colorize: true,
+    },
+    {
+      type: 'file',
+      level: 'debug',
+      customMasking: null,
+      logDir: '/opt/my-scimgateway/logs',
+      logFileName: 'plugin-loki.log',
+      maxSize: 20,
+      maxFiles: 5,
+    },
+  )
+  ```
+  */
 export class Logger {
   private logStream: any // either Bun's FileSink or Node's WriteStream
   private logChannel: diagnostics_channel.Channel
@@ -69,23 +83,40 @@ export class Logger {
   private reJson: RegExp
   private reXml: RegExp
   private callbacks: Set<(message: any) => Promise<void>> = new Set()
+  private LOG_DIR: string
+  private LOG_FILE_PREFIX: string
+  private LOG_FILE_SUFFIX: string
+  private LOG_FILE_NAME: string
+  private LOG_FILE: string
+  private MAX_LOG_SIZE: number
+  private MAX_LOG_FILES: number
+  private HIGH_WATER_MARK: number
 
   constructor(category: string, ...options: LoggerOptions[]) {
+    this.LOG_DIR = './logs'
+    this.LOG_FILE_PREFIX = 'app'
+    this.LOG_FILE_SUFFIX = 'log'
+    this.LOG_FILE_NAME = this.LOG_FILE_PREFIX + '.' + this.LOG_FILE_SUFFIX
+    this.LOG_FILE = this.LOG_DIR + '/' + this.LOG_FILE_NAME
+    this.MAX_LOG_SIZE = 20 * 1024 * 1024 // 20 MB max file size
+    this.MAX_LOG_FILES = 5 // keep only the last 5 logs - note, new and rotated file on startup
+    this.HIGH_WATER_MARK = 16 * 1024 // 16KB buffer size before auto-flushing
+
     if (!category) throw Error('Logger constructor missing mandatory category')
     this.category = category
     for (const option of options) {
       if (option.type === 'file') {
-        if (option.logDir) LOG_DIR = option.logDir
-        if (option.logFileName) LOG_FILE_NAME = option.logFileName
-        LOG_FILE = LOG_DIR + '/' + LOG_FILE_NAME
-        LOG_FILE_PREFIX = LOG_FILE_NAME.substring(0, LOG_FILE_NAME.lastIndexOf('.'))
-        LOG_FILE_SUFFIX = LOG_FILE_NAME.substring(LOG_FILE_NAME.lastIndexOf('.') + 1)
+        if (option.logDir) this.LOG_DIR = option.logDir
+        if (option.logFileName) this.LOG_FILE_NAME = option.logFileName
+        this.LOG_FILE = this.LOG_DIR + '/' + this.LOG_FILE_NAME
+        this.LOG_FILE_PREFIX = this.LOG_FILE_NAME.substring(0, this.LOG_FILE_NAME.lastIndexOf('.'))
+        this.LOG_FILE_SUFFIX = this.LOG_FILE_NAME.substring(this.LOG_FILE_NAME.lastIndexOf('.') + 1)
 
         this.file = {
           level: option.level || 'off',
           logSize: 0,
-          maxSize: option.maxSize ? option.maxSize * 1024 * 1024 : MAX_LOG_SIZE,
-          maxFiles: option.maxFiles || MAX_LOG_FILES,
+          maxSize: option.maxSize ? option.maxSize * 1024 * 1024 : this.MAX_LOG_SIZE,
+          maxFiles: option.maxFiles || this.MAX_LOG_FILES,
         }
       } else if (option.type === 'console') {
         if (option.colorize === undefined) {
@@ -117,12 +148,12 @@ export class Logger {
     this.logChannel = diagnostics_channel.channel(this.category)
 
     if (this.file && LEVEL_TO_INT[this.file.level] > 0) {
-      if (!existsSync(LOG_DIR)) mkdirSync(LOG_DIR, { recursive: true })
-      else if (existsSync(LOG_FILE)) this.rotateExistingLog()
+      if (!existsSync(this.LOG_DIR)) mkdirSync(this.LOG_DIR, { recursive: true })
+      else if (existsSync(this.LOG_FILE)) this.rotateExistingLog()
       if (typeof Bun !== 'undefined') { // Bun
-        this.logStream = Bun.file(LOG_FILE).writer({ highWaterMark: HIGH_WATER_MARK })
+        this.logStream = Bun.file(this.LOG_FILE).writer({ highWaterMark: this.HIGH_WATER_MARK })
       } else { // Node.js
-        this.logStream = createWriteStream(LOG_FILE, { flags: 'a' })
+        this.logStream = createWriteStream(this.LOG_FILE, { flags: 'a' })
       }
       this.subscribe(this.logToFile)
     }
@@ -151,8 +182,8 @@ export class Logger {
 
   private async rotateExistingLog() {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-    const archivedFile = `${LOG_DIR}/${LOG_FILE_PREFIX}-${timestamp}.${LOG_FILE_SUFFIX}`
-    renameSync(LOG_FILE, archivedFile)
+    const archivedFile = `${this.LOG_DIR}/${this.LOG_FILE_PREFIX}-${timestamp}.${this.LOG_FILE_SUFFIX}`
+    renameSync(this.LOG_FILE, archivedFile)
     this.cleanupOldLogs()
   }
 
@@ -165,9 +196,9 @@ export class Logger {
       }
       await this.rotateExistingLog()
       if (typeof Bun !== 'undefined') {
-        this.logStream = Bun.file(LOG_FILE).writer({ highWaterMark: HIGH_WATER_MARK })
+        this.logStream = Bun.file(this.LOG_FILE).writer({ highWaterMark: this.HIGH_WATER_MARK })
       } else {
-        this.logStream = createWriteStream(LOG_FILE, { flags: 'a' })
+        this.logStream = createWriteStream(this.LOG_FILE, { flags: 'a' })
       }
       this.flushBuffer()
     } catch (error) {
@@ -179,12 +210,12 @@ export class Logger {
 
   private cleanupOldLogs() {
     if (!this.file) return
-    const logFiles = readdirSync(LOG_DIR)
-      .filter(file => file.startsWith(`${LOG_FILE_PREFIX}-`) && file.endsWith(`.${LOG_FILE_SUFFIX}`))
+    const logFiles = readdirSync(this.LOG_DIR)
+      .filter(file => file.startsWith(`${this.LOG_FILE_PREFIX}-`) && file.endsWith(`.${this.LOG_FILE_SUFFIX}`))
       .sort((a, b) => b.localeCompare(a))
 
     if (logFiles.length > this.file.maxFiles) {
-      logFiles.slice(this.file.maxFiles).forEach(file => unlinkSync(join(LOG_DIR, file)))
+      logFiles.slice(this.file.maxFiles).forEach(file => unlinkSync(join(this.LOG_DIR, file)))
     }
   }
 
