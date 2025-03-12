@@ -867,7 +867,7 @@ export class ScimGateway {
               controller.enqueue(encoder.encode(`\u200B`)) // invisible keep-alive
             }, 10000)
 
-            function cleanup() {
+            const cleanup = () => {
               clearInterval(keepAliveInterval)
               logger.unsubscribe(sub)
               controller.close()
@@ -2649,13 +2649,13 @@ export class ScimGateway {
     }
 
     const gracefulShutdown = async function () {
+      logger.info(`${gwName}[${pluginName}] now stopping...`)
+      await logger.close()
       if (server) {
         if (typeof Bun !== 'undefined') {
           server.stop(true)
         }
       }
-      logger.debug(`${gwName}[${pluginName}] received terminate/kill signal - closing connections and exit`)
-      logger.close()
       if (server) {
         if (typeof Bun !== 'undefined') {
           await Bun.sleep(400) // give in-flight requests a chance to complete, also plugins may use SIGTERM/SIGINT
