@@ -735,7 +735,7 @@ Example using general OAuth:
 Please see code editor method HelperRest doRequest() IntelliSense for type and option details
 
 ### Configuration notes - Remote real-time log subscription
-We may have monitoring and centralized logging through remote real-time log subscription
+Using remote real-time log subscription we may implement custom logic like monitoring and centralized logging
 
 - using browser and url: https://host/logger  
 - curl -N https://host/logger -u gwread:password  
@@ -778,7 +778,7 @@ push log level may be customized by configuration
 	  }
 	}
 
-Example code using custom subscriber API for log collection and monitoring    
+Example code implementing subscriber for real-time log messages collection  
 
 	let headers = new Headers()
 	headers.append('Authorization', 'Basic ' + btoa('gwadmin' + ':' + 'password'))
@@ -800,11 +800,11 @@ Example code using custom subscriber API for log collection and monitoring
 	    })
 	
 	    const reader = resp.body.pipeThrough(new TextDecoderStream()).getReader()
-	    console.log('Now awaiting log events..\n')
+	    console.log('Now awaiting log events...\n')
 	
 	    while (true) {
 	      const { value, done } = await reader.read()
-	      if (done) break;
+	      if (done) break
 	      if (value.at(-1) !== '\n') continue
 	      const message = value.slice(0, -1)
 	      messageHandler(message)
@@ -1400,6 +1400,20 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.2.2
+
+[Fixed]
+
+- plugin-ldap, tls configuration now supported for Bun > v1.2.4, previously environments had to be used
+	"tls": {
+		"ca": "ca-file-name", // located in config/certs
+		"rejectUnauthorized": true
+	}
+
+[Improved]  
+
+- Dependencies bump
 
 ### v5.2.1
 
