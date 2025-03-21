@@ -37,11 +37,16 @@
 //
 // Configuration allowModifyDN=true allows DN being changed based on modified mapping or namingAttribute
 //
-// Note, if using Bun and ldaps/TLS, environment must be set before started e.g.:
+// Note, using Bun version < 1.2.5 and ldaps/TLS, environment must be set before started e.g.:
 //   export NODE_EXTRA_CA_CERTS=/package-path/config/certs/ca.pem
 //   or
 //   export NODE_TLS_REJECT_UNAUTHORIZED=0
 //
+//   Bun version >= 1.2.5 supports configuration
+//         "tls": {
+//           "ca": ca-file-name, // located in confg/certs
+//           "rejectUnauthorized": true
+//         }
 // 
 // Attributes according to map definition in the configuration file plugin-ldap.json:
 //
@@ -82,6 +87,7 @@
 import ldap from 'ldapjs'
 // @ts-expect-error missing type definitions
 import { BerReader } from '@ldapjs/asn1'
+import fs from 'node:fs'
 
 // for supporting nodejs running scimgateway package directly, using dynamic import instead of: import { ScimGateway } from 'scimgateway'
 // scimgateway also inclues HelperRest: import { ScimGateway, HelperRest } from 'scimgateway'
@@ -1339,19 +1345,38 @@ const getCtxAuth = (ctx: any) => {
 //
 const getServiceClient = async (baseEntity: string, ctx: any) => {
   const action = 'getServiceClient'
-  // TODO if (!config.entity[baseEntity].passwordDecrypted) config.entity[baseEntity].passwordDecrypted = scimgateway.getPassword(`endpoint.entity.${baseEntity}.password`, configFile)
-  if (!config.entity[baseEntity].baseUrl) config.entity[baseEntity].baseUrl = config.entity[baseEntity].baseUrls[0] // failover logic also updates baseUrl
 
+  if (!config.entity[baseEntity].baseUrl) config.entity[baseEntity].baseUrl = config.entity[baseEntity].baseUrls[0] // failover logic also updates baseUrl
   if (!_serviceClient[baseEntity]) _serviceClient[baseEntity] = {}
+  if (!_serviceClient[baseEntity].tlsOptions) {
+    const tlsOptions: Record<string, any> = {
+      rejectUnauthorized: config.entity[baseEntity]?.tls?.rejectUnauthorized || false,
+      ca: undefined,
+    }
+    if (config.entity[baseEntity]?.tls?.ca) {
+      if (Array.isArray(config.entity[baseEntity].tls.ca)) {
+        tlsOptions.ca = []
+        for (let i = 0; i < config.entity[baseEntity].tls.ca.length; i++) {
+          tlsOptions.ca.append(fs.readFileSync(config.entity[baseEntity].tls.ca[i]))
+        }
+      } else tlsOptions.ca = fs.readFileSync(config.entity[baseEntity].tls.ca)
+      tlsOptions.rejectUnauthorized = true
+    }
+    if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') tlsOptions.rejectUnauthorized = false
+    else if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '1') tlsOptions.rejectUnauthorized = true
+    if (process.env.NODE_EXTRA_CA_CERTS) {
+      tlsOptions.ca = fs.readFileSync(process.env.NODE_EXTRA_CA_CERTS)
+      tlsOptions.rejectUnauthorized = true
+    }
+    _serviceClient[baseEntity].tlsOptions = tlsOptions
+  }
 
   for (let i = -1; i < config.entity[baseEntity].baseUrls.length; i++) {
     try {
       const cli = await ldap.createClient({
         url: config.entity[baseEntity].baseUrl,
         connectTimeout: 5000,
-        tlsOptions: { // currently bun must use environment settings for node:tls used by ldaps - export NODE_TLS_REJECT_UNAUTHORIZED=0
-          rejectUnauthorized: false,
-        },
+        tlsOptions: _serviceClient[baseEntity].tlsOptions,
         strictDN: false, // false => allows none standard ldap base dn e.g. <SID=...> / <GUID=...>  ref. objectSid/objectGUID
       })
       await new Promise((resolve, reject) => {
