@@ -162,6 +162,10 @@
             "top"
           ],
           "groupObjectClasses": ["group", "top"]
+        },
+        "tls": {
+          "ca": null,
+          "rejectUnauthorized": false
         }
       }
     },
