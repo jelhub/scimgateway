@@ -1406,10 +1406,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 [Fixed]
 
 - plugin-ldap, tls configuration now supported for Bun > v1.2.4, previously environments had to be used
-	"tls": {
-		"ca": "ca-file-name", // located in config/certs
-		"rejectUnauthorized": true
-	}
+
+		"tls": {
+			"ca": "ca-file-name", // located in config/certs
+			"rejectUnauthorized": true
+		}
 
 [Improved]  
 
