@@ -18,7 +18,7 @@ Latest news:
  
 - Remote real-time log subscription for monitoring and centralized logging  
 using browser and url: https://host/logger  
-curl -N https://host/logger -u gwread:password  
+curl -N https://host/logger -u user:password  
 custom client API, see configuration notes  
 - By configuring the chainingBaseUrl, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway beave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
 - Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlBearer, oauthJwtBearer and Auth PassTrough 
@@ -695,7 +695,7 @@ Example Entra ID (plugin-entra-id) using clientId/clientSecret:
 	    "type": "oauth",
 	    "options": {
 	      "tenantIdGUID": "<tenantId>",
-	      "clientId": "<clientId",
+	      "clientId": "<clientId>",
 	      "clientSecret": "<clientSecret>"
 	    }
 	  }
@@ -709,7 +709,7 @@ Example Entra ID (plugin-entra-id) using certificate secret:
 	    "type": "oauth",
 	    "options": {
 	      "tenantIdGUID": "<tenantId>",
-	      "clientId": "<clientId",
+	      "clientId": "<clientId>",
 	      "tls": {
 	        "key": "key.pem",
 	        "cert": "cert.pem"
@@ -726,7 +726,7 @@ Example using general OAuth:
 	    "type": "oauth",
 	    "options": {
 	      "tokenUrl": "<tokenUrl>"
-	      "clientId": "<clientId",
+	      "clientId": "<clientId>",
 	      "clientSecret": "<clientSecret>"
 	    }
 	  }
@@ -819,7 +819,7 @@ Example code implementing subscriber for real-time log messages collection
 	    console.error('error', e)
 	
 	  } catch (err: any) {
-	    if (['ConnectionClosed', 'ConnectionRefused'].includes(err.code)) {
+	    if (['ConnectionClosed', 'ConnectionRefused', 'ECONNRESET'].includes(err.code)) {
 	      console.log('Connection closed or service unavailable')
 	      ignoreCatch = true
 	      await Bun.sleep(10 * 1000)
@@ -1400,6 +1400,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.2.3
+
+[Fixed]
+
+- GET /ResourceTypes was missing in v5
 
 ### v5.2.2
 
