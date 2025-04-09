@@ -483,7 +483,7 @@ export class ScimGateway {
       getMethod: 'getAppRoles',
     }
     /** handlers supported url paths */
-    const handlers = ['users', 'groups', 'serviceplans', 'approles', 'api', 'schemas', 'serviceproviderconfig', 'serviceproviderconfigs', 'logger']
+    const handlers = ['users', 'groups', 'serviceplans', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'logger']
 
     try {
       if (!fs.existsSync(configDir + '/wsdls')) fs.mkdirSync(configDir + '/wsdls')
@@ -831,6 +831,21 @@ export class ScimGateway {
       ctx.response.body = JSON.stringify(tx)
     }
     funcHandler.getHandlerSchemas = getHandlerSchemas
+
+    // scimv2 GET /ResourceTypes, scimv1 not used
+    const getHandlerResourceTypes = async (ctx: Context) => {
+      const tx = this.scimDef.ResourceType
+      if (!this.config.scimgateway.scim.skipMetaLocation) {
+        const location = ctx.origin + ctx.path
+        if (tx.meta) tx.meta.location = location
+        else {
+          tx.meta = {}
+          tx.meta.location = location
+        }
+      }
+      ctx.response.body = JSON.stringify(tx)
+    }
+    funcHandler.getHandlerResourceTypes = getHandlerResourceTypes
 
     // scimv1 = GET /ServiceProviderConfigs, scimv2 GET /ServiceProviderConfig
     const getHandlerServiceProviderConfig = async (ctx: Context) => {
@@ -2413,6 +2428,9 @@ export class ScimGateway {
             return await onAfterHandle(ctx)
           case 'GET schemas':
             await getHandlerSchemas(ctx)
+            return await onAfterHandle(ctx)
+          case 'GET resourcetypes':
+            await getHandlerResourceTypes(ctx)
             return await onAfterHandle(ctx)
           case 'GET serviceproviderconfig':
           case 'GET serviceproviderconfigs':
