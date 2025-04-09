@@ -32,8 +32,8 @@ async function fetchSCIM(method: string, endpoint: string, body?: any, headers?:
 }
 
 describe('plugin-loki', async () => {
-  test('ServiceProviderConfigs test', async () => {
-    const response: any = await fetchSCIM('GET', '/ServiceProviderConfigs', undefined, options.std.headers)
+  test('ServiceProviderConfig test', async () => {
+    const response: any = await fetchSCIM('GET', '/ServiceProviderConfig', undefined, options.std.headers)
     expect(response.status).toBe(200)
     expect(response.body.schemas).toContain('urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig')
   })
@@ -46,6 +46,16 @@ describe('plugin-loki', async () => {
       expect(schema.id).toBeDefined()
       expect(schema.name).toBeDefined()
     })
+  })
+
+  test('ResourceTypes test', async () => {
+    const response: any = await fetchSCIM('GET', '/ResourceTypes', undefined, options.std.headers)
+    expect(response.status).toBe(200)
+    expect(Array.isArray(response.body.Resources)).toBe(true)
+    expect(response.body.Resources.length).toEqual(2)
+    expect(response.body.Resources[0].schemas).toContain('urn:ietf:params:scim:schemas:core:2.0:ResourceType')
+    expect(response.body.Resources[0].id).toBe('urn:ietf:params:scim:schemas:core:2.0:User')
+    expect(response.body.Resources[1].id).toBe('urn:ietf:params:scim:schemas:core:2.0:Group')
   })
 
   test('getUsers all test (1)', async () => {
