@@ -2165,7 +2165,8 @@ export class ScimGateway {
       if (xfHost) {
         const xfProto = headers.get('x-forwarded-proto')
         const xfPort = headers.get('x-forwarded-port')
-        return `${xfProto ? xfProto + '://' : ''}${xfHost}${xfPort ? ':' + xfPort : ''}`
+        const xfPath = headers.get('x-forwarded-path')
+        return `${xfProto ? xfProto + '://' : ''}${xfHost}${xfPort ? ':' + xfPort : ''}${xfPath ? xfPath : ''}`
       }
       return null
     }
