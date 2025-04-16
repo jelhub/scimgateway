@@ -334,7 +334,6 @@ export class ScimGateway {
     const configFile = path.join(`${configDir}`, `${pluginName}.json`) // config name prefix same as pluging name prefix
     const gwName = path.basename(fileURLToPath(import.meta.url)).split('.')[0] // prefix of current file - using fileURLToPath because using "__filename" is not supported by nodejs typescript
     const gwPath = path.dirname(fileURLToPath(import.meta.url))
-    const logDir = path.join(pluginDir, '..', 'logs')
 
     this.config = {}
     // exposed outside class
@@ -356,6 +355,8 @@ export class ScimGateway {
       found = this.processConfig()
     } catch (err) { configErr = err }
 
+    const logDir = this.config?.scimgateway?.log?.logDirectory || path.join(pluginDir, '..', 'logs')
+    
     const logger = new Logger(
       pluginName,
       {
