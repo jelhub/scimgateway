@@ -395,6 +395,8 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **log.loglevel.push** - off, debug, info, warn or error. Default info. Push to stream that can be used by client subscriber
 
+- **log.logDirectory** - custom defined log directory e.g. `/var/log/scimgateway` that will override default `<scimgateway path>/logs`. If not exist it will be created.
+
 - **log.customMasking** - array of attributes to be masked e.g. `"customMasking": ["SSN", "weight"]`. By default SCIM Gateway includes masking of some standard attributes like password.
 
 - **log.colorize** - default true, gives colorized and minimized console output, if redirected to stdout/stderr standard JSON formatted output and no colors. Set to false give standard JSON 
@@ -1400,6 +1402,14 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.2.4
+
+[Improved]  
+
+- New configuration `log.logDirectory` for custom defined log directory e.g. `/var/log/scimgateway` that will override default `<scimgateway path>/logs`.  
+  **Thanks to [@Gerrit Lansing](https://github.com/gerritlansing)**
+- Base URL like `/scim/v1` and `/scim/v2` is now supported, also with baseEntity e.g. `/scim/v2/client1/Users`
 
 ### v5.2.3
 
