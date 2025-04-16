@@ -356,7 +356,6 @@ export class ScimGateway {
     } catch (err) { configErr = err }
 
     const logDir = this.config?.scimgateway?.log?.logDirectory || path.join(pluginDir, '..', 'logs')
-    
     const logger = new Logger(
       pluginName,
       {
@@ -2175,7 +2174,13 @@ export class ScimGateway {
       const method = request.method
       const url = new URL(request.url)
 
-      let [, baseEntity, handle, id, rest]: string[] = url.pathname.split('/')
+      let pathname = url.pathname
+      const match = pathname.match(/.*\/scim\/v(1|2)(\/.*)/)
+      if (match) {
+        pathname = match[2] // the part after /scim/vX
+      }
+
+      let [, baseEntity, handle, id, rest]: string[] = pathname.split('/')
       if (baseEntity && handlers.includes(baseEntity.toLowerCase())) {
         rest = id
         id = handle
