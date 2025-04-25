@@ -175,7 +175,8 @@ Upgrade to latest minor version:
 
 Note, always backup/copy c:\\my-scimgateway before upgrading. Custom plugins and corresponding configuration files will not be affected.  
 
-To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compability with any existing custom plugins, we have to include the `@latest` suffix in the install command: `bun install scimgateway@latest`
+To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compability with any existing custom plugins, we have to include the `@latest` suffix in the install command:  
+`bun install scimgateway@latest`
 
 ##### Avoid (re-)adding the files created during `postinstall`
 
@@ -1402,6 +1403,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.2.5
+
+[Fixed]
+
+- endpointMapper (used by plugin-entra-id and plugin-ldap) in v5 when using mapping type=array, the first element was excluded on outbound mapping in some use cases
 
 ### v5.2.4
 
