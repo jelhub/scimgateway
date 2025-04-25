@@ -480,7 +480,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
             if (dotMap[key2].split(',').map((item: string) => item.trim().toLowerCase()).includes(key.toLowerCase())) {
               found = true
               const keyRoot = key2.split('.').slice(0, -1).join('.') // xx.yy.mapTo => xx.yy
-              if (dotMap[`${keyRoot}.type`] === 'array' && arrIndex && arrIndex >= 0) {
+              if (dotMap[`${keyRoot}.type`] === 'array' && arrIndex >= 0) {
                 dotNewObj[`${keyRoot}.${arrIndex}`] = dotParse[keyOrg] // servicePlan.0.value => servicePlan.0 and groups[0].value => memberOf.0
               }
               dotNewObj[keyRoot] = dotParse[key] // {"accountEnabled": {"mapTo": "active"} => str.replace("accountEnabled", "active")
