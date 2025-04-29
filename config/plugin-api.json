@@ -145,7 +145,7 @@
           },
           "options": {
             "tls": {
-              "rejectUnauthorized": null,
+              "rejectUnauthorized": false,
               "ca": null
             }
           },
