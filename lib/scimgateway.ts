@@ -2175,9 +2175,9 @@ export class ScimGateway {
       const url = new URL(request.url)
 
       let pathname = url.pathname
-      const match = pathname.match(/.*\/scim\/v(1|2)(\/.*)/)
+      const match = pathname.match(/.*\/v(1|2)(\/.*)/)
       if (match) {
-        pathname = match[2] // the part after /scim/vX
+        pathname = match[2] // the part after /v1 or /v2
       }
 
       let [, baseEntity, handle, id, rest]: string[] = pathname.split('/')
