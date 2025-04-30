@@ -2177,7 +2177,9 @@ export class ScimGateway {
       let pathname = url.pathname
       const match = pathname.match(/.*\/v(1|2)(\/.*)/)
       if (match) {
-        pathname = match[2] // the part after /v1 or /v2
+        if ((match[1] === '2' && !isScimv2) || (match[1] === '1' && isScimv2)) {
+          pathname = '/' // path version not matching configured SCIM version, reset to root => NOT_FOUND
+        } else pathname = match[2] // the part after /v1 or /v2
       }
 
       let [, baseEntity, handle, id, rest]: string[] = pathname.split('/')
