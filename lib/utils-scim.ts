@@ -4,6 +4,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import * as utils from './utils.ts'
 
+type SCIMBulkOperation = {
+  method: string
+  path: string
+  bulkId?: string
+  data?: any
+}
+
 let countries: { 'name': string, 'alpha-2': string, 'country-code': string }[]
 
 // Multi-value attributes are customized from array to object based on type
@@ -12,7 +19,9 @@ let countries: { 'name': string, 'alpha-2': string, 'country-code': string }[]
 // Cleared values are set as user attributes with blank value ""
 // e.g {meta:{attributes:['name.givenName','title']}} => {"name": {"givenName": ""}), "title": ""}
 
-// export const convertedScim = (obj: any, multiValueTypes: string[]): any => {
+/**
+* convert SCIM 1.1 regarding "type converted Object" and blank deleted values, also used by convertedScim20()
+*/
 export function convertedScim(obj: any, multiValueTypes: string[]): any {
   let err: any = null
   const scimdata: any = utils.copyObj(obj)
@@ -112,18 +121,18 @@ export function convertedScim(obj: any, multiValueTypes: string[]): any {
   return [scimdata, err]
 }
 
-//
-// convertedScim20 convert SCIM 2.0 patch request to SCIM 1.1 and calls convertedScim() for "type converted Object" and blank deleted values
-//
-// Scim 2.0:
-// {"schemas":["urn:ietf:params:scim:api:messages:2.0:PatchOp"],"Operations":[{"op":"Replace","path":"name.givenName","value":"Rocky"},{"op":"Remove","path":"name.formatted","value":"Rocky Balboa"},{"op":"Add","path":"emails","value":[{"value":"user@compay.com","type":"work"}]}]}
-//
-// Scim 1.1
-// {"name":{"givenName":"Rocky","formatted":"Rocky Balboa"},"meta":{"attributes":["name.formatted"]},"emails":[{"value":"user@compay.com","type":"work"}]}
-//
-// "type converted object" and blank deleted values
-// {"name":{"givenName":"Rocky",formatted:""},"emails":{"work":{"value":"user@company.com","type":"work"}}}
-//
+/**
+* convertedScim20 convert SCIM 2.0 patch request to SCIM 1.1 and calls convertedScim() for "type converted Object" and blank deleted values
+*
+* Scim 2.0:  
+* {"schemas":["urn:ietf:params:scim:api:messages:2.0:PatchOp"],"Operations":[{"op":"Replace","path":"name.givenName","value":"Rocky"},{"op":"Remove","path":"name.formatted","value":"Rocky Balboa"},{"op":"Add","path":"emails","value":[{"value":"user@compay.com","type":"work"}]}]}
+*
+* Scim 1.1  
+* {"name":{"givenName":"Rocky","formatted":"Rocky Balboa"},"meta":{"attributes":["name.formatted"]},"emails":[{"value":"user@compay.com","type":"work"}]}
+*
+* "type converted object" and blank deleted values  
+* {"name":{"givenName":"Rocky",formatted:""},"emails":{"work":{"value":"user@company.com","type":"work"}}}
+*/
 export function convertedScim20(obj: any, multiValueTypes: string[]): any {
   let scimdata: { [key: string]: any } = {}
   if (!obj.Operations || !Array.isArray(obj.Operations)) return scimdata
@@ -397,9 +406,11 @@ const recursiveStrMap = function (direction: string, dotMap: any, obj: any, dotP
   }
 }
 
-// SCIM/CustomScim <=> endpoint attribute parsing used by plugins
-// returns [object/string, err]
-// TO-DO: rewrite and simplify...
+/**
+* SCIM/CustomScim <=> endpoint attribute parsing used by plugins  
+* TODO: rewrite and simplify...
+* @returns [object/string, err]
+*/
 export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
   if (direction !== 'inbound' && direction !== 'outbound') {
     const msg = 'Plugin using endpointMapper(direction, parseObj, mapObj) with incorrect direction - direction must be set to \'outbound\' or \'inbound\''
@@ -701,10 +712,10 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
   } else return [str, err]
 }
 
-//
-// getMultivalueTypes returns an array of mulitvalue attributes allowing type e.g [emails,addresses,...]
-// objName should be 'User' or 'Group'
-//
+/**
+* returns an array of mulitvalue attributes allowing type e.g [emails,addresses,...]  
+* objName should be 'User' or 'Group'
+*/
 export function getMultivalueTypes(objName: string, scimDef: Record<string, any>) { // objName = 'User' or 'Group'
   if (!objName) return []
 
@@ -856,9 +867,9 @@ export function addSchemas(data: Record<string, any>, isScimv2: boolean, type?: 
   return data
 }
 
-//
-// SCIM error formatting
-//
+/**
+* SCIM error formatting
+*/
 export function jsonErr(scimVersion: string | number, pluginName: string, htmlErrCode: number | undefined, err: Error): [Record<string, any>, number] {
   let errJson = {}
   let customErrCode: any = null
@@ -896,13 +907,14 @@ export function jsonErr(scimVersion: string | number, pluginName: string, htmlEr
     msg += err
   }
 
+  let errCode = customErrCode || htmlErrCode
   if (scimVersion !== '2.0' && scimVersion !== 2) { // v1.1
     errJson
       = {
         Errors: [
           {
             description: msg,
-            code: customErrCode || htmlErrCode,
+            code: errCode.toString(),
           },
         ],
       }
@@ -912,7 +924,7 @@ export function jsonErr(scimVersion: string | number, pluginName: string, htmlEr
         schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'],
         scimType,
         detail: msg,
-        status: customErrCode || htmlErrCode,
+        status: errCode.toString(),
       }
   }
 
@@ -920,9 +932,9 @@ export function jsonErr(scimVersion: string | number, pluginName: string, htmlEr
   return [errJson, customErrCode as number]
 }
 
-//
-// api plugin formatted error
-//
+/**
+* api plugin formatted error
+*/
 export function apiErr(pluginName: string, err: any) {
   let msg
   if (err.constructor !== Error) err = { message: err }
@@ -937,4 +949,85 @@ export function apiErr(pluginName: string, err: any) {
     },
   }
   return errObj
+}
+
+/**
+* resolve bulkId values in data to actual objects
+*/
+export function bulkResolveIdReferences(data: any, map: Map<string, any>): any {
+  if (Array.isArray(data)) {
+    return data.map(item => bulkResolveIdReferences(item, map))
+  } else if (typeof data === 'object' && data !== null) {
+    const result: any = {}
+    for (const key in data) {
+      const value = data[key]
+      if (typeof value === 'string' && value.startsWith('bulkId:')) {
+        const refId = value.split(':')[1]
+        if (!map.has(refId)) throw new Error(`unresolved bulkId: ${refId}`)
+        result[key] = map.get(refId).id ?? map.get(refId) // assume object with `id`
+      } else {
+        result[key] = bulkResolveIdReferences(value, map)
+      }
+    }
+    return result
+  }
+  return data
+}
+
+function bulkCollectIdDeps(obj: any, deps: Set<string>) {
+  if (Array.isArray(obj)) {
+    obj.forEach(item => bulkCollectIdDeps(item, deps))
+  } else if (typeof obj === 'object' && obj !== null) {
+    for (const value of Object.values(obj)) {
+      if (typeof value === 'string' && value.startsWith('bulkId:')) {
+        deps.add(value.split(':')[1])
+      } else {
+        bulkCollectIdDeps(value, deps)
+      }
+    }
+  }
+}
+
+/**
+* create a dependency graph (bulkId -> dependsOn[])
+*/
+export function bulkBuildDependencyGraph(ops: SCIMBulkOperation[]): Map<SCIMBulkOperation, Set<string>> {
+  const graph = new Map<SCIMBulkOperation, Set<string>>()
+  for (const op of ops) {
+    const deps = new Set<string>()
+    bulkCollectIdDeps(op.data, deps)
+    graph.set(op, deps)
+  }
+  return graph
+}
+
+/**
+* topological bulk sort (returns null on circular dependency)
+*/
+export function bulkTopologicalSort(graph: Map<SCIMBulkOperation, Set<string>>): SCIMBulkOperation[] | null {
+  const result: SCIMBulkOperation[] = []
+  const visited = new Set<SCIMBulkOperation>()
+  const visiting = new Set<SCIMBulkOperation>()
+
+  function visit(node: SCIMBulkOperation): boolean {
+    if (visited.has(node)) return true
+    if (visiting.has(node)) return false // cycle
+
+    visiting.add(node)
+    const deps = graph.get(node) || new Set()
+    for (const depId of deps) {
+      const depOp = [...graph.keys()].find(o => o.bulkId === depId)
+      if (!depOp || !visit(depOp)) return false
+    }
+    visiting.delete(node)
+    visited.add(node)
+    result.push(node)
+    return true
+  }
+
+  for (const node of graph.keys()) {
+    if (!visit(node)) return null
+  }
+
+  return result
 }

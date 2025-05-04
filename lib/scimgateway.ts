@@ -483,7 +483,7 @@ export class ScimGateway {
       getMethod: 'getAppRoles',
     }
     /** handlers supported url paths */
-    const handlers = ['users', 'groups', 'serviceplans', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'logger']
+    const handlers = ['users', 'groups', 'bulk', 'serviceplans', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'logger']
 
     try {
       if (!fs.existsSync(configDir + '/wsdls')) fs.mkdirSync(configDir + '/wsdls')
@@ -1459,7 +1459,7 @@ export class ScimGateway {
         }
 
         if (!this.config.scimgateway.scim.skipMetaLocation) {
-          const location = ctx.origin + `${ctx.path}/${jsonBody.id}`
+          const location = ctx.origin + `${ctx.path}/${encodeURIComponent(decodeURIComponent(jsonBody.id))}`
           if (!jsonBody.meta) jsonBody.meta = {}
           jsonBody.meta.location = location
           const response = ctx.response as any
@@ -1632,13 +1632,16 @@ export class ScimGateway {
           ctx.response.status = 204
           return
         }
+
+        const userObj = scimdata.Resources[0]
         if (!this.config.scimgateway.scim.skipMetaLocation) {
           const location = ctx.origin + ctx.path
+          if (!userObj.meta) userObj.meta = {}
+          userObj.meta.location = location
           const response = ctx.response as any
           if (!response.headers) response.headers = {}
           response.headers.Location = location
         }
-        const userObj = scimdata.Resources[0]
         scimdata = utils.stripObj(userObj, ctx.query.attributes, ctx.query.excludedAttributes)
         scimdata = utilsScim.addSchemas(scimdata, isScimv2, handle.description, undefined)
         ctx.response.status = 200
@@ -1820,6 +1823,179 @@ export class ScimGateway {
       }
     }
     funcHandler.putHandler = putHandler
+
+    // ==========================================
+    //          Bulk Operations
+    // ==========================================
+    //
+    // POST = /Bulk + body
+    // Body example:
+    // {"failOnErrors":1,"Operations":[{"method":"POST","path":"/Users","data":{"userName":"Alice"}},{...},{...}]}
+
+    type SCIMBulkOperation = {
+      method: string
+      path: string
+      bulkId?: string
+      data?: any
+    }
+
+    type SCIMBulkRequest = {
+      schemas: string[]
+      failOnErrors?: number
+      Operations: SCIMBulkOperation[]
+    }
+
+    type SCIMBulkResponse = {
+      schemas: string[]
+      Operations: {
+        method: string
+        path: string
+        bulkId?: string
+        location?: string
+        status?: number
+        version?: string
+      }[]
+    }
+
+    const postBulkHandler = async (ctx: Context) => {
+      const baseEntity = ctx.routeObj.baseEntity
+      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Bulk Operations]`)
+      const bulkBody: SCIMBulkRequest = utils.copyObj(ctx.request.body)
+      try {
+        if (!bulkBody) throw new Error('missing body')
+        if (typeof bulkBody !== 'object') throw new Error('body is not JSON')
+        if (!bulkBody.Operations || !Array.isArray(bulkBody.Operations)) throw new Error('missing Operations array')
+        if (bulkBody.Operations.length > this.scimDef.ServiceProviderConfigs.bulk.maxOperations) {
+          const err = new Error(`the number of bulk operations exceeds the maxOperations (${this.scimDef.ServiceProviderConfigs.bulk.maxOperations})`)
+          err.name += '#413'
+          throw err
+        }
+
+        const operations = bulkBody.Operations
+        const bulkIdMap = new Map<string, any>()
+        const responseList: SCIMBulkResponse['Operations'] = []
+        const depGraph = utilsScim.bulkBuildDependencyGraph(operations)
+        const sortedOps = utilsScim.bulkTopologicalSort(depGraph)
+        if (!sortedOps) {
+          const err = new Error('Bulk circular dependency detected')
+          err.name += '#409'
+          throw err
+        }
+
+        let errCount = 0
+        for (const op of sortedOps) {
+          let resolvedData: any
+          let resolvedErr: any
+          try {
+            resolvedData = utilsScim.bulkResolveIdReferences(op.data, bulkIdMap)
+          } catch (err: any) {
+            resolvedErr = err
+          }
+          const path = decodeURIComponent(op.path || '')
+          const bulkReq = new Request(new URL(ctx.origin + `${baseEntity === 'undefined' ? path : '/' + baseEntity + path}`), {
+            method: op?.method,
+            headers: new Headers(ctx.request.headers as any),
+            signal: ctx.request.signal,
+            body: JSON.stringify(resolvedData),
+          }) as Request & { raw: IncomingMessage }
+          const bulkCtx = await onBeforeHandle(bulkReq, ctx.ip)
+
+          if (!resolvedErr) {
+            if (!op.method || !op.path) {
+              resolvedErr = new Error('missing method or path')
+            } else if (!op.data && op.method.toUpperCase() !== 'DELETE') resolvedErr = new Error('missing data')
+            else {
+              const p = op.path?.toLowerCase()
+              if (!p?.startsWith('/users') && !p?.startsWith('/groups')) {
+                resolvedErr = new Error(`unsupported path: ${op.path}`)
+              }
+            }
+          }
+
+          if (resolvedErr) {
+            bulkCtx.response.status = 404
+            const [e] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, bulkCtx.response.status, resolvedErr)
+            bulkCtx.response.body = JSON.stringify(e)
+          } else {
+            switch (op.method.toUpperCase()) {
+              case 'POST':
+                await postHandler(bulkCtx)
+                break
+              case 'PUT':
+                await putHandler(bulkCtx)
+                break
+              case 'PATCH':
+                if (isScimv2) {
+                  if (Array.isArray(bulkCtx.request.body)) {
+                    bulkCtx.request.body = {
+                      Operations: bulkCtx.request.body,
+                    }
+                  } else {
+                    bulkCtx.request.body = {
+                      Operations: [bulkCtx.request.body],
+                    }
+                  }
+                }
+                await patchHandler(bulkCtx)
+                break
+              case 'DELETE':
+                await deleteHandler(bulkCtx)
+                break
+              default:
+                const err = Error(`Unsupported method: ${op.method}`)
+                bulkCtx.response.status = 405
+                const [e] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, bulkCtx.response.status, err)
+                bulkCtx.response.body = JSON.stringify(e)
+            }
+          }
+
+          let body: any
+          if (bulkCtx.response.body) {
+            body = JSON.parse(bulkCtx.response.body)
+            if (op.bulkId && body.id) bulkIdMap.set(op.bulkId, body.id)
+          }
+
+          let errResponse
+          if (body && bulkCtx.response.status && bulkCtx.response.status > 299) {
+            errCount++
+            if (body?.Errors && Array.isArray(body.Errors)) { // scim v1
+              errResponse = body.Errors[0]
+            } else errResponse = body
+          }
+          const response: any = {
+            method: op.method,
+            bulkId: op.bulkId,
+            path: op.path,
+            status: { code: bulkCtx.response.status?.toString() || '200' },
+            location: body?.meta?.location,
+            version: body?.meta?.version,
+            response: errResponse,
+          }
+          if (!response.response) delete response.response
+          if (!response.location) delete response.location
+          if (!response.version) delete response.version
+          responseList.push(response)
+
+          if (bulkBody.failOnErrors && errCount >= bulkBody.failOnErrors) {
+            break
+          }
+        }
+        const res = {
+          schemas: ['urn:ietf:params:scim:api:messages:2.0:BulkResponse'],
+          Operations: responseList,
+        }
+        if (!isScimv2) {
+          res.schemas = ['urn:ietf:params:scim:api:messages:1.0:BulkResponse']
+        }
+        ctx.response.status = 200
+        ctx.response.body = JSON.stringify(res)
+      } catch (err: any) {
+        ctx.response.status = 500
+        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
+        if (customErrorCode) ctx.response.status = customErrorCode
+        ctx.response.body = JSON.stringify(e)
+      }
+    }
 
     // ==========================================
     //           API POST (no SCIM)
@@ -2182,7 +2358,7 @@ export class ScimGateway {
         } else pathname = match[2] // the part after /v1 or /v2
       }
 
-      let [, baseEntity, handle, id, rest]: string[] = pathname.split('/')
+      let [baseEntity, handle, id, rest]: string[] = pathname.split('/').filter(Boolean)
       if (baseEntity && handlers.includes(baseEntity.toLowerCase())) {
         rest = id
         id = handle
@@ -2463,6 +2639,9 @@ export class ScimGateway {
           case 'POST users':
           case 'POST groups':
             await postHandler(ctx)
+            return await onAfterHandle(ctx)
+          case 'POST bulk':
+            await postBulkHandler(ctx)
             return await onAfterHandle(ctx)
           case 'POST api':
             await postApiHandler(ctx)
