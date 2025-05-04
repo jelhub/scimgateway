@@ -4,8 +4,8 @@
   "id": "urn:scim:schemas:core:1.0",
   "patch": { "supported": true },
   "bulk": {
-    "supported": false,
-    "maxOperations": 10000,
+    "supported": true,
+    "maxOperations": 1000,
     "maxPayloadSize": 1048576
   },
   "filter": {

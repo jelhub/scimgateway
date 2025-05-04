@@ -5,7 +5,7 @@
     "supported": true
   },
   "bulk": {
-    "supported": false,
+    "supported": true,
     "maxPayloadSize": 1048576,
     "maxOperations": 1000
   },
