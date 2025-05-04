@@ -580,4 +580,77 @@ describe('plugin-loki', async () => {
     const res = await fetchSCIM('DELETE', '/Groups/GoGoLoki', undefined, options.std.headers)
     expect(res.status).toBe(204)
   })
+
+  test('bulkOperations test', async () => {
+    const body = {
+      schemas: ['urn:ietf:params:scim:api:messages:2.0:BulkRequest'],
+      Operations: [
+        {
+          method: 'POST',
+          path: '/Groups',
+          bulkId: 'ytrewq',
+          data: {
+            schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'],
+            displayName: 'Tour Guides',
+            members: [
+              {
+                type: 'User',
+                value: 'bulkId:qwerty',
+              },
+            ],
+          },
+        },
+        {
+          method: 'POST',
+          path: '/Users',
+          bulkId: 'qwerty',
+          data: {
+            schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'],
+            userName: 'alice',
+          },
+        },
+        {
+          method: 'PATCH',
+          path: '/Groups/Tour Guides',
+          data: {
+            op: 'add',
+            path: 'members',
+            value: [
+              {
+                value: 'bjensen',
+              },
+            ],
+          },
+        },
+        {
+          method: 'DELETE',
+          path: '/Groups/Tour Guides',
+        },
+        {
+          method: 'DELETE',
+          path: '/Users/alice',
+        },
+      ],
+    }
+    const res = await fetchSCIM('POST', '/Bulk', body, options.std.headers)
+    expect(res.status).toBe(200)
+    expect(res.body.Operations.length).toBe(5)
+    expect(res.body.Operations[0].bulkId).toBe('qwerty')
+    expect(res.body.Operations[0].status.code).toBe('201')
+    expect(res.body.Operations[0].location).toBe('http://localhost:8880/Users/alice')
+    expect(res.body.Operations[1].bulkId).toBe('ytrewq')
+    expect(res.body.Operations[1].status.code).toBe('201')
+    expect(res.body.Operations[1].location).toBe('http://localhost:8880/Groups/Tour%20Guides')
+    expect(res.body.Operations[2].bulkId).toBeUndefined()
+    expect(res.body.Operations[2].status.code).toBe('200')
+    expect(res.body.Operations[2].method).toBe('PATCH')
+    expect(res.body.Operations[2].path).toBe('/Groups/Tour Guides')
+    expect(res.body.Operations[2].location).toBe('http://localhost:8880/Groups/Tour%20Guides')
+    expect(res.body.Operations[3].bulkId).toBeUndefined()
+    expect(res.body.Operations[3].status.code).toBe('204')
+    expect(res.body.Operations[3].path).toBe('/Groups/Tour Guides')
+    expect(res.body.Operations[4].bulkId).toBeUndefined()
+    expect(res.body.Operations[4].status.code).toBe('204')
+    expect(res.body.Operations[4].path).toBe('/Users/alice')
+  })
 })
