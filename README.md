@@ -16,9 +16,10 @@ Validated through IdP's:
 
 Latest news:  
  
+- [SCIM Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) now supported
 - Remote real-time log subscription for monitoring and centralized logging  
-using browser and url: https://host/logger  
-curl -N https://host/logger -u user:password  
+using browser and url: `https://<host>/logger`  
+`curl -N https://<host>/logger -u user:password`  
 custom client API, see configuration notes  
 - By configuring the chainingBaseUrl, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway beave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
 - Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlBearer, oauthJwtBearer and Auth PassTrough 
@@ -1403,6 +1404,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.3.0
+
+[Improved]  
+
+- [SCIM Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) now supported
+- Dependencies bump
 
 ### v5.2.5
 
