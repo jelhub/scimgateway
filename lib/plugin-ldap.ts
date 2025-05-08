@@ -1221,6 +1221,10 @@ const ldapEsc = (str: any) => {
         if (isEsc) c = ')'
         else c = '\\)'
         break
+      case '#':
+        if (isEsc) c = '#'
+        else c = '\\#'
+        break
     }
     newStr += c
   }
