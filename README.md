@@ -16,7 +16,7 @@ Validated through IdP's:
 
 Latest news:  
  
-- [SCIM Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) now supported
+- [Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) now supported
 - Remote real-time log subscription for monitoring and centralized logging  
 using browser and url: `https://<host>/logger`  
 `curl -N https://<host>/logger -u user:password`  
@@ -159,7 +159,7 @@ If internet connection is blocked, we could install on another machine and copy 
 >Tip, take a look at bun test scripts located in `node_modules\scimgateway\test\lib`
 
 > If using Node.js instead of Bun, scimgateway must be downloaded from github because Node.js does not support native typescript used by modules. Startup will then be:  
-node --experimental-strip-types c:\my-scimgateway\index.ts
+`node --experimental-strip-types c:\my-scimgateway\index.ts`
 
 #### Upgrade SCIM Gateway  
 
@@ -1351,10 +1351,10 @@ Plugins should have following initialization:
 	// start - mandatory plugin initialization
 	const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
 	  try {
-		return (await import('scimgateway')).ScimGateway
+	    return (await import('scimgateway')).ScimGateway
 	  } catch (err) {
-		const source = './scimgateway.ts'
-		return (await import(source)).ScimGateway
+	    const source = './scimgateway.ts'
+	    return (await import(source)).ScimGateway
 	  }
 	})()
 	const scimgateway = new ScimGateway()
@@ -1368,10 +1368,10 @@ If using REST, we could also include the HelperRest:
 	...
 	const HelperRest: typeof import('scimgateway').HelperRest = await (async () => {
 	  try {
-		return (await import('scimgateway')).HelperRest
+	    return (await import('scimgateway')).HelperRest
 	  } catch (err) {
-		const source = './scimgateway.ts'
-		return (await import(source)).HelperRest
+	    const source = './scimgateway.ts'
+	    return (await import(source)).HelperRest
 	  }
 	})()
 	...
@@ -1405,11 +1405,18 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.3.1
+
+[Fixed]  
+
+- Incorrect log masking of SCIM 2.0 Operations
+- plugin-ldap, create user/group having DN special character `#` failed on OpenLDAP
+
 ### v5.3.0
 
 [Improved]  
 
-- [SCIM Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) now supported
+- [Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) now supported
 - Dependencies bump
 
 ### v5.2.5
