@@ -570,10 +570,18 @@ export class ScimGateway {
       if (authType === 'Basic') [userName] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
       if (!userName && authType === 'Bearer') userName = 'token'
       let outbound = ctx.response.body
-      if (typeof outbound === 'string' && outbound.length > 1000) {
-        outbound = outbound.slice(0, 1000)
-        outbound += '...truncated because of length'
+
+      if (typeof outbound === 'string' && outbound.length > 1500 && outbound.includes('"Resources":')) {
+        try {
+          const o = JSON.parse(outbound)
+          if (o?.Resources?.length > 1) {
+            o.Resources = [o.Resources[0]]
+            o.Resources.push({ loggerComment: '===REST OF OBJECTS TRUNCATED BECAUSE OF LOG LENGTH===' })
+            outbound = JSON.stringify(o)
+          }
+        } catch (err) {}
       }
+
       if (ctx.response.status && (ctx.response.status < 200 || ctx.response.status > 299)) {
         if (ctx.response.status === 404) logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
         else logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
