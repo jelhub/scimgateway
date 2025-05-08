@@ -81,6 +81,7 @@ export class Logger {
   private rotating = false
   private buffer: string[] = []
   private reJson: RegExp
+  private reJsonPathValue: RegExp
   private reXml: RegExp
   private callbacks: Set<(message: any) => Promise<void>> = new Set()
   private LOG_DIR: string
@@ -128,20 +129,26 @@ export class Logger {
       if (option.customMasking) this.customMasking = option.customMasking
     }
 
-    let customMaskJson = ''
-    let customMaskXml = ''
-    if (this.customMasking && Array.isArray(this.customMasking) && this.customMasking.length > 0) {
-      customMaskJson = this.customMasking.join('|')
-      customMaskJson = '|' + customMaskJson
-      customMaskXml = this.customMasking.join('"?|')
-      customMaskXml = '|' + customMaskXml + '"?'
-    }
+    let customMask = this.customMasking || []
+    if (!Array.isArray(customMask)) customMask = []
+    const jsonMaskKeys = ['password', 'access_token', 'client_secret', 'assertion', 'client_assertion']
+    const jsonJoinedKeys = jsonMaskKeys.concat(customMask).join('|')
+    const xmlMaskKeys = ['credentials', 'PasswordText', 'PasswordDigest', 'password']
+    const xmlJoinedKeys = xmlMaskKeys.concat(customMask).join('"?|') + '"?'
+
     this.reJson = new RegExp(
-      `("(password|access_token|client_secret|assertion|client_assertion|${customMaskJson})"\\s*:\\s*)"([^"]+)"`,
+      `("(?:${jsonJoinedKeys})"\\s*:\\s*)"([^"]+)"`,
       'gi',
     )
+
+    // matches "path":"<maskKey>", then finds "value":"<value>" to mask it - SCIM 2.0 PATCH Operations
+    this.reJsonPathValue = new RegExp(
+      `("path"\\s*:\\s*"(?:${jsonJoinedKeys})"[^{}]*?"value"\\s*:\\s*")([^"]+)(")`,
+      'gi',
+    )
+
     this.reXml = new RegExp(
-      `(<(?:\\w+:)?(credentials"?|PasswordText"?|PasswordDigest"?|password"?|${customMaskXml})[^>]*>)([^<]+)(<\\/(:?\\w+:)?\\2>)`,
+      `(<(?:\\w+:)?(${xmlJoinedKeys})[^>]*>)([^<]+)(<\\/(:?\\w+:)?\\2>)`,
       'gi',
     )
 
@@ -164,18 +171,28 @@ export class Logger {
 
   private maskSecret(msg: string): string {
     if (!msg) return msg
+
     // Mask JSON secrets
     msg = msg.replace(
       this.reJson,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (_, keyValuePair, key) => `${keyValuePair}"********"`,
+      (_, keyValuePair, value) => `${keyValuePair}"********"`,
     )
+
+    // Mask JSON path/value secrets (SCIM 2.0 PATCH Operations)
+    msg = msg.replace(
+      this.reJsonPathValue,
+      (_, prefix, value, suffix) => `${prefix}********${suffix}`,
+    )
+
+    if (msg.includes('<?xml')) {
     // Mask XML/Soap secrets
     // console.log('XML matches found:', msg.match(this.reXml)
-    msg = msg.replace(
-      this.reXml,
-      (_, startTag, tagName, value, endTag) => `${startTag}********${endTag}`,
-    )
+      msg = msg.replace(
+        this.reXml,
+        (_, startTag, tagName, value, endTag) => `${startTag}********${endTag}`,
+      )
+    }
 
     return msg
   }
