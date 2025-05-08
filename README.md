@@ -1409,7 +1409,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 [Fixed]  
 
-- Incorrect log masking of SCIM 2.0 Operations
+- Incorrect log masking of SCIM 2.0 PATCH Operations
 - plugin-ldap, create user/group having DN special character `#` failed on OpenLDAP
 
 ### v5.3.0
