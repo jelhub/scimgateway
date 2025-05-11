@@ -699,7 +699,7 @@ export class HelperRest {
       try { urlObj = new URL(path) } catch (err) { void 0 }
       let isServiceClient = !urlObj && this._serviceClient[baseEntity] && !this.lock.isLocked() // !isLocked to avoid retry ongoing doRequest with failing getAccessToken()
       let oAuthTokeErr = statusCode === 401 && this.config_entity[baseEntity].connection?.auth?.type && this.config_entity[baseEntity].connection.auth.type.startsWith('oauth')
-      if (isServiceClient && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || oAuthTokeErr || retryAfter)) {
+      if (isServiceClient && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || statusCode === 504 || oAuthTokeErr || retryAfter)) {
         this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
         if (retryAfter) {
           this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} throttle/ratelimit error - awaiting ${retryAfter} seconds before automatic retry`)
