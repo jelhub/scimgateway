@@ -176,21 +176,23 @@ export class Logger {
     msg = msg.replace(
       this.reJson,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      (_, keyValuePair, value) => `${keyValuePair}"********"`,
+      (_, keyValuePair, value) => `${keyValuePair}"******"`,
     )
 
     // Mask JSON path/value secrets (SCIM 2.0 PATCH Operations)
-    msg = msg.replace(
-      this.reJsonPathValue,
-      (_, prefix, value, suffix) => `${prefix}********${suffix}`,
-    )
+    if (msg.includes('"path"')) {
+      msg = msg.replace(
+        this.reJsonPathValue,
+        (_, prefix, value, suffix) => `${prefix}******${suffix}`,
+      )
+    }
 
-    if (msg.includes('<?xml')) {
     // Mask XML/Soap secrets
     // console.log('XML matches found:', msg.match(this.reXml)
+    if (msg.includes('<?xml')) {
       msg = msg.replace(
         this.reXml,
-        (_, startTag, tagName, value, endTag) => `${startTag}********${endTag}`,
+        (_, startTag, tagName, value, endTag) => `${startTag}******${endTag}`,
       )
     }
 
