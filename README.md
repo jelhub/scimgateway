@@ -1405,6 +1405,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.3.2
+
+[Improved]  
+
+- helper-rest, retry on request error 504 Gateway Timeout
+- performance micro-optimization on log mask logic
+
 ### v5.3.1
 
 [Fixed]  
