@@ -142,6 +142,7 @@ export class HelperRest {
             grant_type: 'urn:ietf:params:oauth:grant-type:saml2-bearer',
             client_id: clientId,
             company_id: companyId,
+            new_token: true,
             assertion: await samlAssertion.run(context, cert, key, issuer, lifetime, clientId, nameId, userIdentifierFormat, tokenEndpoint, audience, delay),
           }
           break
