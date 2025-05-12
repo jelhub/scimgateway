@@ -581,7 +581,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
     if (!Array.isArray(attrObj.members)) {
       throw new Error(`${action} error: ${JSON.stringify(attrObj)} - correct syntax is { "members": [...] }`)
     }
-    await attrObj.members.forEach(async (el) => {
+    for (const el of attrObj.members) {
       if (el.operation && el.operation === 'delete') { // delete member from group
         if (!el.value) groupObj.members = [] // members=[{"operation":"delete"}] => no value, delete all members
         else {
@@ -589,7 +589,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
         }
       } else { // Add member to group
         if (el.value) {
-          const getObj = { attribute: 'id', operator: 'eq', value: el.value }
+          const getObj = {attribute: 'id', operator: 'eq', value: el.value}
           const usrs: any = await scimgateway.getUsers(baseEntity, getObj, ['id', 'displayName'], ctx) // check if user exist
           if (usrs && usrs.Resources && usrs.Resources.length === 1 && usrs.Resources[0].id === el.value) {
             const newMember = {
@@ -601,7 +601,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
           } else usersNotExist.push(el.value)
         }
       }
-    })
+    }
   }
 
   delete attrObj.members
