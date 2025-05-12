@@ -466,8 +466,8 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
           throw new Error(`assignUserToGroup : Got empty response on soap request: ${soapRequest}`)
         }
       }
-      null;
     }
+    return null;
   } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
