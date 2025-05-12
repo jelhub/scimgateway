@@ -1405,6 +1405,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.3.3
+
+[Fixed]  
+
+- helper-rest, SamlBearer token-request now includes `new_token=true` to avoid retrieving an existing token that is about to expire
+
 ### v5.3.2
 
 [Improved]  
