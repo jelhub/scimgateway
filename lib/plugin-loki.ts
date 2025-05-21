@@ -380,31 +380,24 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj) => {
         }
       }
     } else {
-      // None multi value attribute
-      if (typeof (attrObj[key]) !== 'object' || attrObj[key] === null) {
-        if (attrObj[key] === '' || attrObj[key] === null) delete userObj[key]
-        else userObj[key] = attrObj[key]
-      } else {
+      // None multi value attribute, blank will be deleted
+      if (typeof (attrObj[key]) === 'object' && attrObj[key] !== null) {
         // name.familyName=Bianchi
         if (!userObj[key]) userObj[key] = {} // e.g name object does not exist
         for (const sub in attrObj[key]) { // attributes to be cleard located in meta.attributes eg: {"meta":{"attributes":["name.familyName","profileUrl","title"]}
-          if (sub === 'attributes' && Array.isArray(attrObj[key][sub])) {
-            attrObj[key][sub].forEach((element) => {
-              const arrSub = element.split('.')
-              if (arrSub.length === 2) userObj[arrSub[0]][arrSub[1]] = '' // e.g. name.familyName
-              else userObj[element] = ''
-            })
-          } else {
-            if (Object.prototype.hasOwnProperty.call(attrObj[key][sub], 'value')
-              && attrObj[key][sub].value === '') delete userObj[key][sub] // object having blank value attribute e.g. {"manager": {"value": "",...}}
-            else if (attrObj[key][sub] === '') delete userObj[key][sub]
-            else {
-              if (!userObj[key]) userObj[key] = {} // may have been deleted by length check below
-              userObj[key][sub] = attrObj[key][sub]
-            }
-            if (Object.keys(userObj[key]).length < 1) delete userObj[key]
+          if (!userObj[key]) userObj[key] = {}
+          if (Object.prototype.hasOwnProperty.call(attrObj[key][sub], 'value')
+            && attrObj[key][sub].value === '') delete userObj[key][sub] // object having blank value attribute e.g. {"manager": {"value": "",...}}
+          else if (attrObj[key][sub] === '') delete userObj[key][sub]
+          else {
+            if (!userObj[key]) userObj[key] = {} // may have been deleted by length check below
+            userObj[key][sub] = attrObj[key][sub]
           }
+          if (Object.keys(userObj[key]).length < 1) delete userObj[key]
         }
+      } else {
+        if (attrObj[key] === '') delete userObj[key]
+        else userObj[key] = attrObj[key]
       }
     }
   }
@@ -589,7 +582,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
         }
       } else { // Add member to group
         if (el.value) {
-          const getObj = {attribute: 'id', operator: 'eq', value: el.value}
+          const getObj = { attribute: 'id', operator: 'eq', value: el.value }
           const usrs: any = await scimgateway.getUsers(baseEntity, getObj, ['id', 'displayName'], ctx) // check if user exist
           if (usrs && usrs.Resources && usrs.Resources.length === 1 && usrs.Resources[0].id === el.value) {
             const newMember = {

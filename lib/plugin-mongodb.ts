@@ -439,16 +439,12 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         if (attrObj[key] === '' || attrObj[key] === null) delete userObj[key]
         else userObj[key] = attrObj[key]
       } else {
+      // None multi value attribute, blank will be deleted
+        if (typeof (attrObj[key]) === 'object' && attrObj[key] !== null) {
         // name.familyName=Bianchi
-        if (!userObj[key]) userObj[key] = {} // e.g name object does not exist
-        for (const sub in attrObj[key]) { // attributes to be cleard located in meta.attributes eg: {"meta":{"attributes":["name.familyName","profileUrl","title"]}
-          if (sub === 'attributes' && Array.isArray(attrObj[key][sub])) {
-            attrObj[key][sub].forEach((element) => {
-              const arrSub = element.split('.')
-              if (arrSub.length === 2) userObj[arrSub[0]][arrSub[1]] = '' // e.g. name.familyName
-              else userObj[element] = ''
-            })
-          } else {
+          if (!userObj[key]) userObj[key] = {} // e.g name object does not exist
+          for (const sub in attrObj[key]) { // attributes to be cleard located in meta.attributes eg: {"meta":{"attributes":["name.familyName","profileUrl","title"]}
+            if (!userObj[key]) userObj[key] = {}
             if (Object.prototype.hasOwnProperty.call(attrObj[key][sub], 'value')
               && attrObj[key][sub].value === '') delete userObj[key][sub] // object having blank value attribute e.g. {"manager": {"value": "",...}}
             else if (attrObj[key][sub] === '') delete userObj[key][sub]
@@ -458,6 +454,9 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
             }
             if (Object.keys(userObj[key]).length < 1) delete userObj[key]
           }
+        } else {
+          if (attrObj[key] === '') delete userObj[key]
+          else userObj[key] = attrObj[key]
         }
       }
     }
