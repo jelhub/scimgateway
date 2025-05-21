@@ -467,7 +467,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
         }
       }
     }
-    return null;
+    return null
   } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
   }
