@@ -265,11 +265,8 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   if (parsedAttrObj instanceof Error) throw (parsedAttrObj) // error object
 
   const objManager: Record<string, any> = {}
-  if (parsedAttrObj.manager) { // new manager
-    objManager.manager = JSON.parse(JSON.stringify(parsedAttrObj.manager))
-    delete parsedAttrObj.manager
-  } else if (parsedAttrObj.manager === null) { // delete manager
-    objManager.manager = null
+  if (Object.prototype.hasOwnProperty.call(parsedAttrObj, 'manager')) {
+    objManager.manager = parsedAttrObj.manager
     delete parsedAttrObj.manager
   }
 
@@ -309,6 +306,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const manager = () => {
     return new Promise((resolve, reject) => {
       (async () => {
+        if (!Object.prototype.hasOwnProperty.call(objManager, 'manager')) return resolve(null)
         let method: string | null = null
         let path: string | null = null
         let body: Record<string, any> | null = null
@@ -317,11 +315,11 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
           method = 'PUT'
           path = `/users/${id}/manager/$ref`
           body = { '@odata.id': `${graphUrl}/users/${objManager.manager}` }
-        } else if (objManager.manager === null) { // delete manager
+        } else { // delete manager (null/undefined/'')
           method = 'DELETE'
           path = `/users/${id}/manager/$ref`
           body = null
-        } else return resolve(null)
+        }
         try {
           await helper.doRequest(baseEntity, method, path, body, ctx)
           resolve(null)
