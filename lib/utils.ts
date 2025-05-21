@@ -201,7 +201,8 @@ export const copyObj = (o: any): any => { // deep copy/clone faster than JSON.pa
 
 const _extendObj = (obj: Record<any, any>, src: Record<any, any>) => {
   Object.keys(src).forEach((key) => {
-    if (typeof src[key] === 'object' && src[key] != null) {
+    if (typeof src[key] === 'object' && src[key] !== null) {
+      if (Object.keys(src[key]).length === 0) return
       if (typeof obj[key] === 'undefined') obj[key] = src[key]
       else if (Array.isArray(src[key])) {
         if (!Array.isArray(obj[key])) obj[key] = src[key]
