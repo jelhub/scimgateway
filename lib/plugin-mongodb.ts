@@ -443,7 +443,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         if (typeof (attrObj[key]) === 'object' && attrObj[key] !== null) {
         // name.familyName=Bianchi
           if (!userObj[key]) userObj[key] = {} // e.g name object does not exist
-          for (const sub in attrObj[key]) { // attributes to be cleard located in meta.attributes eg: {"meta":{"attributes":["name.familyName","profileUrl","title"]}
+          for (const sub in attrObj[key]) {
             if (!userObj[key]) userObj[key] = {}
             if (Object.prototype.hasOwnProperty.call(attrObj[key][sub], 'value')
               && attrObj[key][sub].value === '') delete userObj[key][sub] // object having blank value attribute e.g. {"manager": {"value": "",...}}
