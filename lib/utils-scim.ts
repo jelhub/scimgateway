@@ -87,37 +87,55 @@ export function convertedScim(obj: any, multiValueTypes: string[]): any {
         })
         delete scimdata[key]
       }
+    } else if (key === 'active' && typeof scimdata[key] === 'string') {
+      const lcase = scimdata.active.toLowerCase()
+      if (lcase === 'true') scimdata.active = true
+      else if (lcase === 'false') scimdata.active = false
+    } else if (key === 'meta') { // cleared attributes e.g { meta: { attributes: [ 'name.givenName', 'title' ] } }
+      if (Array.isArray(scimdata.meta.attributes)) {
+        scimdata.meta.attributes.forEach((el: string) => {
+          let rootKey = ''
+          let subKey = ''
+          if (el.startsWith('urn:')) { // can't use dot.str on key having dot e.g. urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department
+            const i = el.lastIndexOf(':')
+            subKey = el.substring(i + 1)
+            if (subKey === 'User' || subKey === 'Group') rootKey = el
+            else rootKey = el.substring(0, i)
+          }
+          if (rootKey) {
+            if (!scimdata[rootKey]) scimdata[rootKey] = {}
+            dot.str(subKey, '', scimdata[rootKey])
+          } else {
+            dot.str(el, '', scimdata)
+          }
+        })
+      }
+      delete scimdata.meta
+    } else { // replace any undefined/null with empty string
+      if (typeof scimdata[key] === 'object' && scimdata[key] !== null) {
+        for (const k in scimdata[key]) {
+          if (typeof scimdata[key][k] === 'object' && scimdata[key][k] !== null) {
+            for (const _k in scimdata[key][k]) {
+              if (scimdata[key][k][_k] === undefined || scimdata[key][k][_k] === null) {
+                scimdata[key][k][_k] = ''
+              }
+            }
+          } else {
+            if (scimdata[key][k] === undefined || scimdata[key][k] === null) {
+              scimdata[key][k] = ''
+            }
+          }
+        }
+      } else if (scimdata[key] === undefined || scimdata[key] === null) {
+        scimdata[key] = ''
+      }
     }
   }
-  if (scimdata.active && typeof scimdata.active === 'string') {
-    const lcase = scimdata.active.toLowerCase()
-    if (lcase === 'true') scimdata.active = true
-    else if (lcase === 'false') scimdata.active = false
-  }
-  if (scimdata.meta) { // cleared attributes e.g { meta: { attributes: [ 'name.givenName', 'title' ] } }
-    if (Array.isArray(scimdata.meta.attributes)) {
-      scimdata.meta.attributes.forEach((el: string) => {
-        let rootKey = ''
-        let subKey = ''
-        if (el.startsWith('urn:')) { // can't use dot.str on key having dot e.g. urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department
-          const i = el.lastIndexOf(':')
-          subKey = el.substring(i + 1)
-          if (subKey === 'User' || subKey === 'Group') rootKey = el
-          else rootKey = el.substring(0, i)
-        }
-        if (rootKey) {
-          if (!scimdata[rootKey]) scimdata[rootKey] = {}
-          dot.str(subKey, '', scimdata[rootKey])
-        } else {
-          dot.str(el, '', scimdata)
-        }
-      })
-    }
-    delete scimdata.meta
-  }
+
   for (const key in newMulti) {
     dot.copy(key, key, newMulti, scimdata)
   }
+
   return [scimdata, err]
 }
 
@@ -134,8 +152,8 @@ export function convertedScim(obj: any, multiValueTypes: string[]): any {
 * {"name":{"givenName":"Rocky",formatted:""},"emails":{"work":{"value":"user@company.com","type":"work"}}}
 */
 export function convertedScim20(obj: any, multiValueTypes: string[]): any {
-  let scimdata: { [key: string]: any } = {}
-  if (!obj.Operations || !Array.isArray(obj.Operations)) return scimdata
+  if (!obj.Operations || !Array.isArray(obj.Operations)) return {}
+  let scimdata: { [key: string]: any } = { meta: { attributes: [] } } // meta is used for deleted attributes
   const o: any = utils.copyObj(obj)
   const arrPrimaryDone: any = []
   const primaryOrgType: any = {}
@@ -289,10 +307,9 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
           })
         } else {
           let value = element.value[key]
-          if (element.op && element.op === 'remove') {
-            if (!scimdata.meta) scimdata.meta = {}
-            if (!scimdata.meta.attributes) scimdata.meta.attributes = []
+          if (element?.op === 'remove' || value === undefined || value === null) {
             scimdata.meta.attributes.push(key)
+            continue
           }
           if (key.startsWith('urn:')) { // can't use dot.str on key having dot e.g. urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department
             const i = key.lastIndexOf(':')
@@ -301,6 +318,17 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
             if (k === 'User' || k === 'Group') rootKey = key
             else rootKey = key.substring(0, i) // urn:ietf:params:scim:schemas:extension:enterprise:2.0:User
             if (k === 'User' || k === 'Group') { // value is object
+              for (const _k in value) {
+                if (value[_k] === undefined || value[_k] === null) {
+                  scimdata.meta.attributes.push(`${key}:${_k}`)
+                  delete value[_k]
+                } else if (typeof value[_k] === 'object') { // manager.value
+                  if (Object.prototype.hasOwnProperty.call(value[_k], 'value') && (value[_k].value === undefined || value[_k].value === null)) {
+                    scimdata.meta.attributes.push(`${key}:${_k}.value`)
+                    delete value[_k].value
+                  }
+                }
+              }
               const o: Record<string, any> = {}
               o[rootKey] = value
               scimdata = utils.extendObj(scimdata, o)
@@ -316,14 +344,10 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
           } else {
             if (typeof value === 'object') {
               for (const k in element.value[key]) {
-                if (element.op && element.op === 'remove') {
-                  if (!scimdata.meta) scimdata.meta = {}
-                  if (!scimdata.meta.attributes) scimdata.meta.attributes = []
+                value = element.value[key][k]
+                if ((element.op && element.op === 'remove') || value === null || value === undefined) {
                   scimdata.meta.attributes.push(`${key}.${k}`)
-                } else {
-                  value = element.value[key][k]
-                  dot.str(`${key}.${k}`, value, scimdata)
-                }
+                } else dot.str(`${key}.${k}`, value, scimdata)
               }
             } else dot.str(key, value, scimdata)
           }
