@@ -1405,6 +1405,30 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.3.4
+
+[Fixed]  
+
+- PATCH operations (modifyUser/modifyGroup) that includes `null` values, will now be converted to empty string `""`
+
+		{
+		  "schemas": [
+		    "urn:ietf:params:scim:api:messages:2.0:PatchOp"
+		  ],
+		  "Operations": [{
+		    "op": "replace",
+		    "value": {
+		      "name": {
+		        "formatted": "Smith, John",
+		        "honorificPrefix": null
+		      }
+		    }}
+		  ]
+		}
+
+	In the example above, following will be sent to plugin:  
+	{ "name": { "formatted": "Smith, John", "honorificPrefix": "" } }
+
 ### v5.3.3
 
 [Fixed]  
