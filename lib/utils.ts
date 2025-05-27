@@ -434,6 +434,8 @@ export const stripObj = (obj: Record<string, any>, attributes?: string, excluded
   const arrCheckEmpty: any = []
   if (attributes) {
     const arrAttr = attributes.split(',').map(item => item.trim())
+    if (!arrAttr.includes('id')) arrAttr.push('id') // always include id
+    if (!arrAttr.includes('meta')) arrAttr.push('meta') // include meta if supported by endpoint
     arrRet = arrObj.map((obj) => {
       const ret: Record<string, any> = {}
       for (let i = 0; i < arrAttr.length; i++) {
@@ -473,7 +475,7 @@ export const stripObj = (obj: Record<string, any>, attributes?: string, excluded
       return ret
     })
   } else if (excludedAttributes) {
-    const arrAttr = excludedAttributes.split(',').map(item => item.trim())
+    const arrAttr = excludedAttributes.split(',').map(item => item.trim()).filter(item => item !== 'id' && item !== 'meta')
     arrRet = arrObj.map((obj) => {
       const ret: any = copyObj(obj)
       for (let i = 0; i < arrAttr.length; i++) {
