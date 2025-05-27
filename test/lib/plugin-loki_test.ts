@@ -81,7 +81,7 @@ describe('plugin-loki', async () => {
   })
 
   test('getUsers all test (2)', async () => {
-    const res = await fetchSCIM('GET', '/Users?attributes=userName&startIndex=1&count=100', undefined, options.std.headers)
+    const res = await fetchSCIM('GET', '/Users?attributes=userName&startIndex=1&count=100', undefined, options.std.headers) // id and meta is always returned
     const users = res.body
     expect(res.status).toBe(200)
     expect(users.totalResults).toBe(2)
@@ -89,10 +89,12 @@ describe('plugin-loki', async () => {
     expect(users.startIndex).toBe(1)
     expect(users).toBeDefined()
     expect(users.Resources[0].userName).toBe('bjensen')
-    expect(users.Resources[0].id).toBe(undefined)
+    expect(users.Resources[0].id).toBe('bjensen')
+    expect(users.Resources[0].meta).toBeDefined()
     expect(users.Resources[0].groups).toBe(undefined)
     expect(users.Resources[1].userName).toBe('jsmith')
-    expect(users.Resources[1].id).toBe(undefined)
+    expect(users.Resources[1].id).toBe('jsmith')
+    expect(users.Resources[1].meta).toBeDefined()
     expect(users.Resources[1].groups).toBe(undefined)
   })
 
@@ -190,7 +192,7 @@ describe('plugin-loki', async () => {
 
   test('getGroups all test (2)', async () => {
     const res = await fetchSCIM('GET', '/Groups'
-      + '?attributes=displayName&startIndex=1&count=100',
+      + '?attributes=displayName&startIndex=1&count=100', // id and meta is always returned
     undefined, options.std.headers)
     const groups = res.body
     expect(res.status).toBe(200)
@@ -200,10 +202,12 @@ describe('plugin-loki', async () => {
     expect(groups).toBeDefined()
     expect(groups.Resources[0].members).toBe(undefined)
     expect(groups.Resources[0].displayName).toBe('Admins')
-    expect(groups.Resources[0].id).toBe(undefined)
+    expect(groups.Resources[0].id).toBe('Admins')
+    expect(groups.Resources[0].meta).toBeDefined()
     expect(groups.Resources[1].members).toBe(undefined)
     expect(groups.Resources[1].displayName).toBe('Employees')
-    expect(groups.Resources[1].id).toBe(undefined)
+    expect(groups.Resources[1].id).toBe('Employees')
+    expect(groups.Resources[1].meta).toBeDefined()
   })
 
   test('getGroups unique test (1)', async () => {
