@@ -16,6 +16,7 @@ Validated through IdP's:
 
 Latest news:  
  
+- [ETag](https://datatracker.ietf.org/doc/html/rfc7644#section-3.14) now supported
 - [Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) now supported
 - Remote real-time log subscription for monitoring and centralized logging  
 using browser and url: `https://<host>/logger`  
@@ -1404,6 +1405,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.3.5
+
+[Improved]  
+
+- ETag now supported and default included for all requests. Plugin may use custom ETag by returning meta.version. 
 
 ### v5.3.4
 
