@@ -8,6 +8,7 @@ type SCIMBulkOperation = {
   method: string
   path: string
   bulkId?: string
+  version?: string
   data?: any
 }
 
