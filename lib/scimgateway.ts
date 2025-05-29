@@ -583,8 +583,9 @@ export class ScimGateway {
       }
 
       if (ctx.response.status && (ctx.response.status < 200 || ctx.response.status > 299)) {
-        if (ctx.response.status === 404) logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
-        else logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
+        if (ctx.response.status === 404 || ctx.response.status === 412 || ctx.response.status === 304) {
+          logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
+        } else logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
       } else logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${ctx.response.status} ${userName} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
     }
 
@@ -1048,8 +1049,8 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
         return
       }
-      if (ctx.query.attributes) ctx.query.attributes = ctx.query.attributes.split(',').map((item: string) => item.trim()).join()
-      if (ctx.query.excludedAttributes) ctx.query.excludedAttributes = ctx.query.excludedAttributes.split(',').map((item: string) => item.trim()).join()
+      if (ctx.query.attributes) ctx.query.attributes = ctx.query.attributes.split(',').filter(Boolean).map((item: string) => item.trim()).join()
+      if (ctx.query.excludedAttributes) ctx.query.excludedAttributes = ctx.query.excludedAttributes.split(',').filter(Boolean).map((item: string) => item.trim()).join()
 
       const getObj = {
         attribute: 'id',
@@ -1063,7 +1064,7 @@ export class ScimGateway {
         const ob = utils.copyObj(getObj)
         const attributes = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
         logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`)
-        let res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
+        let res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
 
         let scimdata: { [key: string]: any } = {
           Resources: [],
@@ -1085,13 +1086,31 @@ export class ScimGateway {
           ctx.response.body = JSON.stringify(e)
           return
         }
-        let userObj = scimdata.Resources[0]
+        const userObj = scimdata.Resources[0]
+        const eTag = utils.getEtag(userObj)
+
+        const eTagIfMatch = ctx.request.headers.get('if-match')
+        const eTagIfNoneMatch = ctx.request.headers.get('if-none-match')
+
+        if (eTag) {
+          if (eTagIfMatch && eTagIfMatch !== eTag) {
+            ctx.response.headers.set('ETag', eTag)
+            ctx.response.status = 412 // Precondition Failed
+            const err = new Error(`ETag If-Match mismatch: ${eTagIfMatch} != ${eTag}`)
+            const [e] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
+            ctx.response.body = JSON.stringify(e)
+            return
+          } else if (eTagIfNoneMatch && eTagIfNoneMatch === eTag) {
+            ctx.response.headers.set('ETag', eTag)
+            ctx.response.status = 304 // Not Modified
+            ctx.response.body = ''
+            return
+          }
+        }
 
         // check for user attribute groups and include if needed
         if (handle.getMethod === handler.users.getMethod && Object.keys(userObj).length > 0) {
-          let arrAttr: string[] = []
-          if (ctx.query.attributes) arrAttr = ctx.query.attributes.split(',')
-          if ((!ctx.query.attributes || arrAttr.includes('groups'))) { // include groups
+          if (attributes.length === 0 || attributes.includes('groups')) { // include groups
             if (!userObj.groups && userObj.id) {
               userObj.groups = await getMemberOf(baseEntity, userObj.id, handler.groups.getMethod, ctx.passThrough)
             }
@@ -1110,6 +1129,8 @@ export class ScimGateway {
           }
         }
         ctx.response.body = JSON.stringify(scimdata)
+        if (eTag) ctx.response.headers.set('ETag', eTag)
+        if (scimdata?.meta?.location) ctx.response.headers.set('Location', scimdata.meta.location)
       } catch (err: any) {
         ctx.response.status = 404
         const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
@@ -1126,8 +1147,8 @@ export class ScimGateway {
     const getHandler = async (ctx: Context) => {
       const handle = handler[ctx.routeObj.handle]
       const baseEntity = ctx.routeObj.baseEntity
-      if (ctx.query.attributes) ctx.query.attributes = ctx.query.attributes.split(',').map((item: string) => item.trim()).join()
-      if (ctx.query.excludedAttributes) ctx.query.excludedAttributes = ctx.query.excludedAttributes.split(',').map((item: string) => item.trim()).join()
+      if (ctx.query.attributes) ctx.query.attributes = ctx.query.attributes.split(',').filter(Boolean).map((item: string) => item.trim()).join()
+      if (ctx.query.excludedAttributes) ctx.query.excludedAttributes = ctx.query.excludedAttributes.split(',').filter(Boolean).map((item: string) => item.trim()).join()
 
       const getObj: any = {
         attribute: undefined,
@@ -1280,7 +1301,7 @@ export class ScimGateway {
           }
           if (getObjArr.length > 0) {
             const getObj = async (o: Record<string, any>) => {
-              return await (this as any)[handle.getMethod](baseEntity, o, attributes, ctx.passThrough)
+              return await (this as any)[handle.getMethod](baseEntity, o, [], ctx.passThrough)
             }
             const chunk = 5
             const chunkRes: Record<string, any>[] = []
@@ -1304,14 +1325,12 @@ export class ScimGateway {
 
         if (!res) { // standard
           logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`)
-          res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
+          res = await (this as any)[handle.getMethod](baseEntity, obj, [], ctx.passThrough)
         }
         // check for user attribute groups and include if needed
         if (Array.isArray(res?.Resources)) {
           if (handle.getMethod === handler.users.getMethod) {
-            let arrAttr: string[] = []
-            if (ctx.query.attributes) arrAttr = ctx.query.attributes.split(',')
-            if ((!ctx.query.attributes || arrAttr.includes('groups'))) { // include groups
+            if (attributes.length === 0 || attributes.includes('groups')) { // include groups
               for (let i = 0; i < res.Resources.length; i++) {
                 const userObj = res.Resources[i]
                 if (!userObj.id) break
@@ -1335,8 +1354,9 @@ export class ScimGateway {
 
         let location: string | undefined = ctx.origin + ctx.path
         if (this.config.scimgateway.scim.skipMetaLocation) location = undefined
-        else if (ctx.query.attributes || (ctx.query.excludedAttributes && ctx.query.excludedAttributes.includes('meta'))) location = undefined
+        else if (ctx.query.excludedAttributes && ctx.query.excludedAttributes.includes('meta')) location = undefined
         for (let i = 0; i < scimdata.Resources.length; i++) {
+          utils.getEtag(scimdata.Resources[i])
           scimdata.Resources[i] = utils.stripObj(scimdata.Resources[i], ctx.query.attributes, ctx.query.excludedAttributes)
         }
         scimdata = utilsScim.addResources(scimdata, ctx.query.startIndex, ctx.query.sortBy, ctx.query.sortOrder)
@@ -1450,6 +1470,7 @@ export class ScimGateway {
           if (obj && obj.id) jsonBody = obj // id found, using returned object
         }
 
+        const eTag = utils.getEtag(jsonBody)
         if (addGrps.length > 0 && handle.createMethod === 'createUser') { // add group membership
           const addGroups = async (groupId: string) => {
             return await (this as any)[handler.groups.modifyMethod](baseEntity, groupId, { members: [{ value: jsonBody.id }] }, ctx.passThrough)
@@ -1470,12 +1491,10 @@ export class ScimGateway {
           const location = ctx.origin + `${ctx.path}/${encodeURIComponent(decodeURIComponent(jsonBody.id))}`
           if (!jsonBody.meta) jsonBody.meta = {}
           jsonBody.meta.location = location
-          const response = ctx.response as any
-          if (!response.headers) response.headers = {}
-          response.headers.Location = location
         }
-        delete jsonBody.password
         jsonBody = utilsScim.addSchemas(jsonBody, isScimv2, handle.description, undefined)
+        if (eTag) ctx.response.headers.set('ETag', eTag)
+        if (jsonBody?.meta?.location) ctx.response.headers.set('Location', jsonBody.meta.location)
         ctx.response.status = 201
         ctx.response.body = JSON.stringify(jsonBody)
       } catch (err: any) {
@@ -1547,8 +1566,8 @@ export class ScimGateway {
     // example: {"members":[{"value":"bjensen"}],"schemas":["urn:scim:schemas:core:1.0"]}
     //
     const patchHandler = async (ctx: Context) => {
-      if (ctx.query.attributes) ctx.query.attributes = ctx.query.attributes.split(',').map((item: string) => item.trim()).join()
-      if (ctx.query.excludedAttributes) ctx.query.excludedAttributes = ctx.query.excludedAttributes.split(',').map((item: any) => item.trim()).join()
+      if (ctx.query.attributes) ctx.query.attributes = ctx.query.attributes.split(',').filter(Boolean).map((item: string) => item.trim()).join()
+      if (ctx.query.excludedAttributes) ctx.query.excludedAttributes = ctx.query.excludedAttributes.split(',').filter(Boolean).map((item: any) => item.trim()).join()
       const handle = handler[ctx.routeObj.handle]
       const baseEntity = ctx.routeObj.baseEntity
       const id = ctx.routeObj.id ? decodeURIComponent(ctx.routeObj.id) : ctx.routeObj.id
@@ -1567,6 +1586,43 @@ export class ScimGateway {
       }
 
       logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Modify ${handle.description}] id=${id}`)
+
+      const eTagIfMatch = ctx.request.headers.get('if-match')
+      const eTagIfNoneMatch = ctx.request.headers.get('if-none-match')
+      if (eTagIfMatch || eTagIfNoneMatch) {
+        let eTag = ''
+        if (handle.getMethod === handler.users.getMethod || handle.getMethod === handler.groups.getMethod) { // getUsers or getGroups implemented
+          const ob = { attribute: 'id', operator: 'eq', value: id }
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`)
+          const res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
+          if (res) {
+            if (res.Resources && Array.isArray(res.Resources)) {
+              if (res.Resources.length === 1) {
+                eTag = utils.getEtag(res.Resources[0])
+              }
+            } else if (Array.isArray(res)) {
+              if (res.length === 1) {
+                eTag = utils.getEtag(res[0])
+              }
+            } else if (typeof (res) === 'object' && res !== null) eTag = utils.getEtag(res[0])
+          }
+        }
+        if (eTag)
+          if (eTagIfMatch && eTagIfMatch !== eTag) {
+            ctx.response.headers.set('ETag', eTag)
+            ctx.response.status = 412 // Precondition Failed
+            const err = new Error(`ETag If-Match mismatch: ${eTagIfMatch} != ${eTag}`)
+            const [e] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
+            ctx.response.body = JSON.stringify(e)
+            return
+          } else if (eTagIfNoneMatch && eTagIfNoneMatch === eTag) {
+            ctx.response.headers.set('ETag', eTag)
+            ctx.response.status = 304 // Not Modified
+            ctx.response.body = ''
+            return
+          }
+      }
+
       let scimdata: any, err: any
       if (jsonBody.Operations) [scimdata, err] = utilsScim.convertedScim20(jsonBody, this.multiValueTypes) // v2.0
       else [scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes) // v1.1
@@ -1594,7 +1650,7 @@ export class ScimGateway {
       try {
         let res: any
         if (Array.isArray(scimdata.members) && scimdata.members.length === 0 && handle.modifyMethod === 'modifyGroup') {
-          res = await replaceUsrGrp(ctx.routeObj.handle, baseEntity, id, scimdata, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough)
+          res = await replaceUsrGrp(ctx.routeObj.handle, baseEntity, id, scimdata, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough, undefined)
         } else {
           logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.modifyMethod} and awaiting result`)
           res = await (this as any)[handle.modifyMethod](baseEntity, id, scimdata, ctx.passThrough)
@@ -1621,9 +1677,8 @@ export class ScimGateway {
             return
           }
           const ob = { attribute: 'id', operator: 'eq', value: id }
-          const attributes = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
           logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`)
-          res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
+          res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
         }
 
         scimdata = {
@@ -1642,16 +1697,17 @@ export class ScimGateway {
         }
 
         const userObj = scimdata.Resources[0]
+        const eTag = utils.getEtag(userObj)
         if (!this.config.scimgateway.scim.skipMetaLocation) {
           const location = ctx.origin + ctx.path
           if (!userObj.meta) userObj.meta = {}
           userObj.meta.location = location
-          const response = ctx.response as any
-          if (!response.headers) response.headers = {}
-          response.headers.Location = location
         }
+
         scimdata = utils.stripObj(userObj, ctx.query.attributes, ctx.query.excludedAttributes)
         scimdata = utilsScim.addSchemas(scimdata, isScimv2, handle.description, undefined)
+        if (eTag) ctx.response.headers.set('ETag', eTag)
+        if (scimdata?.meta?.location) ctx.response.headers.set('Location', scimdata.meta.location)
         ctx.response.status = 200
         ctx.response.body = JSON.stringify(scimdata)
       } catch (err: any) {
@@ -1667,7 +1723,7 @@ export class ScimGateway {
     //          Replace User
     //          Replace Group
     // ==========================================
-    const replaceUsrGrp = async (h: string, baseEntity: string, id: string | undefined, obj: Record<string, any>, usePutSoftSync: boolean | undefined, ctxPassThrough: Record<string, any> | undefined) => {
+    const replaceUsrGrp = async (h: string, baseEntity: string, id: string | undefined, obj: Record<string, any>, usePutSoftSync: boolean | undefined, ctxPassThrough: Record<string, any> | undefined, headers: Headers | undefined) => {
       const handle = handler[h] // h = Users/Groups
       if (!id) throw new Error('missing id')
       id = decodeURIComponent(id)
@@ -1688,6 +1744,23 @@ export class ScimGateway {
         const err = new Error(`put using method ${handle.getMethod} error: ${handle.description.toLowerCase()} id=${id} does not exist`)
         err.name += '#404'
         throw err
+      }
+
+      const eTagIfMatch = headers ? headers.get('if-match') : undefined
+      const eTagIfNoneMatch = headers ? headers.get('if-none-match') : undefined
+      if (eTagIfMatch || eTagIfNoneMatch) {
+        const eTag = utils.getEtag(currentObj)
+        if (eTag) {
+          if (eTagIfMatch && eTagIfMatch !== eTag) {
+            const err = new Error(`put using method ${handle.getMethod} error: ETag If-Match mismatch: ${eTagIfMatch} != ${eTag}`)
+            err.name += '#412' // Precondition Failed
+            throw err
+          } else if (eTagIfNoneMatch && eTagIfNoneMatch === eTag) {
+            const err = new Error(`put using method ${handle.getMethod} error: ETag If-None-Match mismatch: ${eTagIfNoneMatch} = ${eTag}`)
+            err.name += '#304' // Not Modified
+            throw err
+          }
+        }
       }
 
       const activeExists = Object.prototype.hasOwnProperty.call(obj, 'active')
@@ -1817,7 +1890,10 @@ export class ScimGateway {
       try {
         if (!obj) throw new Error('missing body')
         if (typeof obj !== 'object') throw new Error('body is not JSON')
-        await replaceUsrGrp(handle, baseEntity, id, obj, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough)
+        const headers = ctx.request.headers
+        await replaceUsrGrp(handle, baseEntity, id, obj, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough, headers)
+        ctx.request.headers.delete('if-match')
+        ctx.request.headers.delete('if-none-match')
         await getHandlerId(ctx) // ctx.response.body now updated with userObject to be returned
         if (ctx.response.status && ctx.response.status !== 200) { // clear any get error
           ctx.response.body = undefined
@@ -1844,6 +1920,7 @@ export class ScimGateway {
       method: string
       path: string
       bulkId?: string
+      version?: string
       data?: any
     }
 
@@ -1906,6 +1983,8 @@ export class ScimGateway {
             signal: ctx.request.signal,
             body: JSON.stringify(resolvedData),
           }) as Request & { raw: IncomingMessage }
+          if (op.version) bulkReq.headers.set('if-match', op.version)
+
           const bulkCtx = await onBeforeHandle(bulkReq, ctx.ip)
 
           if (!resolvedErr) {
