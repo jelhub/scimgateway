@@ -14,7 +14,7 @@
   },
   "changePassword": { "supported": true },
   "sort": { "supported": false },
-  "etag": { "supported": false },
+  "etag": { "supported": true },
   "authenticationSchemes": [
     {
       "type": "httpbasic",

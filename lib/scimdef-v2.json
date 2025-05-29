@@ -20,7 +20,7 @@
     "supported": false
   },
   "etag": {
-    "supported": false
+    "supported": true
   },
   "documentationUri": "https://elshaug.xyz",
   "authenticationSchemes": [
