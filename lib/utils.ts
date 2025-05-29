@@ -433,7 +433,7 @@ export const stripObj = (obj: Record<string, any>, attributes?: string, excluded
   let arrRet = []
   const arrCheckEmpty: any = []
   if (attributes) {
-    const arrAttr = attributes.split(',').map(item => item.trim())
+    const arrAttr = attributes.split(',').filter(Boolean).map(item => item.trim())
     if (!arrAttr.includes('id')) arrAttr.push('id') // always include id
     if (!arrAttr.includes('meta')) arrAttr.push('meta') // include meta if supported by endpoint
     arrRet = arrObj.map((obj) => {
@@ -475,7 +475,7 @@ export const stripObj = (obj: Record<string, any>, attributes?: string, excluded
       return ret
     })
   } else if (excludedAttributes) {
-    const arrAttr = excludedAttributes.split(',').map(item => item.trim()).filter(item => item !== 'id' && item !== 'meta')
+    const arrAttr = excludedAttributes.split(',').filter(Boolean).map(item => item.trim()).filter(item => item !== 'id' && item !== 'meta')
     arrRet = arrObj.map((obj) => {
       const ret: any = copyObj(obj)
       for (let i = 0; i < arrAttr.length; i++) {
@@ -685,4 +685,27 @@ export const getBase64CertificateThumbprint = function (pemCertContent: string, 
     .replace(/=+$/, '') // remove '=' padding
 
   return base64Url
+}
+
+/**
+ * getEtag returns an ETag for the given object and updates the object with the ETag in meta.version
+  * @param obj full object to calculate ETag from
+  * @returns ETag string as W/"<hash>"
+ */
+export const getEtag = function (obj: Record<string, any>): string {
+  if (typeof obj !== 'object' || obj === null) return ''
+  const hash = crypto
+    .createHash('md5')
+    .update(JSON.stringify(obj), 'utf8')
+    .digest('base64')
+    .substring(0, 22)
+
+  let eTag = ''
+  if (obj?.meta?.version) eTag = obj.meta.version
+  else {
+    eTag = `W/"${hash}"`
+    if (!obj.meta) obj.meta = {}
+    obj.meta.version = eTag
+  }
+  return eTag
 }
