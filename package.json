@@ -51,25 +51,25 @@
     "lokijs": "^1.5.12",
     "mongodb": "^6.16.0",
     "node-machine-id": "1.1.12",
-    "nodemailer": "^7.0.0",
+    "nodemailer": "^7.0.3",
     "passport": "^0.7.0",
     "passport-azure-ad": "^4.3.5",
     "saml": "^3.0.1"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.6.3"
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin": "^4.2.0",
+    "@stylistic/eslint-plugin": "^4.4.0",
     "@types/bun": "latest",
     "@types/dot-object": "^2.1.6",
-    "@types/jsonwebtoken": "^9.0.6",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "latest",
-    "@types/nodemailer": "^6.4.14",
-    "@types/passport": "^1.0.16",
+    "@types/nodemailer": "^6.4.17",
+    "@types/passport": "^1.0.17",
     "@types/passport-azure-ad": "^4.3.6",
-    "@typescript-eslint/eslint-plugin": "^8.31.1",
-    "@typescript-eslint/parser": "^8.31.1",
-    "eslint": "^9.26.0"
+    "@typescript-eslint/eslint-plugin": "^8.33.0",
+    "@typescript-eslint/parser": "^8.33.0",
+    "eslint": "^9.27.0"
   }
 }
