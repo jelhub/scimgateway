@@ -1406,6 +1406,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.3.6
+
+[Fixed]  
+
+- Some minor ETag improvements 
+
 ### v5.3.5
 
 [Improved]  
