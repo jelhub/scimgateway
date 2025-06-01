@@ -583,7 +583,9 @@ export class ScimGateway {
       }
 
       if (ctx.response.status && (ctx.response.status < 200 || ctx.response.status > 299)) {
-        if (ctx.response.status === 404 || ctx.response.status === 412 || ctx.response.status === 304) {
+        if (ctx.response.status === 412 || ctx.response.status === 304) {
+          logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
+        } else if (ctx.response.status === 404) {
           logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
         } else logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
       } else logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${ctx.response.status} ${userName} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`)
@@ -1089,18 +1091,18 @@ export class ScimGateway {
         const userObj = scimdata.Resources[0]
         const eTag = utils.getEtag(userObj)
 
-        const eTagIfMatch = ctx.request.headers.get('if-match')
-        const eTagIfNoneMatch = ctx.request.headers.get('if-none-match')
+        const eTagIfMatch = ctx.request.headers.get('if-match')?.split(',').map((item: string) => item.trim()).filter(Boolean)
+        const eTagIfNoneMatch = ctx.request.headers.get('if-none-match')?.split(',').map((item: string) => item.trim()).filter(Boolean)
 
         if (eTag) {
-          if (eTagIfMatch && eTagIfMatch !== eTag) {
+          if (eTagIfMatch && !eTagIfMatch.includes(eTag) && !eTagIfMatch.includes('*')) {
             ctx.response.headers.set('ETag', eTag)
             ctx.response.status = 412 // Precondition Failed
             const err = new Error(`ETag If-Match mismatch: ${eTagIfMatch} != ${eTag}`)
             const [e] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
             ctx.response.body = JSON.stringify(e)
             return
-          } else if (eTagIfNoneMatch && eTagIfNoneMatch === eTag) {
+          } else if (eTagIfNoneMatch && (eTagIfNoneMatch.includes(eTag) || eTagIfNoneMatch.includes('*'))) {
             ctx.response.headers.set('ETag', eTag)
             ctx.response.status = 304 // Not Modified
             ctx.response.body = ''
@@ -1587,8 +1589,8 @@ export class ScimGateway {
 
       logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Modify ${handle.description}] id=${id}`)
 
-      const eTagIfMatch = ctx.request.headers.get('if-match')
-      const eTagIfNoneMatch = ctx.request.headers.get('if-none-match')
+      const eTagIfMatch = ctx.request.headers.get('if-match')?.split(',').map((item: string) => item.trim()).filter(Boolean)
+      const eTagIfNoneMatch = ctx.request.headers.get('if-none-match')?.split(',').map((item: string) => item.trim()).filter(Boolean)
       if (eTagIfMatch || eTagIfNoneMatch) {
         let eTag = ''
         if (handle.getMethod === handler.users.getMethod || handle.getMethod === handler.groups.getMethod) { // getUsers or getGroups implemented
@@ -1608,16 +1610,16 @@ export class ScimGateway {
           }
         }
         if (eTag)
-          if (eTagIfMatch && eTagIfMatch !== eTag) {
+          if (eTagIfMatch && !eTagIfMatch.includes(eTag) && !eTagIfMatch.includes('*')) {
             ctx.response.headers.set('ETag', eTag)
             ctx.response.status = 412 // Precondition Failed
             const err = new Error(`ETag If-Match mismatch: ${eTagIfMatch} != ${eTag}`)
             const [e] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
             ctx.response.body = JSON.stringify(e)
             return
-          } else if (eTagIfNoneMatch && eTagIfNoneMatch === eTag) {
+          } else if (eTagIfNoneMatch && (eTagIfNoneMatch.includes(eTag) || eTagIfNoneMatch.includes('*'))) {
             ctx.response.headers.set('ETag', eTag)
-            ctx.response.status = 304 // Not Modified
+            ctx.response.status = 412 // Precondition Failed
             ctx.response.body = ''
             return
           }
@@ -1746,18 +1748,18 @@ export class ScimGateway {
         throw err
       }
 
-      const eTagIfMatch = headers ? headers.get('if-match') : undefined
-      const eTagIfNoneMatch = headers ? headers.get('if-none-match') : undefined
+      const eTagIfMatch = headers ? headers.get('if-match')?.split(',').map((item: string) => item.trim()).filter(Boolean) : undefined
+      const eTagIfNoneMatch = headers ? headers.get('if-none-match')?.split(',').map((item: string) => item.trim()).filter(Boolean) : undefined
       if (eTagIfMatch || eTagIfNoneMatch) {
         const eTag = utils.getEtag(currentObj)
         if (eTag) {
-          if (eTagIfMatch && eTagIfMatch !== eTag) {
+          if (eTagIfMatch && !eTagIfMatch.includes(eTag) && !eTagIfMatch.includes('*')) {
             const err = new Error(`put using method ${handle.getMethod} error: ETag If-Match mismatch: ${eTagIfMatch} != ${eTag}`)
             err.name += '#412' // Precondition Failed
             throw err
-          } else if (eTagIfNoneMatch && eTagIfNoneMatch === eTag) {
+          } else if (eTagIfNoneMatch && (eTagIfNoneMatch.includes(eTag) || eTagIfNoneMatch.includes('*'))) {
             const err = new Error(`put using method ${handle.getMethod} error: ETag If-None-Match mismatch: ${eTagIfNoneMatch} = ${eTag}`)
-            err.name += '#304' // Not Modified
+            err.name += '#412' // Precondition Failed
             throw err
           }
         }
@@ -2758,9 +2760,10 @@ export class ScimGateway {
           idleTimeout,
           hostname, // hostname === 'localhost' ? hostname : undefined, // bun defaults to '0.0.0.0', but using '0.0.0.0.' or other ip like '127.0.0.1' becomes extremly slow - bun bug
           tls,
-          async fetch(req: Request & { raw: IncomingMessage }, srv) {
+          async fetch(req, srv) {
             // start route processing and return response
-            return await route(req, srv.requestIP(req)?.address || '')
+            const reqWithRaw = req as Request & { raw: IncomingMessage }
+            return await route(reqWithRaw, srv.requestIP(req)?.address || '')
           },
           error(err) {
             logger.error(`${gwName} internal error: ${err.message}`)
