@@ -1406,6 +1406,14 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+## Change log  
+
+### v5.3.7
+
+[Improved]  
+
+- Normalize line endings to LF
+
 ### v5.3.6
 
 [Fixed]  
