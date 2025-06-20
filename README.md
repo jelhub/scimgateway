@@ -42,7 +42,7 @@ custom client API, see configuration notes
 
 ## Overview  
 
-SCIM Gateway facilitates user management using the standardized REST-based SCIM 1.1 or 2.0 protocol, offering easier, more powerful, and consistent provisioning while avoiding vendor lock-in. Acting as a translator for incoming SCIM requests, the gateway seamlessly enables CRUD functionality (create, read, update, and delete) for users and groups. By implementing endpoint-specific protocols, it ensures precise and efficient provisioning across diverse destinations. With the gateway, your diverse destinations effectively become SCIM endpoints, streamlining integration and simplifying user management.  
+SCIM Gateway facilitates user management using the standardized REST-based SCIM 1.1 or 2.0 protocol, offering easier, more powerful, and consistent provisioning while avoiding vendor lock-in. Acting as a translator for incoming SCIM requests, the gateway seamlessly enables CRUD functionality (create, read, update, and delete) for users and groups. By implementing endpoint-specific protocols, it ensures provisioning across diverse destinations. With the gateway, your destinations effectively become SCIM endpoints, streamlining integration and simplifying user management.  
 
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
@@ -129,7 +129,7 @@ If internet connection is blocked, we could install on another machine and copy 
 
 	bun c:\my-scimgateway
 	
-	Start a browser (note, Edge do not pop-up logon dialog box when using http)
+	Start a browser
 
 	http://localhost:8880/ping
 	=> Health check with a "hello" response
@@ -138,7 +138,7 @@ If internet connection is blocked, we could install on another machine and copy 
 	http://localhost:8880/Groups
 	=> Logon using gwadmin/password and two users and groups should be listed  
 
-	Start a new browser for log monitoring (info level)
+	Start a new browser for log monitoring (might not be supported by Safari) 
 	using url: http://localhost:8880/logger
 
 	http://localhost:8880/Users/bjensen
@@ -160,7 +160,7 @@ If internet connection is blocked, we could install on another machine and copy 
 >Tip, take a look at bun test scripts located in `node_modules\scimgateway\test\lib`
 
 > If using Node.js instead of Bun, scimgateway must be downloaded from github because Node.js does not support native typescript used by modules. Startup will then be:  
-`node --experimental-strip-types c:\my-scimgateway\index.ts`
+`node --experimental-strip-types c:\scimgateway\index.ts`
 
 #### Upgrade SCIM Gateway  
 
@@ -435,7 +435,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
   
 	Example of how to make a self signed certificate:  
 
-		openssl.exe req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj "/O=My Company/OU=Application/CN=SCIM Gateway" -addext "subjectAltName=DNS:localhost,DNS:127.0.0.1,DNS:*.mycompany.com" -addext "extendedKeyUsage=serverAuth" -addext "keyUsage=digitalSignature"
+		openssl req -nodes -newkey rsa:2048 -x509 -sha256 -days 3650 -keyout key.pem -out cert.pem -subj "/O=My Company/OU=Application/CN=SCIM Gateway" -addext "subjectAltName=DNS:localhost,DNS:127.0.0.1,DNS:*.mycompany.com" -addext "extendedKeyUsage=serverAuth" -addext "keyUsage=digitalSignature"
   
     Note, when using Symantec/Broadcom Provisioning, the "certificate authority - CA" also must be imported on the Connector Server. For self-signed certificate, CA and the certificate (public key) is the same.  
 
