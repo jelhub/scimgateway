@@ -350,7 +350,6 @@ export class HelperRest {
    */
   private async getServiceClient(baseEntity: string, method: string, path: string, opt?: any, ctx?: any) {
     const action = 'getServiceClient'
-
     let urlObj: any
     if (!path) path = ''
     try {
@@ -411,8 +410,8 @@ export class HelperRest {
         if (opt?.connection) { // allow overriding/extending configuration connection by caller argument opt.connection
           let org = this.config_entity[baseEntity]?.connection
           orgConnection = utils.copyObj(org)
-          if (!org) org = {}
-          org = utils.extendObj(org, opt.connection)
+          if (!orgConnection) orgConnection = {}
+          orgConnection = utils.extendObj(orgConnection, opt.connection)
         }
 
         // may use configuration type='oauth' and auto corrected to 'oauthJwtBearer'
@@ -572,14 +571,14 @@ export class HelperRest {
       }
     }
 
-    // merge any argument options - support basic auth using {auth: {username: "username", password: "password"} }
+    // merge any argument options - basic auth header is supported through {auth:{type:"basic",options:{username:"username",password:"password"}}}
     if (opt) {
       const o: any = utils.copyObj(opt)
-      if (o.auth) {
-        options.headers['Authorization'] = 'Basic ' + Buffer.from(`${o.auth.username}:${o.auth.password}`).toString('base64')
+      if (o?.auth?.type === 'basic') {
+        options.headers['Authorization'] = 'Basic ' + Buffer.from(`${o.auth?.options?.username}:${o.auth?.options?.password}`).toString('base64')
         delete o.auth
       }
-      options = utils.extendObj(options, o)
+      options = utils.extendObj(o?.connection?.options, options)
     }
 
     const cli: any = {}
@@ -630,7 +629,7 @@ export class HelperRest {
         }
         options.headers['Content-Length'] = Buffer.byteLength(dataString, 'utf8')
         options.body = dataString
-      } else delete options.headers['Content-Type']
+      } else if (options.headers) delete options.headers['Content-Type']
       const controller = new AbortController()
       const signal = controller.signal
       const timeout = setTimeout(() => controller.abort(), options.abortTimeout ? options.abortTimeout * 1000 : this.idleTimeout * 1000) // 120 seconds default abort timeout
