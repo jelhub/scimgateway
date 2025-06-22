@@ -15,6 +15,7 @@ import { createChecker } from 'is-in-subnet'
 import { BearerStrategy, type IBearerStrategyOptionWithRequest } from 'passport-azure-ad'
 import { fileURLToPath } from 'node:url'
 import { Logger } from './logger.ts'
+import { HelperRest } from './helper-rest.ts'
 import passport from 'passport'
 import dot from 'dot-object'
 import nodemailer from 'nodemailer'
@@ -25,7 +26,8 @@ import * as utils from './utils.ts'
 import * as utilsScim from './utils-scim.ts'
 import * as stream from './scim-stream.js'
 export * from './helper-rest.ts'
-import { HelperRest } from './helper-rest.ts'
+// @ts-expect-error: has no declaration
+import * as hycoPkg from 'hyco-https'
 
 export class ScimGateway {
   private config: any
@@ -416,6 +418,7 @@ export class ScimGateway {
     if (!this.config.scimgateway.email.emailOnError) this.config.scimgateway.email.emailOnError = {}
     if (!this.config.scimgateway.email.emailOnError) this.config.scimgateway.email.proxy = {}
 
+    if (!this.config.scimgateway.azureRelay) this.config.scimgateway.azureRelay = {}
     if (!this.config.scimgateway.stream) this.config.scimgateway.stream = {}
     if (!this.config.scimgateway.stream.subscriber) this.config.scimgateway.stream.subscriber = {}
     if (!this.config.scimgateway.stream.publisher) this.config.scimgateway.stream.publisher = {}
@@ -579,7 +582,7 @@ export class ScimGateway {
             o.Resources.push({ loggerComment: '===REST OF OBJECTS TRUNCATED BECAUSE OF LOG LENGTH===' })
             outbound = JSON.stringify(o)
           }
-        } catch (err) {}
+        } catch (err) { }
       }
 
       if (ctx.response.status && (ctx.response.status < 200 || ctx.response.status > 299)) {
@@ -2438,13 +2441,22 @@ export class ScimGateway {
     const onBeforeHandle = async (request: Request & { raw: IncomingMessage }, directIp: string): Promise<Context> => {
       const method = request.method
       const url = new URL(request.url)
-
+      let leadingPath = ''
       let pathname = url.pathname
+      if (url.hostname.endsWith('.servicebus.windows.net')) { // Azure Relay - remove the first path segment - "/<hybrid-connection-name>/xxx
+        const parts = pathname.split('/')
+        leadingPath = '/' + parts[1]
+        parts.splice(1, 1)
+        pathname = parts.join('/') || '/'
+      }
       const match = pathname.match(/.*\/v(1|2)(\/.*)/)
       if (match) {
         if ((match[1] === '2' && !isScimv2) || (match[1] === '1' && isScimv2)) {
           pathname = '/' // path version not matching configured SCIM version, reset to root => NOT_FOUND
-        } else pathname = match[2] // the part after /v1 or /v2
+        } else {
+          leadingPath = pathname.substring(0, pathname.indexOf(match[2]))
+          pathname = match[2] // the part after /v1 or /v2
+        }
       }
 
       let [baseEntity, handle, id, rest]: string[] = pathname.split('/').filter(Boolean)
@@ -2476,7 +2488,7 @@ export class ScimGateway {
         } else if (bodyString) body = bodyString
       }
 
-      let path = url.pathname
+      let path = pathname
       if (path.slice(-1) === '/' && path.length > 1) path = path.slice(0, -1)
 
       const ctx: Context = {
@@ -2505,6 +2517,13 @@ export class ScimGateway {
         ip: getIpFromHeader(request.headers) || directIp,
         origin: getOriginFromHeader(request.headers) || url.origin,
         passThrough: (found.PassThrough && this.authPassThroughAllowed) ? { headers: request.headers } : undefined,
+      }
+
+      if (leadingPath) {
+        ctx.origin += leadingPath // using origin as placeholder for leading path that have been removed from ctx.path
+        if (ctx.origin.includes('.servicebus.windows.net')) {
+          ctx.origin = ctx.origin.replace('http:', 'https:')
+        }
       }
 
       url.searchParams.forEach((value, key) => {
@@ -2633,7 +2652,7 @@ export class ScimGateway {
 
     logger.info('===================================================================')
 
-    if (!this.config.scimgateway.port) {
+    if (!this.config.scimgateway.port && this.config.scimgateway.azureRelay?.enabled !== true) {
       logger.info(`${gwName}[${pluginName}] port deactivated, not allowing incoming traffic`)
     } else {
       let hostname: string | undefined = undefined // '0.0.0.0'
@@ -2749,7 +2768,7 @@ export class ScimGateway {
 
       // starting SCIM listeners
       // bun is preferred, but also supporting nodejs: node --experimental-strip-types index.ts
-      if (typeof Bun !== 'undefined') {
+      if (!this.config.scimgateway.azureRelay?.enabled === true && typeof Bun !== 'undefined') {
         // this code will only run when the file is run with Bun
         if (tls.pfx && !tls.key) throw new Error('pfx is not supported for Bun')
         let idleTimeout = this.config.scimgateway.idleTimeout || 120
@@ -2771,10 +2790,9 @@ export class ScimGateway {
           },
         })
       } else {
-        // using nodejs
-        // node --experimental-strip-types index.ts
+        // using nodejs server either through Bun compability or Node.js
 
-        // return body from req
+        // get body from req
         async function getRequestBody(req: any): Promise<Buffer> {
           return new Promise((resolve, reject) => {
             const body: Uint8Array[] = []
@@ -2862,31 +2880,84 @@ export class ScimGateway {
         }
 
         // create nodejs server and start listen
-        if (tls.key) {
-          server = httpsCreateServer({
-            key: tls.key,
-            cert: tls.cert,
-            ca: tls.ca,
-          },
-          async (req, res) => {
-            doFetchApi(req, res)
-          })
-        } else if (tls.pfx) {
-          server = httpsCreateServer({
-            pfx: tls.pfx,
-            passphrase: tls.passphrase,
-          },
-          async (req, res) => {
-            doFetchApi(req, res)
-          })
+        if (this.config.scimgateway.azureRelay?.enabled === true) {
+          // Azure Relay listener server
+          let url: URL = {} as URL
+          try {
+            url = new URL(this.config.scimgateway.azureRelay.connectionUrl) // Azure Relay hybrid connection URL: 'https://<namespace>.servicebus.windows.net/<hybrid-connection-name>'
+          } catch (err: any) {
+            logger.error(`${gwName}[${pluginName}] Azure Relay configuration scimgateway.azureRelay.connectionUrl - error: ${err.message}`)
+          }
+          const hyco = hycoPkg.default || hycoPkg
+          const ns = url.hostname// <namespace>.servicebus.windows.net
+          const path = url?.pathname?.replace(/^[\s\/]+|[\s\/]+$/g, '') // <hybrid-connection-name> - removing any leading/trailing whitespace and '/'  
+          const keyrule = this.config.scimgateway.azureRelay.keyRule || 'RootManageSharedAccessKey'
+          const key = this.config.scimgateway.azureRelay.apiKey || '' // Azure Relay - SAS Primary Key
+          const uri = hyco.createRelayListenUri(ns, path) // wss://<namespace>.servicebus.windows.net:443/$hc/<hybrid-connection-name>?sb-hc-action=listen
+
+          server = hyco.createRelayedServer(
+            {
+              server: uri,
+              token: () => hyco.createRelayToken(uri, keyrule, key),
+            },
+            async (req: IncomingMessage, res: ServerResponse) => {
+              doFetchApi(req, res)
+            })
+          server.listen()
+
+          { // check if Azure Relay listener is working by sending a 5 sec delayed ping request
+            let options = {
+              connection: {
+                options: {
+                  headers: {
+                    ServiceBusAuthorization: hyco.createRelayToken(uri, keyrule, key),
+                  },
+                },
+              },
+            }
+            setTimeout(async () => {
+              try {
+                if (!this.helperRest) this.helperRest = this.newHelperRest()
+                await this.helperRest.doRequest('undefined', 'GET', `${this.config.scimgateway.azureRelay.connectionUrl}/ping`, null, null, options)
+              } catch (err: any) {
+                logger.error(`${gwName}[${pluginName}] Azure Relay listener failed to start - ping test doRequest() returned an error - please verify configuration scimgateway.azureRelay.connectionUrl/apiKey including the Azure Relay setup}`)
+              }
+            }, 5 * 1000)
+          }
         } else {
-          server = httpCreateServer(async (req, res) => {
-            doFetchApi(req, res)
-          })
+          // nodejs server
+          if (tls.key) {
+            server = httpsCreateServer({
+              key: tls.key,
+              cert: tls.cert,
+              ca: tls.ca,
+            },
+            async (req, res) => {
+              doFetchApi(req, res)
+            })
+          } else if (tls.pfx) {
+            server = httpsCreateServer({
+              pfx: tls.pfx,
+              passphrase: tls.passphrase,
+            },
+            async (req, res) => {
+              doFetchApi(req, res)
+            })
+          } else {
+            server = httpCreateServer(async (req, res) => {
+              doFetchApi(req, res)
+            })
+          }
+          server.listen(this.config.scimgateway.port, hostname)
         }
-        server.listen(this.config.scimgateway.port, hostname)
       }
-      logger.info(`${gwName}[${pluginName}] now listening SCIM ${this.config.scimgateway.scim.version}${tls.key || tls.pfx ? ' TLS' : ''} at ${hostname || '0.0.0.0'}:${this.config.scimgateway.port}...`)
+
+      // server has been started
+      if (this.config.scimgateway.azureRelay?.enabled === true) {
+        logger.info(`${gwName}[${pluginName}] now listening SCIM ${this.config.scimgateway.scim.version} using Azure Relay ${this.config.scimgateway.azureRelay.connectionUrl}...`)
+      } else {
+        logger.info(`${gwName}[${pluginName}] now listening SCIM ${this.config.scimgateway.scim.version}${tls.key || tls.pfx ? ' TLS' : ''} at ${hostname || '0.0.0.0'}:${this.config.scimgateway.port}...`)
+      }
       if (this.config.scimgateway.chainingBaseUrl) logger.info(`${gwName}[${pluginName}] using remote gateway ${this.config.scimgateway.chainingBaseUrl}`)
     }
 
