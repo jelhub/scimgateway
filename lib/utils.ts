@@ -247,7 +247,8 @@ const _extendObj = (obj: Record<any, any>, src: Record<any, any>) => {
 }
 
 export const extendObj = (obj: any, src: any) => { // copy src content into obj
-  if (typeof src !== 'object' || Array.isArray(src)) return obj
+  if (typeof src !== 'object' || src === null || Array.isArray(src)) return obj
+  if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return src
   return _extendObj(obj, src)
 }
 
