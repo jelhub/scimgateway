@@ -16,8 +16,9 @@ Validated through IdP's:
 
 Latest news:  
  
-- [ETag](https://datatracker.ietf.org/doc/html/rfc7644#section-3.14) now supported
-- [Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) now supported
+- [Azure Relay](https://learn.microsoft.com/en-us/azure/azure-relay/relay-what-is-it) is now supported for secure and hassle-free outbound communication — with just one minute of configuration
+- [ETag](https://datatracker.ietf.org/doc/html/rfc7644#section-3.14) is now supported
+- [Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) is now supported
 - Remote real-time log subscription for monitoring and centralized logging  
 using browser and url: `https://<host>/logger`  
 `curl -N https://<host>/logger -u user:password`  
@@ -475,11 +476,17 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **email.proxy.password** - password if authentication is required
 - **email.emailOnError** - Contains configuration for sending error notifications by email. Note, only the first error will be sent until sendInterval have passed
 - **email.emailOnError.enabled** - true or false, value set to true will enable email notifications
-- **email.emailOnError.sendInterval** - Default 15. Mail notifications on error are deferred until sendInterval **minutes** have passed since the last notification.
+- **email.emailOnError.sendInterval** - Default 15. Mail notifications on error are deferred until sendInterval **minutes** have passed since the last notification
 - **email.emailOnError.from** - Sender email addresses e.g: "noreply@example.com". **Mandatory for oauth**. For smtp email.auth.options.username will be used
 - **email.emailOnError.to** - Comma separated list of recipients email addresses e.g: "someone@example.com"
 - **email.emailOnError.cc** - Optional comma separated list of cc mail addresses
 - **email.emailOnError.subject** - Optional mail subject, default `SCIM Gateway error message`
+
+- **azureRelay** - Azure Relay outbound listener 
+- **azureRelay.enabled** - true or false, true will enable the Azure Relay listener
+- **azureRelay.connectionUrl** - `https://<namespace-name>.servicebus.windows.net/<hybrid-connection-name>` - `<namespace-name>` is the name of the Relay created and `<hybrid-connection-name>` is the name of the Hybrid Connection entity created in the Relay
+- **azureRelay.apiKey** - The `Private Key` found in the `Shared access policy` (RootManageSharedaccessKey)
+- **azureRelay.keyRule** - Optional, the `Shared access policy` name - default using `RootManageSharedaccessKey`
 
 - **stream** - See [SCIM Stream](https://elshaug.xyz/docs/scim-stream) for configuration details
 
@@ -834,6 +841,53 @@ Example code implementing subscriber for real-time log messages collection
 	} while (ignoreCatch)
 	
 	console.log('\n\ndone!')
+
+### Configuration notes - Azure Relay
+
+Using Azure technology we have different options for setting up a communication tunnel to SCIM Gateway:  
+
+- `Microsoft Entra Application Proxy + Microsoft Entra Application Proxy Connector` (SCIM Gateway located on-premises or using Azure private VNet/IP)
+- `Azure Application Gateway` - Layer 7 (SCIM Gateway located in Azure)
+- `Azure Relay` (SCIM Gateway located on-premises or in Azure)
+
+SCIM Gateway have builtin [Azure Relay](https://learn.microsoft.com/en-us/azure/azure-relay/relay-what-is-it) support which gives secure and hassle-free outbound communication — with just one minute of configuration
+
+Azure pricing for using Azure Relay is approx. 10$ per month for each listener (SCIM Gateway plugin)
+
+**Using out-of-the-box Azure Relay:**
+
+- Prerequisite: SCIM Gateway having outbound internet access (https/443)
+- In Azure create a `Relay` - `<namespace-name>`
+- In the Relay, create an entity of type `Hybrid Connection` - `<hybrid-connection-name>` **one for each SCIM Gateway plugin**
+- The `Requires Client Authorization` option **should be unchecked (not activated)**, unless we are using custom IdP/API having logic for including SAS-token in the communication header
+- Shared access policies - RootManageSharedaccessKey - Primary Key (copy this one)  
+	Instead of RootManageSharedaccessKey policy in the `<namespace-name>`, we could create dedicated policy in the sub level `<hybrid-connection-name>` and use this policy name in plugin configuration `scimgateway.azureRelay.keyRule`
+
+SCIM Gateway plugin configuration:
+
+```
+{
+  "scimgateway: {
+    ...
+    "azureRelay": {
+      "enabled": true,
+      "connectionUrl": "https://<namespace-name>.servicebus.windows.net/<hybrid-connection-name>",
+      "apiKey": "<primary-key>"
+    },
+    ...
+  },
+  ...
+}
+````
+
+`connectionUrl` will be the SCIM base URL used by IdP/API for accessing SCIM Gateway
+
+Example:  
+GET `https://<namespace-name>.servicebus.windows.net/<hybrid-connection-name>/Users`  
+GET `https://<namespace-name>.servicebus.windows.net/<hybrid-connection-name>/<baseEntity>/Users`
+
+If several SCIM Gateway´s (same plugin) connect listeners using the same Azure Relay connectionUrl, there will be load-balancing and round-robin distribution
+
 
 ## Manual startup    
 
@@ -1407,6 +1461,51 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 ## Change log  
 
 ## Change log  
+
+### v5.3.8
+
+[Improved]
+
+- [Azure Relay](https://learn.microsoft.com/en-us/azure/azure-relay/relay-what-is-it) is now supported for secure and hassle-free outbound communication — with just one minute of configuration
+
+	Using Azure technology we have different options for setting up a communication tunnel to SCIM Gateway:  
+
+	`Microsoft Entra Application Proxy + Microsoft Entra Application Proxy Connector` (SCIM Gateway located on-premises or using Azure private VNet/IP)  
+	`Azure Application Gateway` - Layer 7 (SCIM Gateway located in Azure)  
+	`Azure Relay` (SCIM Gateway located on-premises or in Azure)  
+   
+	Azure pricing for using Azure Relay is approx. 10$ per month for each listener (SCIM Gateway plugin)
+
+    **Using out-of-the-box Azure Relay:**
+
+	Prerequisite: SCIM Gateway having outbound internet access (https/443)  
+	In Azure create a `Relay` - `<namespace-name>`  
+	In the Relay, create an entity of type `Hybrid Connection` - `<hybrid-connection-name>` **one for each SCIM Gateway plugin**  
+	The `Requires Client Authorization` option **should be unchecked (not activated)**, unless we are using custom IdP/API having logic for including SAS-token in the communication header  
+	Shared access policies - RootManageSharedaccessKey - Primary Key (copy this one)  
+
+	SCIM Gateway plugin configuration:
+
+		{
+		  "scimgateway: {
+		    ...
+		    "azureRelay": {
+		      "enabled": true,
+		      "connectionUrl": "https://<namespace-name>.servicebus.windows.net/<hybrid-connection-name>",
+		      "apiKey": "<primary-key>"
+		    },
+		    ...
+		  },
+		  ...
+		}
+
+	`connectionUrl` will be the SCIM base URL used by IdP/API for accessing SCIM Gateway
+
+	Example:  
+	GET `https://<namespace-name>.servicebus.windows.net/<hybrid-connection-name>/Users`  
+	GET `https://<namespace-name>.servicebus.windows.net/<hybrid-connection-name>/<baseEntity>/Users`
+
+	If several SCIM Gateway´s (same plugin) connect listeners using the same Azure Relay connectionUrl, there will be load-balancing and round-robin distribution
 
 ### v5.3.7
 
