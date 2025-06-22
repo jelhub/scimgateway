@@ -90,6 +90,11 @@
         "to": null
       }
     },
+    "azureRelay": {
+      "enabled": false,
+      "connectionUrl": null,
+      "apiKey": null
+    },
     "stream": {
       "baseUrls": [],
       "certificate": {
