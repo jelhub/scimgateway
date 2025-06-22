@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "5.3.7",
+  "version": "5.3.8",
   "type": "module",
   "description": "Using SCIM protocol as a gateway for user provisioning to other endpoints",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
@@ -45,6 +45,7 @@
     "dot-object": "^2.1.5",
     "fold-to-ascii": "^5.0.1",
     "https-proxy-agent": "^7.0.6",
+    "hyco-https": "^1.4.5",
     "is-in-subnet": "^4.0.1",
     "jsonwebtoken": "^9.0.2",
     "ldapjs": "^3.0.7",
@@ -71,5 +72,6 @@
     "@typescript-eslint/eslint-plugin": "^8.33.0",
     "@typescript-eslint/parser": "^8.33.0",
     "eslint": "^9.27.0"
-  }
+  },
+  "private": true
 }
