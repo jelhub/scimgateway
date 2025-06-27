@@ -136,7 +136,7 @@ If internet connection is blocked, we could install on another machine and copy 
 	http://localhost:8880/Groups
 	=> Logon using gwadmin/password and two users and groups should be listed  
 
-	Start a new browser for log monitoring
+	Start a new browser for remote log monitoring
 	using url: http://localhost:8880/logger
 
 	http://localhost:8880/Users/bjensen
