@@ -710,3 +710,49 @@ export const getEtag = function (obj: Record<string, any>): string {
   }
   return eTag
 }
+
+/**
+ * TimerMapCache caches items for specified time and also clear items on valdation
+  * @param obj full object to calculate ETag from
+  * @returns ETag string as W/"<hash>"
+ */
+export class TimerMapCache {
+  private itemCache = new Map<string, NodeJS.Timeout>()
+  private itemTimeout: number
+
+  constructor(itemTimeout: number = 5 * 1000) { // default 5 seconds in cache
+    this.itemCache = new Map<string, NodeJS.Timeout>()
+    this.itemTimeout = itemTimeout
+  }
+
+  /**
+   * createItem creates an item in cache that will be cleared when using isItemValid() or after timeout set by class initialization
+   * @param item
+   * @returns item
+  */
+  createItem(item: string): string {
+    if (!item) return ''
+    this.itemCache.set(item, setTimeout(() => {
+      console.log('deleting item')
+      this.itemCache.delete(item)
+    },
+    this.itemTimeout))
+    return item
+  }
+
+  /**
+   * isItemValid checks if item can be found in cache. If found, it will be removed from cache and return true
+   * @param item
+   * @returns true if valid, else false
+  */
+  isItemValid(item: string): boolean {
+    if (!item) return false
+    const timeout = this.itemCache.get(item)
+    const res = !!timeout
+    if (res) {
+      clearTimeout(timeout)
+      this.itemCache.delete(item)
+    }
+    return res
+  }
+}

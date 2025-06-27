@@ -25,9 +25,8 @@ import * as jwt from 'jsonwebtoken'
 import * as utils from './utils.ts'
 import * as utilsScim from './utils-scim.ts'
 import * as stream from './scim-stream.js'
+import { headers } from '@nats-io/nats-core'
 export * from './helper-rest.ts'
-// @ts-expect-error: has no declaration
-import * as hycoPkg from 'hyco-https'
 
 export class ScimGateway {
   private config: any
@@ -39,6 +38,7 @@ export class ScimGateway {
   private getMemberOf: any
   private getAppRoles: any
   private pub: any
+  private Nonce = new utils.TimerMapCache(2000)
   // @ts-expect-error: has no initializer
   private helperRest: HelperRest
   /** pluginName is the name of plugin e.g., plugin-loki */
@@ -566,7 +566,7 @@ export class ScimGateway {
     }
 
     const logResult = async (ctx: Context) => {
-      if (ctx.path === '/ping' || ctx.path === '/favicon.ico') return
+      if (ctx.path === '/ping' || ctx.path === '/favicon.ico' || ctx.path.startsWith('/apple-touch-icon')) return
       const ellapsed = performance.now() - ctx.perfStart
       let userName
       const [authType, authToken] = (ctx.request.headers.get('authorization') || '').split(' ') // [0] = 'Basic' or 'Bearer'
@@ -774,7 +774,7 @@ export class ScimGateway {
 
     // end auth methods - used by auth
 
-    const isAuthorized = async (ctx: Context): Promise<boolean> => { // authentication/authorization 
+    const isAuthorized = async (ctx: Context): Promise<boolean> => { // authentication/authorization
       const [authType, authToken] = (ctx.request.headers.get('authorization') || '').split(' ') // [0] = 'Basic' or 'Bearer'
       try { // authenticate
         const arrResolve = await Promise.all([
@@ -799,7 +799,7 @@ export class ScimGateway {
         }
         if (authType === 'Bearer') ctx.response.headers.set('WWW-Authenticate', 'Bearer realm=""')
         else if (found.Basic) ctx.response.headers.set('WWW-Authenticate', 'Basic realm=""')
-        if (ctx.request.url !== '/favicon.ico') logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${err.message}`)
+        if (ctx.request.url !== '/favicon.ico' && !ctx.request.url.startsWith('/apple-touch-icon')) logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${err.message}`)
         return false
       } catch (err: any) {
         if (authType === 'Bearer') {
@@ -877,7 +877,7 @@ export class ScimGateway {
     funcHandler.getHandlerServiceProviderConfig = getHandlerServiceProviderConfig
 
     // getHandlerLogger implements SSE based online publisher for log events
-    const getHandlerLogger = async (ctx: Context) => {
+    const getHandlerLoggerSSE = async (ctx: Context) => {
       const levelInt = logger.levelToInt(this.config?.scimgateway?.log?.loglevel?.push || 'info')
       const encoder = new TextEncoder()
 
@@ -900,6 +900,7 @@ export class ScimGateway {
               clearInterval(keepAliveInterval)
               logger.unsubscribe(sub)
               controller.close()
+              logger.info(`${gwName}[${pluginName}] remote logger disconnected from ip address ${ctx.ip}`)
             }
 
             ctx.request.signal.onabort = cleanup // Bun
@@ -1108,7 +1109,6 @@ export class ScimGateway {
           } else if (eTagIfNoneMatch && (eTagIfNoneMatch.includes(eTag) || eTagIfNoneMatch.includes('*'))) {
             ctx.response.headers.set('ETag', eTag)
             ctx.response.status = 304 // Not Modified
-            ctx.response.body = ''
             return
           }
         }
@@ -1623,7 +1623,6 @@ export class ScimGateway {
           } else if (eTagIfNoneMatch && (eTagIfNoneMatch.includes(eTag) || eTagIfNoneMatch.includes('*'))) {
             ctx.response.headers.set('ETag', eTag)
             ctx.response.status = 412 // Precondition Failed
-            ctx.response.body = ''
             return
           }
       }
@@ -1901,7 +1900,6 @@ export class ScimGateway {
         ctx.request.headers.delete('if-none-match')
         await getHandlerId(ctx) // ctx.response.body now updated with userObject to be returned
         if (ctx.response.status && ctx.response.status !== 200) { // clear any get error
-          ctx.response.body = undefined
           ctx.response.status = 204
         }
       } catch (err: any) {
@@ -2534,6 +2532,7 @@ export class ScimGateway {
       if (ctx.path === '/ping') {
         ctx.response.status = 200
         ctx.response.body = 'hello'
+        ctx.response.headers.set('content-type', 'text/plain')
         return ctx
       }
       if (ctx.path === '/_ah/start' || ctx.path === '/_ah/stop') {
@@ -2590,6 +2589,7 @@ export class ScimGateway {
           ctx.response.body = JSON.stringify(result.body)
         } catch (err) {
           ctx.response.body = result.body
+          ctx.response.headers.set('content-type', 'text/plain')
         }
       } catch (err: any) {
         try {
@@ -2622,24 +2622,34 @@ export class ScimGateway {
       if (!ctx.response.status) ctx.response.status = 200
       switch (ctx.response.status) {
         case 401:
-          if (!ctx.response.body) ctx.response.body = 'Unauthorized'
+          if (!ctx.response.body) {
+            ctx.response.body = 'Unauthorized'
+            ctx.response.headers.set('content-type', 'text/plain')
+          }
           break
         case 403:
-          if (!ctx.response.body) ctx.response.body = 'Forbidden'
+          if (!ctx.response.body) {
+            ctx.response.body = 'Forbidden'
+            ctx.response.headers.set('content-type', 'text/plain')
+          }
           break
         case 404:
-          if (!ctx.response.body) ctx.response.body = 'NOT_FOUND'
+          if (!ctx.response.body) {
+            ctx.response.body = 'NOT_FOUND'
+            ctx.response.headers.set('content-type', 'text/plain')
+          }
           break
         case 500:
-          if (!ctx.response.body) ctx.response.body = 'Internal Server Error'
+          if (!ctx.response.body) {
+            ctx.response.body = 'Internal Server Error'
+            ctx.response.headers.set('content-type', 'text/plain')
+          }
           break
       }
-      const body = ctx.response.body
-      if (body) {
-        try {
-          JSON.parse(body)
-          ctx.response.headers.set('content-type', 'application/scim+json; charset=utf-8')
-        } catch (err) { void 0 }
+      let body = ctx.response.body
+      if (body === '') body = undefined
+      if (body && !ctx.response.headers.has('content-type')) {
+        ctx.response.headers.set('content-type', 'application/scim+json; charset=utf-8')
       }
       const response = new Response(body, { status: ctx.response.status, headers: ctx.response.headers })
       logResult(ctx)
@@ -2693,7 +2703,42 @@ export class ScimGateway {
       const isPublisherEnabled = this.config.scimgateway.stream.publisher.enabled
       const isChainingEnabled = this.config.scimgateway.chainingBaseUrl
 
-      async function route(req: Request & { raw: IncomingMessage }, ip: string): Promise<Response> {
+      const wssInit = `
+      <!DOCTYPE html>
+      <html>
+      <body>
+        <h3>SCIM Gateway remote logger</h3>
+        <pre id="log"></pre>
+        <script>
+          const logElem = document.getElementById('log')
+          const ws = new WebSocket('{{protocol}}//' + location.host + '/logger')
+          ws.onmessage = function(event) {
+            event.data.split('\\n').forEach(function(line) {
+              if (!line.trim()) return
+              // Highlight only the log level
+              var htmlLine = line.replace(
+                /(level":"\\s*)(debug|info|warn|error)/i,
+                function(match, p1, p2) {
+                  var color = ''
+                  switch (p2.toLowerCase()) {
+                    case 'debug': color = '#888'; break
+                    case 'info':  color = 'blue'; break
+                    case 'warn':  color = 'orange'; break
+                    case 'error': color = 'red'; break
+                    default: color = 'black'
+                  }
+                  return p1 + '<span style="color:' + color + ';font-weight:bold">' + p2 + '</span>'
+                }
+              );
+              logElem.innerHTML += htmlLine + '<br>'
+            })
+          }
+        </script>
+      </body>
+      </html>
+      `
+
+      const route = async (req: Request & { raw: IncomingMessage }, ip: string): Promise<Response> => {
         const ctx = await onBeforeHandle(req, ip)
         if (ctx.response.status) { // 401/Unauthorized - 404/NOT_FOUND
           return await onAfterHandle(ctx)
@@ -2728,8 +2773,29 @@ export class ScimGateway {
           case 'GET serviceproviderconfigs':
             await getHandlerServiceProviderConfig(ctx)
             return await onAfterHandle(ctx)
-          case 'GET logger':
-            return await getHandlerLogger(ctx) // no onAfterHandle
+          case 'GET logger': // no onAfterHandle
+            if (req.headers.get('upgrade')?.toLowerCase() === 'websocket') { // browser step 2, and other Bun ws(s) clients
+              logger.info(`${gwName}[${pluginName}] remote logger connected from ip address ${ctx.ip}`)
+              return server.upgrade(req, { // after upgrade, the server will handle the WebSocket connection configured in Bun.serve()
+                data: { // passed to WebSocket server Bun open handler
+                  headers: req.headers,
+                  url: req.url,
+                  ip: ctx.ip,
+                  nonce: this.Nonce.createItem(crypto.randomUUID()),
+                },
+              })
+            }
+            if (req.headers.has('sec-fetch-dest') && typeof Bun !== 'undefined') { // client is browser and not supporting WebSocket on Node.js
+              const url = new URL(ctx.origin)
+              const protocol = (url.protocol === 'https:' ? 'wss:' : 'ws:')
+              const js = wssInit.replace('{{protocol}}', protocol)
+              return new Response(js, { // browser step 1 => force WebSocket by sending javascript
+                status: 200,
+                headers: {
+                  'Content-Type': 'text/html; charset=utf-8',
+                },
+              })
+            } else return await getHandlerLoggerSSE(ctx) // using SSE for none WebSocket/wss e.g. curl -Ns http://localhost:8880/logger -u gwadmin:password | sed 's/\xE2\x80\x8B//g'
           case 'PATCH users':
           case 'PATCH groups':
             await patchHandler(ctx)
@@ -2779,14 +2845,44 @@ export class ScimGateway {
           idleTimeout,
           hostname, // hostname === 'localhost' ? hostname : undefined, // bun defaults to '0.0.0.0', but using '0.0.0.0.' or other ip like '127.0.0.1' becomes extremly slow - bun bug
           tls,
-          async fetch(req, srv) {
-            // start route processing and return response
+          fetch: async (req, srv) => {
+            // start route handlers
             const reqWithRaw = req as Request & { raw: IncomingMessage }
             return await route(reqWithRaw, srv.requestIP(req)?.address || '')
           },
-          error(err) {
-            logger.error(`${gwName} internal error: ${err.message}`)
-            return new Response('Internal Server Error', { status: 500 })
+          websocket: {
+            open: (ws) => {
+              const data = ws.data as { headers: Headers, url: string, ip: string, nonce: string } || {}
+              let isAuthorized = false // client is already authenticated by initial http/https upgrade to websocket, anyhow passing data to be validated
+              if (data?.nonce && this.Nonce.isItemValid(data.nonce)) {
+                if (data.headers.has('authorization')) {
+                  if (data.url.endsWith('/logger')) isAuthorized = true
+                }
+              }
+              if (!isAuthorized) {
+                logger.error(`${gwName}[${pluginName}] remote logger ip address ${data.ip} - WebSocket connection error: invalid nonce`)
+                ws.close(3000, 'Unauthorized')
+                return
+              }
+
+              const levelInt = logger.levelToInt(this.config?.scimgateway?.log?.loglevel?.push || 'info')
+              const sub = async (msgObj: Record<string, any>) => {
+                if (logger.levelToInt(msgObj.level) < levelInt) return
+                ws.send(`${JSON.stringify(msgObj)}`)
+              }
+              logger.subscribe(sub)
+              ;(ws as any)._sub = sub
+              ;(ws as any)._ip = data.ip
+            },
+            close: (ws) => {
+              const sub = (ws as any)._sub
+              const ip = (ws as any)._ip
+              if (sub) {
+                logger.unsubscribe(sub)
+              }
+              logger.info(`${gwName}[${pluginName}] remote logger disconnected from ip address ${ip}`)
+            },
+            message: () => {},
           },
         })
       } else {
@@ -2871,6 +2967,8 @@ export class ScimGateway {
                 const bodyText = await streamToString(response.body)
                 res.end(bodyText)
               }
+            } else {
+              res.end()
             }
           } catch (err: any) {
             logger.error(`${gwName} internal error: ${err.message}`)
@@ -2882,48 +2980,53 @@ export class ScimGateway {
         // create nodejs server and start listen
         if (this.config.scimgateway.azureRelay?.enabled === true) {
           // Azure Relay listener server
-          let url: URL = {} as URL
-          try {
-            url = new URL(this.config.scimgateway.azureRelay.connectionUrl) // Azure Relay hybrid connection URL: 'https://<namespace>.servicebus.windows.net/<hybrid-connection-name>'
-          } catch (err: any) {
-            logger.error(`${gwName}[${pluginName}] Azure Relay configuration scimgateway.azureRelay.connectionUrl - error: ${err.message}`)
-          }
-          const hyco = hycoPkg.default || hycoPkg
-          const ns = url.hostname// <namespace>.servicebus.windows.net
-          const path = url?.pathname?.replace(/^[\s\/]+|[\s\/]+$/g, '') // <hybrid-connection-name> - removing any leading/trailing whitespace and '/'  
-          const keyrule = this.config.scimgateway.azureRelay.keyRule || 'RootManageSharedAccessKey'
-          const key = this.config.scimgateway.azureRelay.apiKey || '' // Azure Relay - SAS Primary Key
-          const uri = hyco.createRelayListenUri(ns, path) // wss://<namespace>.servicebus.windows.net:443/$hc/<hybrid-connection-name>?sb-hc-action=listen
+          (async () => {
+            // @ts-expect-error: has no declaration
+            const hycoPkg = await import('hyco-https')
+            const hyco = hycoPkg.default || hycoPkg
+            let url: URL = {} as URL
+            try {
+              url = new URL(this.config.scimgateway.azureRelay.connectionUrl) // Azure Relay hybrid connection URL: 'https://<namespace>.servicebus.windows.net/<hybrid-connection-name>'
+            } catch (err: any) {
+              logger.error(`${gwName}[${pluginName}] Azure Relay configuration scimgateway.azureRelay.connectionUrl - error: ${err.message}`)
+            }
 
-          server = hyco.createRelayedServer(
-            {
-              server: uri,
-              token: () => hyco.createRelayToken(uri, keyrule, key),
-            },
-            async (req: IncomingMessage, res: ServerResponse) => {
-              doFetchApi(req, res)
-            })
-          server.listen()
+            const ns = url.hostname// <namespace>.servicebus.windows.net
+            const path = url?.pathname?.replace(/^[\s\/]+|[\s\/]+$/g, '') // <hybrid-connection-name> - removing any leading/trailing whitespace and '/'  
+            const keyrule = this.config.scimgateway.azureRelay.keyRule || 'RootManageSharedAccessKey'
+            const key = this.config.scimgateway.azureRelay.apiKey || '' // Azure Relay - SAS Primary Key
+            const uri = hyco.createRelayListenUri(ns, path) // wss://<namespace>.servicebus.windows.net:443/$hc/<hybrid-connection-name>?sb-hc-action=listen
 
-          { // check if Azure Relay listener is working by sending a 5 sec delayed ping request
-            let options = {
-              connection: {
-                options: {
-                  headers: {
-                    ServiceBusAuthorization: hyco.createRelayToken(uri, keyrule, key),
+            server = hyco.createRelayedServer(
+              {
+                server: uri,
+                token: () => hyco.createRelayToken(uri, keyrule, key),
+              },
+              async (req: IncomingMessage, res: ServerResponse) => {
+                doFetchApi(req, res)
+              })
+            server.listen()
+
+            { // check if Azure Relay listener is working by sending a 5 sec delayed ping request
+              let options = {
+                connection: {
+                  options: {
+                    headers: {
+                      ServiceBusAuthorization: hyco.createRelayToken(uri, keyrule, key),
+                    },
                   },
                 },
-              },
-            }
-            setTimeout(async () => {
-              try {
-                if (!this.helperRest) this.helperRest = this.newHelperRest()
-                await this.helperRest.doRequest('undefined', 'GET', `${this.config.scimgateway.azureRelay.connectionUrl}/ping`, null, null, options)
-              } catch (err: any) {
-                logger.error(`${gwName}[${pluginName}] Azure Relay listener failed to start - ping test doRequest() returned an error - please verify configuration scimgateway.azureRelay.connectionUrl/apiKey including the Azure Relay setup}`)
               }
-            }, 5 * 1000)
-          }
+              setTimeout(async () => {
+                try {
+                  if (!this.helperRest) this.helperRest = this.newHelperRest()
+                  await this.helperRest.doRequest('undefined', 'GET', `${this.config.scimgateway.azureRelay.connectionUrl}/ping`, null, null, options)
+                } catch (err: any) {
+                  logger.error(`${gwName}[${pluginName}] Azure Relay listener failed to start - ping test doRequest() returned an error - please verify configuration scimgateway.azureRelay.connectionUrl/apiKey including the Azure Relay setup}`)
+                }
+              }, 5 * 1000)
+            }
+          })()
         } else {
           // nodejs server
           if (tls.key) {
