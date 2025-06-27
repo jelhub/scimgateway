@@ -19,10 +19,7 @@ Latest news:
 - [Azure Relay](https://learn.microsoft.com/en-us/azure/azure-relay/relay-what-is-it) is now supported for secure and hassle-free outbound communication — with just one minute of configuration
 - [ETag](https://datatracker.ietf.org/doc/html/rfc7644#section-3.14) is now supported
 - [Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) is now supported
-- Remote real-time log subscription for monitoring and centralized logging  
-using browser and url: `https://<host>/logger`  
-`curl -N https://<host>/logger -u user:password`  
-custom client API, see configuration notes  
+- Remote real-time log subscription for centralized logging and monitoring. Using browser `https://<host>/logger`, curl or custom client API - see configuration notes  
 - By configuring the chainingBaseUrl, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway beave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
 - Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlBearer, oauthJwtBearer and Auth PassTrough 
 - Major version **v5.0.0** marks a shift from JavaScript to native TypeScript and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
@@ -139,7 +136,7 @@ If internet connection is blocked, we could install on another machine and copy 
 	http://localhost:8880/Groups
 	=> Logon using gwadmin/password and two users and groups should be listed  
 
-	Start a new browser for log monitoring (might not be supported by Safari) 
+	Start a new browser for log monitoring
 	using url: http://localhost:8880/logger
 
 	http://localhost:8880/Users/bjensen
@@ -397,7 +394,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **log.loglevel.console** - off, debug, info, warn or error. Default off. Output to stdout and errors to stderr
 
-- **log.loglevel.push** - off, debug, info, warn or error. Default info. Push to stream that can be used by client subscriber
+- **log.loglevel.push** - off, debug, info, warn or error. Default info. Push to stream used by remote real-time log subscription
 
 - **log.logDirectory** - custom defined log directory e.g. `/var/log/scimgateway` that will override default `<scimgateway path>/logs`. If not exist it will be created.
 
@@ -750,9 +747,11 @@ Please see code editor method HelperRest doRequest() IntelliSense for type and o
 Using remote real-time log subscription we may implement custom logic like monitoring and centralized logging
 
 - using browser and url: https://host/logger  
-- curl -N https://host/logger -u gwread:password  
-- curl -N https://host/logger -H "Authorization: Bearer secret"  
-- custom client API
+- curl -Ns https://host/logger -u gwread:password | sed 's/\xE2\x80\x8B//g'  
+- curl -Ns https://host/logger -H "Authorization: Bearer secret" | sed 's/\xE2\x80\x8B//g'  
+	(-s and sed to ignore keep-alive character)
+- custom client API (see example below)
+- not supported by Azure Relay
 
 We may configure read-only user/secret for log collection purpose    
 
@@ -781,8 +780,8 @@ We may configure read-only user/secret for log collection purpose
 	  ...
 	}
 
-push logger using default `info` log level  
-push log level may be customized by configuration  
+Remote log subscription is configured by log.loglevel.push and the push logger has default loglevel set to `info` 
+Example using debug loglevel:
 
 	"log": {
 	  "loglevel": {
@@ -790,57 +789,71 @@ push log level may be customized by configuration
 	  }
 	}
 
-Example code implementing subscriber for real-time log messages collection  
+Example code implementing remote real-time log subscription and custom message handling  
 
-	let headers = new Headers()
-	headers.append('Authorization', 'Basic ' + btoa('gwadmin' + ':' + 'password'))
-	
-	// message handling and custom logic
-	// we could also do JSON.parse(message) and granular filtering on log "level"
-	const messageHandler = async (message: string) => {
-	  console.log(message)
-	}
-	
-	let ignoreCatch = false
-	do { // retry loop when connection closed or service unavailable
-	  if (ignoreCatch) ignoreCatch = false
-	
-	  try {
-	    const resp = await fetch("http://localhost:8880/logger", {
-	      method: "GET",
-	      headers: headers,
-	    })
-	
-	    const reader = resp.body.pipeThrough(new TextDecoderStream()).getReader()
-	    console.log('Now awaiting log events...\n')
-	
-	    while (true) {
-	      const { value, done } = await reader.read()
-	      if (done) break
-	      if (value.at(-1) !== '\n') continue
-	      const message = value.slice(0, -1)
-	      messageHandler(message)
-	    }
-	
-	    // shouldn't be here... authentication failure?
-	    const e = {
- 	     url: resp.url,
-	      status: resp.status,
-	      statusText: resp.statusText
-	    }
-	    console.error('error', e)
-	
-	  } catch (err: any) {
-	    if (['ConnectionClosed', 'ConnectionRefused', 'ECONNRESET'].includes(err.code)) {
-	      console.log('Connection closed or service unavailable')
-	      ignoreCatch = true
-	      await Bun.sleep(10 * 1000)
-	    } else console.error(err)
-	  }
-	
-	} while (ignoreCatch)
-	
-	console.log('\n\ndone!')
+```
+// startup: bun <scriptname.ts>
+// update url (ws or wss) and the auth according to environment used
+const url = 'ws://localhost:8880/logger'
+const auth = 'Basic ' + btoa('gwadmin' + ':' + 'password') // const auth = 'Bearer ' + 'secret'
+
+const tls: any = {}
+if (url.startsWith('wss:')) {
+    tls.ca = [Bun.file('/path/to/self-signed-cert.pem')], // only needed for self-signed certs
+    tls.rejectUnauthorized = false
+}
+
+// messageHandler implements message handling and custom logic
+// could also use JSON.parse(message) and granular filtering on log "level"
+const messageHandler = async (message: string) => {
+    console.log(message)
+}
+
+const startWebSocket = async () => {
+    try {
+        const ws = new WebSocket(url, {
+            headers: {
+                Authorization: auth,
+            },
+            tls,
+        })
+
+        // message is received
+        ws.addEventListener("message", event => {
+            messageHandler(event.data)
+        });
+
+        // socket opened
+        ws.addEventListener("open", event => {
+            console.log('✅ Now awaiting log events...\n')
+        });
+
+        // socket closed
+        ws.addEventListener("close", event => {
+            let addInfo = ''
+            if (event.code === 1002) addInfo = ' => most likely authentication failure?'
+            console.warn(`⚠️ Connection closed (${event.code}): ${event.reason || 'no reason'}${addInfo}`)
+            retry()
+        });
+
+        // error handler
+        ws.addEventListener("error", event => {
+            // console.error('❌ WebSocket error:', event.message)
+        });
+
+    } catch (err: any) {
+        console.error('❌ Unexpected error:', err)
+    }
+}
+
+const retry = async () => {
+    console.log('🔁 Retry in 10 seconds...')
+    await Bun.sleep(10 * 1000)
+    startWebSocket()
+}
+
+startWebSocket()
+```
 
 ### Configuration notes - Azure Relay
 
