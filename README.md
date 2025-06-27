@@ -1473,7 +1473,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
-## Change log  
+### v5.4.0
+
+[Improved]
+
+- Remote real-time log subscription now prioritize using WebSocket over SSE. Using browser will show loglevel colors. If running Node.js, WebSocket is not supported and SSE will be used. Remote logger is not supported by Azure Relay.
 
 ### v5.3.8
 
