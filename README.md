@@ -799,51 +799,51 @@ const auth = 'Basic ' + btoa('gwadmin' + ':' + 'password') // const auth = 'Bear
 
 const tls: any = {}
 if (url.startsWith('wss:')) {
-    tls.ca = [Bun.file('/path/to/self-signed-cert.pem')], // only needed for self-signed certs
-    tls.rejectUnauthorized = false
+  tls.ca = [Bun.file('/path/to/self-signed-cert.pem')], // only needed for self-signed certs
+  tls.rejectUnauthorized = false
 }
 
 // messageHandler implements message handling and custom logic
 // could also use JSON.parse(message) and granular filtering on log "level"
 const messageHandler = async (message: string) => {
-    console.log(message)
+  console.log(message)
 }
 
 const startWebSocket = async () => {
-    try {
-        const ws = new WebSocket(url, {
-            headers: {
-                Authorization: auth,
-            },
-            tls,
-        })
+  try {
+    const ws = new WebSocket(url, {
+      headers: {
+      Authorization: auth,
+      },
+      tls,
+    })
 
-        // message is received
-        ws.addEventListener("message", event => {
-            messageHandler(event.data)
-        });
+    // message is received
+    ws.addEventListener("message", event => {
+      messageHandler(event.data)
+    })
 
-        // socket opened
-        ws.addEventListener("open", event => {
-            console.log('✅ Now awaiting log events...\n')
-        });
+    // socket opened
+    ws.addEventListener("open", event => {
+      console.log('✅ Now awaiting log events...\n')
+    })
 
-        // socket closed
-        ws.addEventListener("close", event => {
-            let addInfo = ''
-            if (event.code === 1002) addInfo = ' => most likely authentication failure?'
-            console.warn(`⚠️ Connection closed (${event.code}): ${event.reason || 'no reason'}${addInfo}`)
-            retry()
-        });
+    // socket closed
+    ws.addEventListener("close", event => {
+      let addInfo = ''
+      if (event.code === 1002) addInfo = ' => most likely authentication failure?'
+        console.warn(`⚠️ Connection closed (${event.code}): ${event.reason || 'no reason'}${addInfo}`)
+        retry()
+    })
 
-        // error handler
-        ws.addEventListener("error", event => {
-            // console.error('❌ WebSocket error:', event.message)
-        });
+    // error handler
+    ws.addEventListener("error", event => {
+      // console.error('❌ WebSocket error:', event.message)
+    })
 
-    } catch (err: any) {
-        console.error('❌ Unexpected error:', err)
-    }
+  } catch (err: any) {
+    console.error('❌ Unexpected error:', err)
+  }
 }
 
 const retry = async () => {
@@ -1477,7 +1477,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 [Improved]
 
-- Remote real-time log subscription now prioritize using WebSocket over SSE. Using browser will show loglevel colors. If running Node.js, WebSocket is not supported and SSE will be used. Remote logger is not supported by Azure Relay.
+- Some underlying enhancements have been made to the remote real-time logger. When using a browser, log level colors are now shown. Note: the remote logger is not supported via Azure Relay
 
 ### v5.3.8
 
