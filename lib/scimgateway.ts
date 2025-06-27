@@ -25,7 +25,6 @@ import * as jwt from 'jsonwebtoken'
 import * as utils from './utils.ts'
 import * as utilsScim from './utils-scim.ts'
 import * as stream from './scim-stream.js'
-import { headers } from '@nats-io/nats-core'
 export * from './helper-rest.ts'
 
 export class ScimGateway {
