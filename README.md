@@ -832,8 +832,8 @@ const startWebSocket = async () => {
     ws.addEventListener("close", event => {
       let addInfo = ''
       if (event.code === 1002) addInfo = ' => most likely authentication failure?'
-        console.warn(`⚠️ Connection closed (${event.code}): ${event.reason || 'no reason'}${addInfo}`)
-        retry()
+      console.warn(`⚠️ Connection closed (${event.code}): ${event.reason || 'no reason'}${addInfo}`)
+      retry()
     })
 
     // error handler
