@@ -2705,20 +2705,41 @@ export class ScimGateway {
       const wssInit = `
       <!DOCTYPE html>
       <html>
+      <head>
+        <style>
+          .header-flex {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+          }
+          #stopBtn {
+            padding: 4px 18px;
+            font-size: 12px;
+            background: #eee;
+            border: 1px solid #888;
+            border-radius: 4px;
+            color: #222;
+            cursor: pointer;
+          }
+        </style>
+      </head>
       <body>
-        <h3>SCIM Gateway remote logger</h3>
+        <div class="header-flex">
+          <h3 style="margin:0;">SCIM Gateway remote logger</h3>
+          <button id="stopBtn" type="button">Stop</button>
+        </div>
         <pre id="log"></pre>
         <script>
+          const stopBtn = document.getElementById('stopBtn')
           const logElem = document.getElementById('log')
-          const ws = new WebSocket('{{protocol}}//' + location.host + '/logger')
+          let ws = new WebSocket('{{protocol}}//' + location.host + '/logger')
           ws.onmessage = function(event) {
             event.data.split('\\n').forEach(function(line) {
               if (!line.trim()) return
-              // Highlight only the log level
-              var htmlLine = line.replace(
+              const htmlLine = line.replace(
                 /(level":"\\s*)(debug|info|warn|error)/i,
                 function(match, p1, p2) {
-                  var color = ''
+                  let color = ''
                   switch (p2.toLowerCase()) {
                     case 'debug': color = '#888'; break
                     case 'info':  color = 'blue'; break
@@ -2731,6 +2752,16 @@ export class ScimGateway {
               );
               logElem.innerHTML += htmlLine + '<br>'
             })
+          }
+          stopBtn.onclick = function() {
+            if (ws) {
+              ws.close()
+              ws = null
+              stopBtn.textContent = 'Start'
+              stopBtn.onclick = function() {
+                location.reload()
+              }
+            }
           }
         </script>
       </body>
