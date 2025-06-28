@@ -1473,6 +1473,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.4.1
+
+[Improved]
+
+- Remote real-time logger, stop/start button added when using browser
+
 ### v5.4.0
 
 [Improved]
