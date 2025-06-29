@@ -1473,6 +1473,15 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log  
 
+### v5.4.2
+
+[Improved]
+
+- baseEntity included as json-key in logs
+- Remote real-time logger now supports baseEntity. `http(s)://host/logger` gives all log entries for plugin. `http(s)://host/<baseEntity>/logger` gives only log entries for the baseEntity used.
+
+Note, using `baseEntity` is optional. This is a parameter used for multi tenant or multi endpoint solutions. We could create several endpoint configurations having unique baseEntity. Also note that we can configure auth linked to baseEntity including readOnly.
+
 ### v5.4.1
 
 [Improved]
