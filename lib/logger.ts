@@ -294,32 +294,33 @@ export class Logger {
   * @param level log level
   * @param message the message that will be logged
   */
-  private async log(level: 'debug' | 'info' | 'warn' | 'error', message: string) {
+  private async log(level: 'debug' | 'info' | 'warn' | 'error', message: string, obj?: Record<string, any>) {
     const time = new Date().toISOString()
     message = this.maskSecret(message)
     const msgObj: Record<string, any> = {
       time,
-      category: this.category,
       level,
+      category: this.category,
+      ...(obj || {}),
       message,
     }
     this.logChannel.publish(msgObj)
   }
 
-  public debug(message: string) {
-    this.log('debug', message)
+  public debug(message: string, obj?: Record<string, any>) {
+    this.log('debug', message, obj)
   }
 
-  public info(message: string) {
-    this.log('info', message)
+  public info(message: string, obj?: Record<string, any>) {
+    this.log('info', message, obj)
   }
 
-  public warn(message: string) {
-    this.log('warn', message)
+  public warn(message: string, obj?: Record<string, any>) {
+    this.log('warn', message, obj)
   }
 
-  public error(message: string) {
-    this.log('error', message)
+  public error(message: string, obj?: Record<string, any>) {
+    this.log('error', message, obj)
   }
 
   /**
