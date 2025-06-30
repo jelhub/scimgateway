@@ -878,23 +878,24 @@ export class ScimGateway {
     const getHandlerLoggerSSE = async (ctx: Context) => {
       const levelInt = logger.levelToInt(this.config?.scimgateway?.log?.loglevel?.push || 'info')
       const encoder = new TextEncoder()
+      logger.info(`${gwName}[${pluginName}] remote logger connected from ip address ${ctx.ip}`, { baseEntity: ctx?.routeObj?.baseEntity })
 
       return new Response(
         new ReadableStream({
           start(controller) {
-            controller.enqueue(encoder.encode(`\u200B`))
+            controller.enqueue(encoder.encode(`: keep-alive\n\n`))
 
             const sub = async (msgObj: Record<string, any>) => {
               if (logger.levelToInt(msgObj.level) < levelInt) return
               if (ctx?.routeObj?.baseEntity !== 'undefined') { // if using baseEntity e.g. <host>/company1/logger, only include corresponding baseEntity logentries
                 if (ctx?.routeObj?.baseEntity !== msgObj.baseEntity) return
               }
-              controller.enqueue(encoder.encode(`${JSON.stringify(msgObj)}\n`))
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(msgObj)}\n\n`))
             }
             logger.subscribe(sub)
 
             const keepAliveInterval = setInterval(() => {
-              controller.enqueue(encoder.encode(`\u200B`)) // invisible keep-alive
+              controller.enqueue(encoder.encode(`: keep-alive\n\n`))
             }, 10000)
 
             const cleanup = () => {
@@ -2705,15 +2706,39 @@ export class ScimGateway {
       const isPublisherEnabled = this.config.scimgateway.stream.publisher.enabled
       const isChainingEnabled = this.config.scimgateway.chainingBaseUrl
 
-      const wssInit = `
+      const sseInit = `
       <!DOCTYPE html>
       <html>
       <head>
         <style>
+          html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin-left: 8px;
+          }
           .header-flex {
             display: flex;
             align-items: center;
             gap: 16px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            margin-bottom: 2px;
+          }
+          #log {
+            flex: 1 1 auto;
+            width: 100%;
+            overflow: auto;
+            white-space: pre;
+            margin: 0;
+            min-height: 0;
+            height: auto;
+            box-sizing: border-box;
           }
           #stopBtn {
             padding: 4px 18px;
@@ -2728,42 +2753,41 @@ export class ScimGateway {
       </head>
       <body>
         <div class="header-flex">
-          <h3 style="margin:0;">SCIM Gateway remote logger</h3>
+          <h3>SCIM Gateway remote logger</h3>
           <button id="stopBtn" type="button">Stop</button>
         </div>
         <pre id="log"></pre>
         <script>
           const stopBtn = document.getElementById('stopBtn')
           const logElem = document.getElementById('log')
-          let ws = new WebSocket('{{protocol}}//' + location.host + location.pathname)
-          ws.onmessage = function(event) {
-            event.data.split('\\n').forEach(function(line) {
-              if (!line.trim()) return
-              const htmlLine = line.replace(
-                /(level":"\\s*)(debug|info|warn|error)/i,
-                function(match, p1, p2) {
-                  let color = ''
-                  switch (p2.toLowerCase()) {
-                    case 'debug': color = '#888'; break
-                    case 'info':  color = 'blue'; break
-                    case 'warn':  color = 'orange'; break
-                    case 'error': color = 'red'; break
-                    default: color = 'black'
-                  }
-                  return p1 + '<span style="color:' + color + ';font-weight:bold">' + p2 + '</span>'
+          let es = new EventSource(location.pathname)
+
+          es.onmessage = function(event) {
+            if (!event.data.trim()) return
+            const htmlLine = event.data.replace(
+              /(level":"\s*)(debug|info|warn|error)/i,
+              function(match, p1, p2) {
+                let color = ''
+                switch (p2.toLowerCase()) {
+                  case 'debug': color = '#888'; break
+                  case 'info':  color = 'blue'; break
+                  case 'warn':  color = 'orange'; break
+                  case 'error': color = 'red'; break
+                  default: color = 'black'
                 }
-              );
-              logElem.innerHTML += htmlLine + '<br>'
-            })
-          }
-          stopBtn.onclick = function() {
-            if (ws) {
-              ws.close()
-              ws = null
-              stopBtn.textContent = 'Start'
-              stopBtn.onclick = function() {
-                location.reload()
+                return p1 + '<span style="color:' + color + ';font-weight:bold">' + p2 + '</span>'
               }
+            )
+            logElem.innerHTML += htmlLine + '<br>'
+            logElem.scrollTop = logElem.scrollHeight
+          }
+
+          stopBtn.onclick = function() {
+            if (es) {
+              es.close()
+              es = null
+              stopBtn.textContent = 'Start'
+              stopBtn.onclick = function() { location.reload() }
             }
           }
         </script>
@@ -2807,29 +2831,18 @@ export class ScimGateway {
             await getHandlerServiceProviderConfig(ctx)
             return await onAfterHandle(ctx)
           case 'GET logger': // no onAfterHandle
-            if (req.headers.get('upgrade')?.toLowerCase() === 'websocket') { // browser step 2, and other Bun ws(s) clients
-              logger.info(`${gwName}[${pluginName}] remote logger connected from ip address ${ctx.ip}`, { baseEntity: ctx?.routeObj?.baseEntity })
-              return server.upgrade(req, { // after upgrade, the server will handle the WebSocket connection configured in Bun.serve()
-                data: { // passed to WebSocket server Bun open handler
-                  headers: req.headers,
-                  url: req.url,
-                  baseEntity: ctx?.routeObj?.baseEntity,
-                  ip: ctx.ip,
-                  nonce: this.Nonce.createItem(crypto.randomUUID()),
-                },
-              })
-            }
-            if (req.headers.has('sec-fetch-dest') && typeof Bun !== 'undefined') { // client is browser and not supporting WebSocket on Node.js
-              const url = new URL(ctx.origin)
-              const protocol = (url.protocol === 'https:' ? 'wss:' : 'ws:')
-              const js = wssInit.replace('{{protocol}}', protocol)
-              return new Response(js, { // browser step 1 => force WebSocket by sending javascript
-                status: 200,
-                headers: {
-                  'Content-Type': 'text/html; charset=utf-8',
-                },
-              })
-            } else return await getHandlerLoggerSSE(ctx) // using SSE for none WebSocket/wss e.g. curl -Ns http://localhost:8880/logger -u gwadmin:password | sed 's/\xE2\x80\x8B//g'
+            if (req.headers.has('sec-fetch-dest')) { // client is browser
+              if (ctx.request.headers.get('accept')?.includes('text/event-stream')) {
+                return await getHandlerLoggerSSE(ctx)
+              } else {
+                return new Response(sseInit, {
+                  status: 200,
+                  headers: {
+                    'Content-Type': 'text/html; charset=utf-8',
+                  },
+                })
+              }
+            } else return await getHandlerLoggerSSE(ctx)
           case 'PATCH users':
           case 'PATCH groups':
             await patchHandler(ctx)
@@ -2884,49 +2897,9 @@ export class ScimGateway {
             const reqWithRaw = req as Request & { raw: IncomingMessage }
             return await route(reqWithRaw, srv.requestIP(req)?.address || '')
           },
-          websocket: {
-            open: (ws) => {
-              const data = ws.data as { headers: Headers, url: string, baseEntity: string, ip: string, nonce: string } || {}
-              let isAuthorized = false // client is already authenticated by initial http/https upgrade to websocket, anyhow passing data to be validated
-              if (data?.nonce && this.Nonce.isItemValid(data.nonce)) {
-                if (data.headers.has('authorization')) {
-                  if (data.url.endsWith('/logger')) isAuthorized = true
-                }
-              }
-              if (!isAuthorized) {
-                logger.error(`${gwName}[${pluginName}] remote logger ip address ${data.ip} - WebSocket connection error: invalid nonce`, { baseEntity: data.baseEntity })
-                ws.close(3000, 'Unauthorized')
-                return
-              }
-
-              const levelInt = logger.levelToInt(this.config?.scimgateway?.log?.loglevel?.push || 'info')
-              const sub = async (msgObj: Record<string, any>) => {
-                if (logger.levelToInt(msgObj.level) < levelInt) return
-                if (data.baseEntity !== 'undefined') { // if using baseEntity e.g. <host>/company1/logger, only include corresponding baseEntity logentries
-                  if (data.baseEntity !== msgObj.baseEntity) return
-                }
-                ws.send(`${JSON.stringify(msgObj)}`)
-              }
-              logger.subscribe(sub)
-              ;(ws as any)._sub = sub
-              ;(ws as any)._baseEntity = data.baseEntity
-              ;(ws as any)._ip = data.ip
-            },
-            close: (ws) => {
-              const sub = (ws as any)._sub
-              const baseEntity = (ws as any)._baseEntity
-              const ip = (ws as any)._ip
-              if (sub) {
-                logger.unsubscribe(sub)
-              }
-              logger.info(`${gwName}[${pluginName}] remote logger disconnected from ip address ${ip}`, { baseEntity })
-            },
-            message: () => {},
-          },
         })
       } else {
         // using nodejs server either through Bun compability or Node.js
-
         // get body from req
         async function getRequestBody(req: any): Promise<Buffer> {
           return new Promise((resolve, reject) => {
