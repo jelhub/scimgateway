@@ -394,7 +394,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **log.loglevel.console** - off, debug, info, warn or error. Default off. Output to stdout and errors to stderr
 
-- **log.loglevel.push** - off, debug, info, warn or error. Default info. Push to stream used by remote real-time log subscription
+- **log.loglevel.push** - debug, info, warn or error. Default info. Push to stream used by remote real-time log subscription
 
 - **log.logDirectory** - custom defined log directory e.g. `/var/log/scimgateway` that will override default `<scimgateway path>/logs`. If not exist it will be created.
 
@@ -746,12 +746,17 @@ Please see code editor method HelperRest doRequest() IntelliSense for type and o
 ### Configuration notes - Remote real-time log subscription
 Using remote real-time log subscription we may implement custom logic like monitoring and centralized logging
 
-- using browser and url: https://host/logger  
-- curl -Ns https://host/logger -u gwread:password | sed 's/\xE2\x80\x8B//g'  
-- curl -Ns https://host/logger -H "Authorization: Bearer secret" | sed 's/\xE2\x80\x8B//g'  
-	(-s and sed to ignore keep-alive character)
+- browser and url: https://host/logger  
+- curl with -u or -H "Authorization: Bearer secret"
+	```
+	curl -Ns http://localhost:8880/logger -u gwadmin:password | awk '
+	/^data: / {sub(/^data: /,""); printf "%s", $0; last=1; next}
+	/^$/ {if (last) print ""; last=0}
+	'
+	```
 - custom client API (see example below)
 - not supported by Azure Relay
+
 
 We may configure read-only user/secret for log collection purpose    
 
@@ -792,67 +797,57 @@ Example using debug loglevel:
 Example code implementing remote real-time log subscription and custom message handling  
 
 ```
-// startup: bun <scriptname.ts>
-// update url (ws or wss) and the auth according to environment used
-const url = 'ws://localhost:8880/logger'
-const auth = 'Basic ' + btoa('gwadmin' + ':' + 'password') // const auth = 'Bearer ' + 'secret'
+//
+// usage: bun <scriptname.ts>
+// update url and the auth according to environment used
+//
+const username = "gwadmin"
+const password = "password"
+const url = "http://localhost:8880/logger"
 
-const tls: any = {}
-if (url.startsWith('wss:')) {
-  tls.ca = [Bun.file('/path/to/self-signed-cert.pem')], // only needed for self-signed certs
-  tls.rejectUnauthorized = false
-}
+const headers = new Headers({
+  Authorization: "Basic " + btoa(`${username}:${password}`),
+  Accept: "text/event-stream"
+})
 
-// messageHandler implements message handling and custom logic
-// could also use JSON.parse(message) and granular filtering on log "level"
+// message handling and custom logic
+// we could also do JSON.parse(message) and granular filtering on log "level"
 const messageHandler = async (message: string) => {
   console.log(message)
 }
 
-const startWebSocket = async () => {
-  try {
-    const ws = new WebSocket(url, {
-      headers: {
-      Authorization: auth,
-      },
-      tls,
-    })
-
-    // message is received
-    ws.addEventListener("message", event => {
-      messageHandler(event.data)
-    })
-
-    // socket opened
-    ws.addEventListener("open", event => {
+async function startSSE() {
+  while (true) {
+    try {
+      const resp = await fetch(url, { headers });
+      if (!resp.ok || !resp.body) {
+        console.error(`❌ Response error: ${resp.status} ${resp.statusText}`)
+        await Bun.sleep(10_000)
+        continue
+      }
       console.log('✅ Now awaiting log events...\n')
-    })
 
-    // socket closed
-    ws.addEventListener("close", event => {
-      let addInfo = ''
-      if (event.code === 1002) addInfo = ' => most likely authentication failure?'
-      console.warn(`⚠️ Connection closed (${event.code}): ${event.reason || 'no reason'}${addInfo}`)
-      retry()
-    })
+      const reader = resp.body.pipeThrough(new TextDecoderStream()).getReader()
 
-    // error handler
-    ws.addEventListener("error", event => {
-      // console.error('❌ WebSocket error:', event.message)
-    })
-
-  } catch (err: any) {
-    console.error('❌ Unexpected error:', err)
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        if (!value.startsWith('data: ')) continue
+        const i = value.indexOf("\n\n")
+        if (i < 1) continue
+        const msg = value.slice(6, i)
+        messageHandler(msg)
+      }
+      console.error("⚠️ Connection closed");
+      await Bun.sleep(10_000)
+    } catch (err: any) {
+      console.error("❌ Connection error:", err?.message || err)
+      await Bun.sleep(10_000)
+    }
   }
 }
 
-const retry = async () => {
-    console.log('🔁 Retry in 10 seconds...')
-    await Bun.sleep(10 * 1000)
-    startWebSocket()
-}
-
-startWebSocket()
+startSSE()
 ```
 
 ### Configuration notes - Azure Relay
@@ -1472,6 +1467,16 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log  
+
+### v5.4.3
+
+[Fixed]
+
+- helper-rest, fixed an issue introduced in v5.3.8 that caused problems using OAuth
+
+[Improved]
+
+- Remote real-time logger
 
 ### v5.4.2
 
