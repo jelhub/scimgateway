@@ -578,7 +578,7 @@ export class HelperRest {
         options.headers['Authorization'] = 'Basic ' + Buffer.from(`${o.auth?.options?.username}:${o.auth?.options?.password}`).toString('base64')
         delete o.auth
       }
-      options = utils.extendObj(o?.connection?.options, options)
+      options = utils.extendObj(options, o)
     }
 
     const cli: any = {}
