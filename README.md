@@ -1473,11 +1473,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 [Improved]
 
-	External JWKS (JSON Web Key Set) is now supported by JWT Authentication. These are public and typically frequent rotated by modern identity providers
+External JWKS (JSON Web Key Set) is now supported by JWT Authentication. These are public and typically frequent rotated by modern identity providers
 
-	JKWS is enabled by setting scimgateway.auth.bearerJwt[].wellKnownUri to the identity provider's well-known URI
+JKWS is enabled by setting scimgateway.auth.bearerJwt[].wellKnownUri to the identity provider's well-known URI
 
-	Keycloak example:
+Keycloak example:
 ```
   auth: {
     "bearerJwt": [
