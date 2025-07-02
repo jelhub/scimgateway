@@ -16,6 +16,7 @@ Validated through IdP's:
 
 Latest news:  
  
+- External JWKS (JSON Web Key Set) is now supported by JWT Authentication. These are public and typically frequent rotated by modern identity providers
 - [Azure Relay](https://learn.microsoft.com/en-us/azure/azure-relay/relay-what-is-it) is now supported for secure and hassle-free outbound communication — with just one minute of configuration
 - [ETag](https://datatracker.ietf.org/doc/html/rfc7644#section-3.14) is now supported
 - [Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) is now supported
@@ -417,7 +418,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **auth.bearerJwtAzure** - Array of one or more JWT used by Azure SyncFabric. **tenantIdGUID** must be set to Entra ID Tenant ID.
 
-- **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret** or **publicKey** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs` or absolute path being used. Clear text secret will become encrypted when gateway is started. **options.issuer** is mandatory. Other options may also be included according to jsonwebtoken npm package definition.
+- **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret**, **publicKey** or **wellKnownUri** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs` or absolute path being used. Clear text secret will become encrypted when gateway is started. For JWKS (JSON Web Key Set), the **wellKnownUri** must be set to identity provider well-known URI which will be used for lookup the jwks_uri key.  **options.issuer** should normally be set for validation when using secret or publicKey. Other options may also be included according to jsonwebtoken npm package definition.
 
 - **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`clientId`** and **`clientSecret`** are mandatory. clientSecret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. `http://localhost:8880/oauth/token`
 
@@ -816,7 +817,7 @@ const messageHandler = async (message: string) => {
   console.log(message)
 }
 
-async function startSSE() {
+async function startup() {
   while (true) {
     try {
       const resp = await fetch(url, { headers });
@@ -847,7 +848,7 @@ async function startSSE() {
   }
 }
 
-startSSE()
+startup()
 ```
 
 ### Configuration notes - Azure Relay
@@ -1466,7 +1467,30 @@ In code editor (e.g., Visual Studio Code), method details and documentation are 
 MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
-## Change log  
+## Change log
+
+### v5.4.4
+
+[Improved]
+
+	External JWKS (JSON Web Key Set) is now supported by JWT Authentication. These are public and typically frequent rotated by modern identity providers
+
+	JKWS is enabled by setting scimgateway.auth.bearerJwt[].wellKnownUri to the identity provider's well-known URI
+
+	Keycloak example:
+```
+  auth: {
+    "bearerJwt": [
+      {
+        "wellKnownUri": "https://keycloak.example.com/realms/example-realm/.well-known/openid-configuration",
+        "options": {
+           ...
+        },
+        ...
+      }
+    ]
+  }
+```
 
 ### v5.4.3
 
