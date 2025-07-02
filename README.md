@@ -1478,19 +1478,18 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 	JKWS is enabled by setting scimgateway.auth.bearerJwt[].wellKnownUri to the identity provider's well-known URI
 
 	Keycloak example:
-```
-  auth: {
-    "bearerJwt": [
-      {
-        "wellKnownUri": "https://keycloak.example.com/realms/example-realm/.well-known/openid-configuration",
-        "options": {
-           ...
-        },
-        ...
-      }
-    ]
-  }
-```
+
+		auth: {
+		  "bearerJwt": [
+		    {
+		      "wellKnownUri": "https://keycloak.example.com/realms/example-realm/.well-known/openid-configuration",
+		      "options": {
+		        ...
+		      },
+		      ...
+		     }
+		  ]
+		}
 
 ### v5.4.3
 
