@@ -44,6 +44,7 @@
         {
           "secret": null,
           "publicKey": null,
+          "jwksUri": null,
           "options": {
             "issuer": null
           },
