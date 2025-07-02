@@ -670,21 +670,34 @@ export class ScimGateway {
       })
     }
 
-    const getJwksPemKey = async (kid: string, jwks_uri: string): Promise<Array<any>> => { // retrieves "JSON Web Key Set" from well-known jwks_uri and returns the public key that corresponds with the access token kid value
+    const getJwksPemKey = async (kid: string, wellKnownUri: string): Promise<Array<any>> => { // retrieves "JSON Web Key Set" from well-known jwks_uri and returns the public key that corresponds with the access token kid value
       if (!this.helperRest) this.helperRest = this.newHelperRest()
       let res
-      try {
+      try { // get issuer and jwks_uri from well-knonw uri
+        res = await this.helperRest.doRequest('undefined', 'GET', wellKnownUri)
+      } catch (err: any) {
+        logger.error(`${gwName}[${pluginName}] JWKS wellKnownUri=${wellKnownUri} error: ${err.message}`)
+        return []
+      }
+      if (!res?.body) return []
+      const issuer = res.body.issuer
+      const jwks_uri = res.body.jwks_uri
+      if (!issuer || !jwks_uri) {
+        logger.error(`${gwName}[${pluginName}] JWKS wellKnownUri=${wellKnownUri} error: found issuer=${issuer} and jwks_uri=${jwks_uri} - both should be found`)
+        return []
+      }
+      // JWKS
+      try { // get jwks that correspods with kid from jwks_uri
         res = await this.helperRest.doRequest('undefined', 'GET', jwks_uri)
       } catch (err: any) {
-        logger.error(`${gwName}[${pluginName}] getJwksCert() url=${jwks_uri} error: ${err.message}`)
+        logger.error(`${gwName}[${pluginName}] JWKS jwks_uri=${jwks_uri} error: ${err.message}`)
         return []
       }
       if (!res || !Array.isArray(res?.body?.keys)) return []
       const keys = res.body.keys.filter((k: any) => k.kid === kid)
       if (keys.length !== 1) return []
-
       try {
-        return [jwkToPem(keys[0]), keys[0].alg]
+        return [jwkToPem(keys[0]), issuer, keys[0].alg]
       } catch (err: any) {
         return []
       }
@@ -699,16 +712,15 @@ export class ScimGateway {
         if (el.readOnly === true && method !== 'GET') return false
         return true // authorization OK
       } catch (err: any) {
-        if (!el.jwksUri) throw new Error(`JWT error: ${err.message}`)
-        // using JWKS and external public certificate - try once again we might have an updated certificate (key)
+        if (!el.wellKnownUri) throw new Error(`JWT error: ${err.message}`)
+        // using wellKnownUri - JWKS and external public certificate - try once again we might have an updated certificate (key)
         if (!kid) throw new Error(`JWKS error: missing kid`)
-        const [pemKey, alg] = await getJwksPemKey(kid, el.jwksUri)
+        const [pemKey, issuer, alg] = await getJwksPemKey(kid, el.wellKnownUri)
         if (!pemKey) throw new Error('JWKS error: no external public certificate found')
         el.publicKeyContent = pemKey
-        if (alg) {
-          if (!el.options) el.options = {}
-          el.options.algorithms = [alg]
-        }
+        if (!el.options) el.options = {}
+        if (issuer) el.options.issuer = issuer
+        if (alg) el.options.algorithms = [alg]
         try {
           jwt.verify(authToken, el.publicKeyContent, el.options)
           if (Array.isArray(el?.baseEntities) && el.baseEntities.length > 0) {
@@ -3582,7 +3594,7 @@ Content-Transfer-Encoding: quoted-printable
       if (lastKey === 'password' && key.startsWith('scimgateway.auth.basic')) foundBasic = true
       else if (lastKey === 'token' && key.startsWith('scimgateway.auth.bearerToken')) foundBearerToken = true
       else if (lastKey === 'tenantIdGUID' && key.startsWith('scimgateway.auth.bearerJwtAzure')) foundBearerJwtAzure = true
-      else if ((lastKey === 'publicKey' || lastKey === 'secret' || lastKey === 'jwksUri') && key.startsWith('scimgateway.auth.bearerJwt')) foundBearerJwt = true
+      else if ((lastKey === 'publicKey' || lastKey === 'secret' || lastKey === 'wellKnownUri') && key.startsWith('scimgateway.auth.bearerJwt')) foundBearerJwt = true
       else if (lastKey === 'clientSecret' && key.startsWith('scimgateway.auth.bearerOAuth')) foundBearerOAuth = true
 
       // certificate full path
