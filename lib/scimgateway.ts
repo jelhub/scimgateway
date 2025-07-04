@@ -11,6 +11,7 @@
 import { createServer as httpCreateServer } from 'node:http'
 import { createServer as httpsCreateServer } from 'node:https'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
+import { createPublicKey } from 'node:crypto'
 import { createChecker } from 'is-in-subnet'
 import { BearerStrategy, type IBearerStrategyOptionWithRequest } from 'passport-azure-ad'
 import { fileURLToPath } from 'node:url'
@@ -21,8 +22,7 @@ import dot from 'dot-object'
 import nodemailer from 'nodemailer'
 import fs from 'node:fs'
 import path from 'node:path'
-import jwkToPem from 'jwk-to-pem'
-import * as jwt from 'jsonwebtoken'
+import * as jose from 'jose'
 import * as utils from './utils.ts'
 import * as utilsScim from './utils-scim.ts'
 import * as stream from './scim-stream.js'
@@ -644,17 +644,21 @@ export class ScimGateway {
     const bearerJwtAzure = async (baseEntity: string, method: string, authType: string, authToken: string): Promise<boolean> => {
       return await new Promise((resolve, reject) => {
         if (authType !== 'Bearer' || !found.BearerJwtAzure) resolve(false) // no azure bearer token
-        const jtoken: any = jwt.decode(authToken, { complete: true })
-        if (jtoken == null) resolve(false)
-        else if (!jtoken.payload['iss']) resolve(false)
-        if (jtoken?.payload['iss'].indexOf('https://sts.windows.net') !== 0) resolve(false)
+        let payload
+        try {
+          payload = jose.decodeJwt(authToken)
+          if (!payload || !payload.iss) return resolve(false)
+          if (!payload.iss.startsWith('https://sts.windows.net')) return resolve(false)
+        } catch (err: any) {
+          return resolve(false)
+        }
         const req = { headers: { authorization: `${authType} ${authToken}` } } // Node.js http.createServer type IncomingMessage - header supported by passport 
         passport.authenticate('oauth-bearer', { session: false }, (err: any, user: any, info: any) => {
           if (err) { return reject(err) }
           if (user) { // authenticated OK
             const arr = this.config.scimgateway.auth.bearerJwtAzure
             for (let i = 0; i < arr.length; i++) {
-              if (arr[i].tenantIdGUID && jtoken?.payload['iss'].includes(arr[i].tenantIdGUID)) {
+              if (arr[i].tenantIdGUID && payload.iss.includes(arr[i].tenantIdGUID)) {
                 if (arr[i].baseEntities) {
                   if (Array.isArray(arr[i].baseEntities) && arr[i].baseEntities.length > 0) {
                     if (!baseEntity) return reject(new Error(`baseEntity=${baseEntity} not allowed for user ${arr[i].tenantIdGUID} according to bearerJwtAzure configuration baseEntitites=${arr[i].baseEntities}`))
@@ -670,78 +674,59 @@ export class ScimGateway {
       })
     }
 
-    const getJwksPemKey = async (kid: string, wellKnownUri: string): Promise<Array<any>> => { // retrieves "JSON Web Key Set" from well-known jwks_uri and returns the public key that corresponds with the access token kid value
-      if (!this.helperRest) this.helperRest = this.newHelperRest()
-      let res
-      try { // get issuer and jwks_uri from well-knonw uri
-        res = await this.helperRest.doRequest('undefined', 'GET', wellKnownUri)
-      } catch (err: any) {
-        logger.error(`${gwName}[${pluginName}] JWKS wellKnownUri=${wellKnownUri} error: ${err.message}`)
-        return []
-      }
-      if (!res?.body) return []
-      const issuer = res.body.issuer
-      const jwks_uri = res.body.jwks_uri
-      if (!issuer || !jwks_uri) {
-        logger.error(`${gwName}[${pluginName}] JWKS wellKnownUri=${wellKnownUri} error: found issuer=${issuer} and jwks_uri=${jwks_uri} - both should be found`)
-        return []
-      }
-      // JWKS
-      try { // get jwks that correspods with kid from jwks_uri
-        res = await this.helperRest.doRequest('undefined', 'GET', jwks_uri)
-      } catch (err: any) {
-        logger.error(`${gwName}[${pluginName}] JWKS jwks_uri=${jwks_uri} error: ${err.message}`)
-        return []
-      }
-      if (!res || !Array.isArray(res?.body?.keys)) return []
-      const keys = res.body.keys.filter((k: any) => k.kid === kid)
-      if (keys.length !== 1) return []
+    const jwtVerify = async (baseEntity: string, method: string, el: Record<string, any>, authToken: string): Promise<boolean> => { // used by bearerJwt
       try {
-        return [jwkToPem(keys[0]), issuer, keys[0].alg]
-      } catch (err: any) {
-        return []
-      }
-    }
-
-    const jwtVerify = async (baseEntity: string, method: string, el: Record<string, any>, authToken: string, kid?: string): Promise<boolean> => { // used by bearerJwt
-      try {
-        jwt.verify(authToken, (el.secret) ? el.secret : el.publicKeyContent, el.options)
+        if (el.wellKnownUri) {
+          if (!el.jwks) {
+            if (!this.helperRest) this.helperRest = this.newHelperRest()
+            let res
+            try { // get issuer and jwks_uri from well-knonw uri
+              res = await this.helperRest.doRequest('undefined', 'GET', el.wellKnownUri)
+            } catch (err: any) {
+              throw new Error(`JWKS wellKnownUri=${el.wellKnownUri} error: ${err.message}`)
+            }
+            if (!res?.body) throw new Error(`JWKS wellKnownUri=${el.wellKnownUri} error: response missing data`)
+            const issuer = res.body.issuer
+            const jwks_uri = res.body.jwks_uri
+            if (!issuer || !jwks_uri) {
+              throw new Error(`JWKS wellKnownUri=${el.wellKnownUri} error: found issuer=${issuer} and jwks_uri=${jwks_uri} - both should be found`)
+            }
+            if (!el.options) el.options = {}
+            el.options.issuer = issuer
+            el.jwks = jose.createRemoteJWKSet(new URL(jwks_uri)) // will automatically reload the JWKS when verification fails due to an unknown kid
+          }
+          await jose.jwtVerify(authToken, el.jwks, el.options)
+        } else {
+          if (el.secret && !el.secretEncoded) {
+            el.secretEncoded = new TextEncoder().encode(el.secret)
+            if (!el.options) el.options = {}
+            el.options.algorithms = ['HS256', 'HS384', 'HS512'] // symmetric algorithms when using secret
+          }
+          await jose.jwtVerify(authToken, (el.secretEncoded) ? el.secretEncoded : el.publicKeyObj, el.options)
+        }
         if (Array.isArray(el?.baseEntities) && el.baseEntities.length > 0) {
           if (!el.baseEntities.includes(baseEntity)) return false
         }
         if (el.readOnly === true && method !== 'GET') return false
         return true // authorization OK
       } catch (err: any) {
-        if (!el.wellKnownUri) throw new Error(`JWT error: ${err.message}`)
-        // using wellKnownUri - JWKS and external public certificate - try once again we might have an updated certificate (key)
-        if (!kid) throw new Error(`JWKS error: missing kid`)
-        const [pemKey, issuer, alg] = await getJwksPemKey(kid, el.wellKnownUri)
-        if (!pemKey) throw new Error('JWKS error: no external public certificate found')
-        el.publicKeyContent = pemKey
-        if (!el.options) el.options = {}
-        if (issuer) el.options.issuer = issuer
-        if (alg) el.options.algorithms = [alg]
-        try {
-          jwt.verify(authToken, el.publicKeyContent, el.options)
-          if (Array.isArray(el?.baseEntities) && el.baseEntities.length > 0) {
-            if (!el.baseEntities.includes(baseEntity)) return false
-          }
-          if (el.readOnly === true && method !== 'GET') return false
-          return true // authorization OK
-        } catch (err: any) {
-          throw new Error(`JWKS error: ${err.message}`)
-        }
+        throw new Error(`JWT error: ${err.message}`)
       }
     }
 
     const bearerJwt = async (baseEntity: string, method: string, authType: string, authToken: string): Promise<boolean> => {
       if (authType !== 'Bearer' || !found.BearerJwt) return false // no standard jwt bearer token
-      const jtoken: any = jwt.decode(authToken, { complete: true })
-      if (!jtoken) return false
-      if (jtoken?.payload['iss'] && jtoken?.payload['iss'].indexOf('https://sts.windows.net') === 0) return false // azure - handled by bearerJwtAzure
+      let payload
+      try {
+        payload = jose.decodeJwt(authToken)
+        if (!payload) return false
+      } catch (err: any) {
+        return false
+      }
+      if (payload.iss && payload.iss.indexOf('https://sts.windows.net') === 0) return false // azure - handled by bearerJwtAzure
       const arr = this.config.scimgateway.auth.bearerJwt
       for (let i = 0; i < arr.length; i++) {
-        if (await jwtVerify(baseEntity, method, arr[i], authToken, jtoken?.header?.kid) === true) return true
+        if (await jwtVerify(baseEntity, method, arr[i], authToken) === true) return true
       }
       throw new Error('JWT authentication failed')
     }
@@ -835,7 +820,7 @@ export class ScimGateway {
         else {
           err = new Error(`${ctx.request.url} request having unsupported authentication or plugin configuration is missing`)
           logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] request authToken = ${authToken}`, { baseEntity: ctx?.routeObj?.baseEntity })
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] request jwt.decode(authToken) = ${JSON.stringify(jwt.decode(authToken))}`, { baseEntity: ctx?.routeObj?.baseEntity })
+          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] request jose.decodeJwt(authToken) = ${JSON.stringify(jose.decodeJwt(authToken))}`, { baseEntity: ctx?.routeObj?.baseEntity })
         }
         if (authType === 'Bearer') ctx.response.headers.set('WWW-Authenticate', 'Bearer realm=""')
         else if (found.Basic) ctx.response.headers.set('WWW-Authenticate', 'Basic realm=""')
@@ -3612,8 +3597,9 @@ Content-Transfer-Encoding: quoted-printable
           keyFile = dotConfig[key]
         }
         dotConfig[key] = keyFile
-        const addKey = key.replace(`.${lastKey}`, '.publicKeyContent')
-        dotConfig[addKey] = fs.readFileSync(keyFile)
+        const addKey = key.replace(`.${lastKey}`, '.publicKeyObj')
+        const pem = fs.readFileSync(keyFile)
+        dotConfig[addKey] = createPublicKey(pem)
       } else if (key.endsWith('.serviceAccountKeyFile')) { // Google Service Account Key json-file
         let keyFile = path.join(this.configDir, '/certs/', dotConfig[key])
         if (dotConfig[key].startsWith('/') || dotConfig[key].includes('\\')) {
