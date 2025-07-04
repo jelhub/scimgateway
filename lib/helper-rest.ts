@@ -10,10 +10,11 @@
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { URL } from 'url'
 import { Buffer } from 'node:buffer'
+import { createPublicKey, createPrivateKey } from 'node:crypto'
 import { samlAssertion } from './samlAssertion.ts'
-import * as jsonwebtoken from 'jsonwebtoken'
 import fs from 'node:fs'
 import querystring from 'querystring'
+import * as jose from 'jose'
 import * as utils from './utils.ts'
 
 /**
@@ -148,8 +149,8 @@ export class HelperRest {
           break
 
         case 'oauthJwtBearer':
-          let jwtClaims: jsonwebtoken.JwtPayload | Record<string, any> = {}
-          let jwtOpts: jsonwebtoken.SignOptions = {}
+          let jwtClaims: jose.JWTPayload | Record<string, any>
+          let jwtHeaders: jose.JWTHeaderParameters
 
           if (tenantIdGUID) { // Microsoft Entra ID
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.cert) {
@@ -157,17 +158,25 @@ export class HelperRest {
             }
             let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._key || ''
             let cert = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._cert || ''
+            let certPem = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._certPem || ''
             if (!privateKey || !cert) {
-              privateKey = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key, 'utf-8') || ''
-              cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.cert, 'utf-8') || ''
-              if (privateKey) this.config_entity[baseEntity].connection.auth.options.tls._key = privateKey
-              if (cert) this.config_entity[baseEntity].connection.auth.options.tls._cert = cert
+              const privateKeyPem = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key, 'utf-8') || ''
+              certPem = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.cert, 'utf-8') || ''
+              if (privateKeyPem) {
+                privateKey = createPrivateKey(privateKeyPem) // PEM => KeyObject
+                this.config_entity[baseEntity].connection.auth.options.tls._key = privateKey
+              }
+              if (certPem) {
+                cert = createPublicKey(certPem)
+                this.config_entity[baseEntity].connection.auth.options.tls._cert = cert
+                this.config_entity[baseEntity].connection.auth.options.tls._certPem = certPem
+              }
             }
             if (!privateKey || !cert) {
               throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.tls.key/cert file content`)
             }
 
-            const jwtPayload: jsonwebtoken.JwtPayload = {
+            const jwtPayload: jose.JWTPayload = {
               sub: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
               iss: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
               aud: `https://login.microsoftonline.com/${tenantIdGUID}/v2.0`,
@@ -180,34 +189,21 @@ export class HelperRest {
               ...jwtPayload,
             }
 
-            const base64Thumbprint = utils.getBase64CertificateThumbprint(cert, 'sha1') // xt5=>sha1, x5t#S256=>sha256
-            jwtOpts = {
-              algorithm: 'RS256',
-              header: {
-                typ: 'JWT',
-                alg: 'RS256',
-                x5t: base64Thumbprint,
-              },
+            const base64Thumbprint = utils.getBase64CertificateThumbprint(certPem, 'sha256') // x5t=>sha1, x5t#S256=>sha256
+            jwtHeaders = {
+              'alg': 'RS256',
+              'typ': 'JWT',
+              'x5t#S256': base64Thumbprint, // Microsoft recommend modern x5t#S256 over x5t
             }
-
-            /* Microsoft recommended modern x5t#S256 does not work using self-signed certificate
-            const base64Thumbprint = utils.getBase64CertificateThumbprint(cert, 'sha256')
-            jwtOpts = {
-              algorithm: 'PS256',
-              header: {
-                'typ': 'JWT',
-                'alg': 'PS256',
-                'x5t#S256': base64Thumbprint,
-              },
-            }
-            */
 
             form = {
               grant_type: 'client_credentials',
               scope: this.config_entity[baseEntity].connection.auth.options.scope, // "https://graph.microsoft.com/.default"
               client_id: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
               client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-              client_assertion: jsonwebtoken.sign(jwtClaims, privateKey, jwtOpts),
+              client_assertion: await new jose.SignJWT(jwtClaims)
+                .setProtectedHeader(jwtHeaders)
+                .sign(privateKey),
             }
           } else if (serviceAccountKeyFile) { // Google - using Service Account key json-file
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.scope || !this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.subject) {
@@ -228,8 +224,8 @@ export class HelperRest {
             }
 
             tokenUrl = gkey.token_uri // https://oauth2.googleapis.com/token
-            const privateKey = gkey.private_key
-            const jwtPayload: jsonwebtoken.JwtPayload = {
+            const privateKey = createPrivateKey(gkey.private_key) // PEM => KeyObject
+            const jwtPayload: jose.JWTPayload = {
               sub: this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.subject, // gmail sender mail-address: noreply@mycompany.com
               iss: gkey.client_email, // service account email/user
               aud: gkey.token_uri,
@@ -240,17 +236,17 @@ export class HelperRest {
               ...jwtPayload,
               scope: this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.scope, // https://www.googleapis.com/auth/gmail.send
             }
-            jwtOpts = {
-              algorithm: 'RS256',
-              header: {
-                typ: 'JWT',
-                alg: 'RS256',
-                kid: gkey.client_id,
-              },
+            jwtHeaders = {
+              alg: 'RS256',
+              typ: 'JWT',
+              kid: gkey.client_id,
             }
+
             form = {
               grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-              assertion: jsonwebtoken.sign(jwtClaims, privateKey, jwtOpts),
+              assertion: await new jose.SignJWT(jwtClaims)
+                .setProtectedHeader(jwtHeaders)
+                .sign(privateKey),
             }
           } else {
             // standard JWT - requires all configuation: tokenUrl, jwtPayload and tls.key
@@ -266,27 +262,29 @@ export class HelperRest {
             let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._key || ''
             if (!privateKey) {
               privateKey = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key, 'utf-8') || ''
-              if (privateKey) this.config_entity[baseEntity].connection.auth.options.tls._key = privateKey
+              if (privateKey) {
+                privateKey = createPrivateKey(privateKey)
+                this.config_entity[baseEntity].connection.auth.options.tls._key = privateKey
+              }
             }
 
-            let jwtPayload = this.config_entity[baseEntity].connection.auth.options.jwtPayload
+            let jwtPayload: jose.JWTPayload = this.config_entity[baseEntity].connection.auth.options.jwtPayload
             if (!jwtPayload.iat) jwtPayload.iat = Math.floor(Date.now() / 1000) - 60
             if (!jwtPayload.exp) jwtPayload.exp = Math.floor(Date.now() / 1000) + 3600
 
             jwtClaims = {
               ...jwtPayload,
             }
-            jwtOpts = {
-              algorithm: 'RS256',
-              header: {
-                typ: 'JWT',
-                alg: 'RS256',
-              },
+            jwtHeaders = {
+              alg: 'RS256',
+              typ: 'JWT',
             }
 
             form = {
               grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-              assertion: jsonwebtoken.sign(jwtClaims, privateKey, jwtOpts),
+              assertion: await new jose.SignJWT(jwtClaims)
+                .setProtectedHeader(jwtHeaders)
+                .sign(privateKey),
             }
           }
 
@@ -410,8 +408,8 @@ export class HelperRest {
         if (opt?.connection) { // allow overriding/extending configuration connection by caller argument opt.connection
           let org = this.config_entity[baseEntity]?.connection
           orgConnection = utils.copyObj(org)
-          if (!orgConnection) orgConnection = {}
-          orgConnection = utils.extendObj(orgConnection, opt.connection)
+          if (!org) org = {}
+          org = utils.extendObj(org, opt.connection)
         }
 
         // may use configuration type='oauth' and auto corrected to 'oauthJwtBearer'
