@@ -836,6 +836,7 @@ export class HelperRest {
   * type=**"basic"** having auth.options:
   * ```
   * {
+  *   "type": "basic",
   *   "options": {
   *      "username": "<username>",
   *      "password": "<password>"
@@ -846,6 +847,7 @@ export class HelperRest {
   * type=**"oauth"** having auth.options:
   * ```
   * {
+  *   "type": "oauth",
   *   "options": {
   *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Entra ID authentication - if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
   *     "tokenUrl": "<tokenUrl>", // must be set if not using tenantIdGUID
@@ -858,6 +860,7 @@ export class HelperRest {
   * type=**"token"** having auth.options:
   * ```
   * {
+  *   "type": "token",
   *   "options": {
   *     "tokenUrl": "<url for requesting token">
   *     "username": "<user name for token request>"
@@ -869,6 +872,7 @@ export class HelperRest {
   * type=**"bearer"** having auth.options:
   * ```
   * {
+  *   "type": "bearer",
   *   "options": {
   *     "token": "<bearer token to be used">
   *   }
@@ -878,6 +882,7 @@ export class HelperRest {
   * type=**"oauthSamlBearer"** having auth.options:
   * ```
   * {
+  *   "type": "oauthSamlBearer",
   *   "options": {
   *     "tokenUrl": "<tokenUrl>",
   *     "samlPayload": {
@@ -899,8 +904,9 @@ export class HelperRest {
   * 
   * type=**"oauthJwtBearer"** having auth.options:
   * ```
-  * // Microsoft Entra ID
+  * // Microsoft Entra ID - using certificate
   * {
+  *   "type": "oauthJwtBearer",
   *   "options": {
   *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Entra ID authentication, if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
   *     "clientId": "<clientId>",
@@ -911,8 +917,23 @@ export class HelperRest {
   *   }
   * }
   * 
+  * // Microsoft Entra ID - using Federated credentials
+  * // Note, fedCred configuration must match corresponding configuration in Entra ID Application - Federation credentials 
+  * {
+  *   "type": "oauthJwtBearer",
+  *   "options": {
+  *     "tenantIdGUID": "<Entra ID tenantIdGUID",
+  *     "fedCred": {
+  *       "issuer": "<https://FQDN-scimgateway/oauth>", // e.g. https://scimgateway.my-company.com/oauth
+  *       "subject": "<entra id application object id - client id>",
+  *       "name": "<entra id federated credentials unique name>" // e.g. plugin-entra-id
+  *     }
+  *   }
+  * }
+  * 
   * // Google Cloud Platform - GCP
   * {
+  *   "type": "oauthJwtBearer",
   *   "options": {
   *     "serviceAccountKeyFile": "<Google Service Account key file name>", // located in ./config/certs. If baseUrls not defined, baseUrls automatically set to [https://www.googleapis.com]
   *     "scope": "<jwt-scope>",
@@ -922,6 +943,7 @@ export class HelperRest {
   * 
   * // General JWT API
   * {
+  *   "type": "oauthJwtBearer",
   *   "options": {
   *     "tokenUrl":  "<tokenUrl",
   *     "tls": {
