@@ -11,7 +11,7 @@
 import { createServer as httpCreateServer } from 'node:http'
 import { createServer as httpsCreateServer } from 'node:https'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
-import { createPublicKey } from 'node:crypto'
+import { createPublicKey, createHash } from 'node:crypto'
 import { createChecker } from 'is-in-subnet'
 import { BearerStrategy, type IBearerStrategyOptionWithRequest } from 'passport-azure-ad'
 import { fileURLToPath } from 'node:url'
@@ -33,6 +33,7 @@ export class ScimGateway {
   private logger: any
   private gwName: string
   private scimDef: any
+  private jwk: any
   private countries: any
   private multiValueTypes: any
   private getMemberOf: any
@@ -485,7 +486,7 @@ export class ScimGateway {
       getMethod: 'getAppRoles',
     }
     /** handlers supported url paths */
-    const handlers = ['users', 'groups', 'bulk', 'serviceplans', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'logger']
+    const handlers = ['users', 'groups', 'bulk', 'serviceplans', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'oauth', 'logger']
 
     try {
       if (!fs.existsSync(configDir + '/wsdls')) fs.mkdirSync(configDir + '/wsdls')
@@ -947,11 +948,66 @@ export class ScimGateway {
       )
     }
 
+    // oauth well-known: /oauth/.well-known/openid-configuration
+    // this.jwk is managed by helper-rest oauthJwtBearer - Entra ID Federated Identity
+    // {issuer: <scimgateway-baseUrl>/oauth, <federated-identity-unique-name>: {privateKey, publicKey}}
+    // example issuer: https://scimgateway.my-company.com/oauth
+    const getHandlerOauthWellKnown = async (ctx: Context) => {
+      const baseEntity = ctx.routeObj.baseEntity
+      logger.debug(`${gwName}[${pluginName}][${baseEntity}] [oauth] .well-known request`)
+
+      if (!this.jwk || !this.jwk[baseEntity] || !this.jwk[baseEntity].issuer) {
+        ctx.response.body = '{}'
+        ctx.response.status = 200
+        return ctx
+      }
+
+      const issuer = this.jwk[baseEntity].issuer //  dynamic set by helper-rest oauthJwtBearer e.g. 'https://scimgateway.my-company.com/oauth'
+      let body = {
+        issuer,
+        jwks_uri: issuer + '/certs',
+      }
+      ctx.response.body = JSON.stringify(body)
+      ctx.response.status = 200
+    }
+
+    // oauth JWKS: /oauth/certs
+    // this.jwk is managed by helper-rest oauthJwtBearer - Entra ID Federated Identity
+    // {issuer: <scimgateway-baseUrl>/oauth, <federated-identity-unique-name>: {privateKey, publicKey}}
+    const getHandlerOauthCerts = async (ctx: Context) => {
+      const baseEntity = ctx.routeObj.baseEntity
+      logger.debug(`${gwName}[${pluginName}][${baseEntity}] [oauth] jwks_uri certs request`)
+
+      if (!this.jwk || !this.jwk[baseEntity]) {
+        ctx.response.body = '{"keys":[]}'
+        ctx.response.status = 200
+        return ctx
+      }
+
+      const keys: Array<Record<string, any>> = []
+      for (const name in this.jwk[baseEntity]) {
+        const keyObj = this.jwk[baseEntity][name]
+        if (typeof keyObj !== 'object' || keyObj === null) continue // skip issuer
+        const jwk = await jose.exportJWK(this.jwk[baseEntity][name].publicKey)
+        jwk.kid = createHash('sha256') // needed for JWKS
+          .update(JSON.stringify(jwk))
+          .digest('base64url')
+        keys.push(jwk)
+      }
+
+      let body = {
+        keys,
+      }
+      ctx.response.body = JSON.stringify(body)
+      ctx.response.status = 200
+    }
+
     // oauth token request, POST /oauth/token
     const postHandlerOauthToken = async (ctx: Context) => {
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] token request`, { baseEntity: ctx?.routeObj?.baseEntity })
+      const baseEntity = ctx.routeObj.baseEntity
+      logger.debug(`${gwName}[${pluginName}][${baseEntity}] [oauth] token request`)
       if (!found.BearerOAuth) {
-        logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] token request, but plugin is missing auth.bearerOAuth configuration`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.error(`${gwName}[${pluginName}][${baseEntity}] [oauth] token request, but plugin is missing auth.bearerOAuth configuration`)
         ctx.response.status = 500
         return
       }
@@ -959,7 +1015,7 @@ export class ScimGateway {
       try {
         if (!jsonBody) throw new Error('missing body')
         if (typeof jsonBody !== 'object') { // might have application/x-www-form-urlencoded or multipart/form-data body, but incorrect Content-Type header
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] continue request validation even though incorrect body vs header Content-Type: ${ctx.request.headers.get('content-type')}`, { baseEntity: ctx?.routeObj?.baseEntity })
+          logger.debug(`${gwName}[${pluginName}][${baseEntity}] [oauth] continue request validation even though incorrect body vs header Content-Type: ${ctx.request.headers.get('content-type')}`)
           let body = utils.formUrlEncodedToJSON(jsonBody)
           if (Object.keys(body).length < 1) {
             body = utils.formDataMultipartToJSON(jsonBody)
@@ -970,7 +1026,7 @@ export class ScimGateway {
         }
         jsonBody = utils.copyObj(jsonBody) // no changes to original
       } catch (err: any) {
-        logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] token request error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.error(`${gwName}[${pluginName}][${baseEntity}] [oauth] token request error: ${err.message}`)
         ctx.response.status = 401
         return
       }
@@ -2492,8 +2548,12 @@ export class ScimGateway {
         baseEntity = 'undefined'
       }
       if (handle) handle = handle.toLowerCase()
-      if (!handlers.includes(handle) || rest) { // rest => too many path elements
+      if (!handlers.includes(handle)) {
         baseEntity = ''
+        handle = ''
+        id = ''
+        rest = ''
+      } else if (rest) { // too many path elements - keep baseEntity only
         handle = ''
         id = ''
         rest = ''
@@ -2569,6 +2629,16 @@ export class ScimGateway {
           ctx.response.status = 200 // request coming from GCP App Engine
           return ctx
         }
+      }
+      if (ctx.request.method === 'GET' && ctx.path.endsWith('/oauth/.well-known/openid-configuration')) {
+        await getHandlerOauthWellKnown(ctx)
+        if (!ctx.response.status) ctx.response.status = 404
+        return ctx
+      }
+      if (ctx.request.method === 'GET' && ctx.path.endsWith('/oauth/certs')) {
+        await getHandlerOauthCerts(ctx)
+        if (!ctx.response.status) ctx.response.status = 404
+        return ctx
       }
 
       // validation
@@ -3158,26 +3228,22 @@ export class ScimGateway {
       logger.info(`${gwName}[${pluginName}] now stopping...`)
       await logger.close()
       if (server) {
-        if (typeof Bun !== 'undefined') {
+        if (typeof server.stop === 'function') { // Bun
           server.stop(true)
-        }
-      }
-      if (server) {
-        if (typeof Bun !== 'undefined') {
           await Bun.sleep(400) // give in-flight requests a chance to complete, also plugins may use SIGTERM/SIGINT
           server.stop()
           process.exit(0)
-        } else {
-          server.close(function () {
-            setTimeout(function () { // plugins may also use SIGTERM/SIGINT
+        } else if (typeof server.close === 'function') { // Node.js
+          server.close(() => {
+            setTimeout(() => { // plugins may use SIGTERM/SIGINT
               process.exit(0)
             }, 0.5 * 1000)
           })
-          setTimeout(function () { // problem closing server connections in time due to keep-alive sessions (active browser connection?), now forcing exit
-            process.exit(1)
-          }, 2 * 1000)
         }
       }
+      setTimeout(() => { // safety net
+        process.exit(1)
+      }, 2 * 1000)
     }
 
     process.setMaxListeners(Infinity)
