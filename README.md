@@ -746,7 +746,7 @@ Example Entra ID (plugin-entra-id) using federated credentials:
 	  }
 	}
 	// Note: Federated credentials defined for the application in Entra ID must match the corresponding `issuer`, `subject`, and `name`
-	// example issuer: "https://scimgateway.my-company.com/oauth" and must be reachable from the internet
+	// example issuer: "https://scimgateway.my-company.com/oauth" and base URL must be reachable from the internet
 	// exampole name: "plugin-entra-id"
 
 
@@ -1518,7 +1518,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 		  "options": {
 		    "tenantIdGUID": "11111111-2222-3333-4444-555555555555",
 		    "fedCred": {
-		      "issuer": "https://scimgateway.my-company.com/oauth>",
+		      "issuer": "https://scimgateway.my-company.com/oauth",
 		      "subject": "99999999-8888-7777-6666-555555555555",
 		      "name": "plugin-entra-id"
 		    }
