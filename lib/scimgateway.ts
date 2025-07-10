@@ -586,10 +586,12 @@ export class ScimGateway {
       }
 
       if (ctx.response.status && (ctx.response.status < 200 || ctx.response.status > 299)) {
-        if (ctx.response.status === 412 || ctx.response.status === 304) {
-          logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
+        if (ctx.response.status === 401 && !ctx.request.headers.get('authorization')) {
+          logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
         } else if (ctx.response.status === 404) {
           logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
+        } else if (ctx.response.status === 412 || ctx.response.status === 304) {
+          logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
         } else logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
       } else logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${ctx.response.status} ${userName} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
     }
@@ -597,19 +599,16 @@ export class ScimGateway {
     // start auth methods - used by auth
     const basic = async (baseEntity: string, method: string, authType: string, authToken: string, path: string): Promise<boolean> => {
       return await new Promise((resolve, reject) => { // basic auth
-        if (authType !== 'Basic') resolve(false)
-        if (!found.Basic) resolve(false)
-        if (found.PassThrough && this.authPassThroughAllowed && !path.endsWith('/logger')) resolve(false) // Auth PassThrough browser logon dialog support
+        if (!found.Basic) return resolve(false)
+        if (authType !== 'Basic' || !authToken) return resolve(false)
+        if (found.PassThrough && this.authPassThroughAllowed && !path.endsWith('/logger')) return resolve(false) // Auth PassThrough browser logon dialog support
         const [userName, userPassword] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
-        if (!userName || !userPassword) {
-          return reject(new Error(`authentication failed for user ${userName}`))
-        }
+        if (!userName || !userPassword) return resolve(false)
         const arr = this.config.scimgateway.auth.basic
         for (let i = 0; i < arr.length; i++) {
           if (arr[i].username === userName && arr[i].password === userPassword) { // authentication OK
             if (arr[i].baseEntities) {
               if (Array.isArray(arr[i].baseEntities) && arr[i].baseEntities.length > 0) {
-                if (!baseEntity) return reject(new Error(`baseEntity=${baseEntity} not allowed for user ${arr[i].username} according to basic configuration baseEntitites=${arr[i].baseEntities}`))
                 if (!arr[i].baseEntities.includes(baseEntity)) return reject(new Error(`baseEntity=${baseEntity} not allowed for user ${arr[i].username} according to basic configuration baseEntitites=${arr[i].baseEntities}`))
               }
             }
@@ -617,20 +616,19 @@ export class ScimGateway {
             return resolve(true)
           }
         }
-        reject(new Error(`authentication failed for user ${userName}`))
+        resolve(false)
       })
     }
 
     const bearerToken = async (baseEntity: string, method: string, authType: string, authToken: string): Promise<boolean> => {
       return await new Promise((resolve, reject) => { // bearer token
-        if (authType !== 'Bearer' || !authToken) resolve(false)
-        if (!found.BearerToken) resolve(false)
+        if (!found.BearerToken) return resolve(false)
+        if (authType !== 'Bearer' || !authToken) return resolve(false)
         const arr = this.config.scimgateway.auth.bearerToken
         for (let i = 0; i < arr.length; i++) {
           if (arr[i].token === authToken) { // authentication OK
             if (arr[i].baseEntities) {
               if (Array.isArray(arr[i].baseEntities) && arr[i].baseEntities.length > 0) {
-                if (!baseEntity) return reject(new Error(`baseEntity=${baseEntity} not allowed for this bearerToken according to bearerToken configuration baseEntitites=${arr[i].baseEntities}`))
                 if (!arr[i].baseEntities.includes(baseEntity)) return reject(new Error(`baseEntity=${baseEntity} not allowed for this bearerToken according to bearerToken configuration baseEntitites=${arr[i].baseEntities}`))
               }
             }
@@ -638,13 +636,14 @@ export class ScimGateway {
             return resolve(true)
           }
         }
-        reject(new Error('bearerToken authentication failed'))
+        resolve(false)
       })
     }
 
     const bearerJwtAzure = async (baseEntity: string, method: string, authType: string, authToken: string): Promise<boolean> => {
       return await new Promise((resolve, reject) => {
-        if (authType !== 'Bearer' || !found.BearerJwtAzure) resolve(false) // no azure bearer token
+        if (!found.BearerJwtAzure) return resolve(false)
+        if (authType !== 'Bearer' || !authToken) return resolve(false)
         let payload
         try {
           payload = jose.decodeJwt(authToken)
@@ -716,7 +715,8 @@ export class ScimGateway {
     }
 
     const bearerJwt = async (baseEntity: string, method: string, authType: string, authToken: string): Promise<boolean> => {
-      if (authType !== 'Bearer' || !found.BearerJwt) return false // no standard jwt bearer token
+      if (!found.BearerJwt) return false
+      if (authType !== 'Bearer' || !authToken) return false
       let payload
       try {
         payload = jose.decodeJwt(authToken)
@@ -725,20 +725,48 @@ export class ScimGateway {
         return false
       }
       if (payload.iss && payload.iss.indexOf('https://sts.windows.net') === 0) return false // azure - handled by bearerJwtAzure
+      if (found.BearerOAuth) {
+        const a = this.config.scimgateway.auth.bearerOAuth
+        const confObjs = a.filter((o: any) => o.clientId === payload.aud)
+        if (confObjs.length > 0) return false // jwt handled by bearerOauth
+      }
+      const errs: Array<string> = []
       const arr = this.config.scimgateway.auth.bearerJwt
       for (let i = 0; i < arr.length; i++) {
-        if (await jwtVerify(baseEntity, method, arr[i], authToken) === true) return true
+        try {
+          if (await jwtVerify(baseEntity, method, arr[i], authToken) === true) return true
+        } catch (err: any) {
+          errs.push(err.message)
+        }
       }
-      throw new Error('JWT authentication failed')
+      if (errs.length > 0) throw new Error(errs.join(' == NextConfigValidation ==> '))
+      return false
     }
 
     const bearerOAuth = async (baseEntity: string, method: string, authType: string, authToken: string): Promise<boolean> => {
-      return await new Promise((resolve, reject) => { // bearer token
-        if (authType !== 'Bearer' || !authToken) resolve(false)
-        if (!found.BearerOAuth || !authToken) resolve(false)
+      return await new Promise(async (resolve, reject) => { // bearer token
+        if (!found.BearerOAuth) return resolve(false)
+        if (authType !== 'Bearer' || !authToken) return resolve(false)
         // this.config.scimgateway.auth.oauthTokenStore is autmatically generated by token create having syntax:
         // { this.config.scimgateway.auth.oauthTokenStore: <token>: { expireDate: <timestamp>, readOnly: <copy-from-config>, baseEntities: [ <copy-from-config> ], isTokenRequested: true }}
+        let payload
+        try {
+          payload = jose.decodeJwt(authToken)
+          if (!payload || payload.iss !== 'SCIM Gateway' || !payload.aud || !payload.sub) return resolve(false)
+        } catch (err: any) {
+          return resolve(false)
+        }
+
         const arr = this.config.scimgateway.auth.bearerOAuth
+        const confObjs = arr.filter((o: any) => o.clientId === payload.aud)
+        if (confObjs.length !== 1) return resolve(false)
+        try {
+          await jose.jwtVerify(authToken, new TextEncoder().encode(confObjs[0].clientSecret), { algorithms: ['HS256'] })
+          authToken = payload.sub
+        } catch (err: any) {
+          return resolve(false)
+        }
+
         if (this.config.scimgateway.auth.oauthTokenStore[authToken]) { // authentication OK
           const tokenObj = this.config.scimgateway.auth.oauthTokenStore[authToken]
           if (Date.now() > tokenObj.expireDate) {
@@ -749,10 +777,10 @@ export class ScimGateway {
           }
           if (tokenObj.baseEntities) {
             if (Array.isArray(tokenObj.baseEntities) && tokenObj.baseEntities.length > 0) {
-              if (!tokenObj.baseEntities.includes(baseEntity)) return reject(new Error(`baseEntity=${baseEntity} not allowed for this bearerOAuth according to bearerOAuth configuration baseEntitites=${tokenObj.baseEntities}`))
+              if (!tokenObj.baseEntities.includes(baseEntity)) return reject(new Error(`baseEntity=${baseEntity} not allowed according to bearerOAuth configuration baseEntitites=${tokenObj.baseEntities}`))
             }
           }
-          if (tokenObj.readOnly === true && method !== 'GET') return reject(new Error('only allowing readOnly for this bearerOAuth according to bearerOAuth configuration readOnly=true'))
+          if (tokenObj.readOnly === true && method !== 'GET') return reject(new Error('only allowing readOnly according to bearerOAuth configuration readOnly=true'))
           return resolve(true)
         } else {
           for (let i = 0; i < arr.length; i++) { // resolve if token memory store have been cleared because of a gateway restart
@@ -777,7 +805,7 @@ export class ScimGateway {
             }
           }
         }
-        reject(new Error('OAuth authentication failed'))
+        resolve(false)
       })
     }
 
@@ -802,8 +830,10 @@ export class ScimGateway {
 
     const isAuthorized = async (ctx: Context): Promise<boolean> => { // authentication/authorization
       const [authType, authToken] = (ctx.request.headers.get('authorization') || '').split(' ') // [0] = 'Basic' or 'Bearer'
-      try { // authenticate
-        const arrResolve = await Promise.all([
+      let arrResolve: boolean[] = []
+      try {
+        // authenticate
+        arrResolve = await Promise.all([
           basic(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken, ctx.path),
           bearerToken(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           bearerJwtAzure(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
@@ -811,22 +841,6 @@ export class ScimGateway {
           bearerOAuth(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           authPassThrough(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken, ctx.path),
         ])
-          .catch((err) => { throw (err) })
-        for (const i in arrResolve) {
-          if (arrResolve[i] === true) return true // auth OK - continue with routes
-        }
-        // all false - invalid auth method or missing pluging config
-        let err: Error
-        if (authType.length < 1) err = new Error(`${ctx.request.url} request is missing authentication information`)
-        else {
-          err = new Error(`${ctx.request.url} request having unsupported authentication or plugin configuration is missing`)
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] request authToken = ${authToken}`, { baseEntity: ctx?.routeObj?.baseEntity })
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] request jose.decodeJwt(authToken) = ${JSON.stringify(jose.decodeJwt(authToken))}`, { baseEntity: ctx?.routeObj?.baseEntity })
-        }
-        if (authType === 'Bearer') ctx.response.headers.set('WWW-Authenticate', 'Bearer realm=""')
-        else if (found.Basic) ctx.response.headers.set('WWW-Authenticate', 'Basic realm=""')
-        if (ctx.request.url !== '/favicon.ico' && !ctx.request.url.startsWith('/apple-touch-icon')) logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
-        return false
       } catch (err: any) {
         if (authType === 'Bearer') {
           let str = 'realm=""'
@@ -841,19 +855,30 @@ export class ScimGateway {
               ctx.response.body = JSON.stringify(errMsg)
             }
           }
-          ctx.response.headers.set('WWW-Authenticate', `Bearer ${str}`)
-        } else ctx.response.headers.set('WWW-Authenticate', 'Basic realm=""')
-        if (pwErrCount < 3) {
-          pwErrCount += 1
-          logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ctx.request.url} ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
-        } else { // delay brute force attempts
-          logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ctx.request.url} ${err.message} => delaying response with 2 minutes to prevent brute force`, { baseEntity: ctx?.routeObj?.baseEntity })
-          await new Promise((resolve) => {
-            setTimeout(() => { resolve(null) }, 1000 * 60 * 2)
-          })
-        }
+          ctx.response.headers.set('www-authenticate', `Bearer ${str}`)
+        } else ctx.response.headers.set('www-authenticate', 'Basic realm=""')
+        logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${err.message}`)
         return false
       }
+      for (const i in arrResolve) {
+        if (arrResolve[i] === true) return true // auth OK - continue with routes
+      }
+      // all auth validations failed
+      if (!authToken) {
+        if (found.Basic && ctx.request.headers.has('sec-fetch-dest')) ctx.response.headers.set('www-authenticate', 'Basic realm=""')
+        return false
+      }
+      if (authType === 'Bearer') ctx.response.headers.set('www-authenticate', 'Bearer realm=""')
+      else ctx.response.headers.set('www-authenticate', 'Basic realm=""')
+      if (pwErrCount < 3) pwErrCount += 1
+      else { // delay brute force attempts
+        const delay = (this.config.scimgateway.idleTimeout || 120) - 5
+        logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ctx.request.url} => max authentication failures reached, delaying response with ${delay} seconds to prevent brute force`, { baseEntity: ctx?.routeObj?.baseEntity })
+        await new Promise((resolve) => {
+          setTimeout(() => { resolve(null) }, 1000 * delay)
+        })
+      }
+      return false
     }
 
     const ipAllowList = (ipAddr: string): boolean => {
@@ -1057,6 +1082,9 @@ export class ScimGateway {
         for (let i = 0; i < arr.length; i++) {
           if (!arr[i].clientId || !arr[i].clientSecret) continue
           if (arr[i].clientId === jsonBody.client_id && arr[i].clientSecret === jsonBody.client_secret) { // authentication OK
+            if (Array.isArray(arr[i].baseEntities) && arr[i].baseEntities.length > 0) {
+              if (!arr[i].baseEntities.includes(baseEntity)) continue
+            }
             token = utils.getEncrypted(jsonBody.client_secret, jsonBody.client_secret)
             baseEntities = utils.copyObj(arr[i].baseEntities)
             if (arr[i].readOnly && arr[i].readOnly === true) readOnly = true
@@ -1068,7 +1096,7 @@ export class ScimGateway {
         }
         if (!token) {
           err = 'invalid_client'
-          errDescr = 'incorrect or missing client_id/client_secret'
+          errDescr = 'incorrect or missing client_id/client_secret or baseEntity'
           if (pwErrCount < 3) {
             pwErrCount += 1
           } else { // delay brute force attempts
@@ -1109,11 +1137,26 @@ export class ScimGateway {
         baseEntities,
       }
 
+      const jwtPayload: jose.JWTPayload = {
+        iss: 'SCIM Gateway',
+        aud: jsonBody.client_id,
+        sub: token,
+        iat: Math.floor(Date.now() / 1000) - 60,
+        exp: Math.floor(Date.now() / 1000) + expires,
+      }
+      const jwtHeaders = {
+        alg: 'HS256',
+        typ: 'JWT',
+      }
+      const jwt = await new jose.SignJWT(jwtPayload)
+        .setProtectedHeader(jwtHeaders)
+        .sign(new TextEncoder().encode(jsonBody.client_secret))
+
       const tx = {
-        access_token: token,
+        access_token: jwt,
         token_type: 'Bearer',
         expires_in: expires,
-        refresh_token: token, // ignored by scimgateway, but maybe used by client
+        refresh_token: jwt, // ignored by scimgateway, but maybe used by client
       }
 
       ctx.response.headers.set('Cache-Control', 'no-store')
@@ -2642,7 +2685,7 @@ export class ScimGateway {
       }
 
       // validation
-      if (ctx.request.method === 'POST' && ctx.path === '/oauth/token') {
+      if (ctx.request.method === 'POST' && ctx.path.endsWith('/oauth/token')) {
         await postHandlerOauthToken(ctx)
         if (!ctx.response.status) ctx.response.status = 401 // Unauthorized
       } else if (!ctx.routeObj.handle) {
