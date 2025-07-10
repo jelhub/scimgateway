@@ -61,7 +61,7 @@
     "typescript": "^5.6.3"
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin": "^4.4.0",
+    "@stylistic/eslint-plugin": "^5.1.0",
     "@types/bun": "latest",
     "@types/dot-object": "^2.1.6",
     "@types/jsonwebtoken": "^9.0.9",

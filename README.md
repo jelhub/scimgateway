@@ -16,6 +16,7 @@ Validated through IdP's:
 
 Latest news:  
  
+- Entra ID [Federated Identity Credentials](https://learn.microsoft.com/en-us/graph/api/resources/federatedidentitycredentials-overview?view=graph-rest-1.0) is now supported. Identity federation allows SCIM Gateway to access Microsoft Entra protected resources without needing to manage secrets
 - External JWKS (JSON Web Key Set) is now supported by JWT Authentication. These are public and typically frequent rotated by modern identity providers
 - [Azure Relay](https://learn.microsoft.com/en-us/azure/azure-relay/relay-what-is-it) is now supported for secure and hassle-free outbound communication — with just one minute of configuration
 - [ETag](https://datatracker.ietf.org/doc/html/rfc7644#section-3.14) is now supported
@@ -716,7 +717,7 @@ Example Entra ID (plugin-entra-id) using certificate secret:
 	"connection": {
 	  "baseUrls": [],
 	  "auth": {
-	    "type": "oauth",
+	    "type": "oauthJwtBearer",
 	    "options": {
 	      "tenantIdGUID": "<tenantId>",
 	      "clientId": "<clientId>",
@@ -727,6 +728,27 @@ Example Entra ID (plugin-entra-id) using certificate secret:
 	    }
 	  }
 	}
+
+Example Entra ID (plugin-entra-id) using federated credentials:  
+
+	"connection": {
+	  "baseUrls": [],
+	  "auth": {
+	    "type": "oauthJwtBearer",
+	    "options": {
+	      "tenantIdGUID": "<tenantId>",
+	      "fedCred": {
+	        "issuer": "<https://FQDN-scimgateway/oauth>",
+	        "subject": "<entra id application object id - client id>",
+	        "name": "<entra id federated credentials unique name>"
+	      }
+	    }
+	  }
+	}
+	// Note: Federated credentials defined for the application in Entra ID must match the corresponding `issuer`, `subject`, and `name`
+	// example issuer: "https://scimgateway.my-company.com/oauth" and must be reachable from the internet
+	// exampole name: "plugin-entra-id"
+
 
 Example using general OAuth:  
 
@@ -1468,6 +1490,45 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log
+
+### v5.5.0
+
+[Improved]
+
+- Entra ID [Federated Identity Credentials](https://learn.microsoft.com/en-us/graph/api/resources/federatedidentitycredentials-overview?view=graph-rest-1.0) is now supported. Identity federation allows SCIM Gateway to access Microsoft Entra protected resources without needing to manage secrets
+
+	helper-rest includes options for federated credentials:  
+
+		"auth {
+		  "type": "oauthJwtBearer",
+		  "options": {
+		    "tenantIdGUID": "<Entra ID tenantIdGUID",
+		    "fedCred": {
+		      "issuer": "<https://FQDN-scimgateway/oauth>",
+		      "subject": "<entra id application object id - client id>",
+		      "name": "<entra id federated credentials unique name>"
+		    }
+		  }
+		}
+
+	Example:
+
+		"auth {
+		  "type": "oauthJwtBearer",
+		  "options": {
+		    "tenantIdGUID": "11111111-2222-3333-4444-555555555555",
+		    "fedCred": {
+		      "issuer": "https://scimgateway.my-company.com/oauth>",
+		      "subject": "99999999-8888-7777-6666-555555555555",
+		      "name": "plugin-entra-id"
+		    }
+		  }
+		}
+
+	Note: Federated credentials defined for the application in Entra ID must match the corresponding `issuer`, `subject`, and `name` values defined in the SCIM Gateway endpoint configuration. An example of this can be using `plugin-entra-id` and other plugins that interact with endpoints or applications protected by Entra ID.
+
+	Also note: SCIM Gateway must be reachable from the internet (as defined by the `issuer` URL). This requires allowing inbound internet communication — or alternatively, Azure Relay can be used for outbound-only communication.
+
 
 ### v5.4.4
 
