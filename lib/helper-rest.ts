@@ -10,7 +10,7 @@
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { URL } from 'url'
 import { Buffer } from 'node:buffer'
-import { createPublicKey, createPrivateKey } from 'node:crypto'
+import { createPublicKey, createPrivateKey, createHash } from 'node:crypto'
 import { samlAssertion } from './samlAssertion.ts'
 import fs from 'node:fs'
 import querystring from 'querystring'
@@ -153,57 +153,114 @@ export class HelperRest {
           let jwtHeaders: jose.JWTHeaderParameters
 
           if (tenantIdGUID) { // Microsoft Entra ID
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.cert) {
-              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.tls.key/cert configuration`)
-            }
-            let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._key || ''
-            let cert = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._cert || ''
-            let certPem = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._certPem || ''
-            if (!privateKey || !cert) {
-              const privateKeyPem = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key, 'utf-8') || ''
-              certPem = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.cert, 'utf-8') || ''
-              if (privateKeyPem) {
-                privateKey = createPrivateKey(privateKeyPem) // PEM => KeyObject
-                this.config_entity[baseEntity].connection.auth.options.tls._key = privateKey
+            if (this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer) { // federated credentials
+              const name = JSON.stringify(this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.name) // ensure not using none valid json key
+              if (!this.scimgateway.jwk) this.scimgateway.jwk = {}
+              if (!this.scimgateway.jwk[baseEntity]) this.scimgateway.jwk[baseEntity] = {}
+              if (!this.scimgateway.jwk[baseEntity][name]) {
+                const { publicKey, privateKey } = await jose.generateKeyPair('RS256')
+                this.scimgateway.jwk[baseEntity][name] = { publicKey, privateKey }
+                const ttl = 5 * 60 // 5 minutes
+                ;(async () => {
+                  // rotate - delete JWK after 5 minutes, will be regenerated on next token request
+                  // entra id only lookup well-known uri and corresponding jwks_uri on token request validation if kid not found in entra cached JWKS
+                  setTimeout(async () => {
+                    delete this.scimgateway.jwk[baseEntity][name]
+                  }, ttl * 1000)
+                })()
               }
-              if (certPem) {
-                cert = createPublicKey(certPem)
-                this.config_entity[baseEntity].connection.auth.options.tls._cert = cert
-                this.config_entity[baseEntity].connection.auth.options.tls._certPem = certPem
+
+              this.scimgateway.jwk[baseEntity].issuer = this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer // updates .well-known
+
+              const now = Date.now()
+              const jwtPayload: jose.JWTPayload = {
+                iss: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer, // entra id federated credentials issuer e.g. https://scimgateway.my-company.com/oauth
+                sub: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.subject, // entra id application object id - client id
+                name: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.name, // entra id federated credentials unique name e.g. plugin-entra-id
+                aud: 'api://AzureADTokenExchange', // entra id federated credentials audience
+                // below is not used by entra id federated credentials token-generation - could be skipped
+                iat: Math.floor(now / 1000) - 60,
+                exp: Math.floor(now / 1000) + 3600,
+                jti: crypto.randomUUID(),
+                nbf: Math.floor(now / 1000) - 60,
               }
-            }
-            if (!privateKey || !cert) {
-              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.tls.key/cert file content`)
-            }
+              jwtClaims = {
+                ...jwtPayload,
+              }
 
-            const jwtPayload: jose.JWTPayload = {
-              sub: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
-              iss: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
-              aud: `https://login.microsoftonline.com/${tenantIdGUID}/v2.0`,
-              iat: Math.floor(Date.now() / 1000) - 60,
-              exp: Math.floor(Date.now() / 1000) + 3600,
-              jti: crypto.randomUUID(),
-              nbf: Math.floor(Date.now() / 1000) - 60,
-            }
-            jwtClaims = {
-              ...jwtPayload,
-            }
+              const jwk = await jose.exportJWK(this.scimgateway.jwk[baseEntity][name].publicKey)
+              const kid = createHash('sha256') // kid required for JWKS
+                .update(JSON.stringify(jwk))
+                .digest('base64url')
 
-            const base64Thumbprint = utils.getBase64CertificateThumbprint(certPem, 'sha256') // x5t=>sha1, x5t#S256=>sha256
-            jwtHeaders = {
-              'alg': 'RS256',
-              'typ': 'JWT',
-              'x5t#S256': base64Thumbprint, // Microsoft recommend modern x5t#S256 over x5t
-            }
+              jwtHeaders = {
+                alg: 'RS256',
+                typ: 'JWT',
+                kid,
+              }
 
-            form = {
-              grant_type: 'client_credentials',
-              scope: this.config_entity[baseEntity].connection.auth.options.scope, // "https://graph.microsoft.com/.default"
-              client_id: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
-              client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-              client_assertion: await new jose.SignJWT(jwtClaims)
-                .setProtectedHeader(jwtHeaders)
-                .sign(privateKey),
+              form = {
+                grant_type: 'client_credentials',
+                scope: this.config_entity[baseEntity].connection.auth.options.scope, // "https://graph.microsoft.com/.default"
+                client_id: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.subject,
+                client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+                client_assertion: await new jose.SignJWT(jwtClaims)
+                  .setProtectedHeader(jwtHeaders)
+                  .sign(this.scimgateway.jwk[baseEntity][name].privateKey),
+              }
+            } else { // standard certificate
+              if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.cert) {
+                throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.tls.key/cert configuration`)
+              }
+              let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._key || ''
+              let cert = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._cert || ''
+              let certPem = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._certPem || ''
+              if (!privateKey || !cert) {
+                const privateKeyPem = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key, 'utf-8') || ''
+                certPem = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.cert, 'utf-8') || ''
+                if (privateKeyPem) {
+                  privateKey = createPrivateKey(privateKeyPem) // PEM => KeyObject
+                  this.config_entity[baseEntity].connection.auth.options.tls._key = privateKey
+                }
+                if (certPem) {
+                  cert = createPublicKey(certPem)
+                  this.config_entity[baseEntity].connection.auth.options.tls._cert = cert
+                  this.config_entity[baseEntity].connection.auth.options.tls._certPem = certPem
+                }
+              }
+              if (!privateKey || !cert) {
+                throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.tls.key/cert file content`)
+              }
+
+              const jwtPayload: jose.JWTPayload = {
+                iss: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
+                sub: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
+                aud: `https://login.microsoftonline.com/${tenantIdGUID}/v2.0`,
+                iat: Math.floor(Date.now() / 1000) - 60,
+                exp: Math.floor(Date.now() / 1000) + 3600,
+                jti: crypto.randomUUID(),
+                nbf: Math.floor(Date.now() / 1000) - 60,
+              }
+              jwtClaims = {
+                ...jwtPayload,
+              }
+
+              const base64Thumbprint = utils.getBase64CertificateThumbprint(certPem, 'sha256') // x5t=>sha1, x5t#S256=>sha256
+              jwtHeaders = {
+                'alg': 'RS256',
+                'typ': 'JWT',
+                'x5t#S256': base64Thumbprint, // Microsoft recommend modern x5t#S256 over x5t
+              }
+
+              form = {
+                grant_type: 'client_credentials',
+                scope: this.config_entity[baseEntity].connection.auth.options.scope, // "https://graph.microsoft.com/.default"
+                client_id: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
+                client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+                client_assertion: await new jose.SignJWT(jwtClaims)
+                  .setProtectedHeader(jwtHeaders)
+                  .sign(privateKey),
+              }
             }
           } else if (serviceAccountKeyFile) { // Google - using Service Account key json-file
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.scope || !this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.subject) {
@@ -226,8 +283,8 @@ export class HelperRest {
             tokenUrl = gkey.token_uri // https://oauth2.googleapis.com/token
             const privateKey = createPrivateKey(gkey.private_key) // PEM => KeyObject
             const jwtPayload: jose.JWTPayload = {
-              sub: this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.subject, // gmail sender mail-address: noreply@mycompany.com
               iss: gkey.client_email, // service account email/user
+              sub: this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.subject, // gmail sender mail-address: noreply@mycompany.com
               aud: gkey.token_uri,
               iat: Math.floor(Date.now() / 1000) - 60, // issued at
               exp: Math.floor(Date.now() / 1000) + 3600, // expiration time
@@ -697,6 +754,7 @@ export class HelperRest {
       try { urlObj = new URL(path) } catch (err) { void 0 }
       let isServiceClient = !urlObj && this._serviceClient[baseEntity] && !this.lock.isLocked() // !isLocked to avoid retry ongoing doRequest with failing getAccessToken()
       let oAuthTokeErr = statusCode === 401 && this.config_entity[baseEntity].connection?.auth?.type && this.config_entity[baseEntity].connection.auth.type.startsWith('oauth')
+
       if (isServiceClient && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || statusCode === 504 || oAuthTokeErr || retryAfter)) {
         this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
         if (retryAfter) {
@@ -707,8 +765,10 @@ export class HelperRest {
         }
         if (retryCount < this.config_entity[baseEntity].connection.baseUrls.length) {
           retryCount++
-          this.updateServiceClient(baseEntity, { baseUrl: this.config_entity[baseEntity].connection.baseUrls[retryCount - 1] })
-          this.scimgateway.logDebug(baseEntity, `${(this.config_entity[baseEntity].connection.baseUrls.length > 1) ? 'failover ' : ''}retry[${retryCount}] using baseUrl = ${this._serviceClient[baseEntity].baseUrl}`)
+          if (isServiceClient) {
+            this.updateServiceClient(baseEntity, { baseUrl: this.config_entity[baseEntity].connection.baseUrls[retryCount - 1] })
+            this.scimgateway.logDebug(baseEntity, `${(this.config_entity[baseEntity].connection.baseUrls.length > 1) ? 'failover ' : ''}retry[${retryCount}] using baseUrl = ${this._serviceClient[baseEntity].baseUrl}`)
+          }
           if (oAuthTokeErr) {
             delete this._serviceClient[baseEntity] // ensure new getAccessToken request - token used should not have been expired, but rejected for other reason e.g. token server restart and no persistent token store?
           }
@@ -776,6 +836,7 @@ export class HelperRest {
   * type=**"basic"** having auth.options:
   * ```
   * {
+  *   "type": "basic",
   *   "options": {
   *      "username": "<username>",
   *      "password": "<password>"
@@ -786,6 +847,7 @@ export class HelperRest {
   * type=**"oauth"** having auth.options:
   * ```
   * {
+  *   "type": "oauth",
   *   "options": {
   *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Entra ID authentication - if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
   *     "tokenUrl": "<tokenUrl>", // must be set if not using tenantIdGUID
@@ -798,6 +860,7 @@ export class HelperRest {
   * type=**"token"** having auth.options:
   * ```
   * {
+  *   "type": "token",
   *   "options": {
   *     "tokenUrl": "<url for requesting token">
   *     "username": "<user name for token request>"
@@ -809,6 +872,7 @@ export class HelperRest {
   * type=**"bearer"** having auth.options:
   * ```
   * {
+  *   "type": "bearer",
   *   "options": {
   *     "token": "<bearer token to be used">
   *   }
@@ -818,6 +882,7 @@ export class HelperRest {
   * type=**"oauthSamlBearer"** having auth.options:
   * ```
   * {
+  *   "type": "oauthSamlBearer",
   *   "options": {
   *     "tokenUrl": "<tokenUrl>",
   *     "samlPayload": {
@@ -839,8 +904,9 @@ export class HelperRest {
   * 
   * type=**"oauthJwtBearer"** having auth.options:
   * ```
-  * // Microsoft Entra ID
+  * // Microsoft Entra ID - using certificate
   * {
+  *   "type": "oauthJwtBearer",
   *   "options": {
   *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Entra ID authentication, if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
   *     "clientId": "<clientId>",
@@ -851,8 +917,23 @@ export class HelperRest {
   *   }
   * }
   * 
+  * // Microsoft Entra ID - using Federated credentials
+  * // Note, fedCred configuration must match corresponding configuration in Entra ID Application - Federation credentials 
+  * {
+  *   "type": "oauthJwtBearer",
+  *   "options": {
+  *     "tenantIdGUID": "<Entra ID tenantIdGUID",
+  *     "fedCred": {
+  *       "issuer": "<https://FQDN-scimgateway/oauth>", // e.g. https://scimgateway.my-company.com/oauth
+  *       "subject": "<entra id application object id - client id>",
+  *       "name": "<entra id federated credentials unique name>" // e.g. plugin-entra-id
+  *     }
+  *   }
+  * }
+  * 
   * // Google Cloud Platform - GCP
   * {
+  *   "type": "oauthJwtBearer",
   *   "options": {
   *     "serviceAccountKeyFile": "<Google Service Account key file name>", // located in ./config/certs. If baseUrls not defined, baseUrls automatically set to [https://www.googleapis.com]
   *     "scope": "<jwt-scope>",
@@ -862,6 +943,7 @@ export class HelperRest {
   * 
   * // General JWT API
   * {
+  *   "type": "oauthJwtBearer",
   *   "options": {
   *     "tokenUrl":  "<tokenUrl",
   *     "tls": {

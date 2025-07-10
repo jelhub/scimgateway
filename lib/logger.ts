@@ -131,7 +131,7 @@ export class Logger {
 
     let customMask = this.customMasking || []
     if (!Array.isArray(customMask)) customMask = []
-    const jsonMaskKeys = ['password', 'access_token', 'client_secret', 'assertion', 'client_assertion']
+    const jsonMaskKeys = ['password', 'access_token', 'client_secret', 'assertion', 'client_assertion', 'refresh_token']
     const jsonJoinedKeys = jsonMaskKeys.concat(customMask).join('|')
     const xmlMaskKeys = ['credentials', 'PasswordText', 'PasswordDigest', 'password']
     const xmlJoinedKeys = xmlMaskKeys.concat(customMask).join('"?|') + '"?'

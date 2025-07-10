@@ -673,8 +673,11 @@ export const formDataMultipartToJSON = function (body?: string, boundary?: strin
  */
 export const getBase64CertificateThumbprint = function (pemCertContent: string, shaVersion: 'sha1' | 'sha256' = 'sha1'): string {
   if (!pemCertContent) return ''
-  const certMatch = pemCertContent.match(/-----BEGIN CERTIFICATE-----([\s\S]+?)-----END CERTIFICATE-----/)
-  if (!certMatch) return ''
+  let certMatch = pemCertContent.match(/-----BEGIN CERTIFICATE-----([\s\S]+?)-----END CERTIFICATE-----/)
+  if (!certMatch) {
+    certMatch = pemCertContent.match(/-----BEGIN PUBLIC KEY-----([\s\S]+?)-----END PUBLIC KEY-----/)
+    if (!certMatch) return ''
+  }
   const certBase64 = certMatch[1].replace(/\s+/g, '') // remove whitespace and newlines
   const certDer = Buffer.from(certBase64, 'base64') // decode the PEM to DER (Base64 decode)
   const hash = crypto.createHash(shaVersion).update(certDer).digest() // compute the SHA-256 hash of the DER
@@ -696,9 +699,9 @@ export const getBase64CertificateThumbprint = function (pemCertContent: string, 
 export const getEtag = function (obj: Record<string, any>): string {
   if (typeof obj !== 'object' || obj === null) return ''
   const hash = crypto
-    .createHash('md5')
+    .createHash('sha256')
     .update(JSON.stringify(obj), 'utf8')
-    .digest('base64')
+    .digest('base64url')
     .substring(0, 22)
 
   let eTag = ''
