@@ -586,7 +586,7 @@ export class ScimGateway {
       }
 
       if (ctx.response.status && (ctx.response.status < 200 || ctx.response.status > 299)) {
-        if (ctx.response.status === 401 && !ctx.request.headers.get('authorization')) {
+        if (ctx.response.status === 401 && !ctx.request.headers.has('authorization')) {
           logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
         } else if (ctx.response.status === 404) {
           logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
@@ -1100,11 +1100,12 @@ export class ScimGateway {
           if (pwErrCount < 3) {
             pwErrCount += 1
           } else { // delay brute force attempts
-            logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] ${ctx.origin + ctx.path} ${errDescr} => delaying response with 2 minutes to prevent brute force`)
+            const delay = (this.config.scimgateway.idleTimeout || 120) - 5
+            logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] ${ctx.origin + ctx.path} ${errDescr} => delaying response with ${delay} seconds to prevent brute force`)
             await new Promise((resolve) => {
               setTimeout(() => {
                 resolve(ctx)
-              }, 1000 * 60 * 2)
+              }, 1000 * delay)
             })
             ctx.response.status = 401
             return
@@ -2766,6 +2767,14 @@ export class ScimGateway {
           if (!ctx.response.body) {
             ctx.response.body = 'Unauthorized'
             ctx.response.headers.set('content-type', 'text/plain')
+          } else {
+            try {
+              const b = JSON.parse(ctx.response.body)
+              if (b.schemas) { // 401 - do not return scim formatted error message e.g., using PassThrough
+                ctx.response.body = 'Unauthorized'
+                ctx.response.headers.set('content-type', 'text/plain')
+              }
+            } catch (err) { void 0 }
           }
           break
         case 403:
