@@ -1491,6 +1491,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v5.5.1
+
+[Fixed]
+
+- 401 Unauthorized response did include scim-formatted error message when using `helper-rest` and authentication `PassThrough`. 401 should not include scim-formatted error message
+
 ### v5.5.0
 
 [Improved]
@@ -1528,7 +1534,6 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 	Note: Federated credentials defined for the application in Entra ID must match the corresponding `issuer`, `subject`, and `name` values defined in the SCIM Gateway endpoint configuration. An example of this can be using `plugin-entra-id` and other plugins that interact with endpoints or applications protected by Entra ID.
 
 	Also note: SCIM Gateway must be reachable from the internet (as defined by the `issuer` URL). This requires allowing inbound internet communication — or alternatively, Azure Relay can be used for outbound-only communication.
-
 
 ### v5.4.4
 
