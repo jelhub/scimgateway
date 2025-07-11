@@ -597,11 +597,10 @@ export class ScimGateway {
     }
 
     // start auth methods - used by auth
-    const basic = async (baseEntity: string, method: string, authType: string, authToken: string, path: string): Promise<boolean> => {
+    const basic = async (baseEntity: string, method: string, authType: string, authToken: string): Promise<boolean> => {
       return await new Promise((resolve, reject) => { // basic auth
         if (!found.Basic) return resolve(false)
         if (authType !== 'Basic' || !authToken) return resolve(false)
-        if (found.PassThrough && this.authPassThroughAllowed && !path.endsWith('/logger')) return resolve(false) // Auth PassThrough browser logon dialog support
         const [userName, userPassword] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
         if (!userName || !userPassword) return resolve(false)
         const arr = this.config.scimgateway.auth.basic
@@ -819,7 +818,7 @@ export class ScimGateway {
       const obj = this.config.scimgateway.auth.passThrough
       if (obj.baseEntities) {
         if (Array.isArray(obj.baseEntities) && obj.baseEntities.length > 0) {
-          if (!baseEntity || !obj.baseEntities.includes(baseEntity)) throw new Error(`baseEntity=${baseEntity} not allowed for passThrough according to passThrough configuration baseEntitites=${obj.baseEntities}`)
+          if (!obj.baseEntities.includes(baseEntity)) throw new Error(`baseEntity=${baseEntity} not allowed for passThrough according to passThrough configuration baseEntitites=${obj.baseEntities}`)
         }
       }
       if (obj.readOnly === true && method !== 'GET') throw new Error('only allowing readOnly for passThrough according to passThrough configuration readOnly=true')
@@ -834,7 +833,7 @@ export class ScimGateway {
       try {
         // authenticate
         arrResolve = await Promise.all([
-          basic(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken, ctx.path),
+          basic(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           bearerToken(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           bearerJwtAzure(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           bearerJwt(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
