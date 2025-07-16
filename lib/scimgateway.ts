@@ -486,7 +486,7 @@ export class ScimGateway {
       getMethod: 'getAppRoles',
     }
     /** handlers supported url paths */
-    const handlers = ['users', 'groups', 'bulk', 'serviceplans', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'oauth', 'logger']
+    const handlers = ['users', 'groups', 'bulk', 'serviceplans', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'oauth', '.well-known', 'logger']
 
     try {
       if (!fs.existsSync(configDir + '/wsdls')) fs.mkdirSync(configDir + '/wsdls')
@@ -972,53 +972,44 @@ export class ScimGateway {
       )
     }
 
-    // oauth well-known: /oauth/.well-known/openid-configuration
+    // oauth well-known: /.well-known/openid-configuration
     // this.jwk is managed by helper-rest oauthJwtBearer - Entra ID Federated Identity
-    // {issuer: <scimgateway-baseUrl>/oauth, <federated-identity-unique-name>: {privateKey, publicKey}}
-    // example issuer: https://scimgateway.my-company.com/oauth
+    // { issuer: <scimgateway-baseUrl>, kid: { privateKey, publicKey } }
+    // example issuer: https://scimgateway.my-company.com
     const getHandlerOauthWellKnown = async (ctx: Context) => {
-      const baseEntity = ctx.routeObj.baseEntity
-      logger.debug(`${gwName}[${pluginName}][${baseEntity}] [oauth] .well-known request`)
-
-      if (!this.jwk || !this.jwk[baseEntity] || !this.jwk[baseEntity].issuer) {
+      logger.debug(`${gwName}[${pluginName}] [oauth] .well-known request`)
+      if (!this.jwk || (Object.keys(this.jwk).length < 1)) {
         ctx.response.body = '{}'
         ctx.response.status = 200
         return ctx
       }
-
-      const issuer = this.jwk[baseEntity].issuer //  dynamic set by helper-rest oauthJwtBearer e.g. 'https://scimgateway.my-company.com/oauth'
+      const issuer = this.jwk.issuer
       let body = {
         issuer,
-        jwks_uri: issuer + '/certs',
+        jwks_uri: issuer + '/.well-known/jwks.json',
       }
       ctx.response.body = JSON.stringify(body)
       ctx.response.status = 200
     }
 
-    // oauth JWKS: /oauth/certs
+    // oauth JWKS: /.well-known/jwks.json
     // this.jwk is managed by helper-rest oauthJwtBearer - Entra ID Federated Identity
-    // {issuer: <scimgateway-baseUrl>/oauth, <federated-identity-unique-name>: {privateKey, publicKey}}
-    const getHandlerOauthCerts = async (ctx: Context) => {
-      const baseEntity = ctx.routeObj.baseEntity
-      logger.debug(`${gwName}[${pluginName}][${baseEntity}] [oauth] jwks_uri certs request`)
-
-      if (!this.jwk || !this.jwk[baseEntity]) {
+    // { issuer: <scimgateway-baseUrl>, kid: { privateKey, publicKey } }
+    const getHandlerOauthJwks = async (ctx: Context) => {
+      logger.debug(`${gwName}[${pluginName}] [oauth] jwks_uri request`)
+      if (!this.jwk || (Object.keys(this.jwk).length < 1)) {
         ctx.response.body = '{"keys":[]}'
         ctx.response.status = 200
         return ctx
       }
-
       const keys: Array<Record<string, any>> = []
-      for (const name in this.jwk[baseEntity]) {
-        const keyObj = this.jwk[baseEntity][name]
-        if (typeof keyObj !== 'object' || keyObj === null) continue // skip issuer
-        const jwk = await jose.exportJWK(this.jwk[baseEntity][name].publicKey)
-        jwk.kid = createHash('sha256') // needed for JWKS
-          .update(JSON.stringify(jwk))
-          .digest('base64url')
+      for (const kid in this.jwk) {
+        const keyObj = this.jwk[kid]
+        if (typeof keyObj !== 'object' || keyObj === null) continue
+        const jwk = await jose.exportJWK(this.jwk[kid].publicKey)
+        jwk.kid = kid // needed for JWKS
         keys.push(jwk)
       }
-
       let body = {
         keys,
       }
@@ -2673,13 +2664,13 @@ export class ScimGateway {
           return ctx
         }
       }
-      if (ctx.request.method === 'GET' && ctx.path.endsWith('/oauth/.well-known/openid-configuration')) {
+      if (ctx.request.method === 'GET' && ctx.path.endsWith('/.well-known/openid-configuration')) {
         await getHandlerOauthWellKnown(ctx)
         if (!ctx.response.status) ctx.response.status = 404
         return ctx
       }
-      if (ctx.request.method === 'GET' && ctx.path.endsWith('/oauth/certs')) {
-        await getHandlerOauthCerts(ctx)
+      if (ctx.request.method === 'GET' && ctx.path.endsWith('/.well-known/jwks.json')) {
+        await getHandlerOauthJwks(ctx)
         if (!ctx.response.status) ctx.response.status = 404
         return ctx
       }
