@@ -738,16 +738,16 @@ Example Entra ID (plugin-entra-id) using federated credentials:
 	    "options": {
 	      "tenantIdGUID": "<tenantId>",
 	      "fedCred": {
-	        "issuer": "<https://FQDN-scimgateway/oauth>",
+	        "issuer": "<https://FQDN-scimgateway>",
 	        "subject": "<entra id application object id - client id>",
 	        "name": "<entra id federated credentials unique name>"
 	      }
 	    }
 	  }
 	}
-	// Note: Federated credentials defined for the application in Entra ID must match the corresponding `issuer`, `subject`, and `name`
-	// example issuer: "https://scimgateway.my-company.com/oauth" and base URL must be reachable from the internet
-	// exampole name: "plugin-entra-id"
+  	// Note, fedCred configuration must match corresponding configuration in Entra ID Application - Certificates & Secrets - Federated credentials - scenario "Other issuer"	
+	// example issuer: "https://scimgateway.my-company.com" note, this scimgateway base URL must be reachable from the internet
+	// example name: "plugin-entra-id"
 
 
 Example using general OAuth:  
@@ -1491,6 +1491,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v5.5.2
+
+[Improved]
+
+- Entra ID Federated Identity Credentials introduced in v5.5.0, the issuer configuration should be scimgateway base URL  
+	old: `"issuer": "<https://FQDN-scimgateway>/oauth"`  
+	new: `"issuer": "<https://FQDN-scimgateway>"`  
+
+	Change log v5.5.0 have been corrected with the new issuer having base URL only
+	
+
 ### v5.5.1
 
 [Fixed]
@@ -1510,7 +1521,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 		  "options": {
 		    "tenantIdGUID": "<Entra ID tenantIdGUID",
 		    "fedCred": {
-		      "issuer": "<https://FQDN-scimgateway/oauth>",
+		      "issuer": "<https://FQDN-scimgateway>",
 		      "subject": "<entra id application object id - client id>",
 		      "name": "<entra id federated credentials unique name>"
 		    }
@@ -1524,14 +1535,14 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 		  "options": {
 		    "tenantIdGUID": "11111111-2222-3333-4444-555555555555",
 		    "fedCred": {
-		      "issuer": "https://scimgateway.my-company.com/oauth",
+		      "issuer": "https://scimgateway.my-company.com",
 		      "subject": "99999999-8888-7777-6666-555555555555",
 		      "name": "plugin-entra-id"
 		    }
 		  }
 		}
 
-	Note: Federated credentials defined for the application in Entra ID must match the corresponding `issuer`, `subject`, and `name` values defined in the SCIM Gateway endpoint configuration. An example of this can be using `plugin-entra-id` and other plugins that interact with endpoints or applications protected by Entra ID.
+	Note: Federated credentials (scenario "Other issuer") defined for the application in Entra ID must match the corresponding `issuer`, `subject`, and `name` values defined in the SCIM Gateway endpoint configuration. An example of this can be using `plugin-entra-id` and other plugins that interact with endpoints or applications protected by Entra ID.
 
 	Also note: SCIM Gateway must be reachable from the internet (as defined by the `issuer` URL). This requires allowing inbound internet communication — or alternatively, Azure Relay can be used for outbound-only communication.
 
