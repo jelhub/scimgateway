@@ -154,27 +154,9 @@ export class HelperRest {
 
           if (tenantIdGUID) { // Microsoft Entra ID
             if (this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer) { // federated credentials
-              const name = JSON.stringify(this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.name) // ensure not using none valid json key
-              if (!this.scimgateway.jwk) this.scimgateway.jwk = {}
-              if (!this.scimgateway.jwk[baseEntity]) this.scimgateway.jwk[baseEntity] = {}
-              if (!this.scimgateway.jwk[baseEntity][name]) {
-                const { publicKey, privateKey } = await jose.generateKeyPair('RS256')
-                this.scimgateway.jwk[baseEntity][name] = { publicKey, privateKey }
-                const ttl = 5 * 60 // 5 minutes
-                ;(async () => {
-                  // rotate - delete JWK after 5 minutes, will be regenerated on next token request
-                  // entra id only lookup well-known uri and corresponding jwks_uri on token request validation if kid not found in entra cached JWKS
-                  setTimeout(async () => {
-                    delete this.scimgateway.jwk[baseEntity][name]
-                  }, ttl * 1000)
-                })()
-              }
-
-              this.scimgateway.jwk[baseEntity].issuer = this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer // updates .well-known
-
               const now = Date.now()
               const jwtPayload: jose.JWTPayload = {
-                iss: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer, // entra id federated credentials issuer e.g. https://scimgateway.my-company.com/oauth
+                iss: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer, // entra id federated credentials issuer - scimgateway base URL, e.g. https://scimgateway.my-company.com
                 sub: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.subject, // entra id application object id - client id
                 name: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.name, // entra id federated credentials unique name e.g. plugin-entra-id
                 aud: 'api://AzureADTokenExchange', // entra id federated credentials audience
@@ -188,7 +170,8 @@ export class HelperRest {
                 ...jwtPayload,
               }
 
-              const jwk = await jose.exportJWK(this.scimgateway.jwk[baseEntity][name].publicKey)
+              const { publicKey, privateKey } = await jose.generateKeyPair('RS256')
+              const jwk = await jose.exportJWK(publicKey)
               const kid = createHash('sha256') // kid required for JWKS
                 .update(JSON.stringify(jwk))
                 .digest('base64url')
@@ -206,8 +189,22 @@ export class HelperRest {
                 client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
                 client_assertion: await new jose.SignJWT(jwtClaims)
                   .setProtectedHeader(jwtHeaders)
-                  .sign(this.scimgateway.jwk[baseEntity][name].privateKey),
+                  .sign(privateKey),
               }
+
+              // keep JWK for 5 minutes, will be regenerated on next token request
+              // entra id only lookup well-known uri and corresponding jwks_uri on token request validation if kid not found in entra cached JWKS
+              if (!this.scimgateway.jwk) this.scimgateway.jwk = {}
+              if (!this.scimgateway.jwk[kid]) {
+                this.scimgateway.jwk[kid] = { publicKey, privateKey }
+                const ttl = 5 * 60
+                ;(async () => {
+                  setTimeout(async () => {
+                    delete this.scimgateway.jwk[kid]
+                  }, ttl * 1000)
+                })()
+              }
+              this.scimgateway.jwk.issuer = this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer // all baseEntities should use same issuer
             } else { // standard certificate
               if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.cert) {
                 throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.tls.key/cert configuration`)
@@ -918,13 +915,13 @@ export class HelperRest {
   * }
   * 
   * // Microsoft Entra ID - using Federated credentials
-  * // Note, fedCred configuration must match corresponding configuration in Entra ID Application - Federation credentials 
+  * // Note, fedCred configuration must match corresponding configuration in Entra ID Application - Certificates & Secrets - Federated credentials - scenario "Other issuer"
   * {
   *   "type": "oauthJwtBearer",
   *   "options": {
   *     "tenantIdGUID": "<Entra ID tenantIdGUID",
   *     "fedCred": {
-  *       "issuer": "<https://FQDN-scimgateway/oauth>", // e.g. https://scimgateway.my-company.com/oauth
+  *       "issuer": "<https://FQDN-scimgateway", // scimgateway base URL, e.g. https://scimgateway.my-company.com
   *       "subject": "<entra id application object id - client id>",
   *       "name": "<entra id federated credentials unique name>" // e.g. plugin-entra-id
   *     }
