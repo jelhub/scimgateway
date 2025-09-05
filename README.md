@@ -42,7 +42,7 @@ Latest news:
 
 ## Overview  
 
-SCIM Gateway facilitates user management using the standardized REST-based SCIM 1.1 or 2.0 protocol, offering easier, more powerful, and consistent provisioning while avoiding vendor lock-in. Acting as a translator for incoming SCIM requests, the gateway seamlessly enables CRUD functionality (create, read, update, and delete) for users and groups. By implementing endpoint-specific protocols, it ensures provisioning across diverse destinations. With the gateway, your destinations effectively become SCIM endpoints, streamlining integration and simplifying user management.  
+SCIM Gateway facilitates user management using the standardized REST-based SCIM 1.1 or 2.0 protocol, offering easier, more powerful, and consistent provisioning while avoiding vendor lock-in. Acting as a translator for incoming SCIM requests, the gateway seamlessly enables CRUD functionality (create, read, update, and delete) for users and groups. By implementing endpoint-specific protocols, it ensures provisioning across diverse destinations. With the gateway, your destinations become SCIM-compatible interfaces, streamlining integration and simplifying user management.  
 
 
 ![](https://jelhub.github.io/images/ScimGateway.svg)
