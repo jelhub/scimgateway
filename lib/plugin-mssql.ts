@@ -121,6 +121,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       for (const user of users) {
         const scimUser = {
           id: user.UserID.value ? user.UserID.value : undefined,
+          externalId: user.UserID.value ? user.UserID.value : undefined,
           userName: user.UserID.value ? user.UserID.value : undefined,
           active: user.Enabled.value === 'true' || false,
           name: {
@@ -292,6 +293,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       for (const group of groups) {
         const scimGroup: Record<string, any> = {
           id: group.GroupID.value ? group.GroupID.value : undefined,
+          externalId: group.GroupID.value ? group.GroupID.value : undefined,
           displayName: group.GroupID.value ? group.GroupID.value : undefined,
           active: group.Enabled.value === 'true' || false,
           members: [],
