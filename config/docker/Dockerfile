@@ -1,3 +1,5 @@
+# Thanks to Charles Watson <cwatsonx@costco.com> and Jeffrey Gilbert for the base of Docker implementation and inspiration.
+#
 # Depending on your system you  may need to prefix the commands below with sudo.
 #
 # To build:  docker build --force-rm=true -t <projectName>:1.0.0 .
@@ -14,7 +16,7 @@
 FROM oven/bun:slim AS base
 
 # Declare who maintains this Dockerfile
-LABEL maintainer="Charles Watson <cwatsonx@costco.com>"
+LABEL maintainer="https://elshaug.xyz"
 
 # Add a Process ID 1 Safety Net.  Specific to debian.
 ADD https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 /usr/local/bin/dumb-init
@@ -25,7 +27,7 @@ WORKDIR /home/scimgateway
 ENV NODE_HOME=/home/scimgateway
 
 # Add your project info
-ADD ./package.json ./bun.lockb $NODE_HOME
+ADD ./package.json ./bun.lock $NODE_HOME
 
 # Install dependencies (exclude test stuff for dependencies)
 RUN . ~/.bashrc && cd $NODE_HOME && bun install --production --frozen-lockfile
