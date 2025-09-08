@@ -972,8 +972,6 @@ On Linux systems we may also run SCIM Gateway as a Docker image (using docker-co
 **docker-ce  
 docker-compose**
 
-
-
 - Install SCIM Gateway within your own package and copy provided docker files:
 
 		mkdir /opt/my-scimgateway  
@@ -988,6 +986,7 @@ docker-compose**
 	**DataDockerfile**   <== Handles volume mapping   
 	**docker-compose-debug.yml** <== Debugging  
 	**docker-compose-mssql.yml** <== Example including MSSQL docker image
+	**.dockerignore** <== Files to exclude from the build context
 
 - Create a scimgateway user on your Linux VM.   
 
@@ -1490,6 +1489,15 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log
+
+### v5.5.3
+
+[Fixed]
+- Docker - fixed `docker build` error introduced in v5.5.0 (using bun.lock instead of binary bun.lockb)
+
+[Improved]
+- plugin-mssql - attribute externalId included
+- .dockerignore - new docker configuration file, contains files to be excluded from the build context
 
 ### v5.5.2
 
