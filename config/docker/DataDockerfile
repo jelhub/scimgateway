@@ -2,7 +2,7 @@
 # To run: docker run -d --name scimgateway-data -t scimgateway-data:latest
 
 FROM busybox:latest
-LABEL maintainer="Jeffrey Gilbert"
+LABEL maintainer="https://elshaug.xyz"
 
 RUN mkdir -p /home/scimgateway/config
 VOLUME /home/scimgateway/config

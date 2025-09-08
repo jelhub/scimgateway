@@ -333,15 +333,17 @@ export class ScimGateway {
       pluginDir = '.' // only support running binary in current directory (path to binary can't be found)
       configDir = './config'
     }
-    const configFile = path.join(`${configDir}`, `${pluginName}.json`) // config name prefix same as pluging name prefix
+    const configFile = path.join(configDir, `${pluginName}.json`) // config name prefix same as pluging name prefix
     const gwName = path.basename(fileURLToPath(import.meta.url)).split('.')[0] // prefix of current file - using fileURLToPath because using "__filename" is not supported by nodejs typescript
     const gwPath = path.dirname(fileURLToPath(import.meta.url))
 
     this.config = {}
     // exposed outside class
+    this.gwName = gwName
     this.pluginName = pluginName
     this.configDir = configDir
     this.configFile = configFile
+    this.authPassThroughAllowed = false // set to true by plugin if using Auth PassThrough
     this.countries = (() => {
       try {
         return JSON.parse(fs.readFileSync(path.join(gwPath, 'countries.json')).toString())
@@ -382,14 +384,7 @@ export class ScimGateway {
       logger.error(`${gwName}[${pluginName}] stopping...`)
       throw (new Error('Using exception to stop further asynchronous code execution (ensure synchronous logger flush to logfile and exit program), please ignore this one...'))
     }
-
     this.logger = logger
-    // exposed to plugin
-    this.gwName = gwName
-    this.pluginName = pluginName
-    this.configDir = configDir
-    this.configFile = configFile
-    this.authPassThroughAllowed = false // set to true by plugin if using Auth PassThrough
 
     const oAuthTokenExpire = 3600 // seconds
     let pwErrCount = 0
@@ -3084,8 +3079,8 @@ export class ScimGateway {
             let request = new Request(new URL(req.url ?? '', `${protocol}://${req.headers.host}`), {
               method: req.method,
               headers: new Headers(req.headers as any),
+              // @ts-expect-error ignore incompatible types
               body: body,
-              // @ts-expect-error duplex not defined in RequestInit interface
               duplex: body ? 'half' : undefined,
             }) as Request & { raw: IncomingMessage }
             request.raw = req
