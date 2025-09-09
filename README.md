@@ -1490,6 +1490,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v5.5.4
+
+[Fixed]
+- Docker - exclude any package postinstall script to be run `--ignore-scripts`, because of `bun pm trust` prerequirement
+
 ### v5.5.3
 
 [Fixed]
