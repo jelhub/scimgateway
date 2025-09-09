@@ -6,7 +6,6 @@ typings/
 /jsconfig.json
 /npm-debug.log
 /uml.txt
-/.dockerignore
 /docker-compose*.yml
 /Dockerfile
 /DataDockerfile
