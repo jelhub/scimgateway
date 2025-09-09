@@ -30,7 +30,7 @@ ENV NODE_HOME=/home/scimgateway
 ADD ./package.json ./bun.lock $NODE_HOME
 
 # Install dependencies (exclude test stuff for dependencies)
-RUN . ~/.bashrc && cd $NODE_HOME && bun install --production --frozen-lockfile
+RUN . ~/.bashrc && cd $NODE_HOME && bun install --production --frozen-lockfile --ignore-scripts
 
 # Copy your project's code to your working directory
 COPY . $NODE_HOME
