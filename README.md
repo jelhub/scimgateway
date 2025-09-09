@@ -1490,6 +1490,11 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v5.5.5
+
+[Improved]
+- Docker - `.dockerignore` included at root, same as `./config/docker/.dockerignore`
+
 ### v5.5.4
 
 [Fixed]
