@@ -1493,6 +1493,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 ### v5.5.5
 
 [Improved]
+- Dependencies bump
 - Docker - `.dockerignore` included at root, same as `./config/docker/.dockerignore`
 
 ### v5.5.4
