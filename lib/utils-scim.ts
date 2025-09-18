@@ -895,7 +895,7 @@ export function addSchemas(data: Record<string, any>, isScimv2: boolean, type?: 
 /**
 * SCIM error formatting
 */
-export function jsonErr(scimVersion: string | number, pluginName: string, htmlErrCode: number | undefined, err: Error): [Record<string, any>, number] {
+export function jsonErr(scimVersion: string | number, pluginName: string, errCode: number | undefined, err: Error): [Record<string, any>, number] {
   let errJson = {}
   let customErrCode: any = null
   let scimType = 'invalidSyntax'
@@ -904,9 +904,9 @@ export function jsonErr(scimVersion: string | number, pluginName: string, htmlEr
     if (err.name) { // customErrCode can be set by including suffix "#<number>" e.g., "<scimType>#404"
       const arr: any = err.name.split('#')
       if (arr.length > 1 && !isNaN(arr[arr.length - 1])) {
-        customErrCode = arr[arr.length - 1]
-        const code = parseInt(customErrCode)
-        if (code < 300 && code > 199) customErrCode = null
+        customErrCode = parseInt(arr[arr.length - 1])
+        if (isNaN(customErrCode)) customErrCode = null
+        else if (customErrCode < 300 && customErrCode > 199) customErrCode = null
         arr.splice(-1)
         err.name = arr.join('#') // back to original having customErrCode removed
       } else { // !customErrCode
@@ -916,7 +916,7 @@ export function jsonErr(scimVersion: string | number, pluginName: string, htmlEr
           if (startPos > -1 && endPos > startPos) {
             const m = JSON.parse((err.message.substring(startPos, endPos + 1)))
             if (!isNaN(m.statusCode)) {
-              if (m.statusCode === 401 || m.statusCode === 403 || m.statusCode === 404 || m.statusCode === 409) { // retur these endpoint status "as-is" to client
+              if (m.statusCode === 401 || m.statusCode === 403 || m.statusCode === 404 || m.statusCode === 409) { // return these endpoint status "as-is" to client
                 customErrCode = m.statusCode
               }
             }
@@ -932,14 +932,14 @@ export function jsonErr(scimVersion: string | number, pluginName: string, htmlEr
     msg += err
   }
 
-  let errCode = customErrCode || htmlErrCode
+  const code = customErrCode || errCode || 500
   if (scimVersion !== '2.0' && scimVersion !== 2) { // v1.1
     errJson
       = {
         Errors: [
           {
             description: msg,
-            code: errCode.toString(),
+            code: code.toString(),
           },
         ],
       }
@@ -949,31 +949,11 @@ export function jsonErr(scimVersion: string | number, pluginName: string, htmlEr
         schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'],
         scimType,
         detail: msg,
-        status: errCode.toString(),
+        status: code.toString(),
       }
   }
 
-  if (customErrCode) customErrCode = parseInt(customErrCode)
-  return [errJson, customErrCode as number]
-}
-
-/**
-* api plugin formatted error
-*/
-export function apiErr(pluginName: string, err: any) {
-  let msg
-  if (err.constructor !== Error) err = { message: err }
-  try {
-    msg = JSON.parse(err.message)
-    msg.originator = `ScimGateway[${pluginName}]`
-  } catch (e) { msg = `ScimGateway[${pluginName}] ${err.message}` }
-  const errObj = {
-    meta: {
-      result: 'error',
-      description: msg,
-    },
-  }
-  return errObj
+  return [errJson, code as number]
 }
 
 /**
