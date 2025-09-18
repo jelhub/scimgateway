@@ -11,7 +11,7 @@
 import { createServer as httpCreateServer } from 'node:http'
 import { createServer as httpsCreateServer } from 'node:https'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
-import { createPublicKey, createHash } from 'node:crypto'
+import { createPublicKey } from 'node:crypto'
 import { createChecker } from 'is-in-subnet'
 import { BearerStrategy, type IBearerStrategyOptionWithRequest } from 'passport-azure-ad'
 import { fileURLToPath } from 'node:url'
@@ -1160,10 +1160,9 @@ export class ScimGateway {
       const id = decodeURIComponent(path.basename(ctx.routeObj.id || '', '.json')) // supports <id>.json
 
       if (!id) {
-        ctx.response.status = 500
         const err = new Error('missing id')
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       }
@@ -1197,10 +1196,9 @@ export class ScimGateway {
         }
 
         if (scimdata.Resources.length !== 1) {
-          ctx.response.status = 404
           const err = new Error(`${handle.description} ${getObj.value} not found`)
-          const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-          if (customErrorCode) ctx.response.status = customErrorCode
+          const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 404, err)
+          ctx.response.status = statusCode
           ctx.response.body = JSON.stringify(e)
           return
         }
@@ -1249,9 +1247,8 @@ export class ScimGateway {
         if (eTag) ctx.response.headers.set('ETag', eTag)
         if (scimdata?.meta?.location) ctx.response.headers.set('Location', scimdata.meta.location)
       } catch (err: any) {
-        ctx.response.status = 404
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 404, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
       }
     }
@@ -1314,8 +1311,8 @@ export class ScimGateway {
       if (err) {
         if (isScimv2) ctx.response.status = 400
         else ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       }
@@ -1483,8 +1480,8 @@ export class ScimGateway {
       } catch (err: any) {
         if (isScimv2) ctx.response.status = 400
         else ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
       }
     }
@@ -1512,25 +1509,22 @@ export class ScimGateway {
         if (typeof jsonBody !== 'object') throw new Error('body is not JSON')
         jsonBody = utils.copyObj(jsonBody) // no changes to original
       } catch (err: any) {
-        ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       }
 
       if (handle.createMethod === 'createUser' && !jsonBody.userName && !jsonBody.externalId) {
-        ctx.response.status = 500
         const err = new Error('userName or externalId is mandatory')
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       } else if (handle.createMethod === 'createGroup' && !jsonBody.displayName && !jsonBody.externalId) {
-        ctx.response.status = 500
         const err = new Error('displayName or externalId is mandatory')
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       }
@@ -1539,9 +1533,8 @@ export class ScimGateway {
       const [scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes)
       logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] convertedBody=${JSON.stringify(scimdata)}`, { baseEntity: ctx?.routeObj?.baseEntity })
       if (err) {
-        ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       }
@@ -1617,8 +1610,8 @@ export class ScimGateway {
       } catch (err: any) {
         if (isScimv2) ctx.response.status = 400
         else ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
       }
     } // post
@@ -1637,10 +1630,9 @@ export class ScimGateway {
       const baseEntity = ctx.routeObj.baseEntity
       const id = decodeURIComponent(ctx.routeObj.id || '')
       if (!id || id.includes('/')) {
-        ctx.response.status = 500
         const err = new Error('missing id')
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       }
@@ -1664,9 +1656,8 @@ export class ScimGateway {
         await (this as any)[handle.deleteMethod](baseEntity, id, ctx.passThrough)
         ctx.response.status = 204
       } catch (err: any) {
-        ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
       }
     }
@@ -1695,9 +1686,8 @@ export class ScimGateway {
         if (typeof jsonBody !== 'object') throw new Error('body is not JSON')
         if (!id || id.includes('/')) throw new Error('missing id')
       } catch (err: any) {
-        ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       }
@@ -1744,9 +1734,8 @@ export class ScimGateway {
       else [scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes) // v1.1
       logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] convertedBody=${JSON.stringify(scimdata)}`, { baseEntity: ctx?.routeObj?.baseEntity })
       if (err) {
-        ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       }
@@ -1827,9 +1816,8 @@ export class ScimGateway {
         ctx.response.status = 200
         ctx.response.body = JSON.stringify(scimdata)
       } catch (err: any) {
-        ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
       }
     } // patch
@@ -2015,9 +2003,8 @@ export class ScimGateway {
           ctx.response.status = 204
         }
       } catch (err: any) {
-        ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
       }
     }
@@ -2192,9 +2179,8 @@ export class ScimGateway {
         ctx.response.status = 200
         ctx.response.body = JSON.stringify(res)
       } catch (err: any) {
-        ctx.response.status = 500
-        const [e, customErrorCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, ctx.response.status, err)
-        if (customErrorCode) ctx.response.status = customErrorCode
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
       }
     }
@@ -2215,34 +2201,36 @@ export class ScimGateway {
 
       if (!obj) {
         const err = new Error('missing body')
-        ctx.response.status = 500
-        ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
+        const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 500, err)
+        ctx.response.status = statusCode
+        ctx.response.body = JSON.stringify(e)
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
         return
       }
       try {
         logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling postApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
-        let result = await this.postApi(baseEntity, obj, ctx.passThrough)
+        const result = await this.postApi(baseEntity, obj, ctx.passThrough)
         if (result) {
-          if (typeof result === 'object') result = { result: result }
-          else {
-            try {
-              result = { result: JSON.parse(result) }
-            } catch (err) {
-              result = { result: result }
-            }
+          if (typeof result === 'string') {
+            const r = result.trim()
+            if (r.startsWith('<') && r.endsWith('>')) {
+              ctx.response.headers.set('content-type', 'text/html; charset=utf-8')
+            } else ctx.response.headers.set('content-type', 'text/plain; charset=utf-8')
+            ctx.response.body = result
+            return
           }
-        } else result = {}
-        if (!result.meta) result.meta = {}
-        result.meta.result = 'success'
-        if (!this.config.scimgateway.scim.skipMetaLocation) {
-          const location = ctx.origin + ctx.path
-          result.meta.location = location
-        }
-        ctx.response.status = 201
-        ctx.response.body = JSON.stringify(result)
-      } catch (err) {
-        ctx.response.status = 500
-        ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
+          try {
+            ctx.response.body = JSON.stringify(result)
+          } catch (err) {
+            ctx.response.body = result.toString()
+          }
+        } else ctx.response.status = 204
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
+      } catch (err: any) {
+        const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 500, err)
+        ctx.response.status = statusCode
+        ctx.response.body = JSON.stringify(e)
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       }
     } // post
     funcHandler.postApiHandler = postApiHandler
@@ -2265,9 +2253,11 @@ export class ScimGateway {
       try {
         if (!obj) throw new Error('missing body')
         if (!id) throw new Error('missing id')
-      } catch (err) {
-        ctx.response.status = 500
-        ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
+      } catch (err: any) {
+        const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 500, err)
+        ctx.response.status = statusCode
+        ctx.response.body = JSON.stringify(e)
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
         return
       }
 
@@ -2275,25 +2265,26 @@ export class ScimGateway {
         logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling putApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
         let result = await this.putApi(baseEntity, id, obj, ctx.passThrough)
         if (result) {
-          if (typeof result === 'object') result = { result }
-          else {
-            try {
-              result = { result: JSON.parse(result) }
-            } catch (err) {
-              result = { result: result }
-            }
+          if (typeof result === 'string') {
+            const r = result.trim()
+            if (r.startsWith('<') && r.endsWith('>')) {
+              ctx.response.headers.set('content-type', 'text/html; charset=utf-8')
+            } else ctx.response.headers.set('content-type', 'text/plain; charset=utf-8')
+            ctx.response.body = result
+            return
           }
-        } else result = {}
-        if (!result.meta) result.meta = {}
-        result.meta.result = 'success'
-        if (!this.config.scimgateway.scim.skipMetaLocation) {
-          const location = ctx.origin + ctx.path
-          result.meta.location = location
-        }
-        ctx.response.body = JSON.stringify(result)
-      } catch (err) {
-        ctx.response.status = 500
-        ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
+          try {
+            ctx.response.body = JSON.stringify(result)
+          } catch (err) {
+            ctx.response.body = result.toString()
+          }
+        } else ctx.response.status = 204
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
+      } catch (err: any) {
+        const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 500, err)
+        ctx.response.status = statusCode
+        ctx.response.body = JSON.stringify(e)
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       }
     } // put
     funcHandler.putApiHandler = putApiHandler
@@ -2317,33 +2308,36 @@ export class ScimGateway {
 
       if (!body) {
         const err = new Error('missing body')
-        ctx.response.status = 500
-        ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
+        const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 500, err)
+        ctx.response.status = statusCode
+        ctx.response.body = JSON.stringify(e)
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
         return
       } else {
         try {
           logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling patchApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
           let result = await this.patchApi(baseEntity, id, body, ctx.passThrough)
           if (result) {
-            if (typeof result === 'object') result = { result }
-            else {
-              try {
-                result = { result: JSON.parse(result) }
-              } catch (err) {
-                result = { result: result }
-              }
+            if (typeof result === 'string') {
+              const r = result.trim()
+              if (r.startsWith('<') && r.endsWith('>')) {
+                ctx.response.headers.set('content-type', 'text/html; charset=utf-8')
+              } else ctx.response.headers.set('content-type', 'text/plain; charset=utf-8')
+              ctx.response.body = result
+              return
             }
-          } else result = {}
-          if (!result.meta) result.meta = {}
-          result.meta.result = 'success'
-          if (!this.config.scimgateway.scim.skipMetaLocation) {
-            const location = ctx.origin + ctx.path
-            result.meta.location = location
-          }
-          ctx.response.body = JSON.stringify(result)
-        } catch (err) {
-          ctx.response.status = 500
-          ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
+            try {
+              ctx.response.body = JSON.stringify(result)
+            } catch (err) {
+              ctx.response.body = result.toString()
+            }
+          } else ctx.response.status = 204
+          ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
+        } catch (err: any) {
+          const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 500, err)
+          ctx.response.status = statusCode
+          ctx.response.body = JSON.stringify(e)
+          ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
         }
       }
     } // patch
@@ -2370,25 +2364,26 @@ export class ScimGateway {
         logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling getApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
         let result = await this.getApi(baseEntity, id, ctx.query, body, ctx.passThrough)
         if (result) {
-          if (typeof result === 'object') result = { result }
-          else {
-            try {
-              result = { result: JSON.parse(result) }
-            } catch (err) {
-              result = { result: result }
-            }
+          if (typeof result === 'string') {
+            const r = result.trim()
+            if (r.startsWith('<') && r.endsWith('>')) {
+              ctx.response.headers.set('content-type', 'text/html; charset=utf-8')
+            } else ctx.response.headers.set('content-type', 'text/plain; charset=utf-8')
+            ctx.response.body = result
+            return
           }
-        } else result = {}
-        if (!result.meta) result.meta = {}
-        result.meta.result = 'success'
-        if (!this.config.scimgateway.scim.skipMetaLocation) {
-          const location = ctx.origin + ctx.path
-          result.meta.location = location
+          try {
+            ctx.response.body = JSON.stringify(result)
+          } catch (err) {
+            ctx.response.body = result.toString()
+          }
         }
-        ctx.response.body = JSON.stringify(result)
-      } catch (err) {
-        ctx.response.status = 404
-        ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
+      } catch (err: any) {
+        const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 404, err)
+        ctx.response.status = statusCode
+        ctx.response.body = JSON.stringify(e)
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       }
     }
     funcHandler.getApiHandler = getApiHandler
@@ -2408,21 +2403,26 @@ export class ScimGateway {
         logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling deleteApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
         let result = await this.deleteApi(baseEntity, id, ctx.passThrough)
         if (result) {
-          if (typeof result === 'object') result = { result: result }
-          else {
-            try {
-              result = { result: JSON.parse(result) }
-            } catch (err) {
-              result = { result: result }
-            }
+          if (typeof result === 'string') {
+            const r = result.trim()
+            if (r.startsWith('<') && r.endsWith('>')) {
+              ctx.response.headers.set('content-type', 'text/html; charset=utf-8')
+            } else ctx.response.headers.set('content-type', 'text/plain; charset=utf-8')
+            ctx.response.body = result
+            return
           }
-        } else result = {}
-        if (!result.meta) result.meta = {}
-        result.meta.result = 'success'
-        ctx.response.body = JSON.stringify(result)
-      } catch (err) {
-        ctx.response.status = 500
-        ctx.response.body = JSON.stringify(utilsScim.apiErr(pluginName, err))
+          try {
+            ctx.response.body = JSON.stringify(result)
+          } catch (err) {
+            ctx.response.body = result.toString()
+          }
+        } else ctx.response.status = 204
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
+      } catch (err: any) {
+        const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 500, err)
+        ctx.response.status = statusCode
+        ctx.response.body = JSON.stringify(e)
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       }
     } // delete
     funcHandler.deleteApiHandler = deleteApiHandler
@@ -3276,6 +3276,7 @@ export class ScimGateway {
               process.exit(0)
             }, 0.5 * 1000)
           })
+          server?.closeIdleConnections() // allows server.close() to fire sooner
         }
       }
       setTimeout(() => { // safety net
