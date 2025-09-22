@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "5.5.5",
+  "version": "6.0.0",
   "type": "module",
   "description": "Using SCIM protocol as a gateway for user provisioning to other endpoints",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
@@ -53,8 +53,6 @@
     "mongodb": "^6.19.0",
     "node-machine-id": "1.1.12",
     "nodemailer": "^7.0.6",
-    "passport": "^0.7.0",
-    "passport-azure-ad": "^4.3.5",
     "saml": "^3.0.1"
   },
   "peerDependencies": {

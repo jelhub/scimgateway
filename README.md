@@ -15,7 +15,8 @@ Validated through IdP's:
 - SailPoint/IdentityNow  
 
 Latest news:  
- 
+
+- Major release **v6.0.0** introduces changes to API method response bodies (not SCIM-related) and a new method `publicApi()` for handling public path `/pub/api` requests with no authentication required. In addition, the configuration option `bearerJwtAzure.tenantIdGUID` has been replaced by `bearerJwt.azureTenantId`. See the version history for details.
 - Entra ID [Federated Identity Credentials](https://learn.microsoft.com/en-us/graph/api/resources/federatedidentitycredentials-overview?view=graph-rest-1.0) is now supported. Identity federation allows SCIM Gateway to access Microsoft Entra protected resources without needing to manage secrets
 - External JWKS (JSON Web Key Set) is now supported by JWT Authentication. These are public and typically frequent rotated by modern identity providers
 - [Azure Relay](https://learn.microsoft.com/en-us/azure/azure-relay/relay-what-is-it) is now supported for secure and hassle-free outbound communication — with just one minute of configuration
@@ -24,11 +25,11 @@ Latest news:
 - Remote real-time log subscription for centralized logging and monitoring. Using browser `https://<host>/logger`, curl or custom client API - see configuration notes  
 - By configuring the chainingBaseUrl, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway beave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
 - Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlBearer, oauthJwtBearer and Auth PassTrough 
-- Major version **v5.0.0** marks a shift from JavaScript to native TypeScript and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
+- Major release **v5.0.0** marks a shift from JavaScript to native TypeScript and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
 - Authentication PassThrough letting plugin pass authentication directly to endpoint for avoid maintaining secrets at the gateway. E.g., using Entra ID application OAuth
 - Supports OAuth Client Credentials authentication
-- Major version **v4.0.0** getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
+- Major release **v4.0.0** getUsers() and getGroups() replacing some deprecated methods. No limitations on filtering/sorting. Admin user access can be linked to specific baseEntities. New MongoDB plugin
 - ipAllowList for restricting access to allowlisted IP addresses or subnets e.g. Azure IP-range  
 - General LDAP plugin configured for Active Directory  
 - [PlugSSO](https://elshaug.xyz/docs/plugsso) using SCIM Gateway
@@ -249,17 +250,12 @@ Below shows an example of config\plugin-saphana.json
               "baseEntities": []
             }
           ],
-          "bearerJwtAzure": [
-            {
-              "tenantIdGUID": null,
-              "readOnly": false,
-              "baseEntities": []
-            }
-          ],
           "bearerJwt": [
             {
               "secret": null,
               "publicKey": null,
+              "wellKnownUri": null,
+              "azureTenantId": null,
               "options": {
                 "issuer": null
                },
@@ -295,7 +291,7 @@ Below shows an example of config\plugin-saphana.json
 	      "auth": {
 	        "type": "oauth",
 	        "options": {
-	          "tenantIdGUID": null,
+	          "azureTenantId": null,
 	          "clientId": null,
 	          "clientSecret": null
 	        }
@@ -417,9 +413,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 
 - **auth.bearerToken** - Array of one or more bearer token objects - Shared token/secret (supported by Entra ID). Clear text value will become encrypted when gateway is started.
 
-- **auth.bearerJwtAzure** - Array of one or more JWT used by Azure SyncFabric. **tenantIdGUID** must be set to Entra ID Tenant ID.
-
-- **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret**, **publicKey** or **wellKnownUri** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs` or absolute path being used. Clear text secret will become encrypted when gateway is started. For JWKS (JSON Web Key Set), the **wellKnownUri** must be set to identity provider well-known URI which will be used for lookup the jwks_uri key.  **options.issuer** should normally be set for validation when using secret or publicKey, for JWKS the issuer will be included automatically. Other options may also be included according to the JWT standard.
+- **auth.bearerJwt** - Array of one or more standard JWT objects. Using **secret**, **publicKey**, **wellKnownUri** or **azureTenantId** for signature verification. publicKey should be set to the filename of public key or certificate pem-file located in `<package-root>\config\certs` or absolute path being used. Clear text secret will become encrypted when gateway is started. For JWKS (JSON Web Key Set), the **wellKnownUri** must be set to identity provider well-known URI which will be used for lookup the jwks_uri key. **options.issuer** should normally be set for validation when using secret or publicKey, for JWKS (wellKnownUri), the issuer will be included automatically. Other options may also be included according to the JWT standard. When using Azure Entra ID provisioning through scimgateway, set **azureTenantId** to the Entra tenant id. When using Entra ID application accessing gateway use: `wellKnownUri=https://login.microsoftonline.com/{tenant-id}/v2.0/.well-known/openid-configuration` and `options.audience={application-id}`
 
 - **auth.bearerOAuth** - Array of one or more Client Credentials OAuth configuration objects. **`clientId`** and **`clientSecret`** are mandatory. clientSecret value will become encrypted when gateway is started. OAuth token request url is **/oauth/token** e.g. `http://localhost:8880/oauth/token`
 
@@ -461,7 +455,7 @@ Definitions in `endpoint` object are customized according to our plugin code. Pl
 - **email.auth** - Authentication configuration
 - **email.auth.type** - `oauth` or `smtp`
 - **email.auth.options** - Authentication options - note, different options for type oauth and smtp
-- **email.auth.options.tenantIdGUID (oauth/ExO)** - Entra tenant id or domain name
+- **email.auth.options.azureTenantId (oauth/ExO)** - Entra tenant id or domain name
 - **email.auth.options.clientId (oauth/ExO)** - Entra OAuth application Client ID
 - **email.auth.options.clientSecret (oauth/ExO)** - Entra OAuth application Client Secret
 - **email.auth.options.serviceAccountKeyFile (oauth/Gmail)** - Google Service Account key json-file name located in the `package-root>\config\certs` directory unless absolute path being defined
@@ -675,7 +669,7 @@ Configuration showing connection settings:
 
 * baseUrls - Endpoint URL. Several may be defined for failower. There are retry logic on connection failures
 * auth.type - defines authentication being used: `basic`, `oauth`, `token`, `bearer`, `oauthSamlBearer` or `oauthJwtBearer`
-* auth.options - for each valid type there are different options. tenantIdGUID is special for Entra ID and serviceAccountKeyFile is special for Google. Using these will simplify and reduce options to be included. Also note we do not need to include baseUrls when using tenantIdGUID/serviceAccountKeyFile as long as endpoint is Entra ID (Microsoft Graph) or Google.
+* auth.options - for each valid type there are different options. azureTenantId is special for Entra ID and serviceAccountKeyFile is special for Google. Using these will simplify and reduce options to be included. Also note we do not need to include baseUrls when using azureTenantId/serviceAccountKeyFile as long as endpoint is Entra ID (Microsoft Graph) or Google.
 
 Example using basic auth:  
 
@@ -705,7 +699,7 @@ Example Entra ID (plugin-entra-id) using clientId/clientSecret:
 	  "auth": {
 	    "type": "oauth",
 	    "options": {
-	      "tenantIdGUID": "<tenantId>",
+	      "azureTenantId": "<tenantId>",
 	      "clientId": "<clientId>",
 	      "clientSecret": "<clientSecret>"
 	    }
@@ -719,7 +713,7 @@ Example Entra ID (plugin-entra-id) using certificate secret:
 	  "auth": {
 	    "type": "oauthJwtBearer",
 	    "options": {
-	      "tenantIdGUID": "<tenantId>",
+	      "azureTenantId": "<tenantId>",
 	      "clientId": "<clientId>",
 	      "tls": {
 	        "key": "key.pem",
@@ -736,7 +730,7 @@ Example Entra ID (plugin-entra-id) using federated credentials:
 	  "auth": {
 	    "type": "oauthJwtBearer",
 	    "options": {
-	      "tenantIdGUID": "<tenantId>",
+	      "azureTenantId": "<tenantId>",
 	      "fedCred": {
 	        "issuer": "<https://FQDN-scimgateway>",
 	        "subject": "<entra id application object id - client id>",
@@ -1045,7 +1039,7 @@ To upgrade scimgateway docker image (remove the old stuff before running docker-
 
 Entra ID could do automatic user provisioning by synchronizing users towards SCIM Gateway, and gateway plugins will update endpoints.
 
-Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.auth.bearerToken[x].token) or **Entra ID Tenant ID GUID** (scimgateway.auth.bearerJwtAzure[x].tenantIdGUID) or both:  
+Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.version) and either **Bearer Token** (scimgateway.auth.bearerToken[x].token) or **Entra ID Tenant ID** (scimgateway.auth.bearerJwt[x].azureTenantId) or both:  
 
 	scimgateway: {
 	  "scim": {
@@ -1059,9 +1053,9 @@ Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.
             "token": "shared-secret"
           }
         ],
-        "bearerJwtAzure": [
+        "bearerJwt": [
           {
-            "tenantIdGUID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            "azureTenantId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
           }
         ]
       }
@@ -1069,11 +1063,11 @@ Plugin configuration file must include **SCIM Version "2.0"** (scimgateway.scim.
 	}
 
 `token` configuration must correspond with "Secret Token" defined in Entra ID  
-`tenantIdGUID` configuration must correspond with Entra ID Tenant ID  
+`azureTenantId` configuration must correspond with Entra ID Tenant ID  
 
 In Azure Portal:
 `Azure-Microsoft Entra ID-Enterprise Application-<My Application>-Provisioning-Secret Token`  
-Note, when "Secret Token" is left blank, Azure will use JWT (tenantIdGUID)
+Note, when "Secret Token" is left blank, Azure will use JWT (azureTenantId)
 
 `Azure-Microsoft Entra ID-Overview-Tenant ID`
 
@@ -1097,7 +1091,7 @@ Some notes related to Entra ID:
 
 - Entra ID SCIM [documentation](https://learn.microsoft.com/en-us/entra/identity/app-provisioning/use-scim-to-provision-users-and-groups)  
 
-- For using OAuth/JWT credentials, Entra ID configuration "Secret Token" (bearer token) should be blank. Plugin configuration must then include bearerJwtAzure.tenantIdGUID. Click "Test Connection" in Azure to verify
+- For using OAuth/JWT credentials, Entra ID configuration "Secret Token" (bearer token) should be blank. Plugin configuration must then include bearerJwt.azureTenantId. Click "Test Connection" in Azure to verify
 
 - Entra ID do a regular check for a "non" existing user/group. This check seems to be a "keep alive" to verify connection.
 
@@ -1217,7 +1211,7 @@ Note, for Symantec/Broadcom Provisioning we must use SCIM version 1.1
             }
           ],
 
-Update `tenantIdGUID`, `clientID` and `clientSecret` according to what you copied from the previous Entra ID configuration.  
+Update `azureTenantId`, `clientID` and `clientSecret` according to what you copied from the previous Entra ID configuration.  
   
 If using proxy, set proxy.host to `"http://<FQDN-ProxyHost>:<port>"` e.g `"http://proxy.mycompany.com:3128"`  
 
@@ -1226,13 +1220,13 @@ If using proxy, set proxy.host to `"http://<FQDN-ProxyHost>:<port>"` e.g `"http:
 	    "undefined": {
 		  "connection": {
 		    "baseUrls": [
-			  "not in use for Entra ID when tenantIdGUID is defined"
+			  "not in use for Entra ID when azureTenantId is defined"
 		    ],
 		    "auth": {
 			  "type": "oauth",
 			  "options": {
-			    "tokenUrl": "oauth token_url - not in use when tenantIdGUID is defined",
-			    "tenantIdGUID": "Entra ID Tenant ID (GUID) or Primary domain name - only used by plugin-entra-id",
+			    "tokenUrl": "oauth token_url - not in use when azureTenantId is defined",
+			    "azureTenantId": "Entra ID Tenant ID (GUID) or Primary domain name - only used by plugin-entra-id",
 			    "clientId": "oauth client_id - Entra ID: Application ID",
 			    "clientSecret": "oauth client_secret - Entra ID: generated application secret value"
 			  }
@@ -1489,6 +1483,82 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log
+
+### v6.0.0
+
+**[MAJOR]**  
+ 
+ introduces changes to API method response bodies (not SCIM-related)
+  
+- API method response bodies (no SCIM related) will now be returned "as-is". Previously response body had format `{ result: <content> }`. If response body is parsed by client, client must be changeed to reflect the new response body format.
+- New plugin API method `scimgateway.publicApi()` for handling public path `/pub/api` with no authentication required, please see `plugin-api`  
+e.g. `GET /pub/api?model=Tesla`
+- Configuration `scimgateway.auth.bearerJwtAzure` is no longer supported. Instead use the new `scimgateway.auth.bearerJwt.azureTenantId` for allowing Entra ID initiated provisioning through scimgateway
+
+	**Old configuration:**
+
+		"bearerJwtAzure": [
+			{
+			  "tenantIdGUID": {entra-tenant-id},
+			  "readOnly": false,
+			  "baseEntities": []
+			}
+		],
+
+	**New configuration:**
+
+		"bearerJwt": [
+			{
+			  "secret": null,
+			  "publicKey": null,
+			  "wellKnownUri": null,
+			  "azureTenantId": {entra-tenant-id},
+			  "options": {
+			    "issuer": null
+			  },
+			  "readOnly": false,
+			  "baseEntities": []
+			}
+		],
+
+- All existing configurations having key `tenantIdGUID` must be replaced with the new key `azureTenantId`. This also applies to endpoint configuration used by HelperRest()
+
+	**Old configuration:**
+
+		"email": {
+			"auth": {
+			  "type": "oauth",
+			  "options": {
+			    "tenantIdGUID": null,
+			    "clientId": null,
+			    "clientSecret": null
+			  }
+			},
+
+	**New configuration:**
+
+		"email": {
+			"auth": {
+			"type": "oauth",
+			"options": {
+			  "azureTenantId": null,
+			  "clientId": null,
+			  "clientSecret": null
+			}
+
+
+	Example of HelperRest() endpoint configuration used by plugin-entra-id having tenantIdGUID replaced with azureTenantId:
+
+		"connection": {
+			"baseUrls": [],
+			"auth": {
+			"type": "oauth",
+			"options": {
+			  "azureTenantId": "Entra ID Tenant ID (GUID)",
+			  "clientId": "Entra ID Application ID",
+			  "clientSecret": "Entra ID Application secret value"
+			}
+		},
 
 ### v5.5.5
 
