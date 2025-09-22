@@ -1731,7 +1731,7 @@ export class ScimGateway {
 
       let scimdata: any, err: any
       if (jsonBody.Operations) [scimdata, err] = utilsScim.convertedScim20(jsonBody, this.multiValueTypes) // v2.0
-      else[scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes) // v1.1
+      else [scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes) // v1.1
       logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] convertedBody=${JSON.stringify(scimdata)}`, { baseEntity: ctx?.routeObj?.baseEntity })
       if (err) {
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
@@ -3238,17 +3238,17 @@ export class ScimGateway {
               cert: tls.cert,
               ca: tls.ca,
             },
-              async (req, res) => {
-                doFetchApi(req, res)
-              })
+            async (req, res) => {
+              doFetchApi(req, res)
+            })
           } else if (tls.pfx) {
             server = httpsCreateServer({
               pfx: tls.pfx,
               passphrase: tls.passphrase,
             },
-              async (req, res) => {
-                doFetchApi(req, res)
-              })
+            async (req, res) => {
+              doFetchApi(req, res)
+            })
           } else {
             server = httpCreateServer(async (req, res) => {
               doFetchApi(req, res)
