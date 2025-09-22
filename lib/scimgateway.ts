@@ -1,5 +1,5 @@
 // =================================================================================
-// File:    scimgateway.js
+// File:    scimgateway.ts
 //
 // Author:  Jarle Elshaug
 //
