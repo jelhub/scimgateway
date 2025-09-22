@@ -13,11 +13,9 @@ import { createServer as httpsCreateServer } from 'node:https'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import { createPublicKey } from 'node:crypto'
 import { createChecker } from 'is-in-subnet'
-import { BearerStrategy, type IBearerStrategyOptionWithRequest } from 'passport-azure-ad'
 import { fileURLToPath } from 'node:url'
 import { Logger } from './logger.ts'
 import { HelperRest } from './helper-rest.ts'
-import passport from 'passport'
 import dot from 'dot-object'
 import nodemailer from 'nodemailer'
 import fs from 'node:fs'
@@ -250,50 +248,50 @@ export class ScimGateway {
   /**
   * postApi method is defined at the plugin and should handle incoming `"POST /api"` for creating an object and should be used according to your needs  
   * @param baseEntity used for multi tenant or multi endpoint support, either "undefined" or set by request url e.g., http://localhost:8880/loki2/Users gives baseEntity=loki2
-  * @param apiObj is POST body and contains object to be created
+  * @param body is POST body and contains object to be created
   * @param ctx if plugin authPassThroughAllowed is set to true, ctx contains authorization header `{ "headers": { "authorization": "<value>" } }` that can be used in the communication with endpoint, something that is included when using HelperRest
   * @returns according to your needs
   * @example
   * POST http://localhost:8890/api  
   * body = {"title":"BMW X5","price":58}
   */
-  postApi!: (baseEntity: string, apiObj: any, ctx?: undefined | Record<string, any>) => any
+  postApi!: (baseEntity: string, body: any, ctx?: undefined | Record<string, any>) => any
   /**
   * putApi method is defined at the plugin and should handle incoming `"PUT /api/<id>"` for replacing an object and should be used according to your needs  
   * @param baseEntity used for multi tenant or multi endpoint support, either "undefined" or set by request url e.g., http://localhost:8880/loki2/Users gives baseEntity=loki2
   * @param id unique object id
-  * @param apiObj is PUT body and contains the new replaced object
+  * @param body is PUT body and contains the new replaced object
   * @param ctx if plugin authPassThroughAllowed is set to true, ctx contains authorization header `{ "headers": { "authorization": "<value>" } }` that can be used in the communication with endpoint, something that is included when using HelperRest
   * @returns according to your needs
   * @example
   * PUT http://localhost:8890/api/100  
   * body = {"title":"BMW X1","price":21}  
   */
-  putApi!: (baseEntity: string, id: string, apiObj: any, ctx?: undefined | Record<string, any>) => any
+  putApi!: (baseEntity: string, id: string, body: any, ctx?: undefined | Record<string, any>) => any
   /**
   * patchApi method is defined at the plugin and should handle incoming `"PATCH /api/<id>"` for modifying an object and should be used according to your needs  
   * @param baseEntity used for multi tenant or multi endpoint support, either "undefined" or set by request url e.g., http://localhost:8880/loki2/Users gives baseEntity=loki2
   * @param id unique object id
-  * @param apiObj is PATCH body and contains attributes to be modified
+  * @param body is PATCH body and contains attributes to be modified
   * @param ctx if plugin authPassThroughAllowed is set to true, ctx contains authorization header `{ "headers": { "authorization": "<value>" } }` that can be used in the communication with endpoint, something that is included when using HelperRest
   * @returns according to your needs
   * @example
   * PATCH http://localhost:8890/api/100  
   * body = {"title":"BMW X3"}
   */
-  patchApi!: (baseEntity: string, id: string, apiObj: any, ctx?: undefined | Record<string, any>) => any
+  patchApi!: (baseEntity: string, id: string, body: any, ctx?: undefined | Record<string, any>) => any
   /**
   * getApi method is defined at the plugin and should handle incoming `"GET /api/<query>"` for retrieving one or more objects and should be used according to your needs  
   * @param baseEntity used for multi tenant or multi endpoint support, either "undefined" or set by request url e.g., http://localhost:8880/loki2/Users gives baseEntity=loki2
   * @param id <undefined | unique object id> // if undefined all objects should be retrived
-  * @param apiQuery is url querystring
+  * @param query is url querystring
   * @param ctx if plugin authPassThroughAllowed is set to true, ctx contains authorization header `{ "headers": { "authorization": "<value>" } }` that can be used in the communication with endpoint, something that is included when using HelperRest
   * @returns according to your needs
   * @examples
   * GET http://localhost:8890/api  
   * GET http://localhost:8890/api/100  
   */
-  getApi!: (baseEntity: string, id: string, apiQuery: any, apiObj: any, ctx?: undefined | Record<string, any>) => any
+  getApi!: (baseEntity: string, id: string, query: Record<string, any> | undefined, ctx?: undefined | Record<string, any>) => any
   /**
   * deleteApi method is defined at the plugin and should handle incoming `"DELETE /api/<id>"` for deleting an objects and should be used according to your needs  
   * @param baseEntity used for multi tenant or multi endpoint support, either "undefined" or set by request url e.g., http://localhost:8880/loki2/Users gives baseEntity=loki2
@@ -304,6 +302,19 @@ export class ScimGateway {
   * DELETE http://localhost:8890/api/100
   */
   deleteApi!: (baseEntity: string, id: string, ctx?: undefined | Record<string, any>) => any
+  /**
+  * publicApi method is defined at the plugin and should handle all incoming methods for the public path `/pub/api` - note, there are no authentication for this path
+  * @param baseEntity will always be `pub`
+  * @param method GET/POST/PATCH/PUT/DELETE
+  * @param id unique object id for methods having id else undefined
+  * @param query query object if exists else undefined
+  * @param apiObj body
+  * @returns according to your needs
+  * @example
+  * PATCH http://localhost:8890/pub/api/100  
+  * body = {"title":"BMW X3"}
+  */
+  publicApi!: (baseEntity: string, method: string, id: string | undefined, query: Record<string, any> | undefined, apiObj: any) => any
 
   constructor() {
     const funcHandler: any = {}
@@ -400,7 +411,6 @@ export class ScimGateway {
     if (!this.config.scimgateway.auth.basic) this.config.scimgateway.auth.basic = []
     if (!this.config.scimgateway.auth.bearerToken) this.config.scimgateway.auth.bearerToken = []
     if (!this.config.scimgateway.auth.bearerJwt) this.config.scimgateway.auth.bearerJwt = []
-    if (!this.config.scimgateway.auth.bearerJwtAzure) this.config.scimgateway.auth.bearerJwtAzure = []
     if (!this.config.scimgateway.auth.bearerOAuth) this.config.scimgateway.auth.bearerOAuth = []
     if (!this.config.scimgateway.auth.passThrough) this.config.scimgateway.auth.passThrough = {}
     this.config.scimgateway.auth.oauthTokenStore = {}
@@ -634,42 +644,23 @@ export class ScimGateway {
       })
     }
 
-    const bearerJwtAzure = async (baseEntity: string, method: string, authType: string, authToken: string): Promise<boolean> => {
-      return await new Promise((resolve, reject) => {
-        if (!found.BearerJwtAzure) return resolve(false)
-        if (authType !== 'Bearer' || !authToken) return resolve(false)
-        let payload
-        try {
-          payload = jose.decodeJwt(authToken)
-          if (!payload || !payload.iss) return resolve(false)
-          if (!payload.iss.startsWith('https://sts.windows.net')) return resolve(false)
-        } catch (err: any) {
-          return resolve(false)
-        }
-        const req = { headers: { authorization: `${authType} ${authToken}` } } // Node.js http.createServer type IncomingMessage - header supported by passport 
-        passport.authenticate('oauth-bearer', { session: false }, (err: any, user: any, info: any) => {
-          if (err) { return reject(err) }
-          if (user) { // authenticated OK
-            const arr = this.config.scimgateway.auth.bearerJwtAzure
-            for (let i = 0; i < arr.length; i++) {
-              if (arr[i].tenantIdGUID && payload.iss.includes(arr[i].tenantIdGUID)) {
-                if (arr[i].baseEntities) {
-                  if (Array.isArray(arr[i].baseEntities) && arr[i].baseEntities.length > 0) {
-                    if (!baseEntity) return reject(new Error(`baseEntity=${baseEntity} not allowed for user ${arr[i].tenantIdGUID} according to bearerJwtAzure configuration baseEntitites=${arr[i].baseEntities}`))
-                    if (!arr[i].baseEntities.includes(baseEntity)) return reject(new Error(`baseEntity=${baseEntity} not allowed for user ${arr[i].tenantIdGUID} according to bearerJwtAzure configuration baseEntitites=${arr[i].baseEntities}`))
-                  }
-                }
-                if (arr[i].readOnly === true && method !== 'GET') return reject(new Error(`only allowing readOnly for user ${arr[i].tenantIdGUID} according to bearerJwtAzure configuration readOnly=true`))
-              }
-            }
-            resolve(true)
-          } else reject(new Error(`Azure JWT authorization failed: ${info}`))
-        })(req)
-      })
-    }
-
     const jwtVerify = async (baseEntity: string, method: string, el: Record<string, any>, authToken: string): Promise<boolean> => { // used by bearerJwt
       try {
+        if (el.azureTenantId) {
+          el.wellKnownUri = `https://login.microsoftonline.com/${el.azureTenantId}/.well-known/openid-configuration`
+          el.customOptions = {
+            tid: el.azureTenantId,
+            appid: '00000014-0000-0000-c000-000000000000', // Well known appid: Microsoft.Azure.SyncFabric
+            aud: [
+              // Appid used for SCIM provisioning for non-gallery applications. See changes introduced, in reverse cronological order:
+              // - https://github.com/MicrosoftDocs/azure-docs/commit/f6997c0952d2ad4f33ce7f5339eeb83c21b51f1e
+              // - https://github.com/MicrosoftDocs/azure-docs/commit/64525fea0675a73b2e6b8fe42fbd03ee568cadfc
+              '8adf8e6e-67b2-4cf2-a259-e3dc5476c621',
+              // Well known appid: Issued for accessing Windows Azure Active Directory Graph Webservice
+              '00000002-0000-0000-c000-000000000000',
+            ],
+          }
+        }
         if (el.wellKnownUri) {
           if (!el.jwks) {
             if (!this.helperRest) this.helperRest = this.newHelperRest()
@@ -689,7 +680,18 @@ export class ScimGateway {
             el.options.issuer = issuer
             el.jwks = jose.createRemoteJWKSet(new URL(jwks_uri)) // will automatically reload the JWKS when verification fails due to an unknown kid
           }
-          await jose.jwtVerify(authToken, el.jwks, el.options)
+          const { payload } = await jose.jwtVerify(authToken, el.jwks, el.options)
+          if (!payload || Object.keys(payload).length < 1) throw new Error('incorrect verification response')
+          if (el.customOptions) { // verify non-standard JWT claims
+            for (const key in el.customOptions) {
+              if (!el.customOptions[key]) continue
+              if (Array.isArray(el.customOptions[key])) {
+                if (!el.customOptions[key].includes(payload[key])) throw new Error(`${el.azureTenantId ? 'azureTenantId ' : ''}verification of claim '${key}' failed`)
+              } else {
+                if (payload[key] !== el.customOptions[key]) throw new Error(`${el.azureTenantId ? 'azureTenantId ' : ''}verification of claim '${key}' failed`)
+              }
+            }
+          }
         } else {
           if (el.secret && !el.secretEncoded) {
             el.secretEncoded = new TextEncoder().encode(el.secret)
@@ -718,7 +720,6 @@ export class ScimGateway {
       } catch (err: any) {
         return false
       }
-      if (payload.iss && payload.iss.indexOf('https://sts.windows.net') === 0) return false // azure - handled by bearerJwtAzure
       if (found.BearerOAuth) {
         const a = this.config.scimgateway.auth.bearerOAuth
         const confObjs = a.filter((o: any) => o.clientId === payload.aud)
@@ -830,7 +831,6 @@ export class ScimGateway {
         arrResolve = await Promise.all([
           basic(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           bearerToken(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
-          bearerJwtAzure(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           bearerJwt(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           bearerOAuth(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken),
           authPassThrough(ctx.routeObj.baseEntity, ctx.request.method, authType, authToken, ctx.path),
@@ -1731,7 +1731,7 @@ export class ScimGateway {
 
       let scimdata: any, err: any
       if (jsonBody.Operations) [scimdata, err] = utilsScim.convertedScim20(jsonBody, this.multiValueTypes) // v2.0
-      else [scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes) // v1.1
+      else[scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes) // v1.1
       logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] convertedBody=${JSON.stringify(scimdata)}`, { baseEntity: ctx?.routeObj?.baseEntity })
       if (err) {
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
@@ -2224,6 +2224,7 @@ export class ScimGateway {
           } catch (err) {
             ctx.response.body = result.toString()
           }
+          ctx.response.status = 201
         } else ctx.response.status = 204
         ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       } catch (err: any) {
@@ -2232,7 +2233,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
         ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       }
-    } // post
+    }
     funcHandler.postApiHandler = postApiHandler
 
     // ==========================================
@@ -2278,6 +2279,7 @@ export class ScimGateway {
           } catch (err) {
             ctx.response.body = result.toString()
           }
+          ctx.response.status = 200
         } else ctx.response.status = 204
         ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       } catch (err: any) {
@@ -2286,7 +2288,7 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
         ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       }
-    } // put
+    }
     funcHandler.putApiHandler = putApiHandler
 
     // ==========================================
@@ -2331,6 +2333,7 @@ export class ScimGateway {
             } catch (err) {
               ctx.response.body = result.toString()
             }
+            ctx.response.status = 200
           } else ctx.response.status = 204
           ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
         } catch (err: any) {
@@ -2340,7 +2343,7 @@ export class ScimGateway {
           ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
         }
       }
-    } // patch
+    }
     funcHandler.patchApiHandler = patchApiHandler
 
     // ==========================================
@@ -2355,14 +2358,13 @@ export class ScimGateway {
       const handle = ctx.routeObj.handle
       const baseEntity = ctx.routeObj.baseEntity
       const id = ctx.routeObj.id as string
-      const body = ctx.request.body
 
       if (id) logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [GET ${handle}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
       else logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [GET ${handle}]`)
 
       try {
         logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling getApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
-        let result = await this.getApi(baseEntity, id, ctx.query, body, ctx.passThrough)
+        let result = await this.getApi(baseEntity, id, ctx.query, ctx.passThrough)
         if (result) {
           if (typeof result === 'string') {
             const r = result.trim()
@@ -2378,6 +2380,7 @@ export class ScimGateway {
             ctx.response.body = result.toString()
           }
         }
+        ctx.response.status = 200
         ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       } catch (err: any) {
         const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 404, err)
@@ -2397,7 +2400,7 @@ export class ScimGateway {
     const deleteApiHandler = async (ctx: Context) => {
       const baseEntity = ctx.routeObj.baseEntity
       const id = ctx.routeObj.id
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [DELETE ${ctx.routeObj.handle} ] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [DELETE ${ctx.routeObj.handle}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
       try {
         if (!id || id.includes('/')) throw new Error('missing id')
         logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling deleteApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
@@ -2416,6 +2419,7 @@ export class ScimGateway {
           } catch (err) {
             ctx.response.body = result.toString()
           }
+          ctx.response.status = 200
         } else ctx.response.status = 204
         ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       } catch (err: any) {
@@ -2424,8 +2428,58 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
         ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
       }
-    } // delete
+    }
     funcHandler.deleteApiHandler = deleteApiHandler
+
+    // ========================================================================
+    //           API PUBLIC (no SCIM, public available - no authentication)
+    // ========================================================================
+    //
+    //  GET/POST/PATCH/PUT/DELETE: '/pub/api'
+    //
+    const publicApiHandler = async (ctx: Context) => {
+      if (typeof this.publicApi !== 'function') { // plugin method not implemented
+        ctx.response.status = 404
+        return
+      }
+      const handle = ctx.routeObj.handle
+      const baseEntity = ctx.routeObj.baseEntity
+      const method = ctx.request.method
+      const id = ctx.routeObj.id || undefined
+      const query = Object.keys(ctx.query).length > 0 ? ctx.query : undefined
+      const body = ctx.request.body
+
+      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [${method} public ${handle}] id=${id} query=${query ? JSON.stringify(query) : query}`, { baseEntity: ctx?.routeObj?.baseEntity })
+
+      try {
+        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling publicApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+        let result = await this.publicApi(baseEntity, method, id, query, body)
+        if (result) {
+          if (typeof result === 'string') {
+            const r = result.trim()
+            if (r.startsWith('<') && r.endsWith('>')) {
+              ctx.response.headers.set('content-type', 'text/html; charset=utf-8')
+            } else ctx.response.headers.set('content-type', 'text/plain; charset=utf-8')
+            ctx.response.body = result
+            return
+          }
+          try {
+            ctx.response.body = JSON.stringify(result)
+          } catch (err) {
+            ctx.response.body = result.toString()
+          }
+          if (method === 'POST') ctx.response.status = 201
+          else ctx.response.status = 200
+        } else ctx.response.status = 204
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
+      } catch (err: any) {
+        const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 500, err)
+        ctx.response.status = statusCode
+        ctx.response.body = JSON.stringify(e)
+        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
+      }
+    }
+    funcHandler.publicApiHandler = publicApiHandler
 
     // ==========================================
     //   GET Application Roles based on groups
@@ -2667,6 +2721,11 @@ export class ScimGateway {
       if (ctx.request.method === 'GET' && ctx.path.endsWith('/.well-known/jwks.json')) {
         await getHandlerOauthJwks(ctx)
         if (!ctx.response.status) ctx.response.status = 404
+        return ctx
+      }
+      if (ctx.path.startsWith('/pub/api')) { // public api methods
+        await publicApiHandler(ctx)
+        if (!ctx.response.status) ctx.response.status = 200
         return ctx
       }
 
@@ -3179,17 +3238,17 @@ export class ScimGateway {
               cert: tls.cert,
               ca: tls.ca,
             },
-            async (req, res) => {
-              doFetchApi(req, res)
-            })
+              async (req, res) => {
+                doFetchApi(req, res)
+              })
           } else if (tls.pfx) {
             server = httpsCreateServer({
               pfx: tls.pfx,
               passphrase: tls.passphrase,
             },
-            async (req, res) => {
-              doFetchApi(req, res)
-            })
+              async (req, res) => {
+                doFetchApi(req, res)
+              })
           } else {
             server = httpCreateServer(async (req, res) => {
               doFetchApi(req, res)
@@ -3483,13 +3542,13 @@ export class ScimGateway {
   * {
   *   "scimgateway": {
   *     "email": {
-  *       "host": "<host>", // required when not using tenantIdGUID (Microsoft)
-  *       "port": <port>, // required when not using tenantIdGUID (Microsoft)
+  *       "host": "<host>", // required when not using azureTenantId (Microsoft)
+  *       "port": <port>, // required when not using azureTenantId (Microsoft)
   *       "auth": {
   *         "type": "oauth",
   *         "options": {
-  *           "tenantIdGUID": "<tenantId>", // used for Microsoft Exchange Online
-  *           "tokenUrl": "<tokenUrl>",     // required when not using tenantIdGUID (Microsoft)
+  *           "azureTenantId": "<tenantId>", // used for Microsoft Exchange Online
+  *           "tokenUrl": "<tokenUrl>",     // required when not using azureTenantId (Microsoft)
   *           "clientId": "<clientId>",
   *           "clientSecret": "<clientSecret>"
   *         }
@@ -3504,7 +3563,7 @@ export class ScimGateway {
   *   }
   * }
   * ```
-  * Some notes when using OAuth and tenantIdGUID - Microsoft Exchange:  
+  * Some notes when using OAuth and azureTenantId - Microsoft Exchange:  
   * Entra ID application must have application permissions "**Mail.Send**"  
   *   
   * For not allowing send email from all mailboxes, ExO **ApplicationAccessPolicy** must be defined through PowerShell.  
@@ -3539,7 +3598,7 @@ export class ScimGateway {
 
     if (authType === 'oauth') {
       if (!this.helperRest) this.helperRest = this.newHelperRest()
-      if (this.config.scimgateway.email.auth?.options?.tenantIdGUID) {
+      if (this.config.scimgateway.email.auth?.options?.azureTenantId) {
         // Microsoft Exchange Online (ExO) - using Graph API
         const emailMessage: Record<string, any> = {
           message: {
@@ -3608,7 +3667,7 @@ Content-Transfer-Encoding: quoted-printable
         }
         return
       }
-      logger.error(`${gwName}[${pluginName}] sendMail error: type oauth supports only ExO (scimgateway.email.auth.options.tenantIdGUID) or Google Workspace Gmail (scimgateway.email.auth.options.serviceAccountKeyFile)`)
+      logger.error(`${gwName}[${pluginName}] sendMail error: type oauth supports only ExO (scimgateway.email.auth.options.azureTenantId) or Google Workspace Gmail (scimgateway.email.auth.options.serviceAccountKeyFile)`)
       return
     }
 
@@ -3668,7 +3727,6 @@ Content-Transfer-Encoding: quoted-printable
 
     let foundBasic = false
     let foundBearerToken = false
-    let foundBearerJwtAzure = false
     let foundBearerJwt = false
     let foundBearerOAuth = false
     let foundPassThrough = false
@@ -3682,8 +3740,7 @@ Content-Transfer-Encoding: quoted-printable
       // found logic
       if (lastKey === 'password' && key.startsWith('scimgateway.auth.basic')) foundBasic = true
       else if (lastKey === 'token' && key.startsWith('scimgateway.auth.bearerToken')) foundBearerToken = true
-      else if (lastKey === 'tenantIdGUID' && key.startsWith('scimgateway.auth.bearerJwtAzure')) foundBearerJwtAzure = true
-      else if ((lastKey === 'publicKey' || lastKey === 'secret' || lastKey === 'wellKnownUri') && key.startsWith('scimgateway.auth.bearerJwt')) foundBearerJwt = true
+      else if ((lastKey === 'publicKey' || lastKey === 'secret' || lastKey === 'wellKnownUri' || 'azureTenantId') && key.startsWith('scimgateway.auth.bearerJwt')) foundBearerJwt = true
       else if (lastKey === 'clientSecret' && key.startsWith('scimgateway.auth.bearerOAuth')) foundBearerOAuth = true
 
       // certificate full path
@@ -3784,42 +3841,8 @@ Content-Transfer-Encoding: quoted-printable
     processFiles.clear()
     this.config = dot.object(dotConfig) // updated config
 
-    if (foundBearerJwtAzure && Array.isArray(this.config.scimgateway.auth.bearerJwtAzure)) {
-      const issuers: string[] = []
-      const arr = this.config.scimgateway.auth.bearerJwtAzure
-      for (let i = 0; i < arr.length; i++) {
-        if (arr[i].tenantIdGUID) {
-          issuers.push(`https://sts.windows.net/${arr[i].tenantIdGUID}/`)
-        }
-      }
-      if (issuers.length < 1) foundBearerJwtAzure = false
-      else {
-        const azureOptions: IBearerStrategyOptionWithRequest = {
-          validateIssuer: true,
-          passReqToCallback: false,
-          loggingLevel: 'error',
-          // identityMetadata: `https://login.microsoftonline.com/${tenantIdGUID}/.well-known/openid-configuration`,
-          identityMetadata: 'https://login.microsoftonline.com/organizations/v2.0/.well-known/openid-configuration',
-          clientID: '00000014-0000-0000-c000-000000000000', // Well known appid: Microsoft.Azure.SyncFabric
-          audience: [
-            // Well known appid: Issued for accessing Windows Azure Active Directory Graph Webservice
-            '00000002-0000-0000-c000-000000000000',
-            // Appid used for SCIM provisioning for non-gallery applications. See changes introduced, in reverse cronological order:
-            // - https://github.com/MicrosoftDocs/azure-docs/commit/f6997c0952d2ad4f33ce7f5339eeb83c21b51f1e
-            // - https://github.com/MicrosoftDocs/azure-docs/commit/64525fea0675a73b2e6b8fe42fbd03ee568cadfc
-            '8adf8e6e-67b2-4cf2-a259-e3dc5476c621',
-          ],
-          issuer: issuers, // array => passport.authenticate supports more than one AAD tenant
-        }
-        passport.use(new BearerStrategy(azureOptions, (token: any, done: any) => { // using named strategy = tenantIdGUID, passport.authenticate then using name
-          return done(null, token.sub) // Azure SyncFabric don't send user info claims, returning claim token.sub as user
-        }))
-      }
-    }
-
     if (!foundBasic) this.config.scimgateway.auth.basic = []
     if (!foundBearerToken) this.config.scimgateway.auth.bearerToken = []
-    if (!foundBearerJwtAzure) this.config.scimgateway.auth.bearerJwtAzure = []
     if (!foundBearerOAuth) this.config.scimgateway.auth.bearerOAuth = []
     if (!foundBearerJwt) this.config.scimgateway.auth.bearerJwt = []
     if (this?.config?.scimgateway?.auth?.passThrough?.enabled === true) foundPassThrough = true
@@ -3827,7 +3850,6 @@ Content-Transfer-Encoding: quoted-printable
     return { // valid auth methods
       Basic: foundBasic,
       BearerToken: foundBearerToken,
-      BearerJwtAzure: foundBearerJwtAzure,
       BearerJwt: foundBearerJwt,
       BearerOAuth: foundBearerOAuth,
       PassThrough: foundPassThrough,
