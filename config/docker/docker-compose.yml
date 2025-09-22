@@ -20,6 +20,11 @@ services:
 #      - PORT=8880
 #      - SEED=changeit
     restart: on-failure:3
+    init: true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
             
   scimgateway-data:
     image: scimgateway-data:latest
