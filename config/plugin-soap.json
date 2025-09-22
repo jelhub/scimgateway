@@ -33,18 +33,12 @@
           "baseEntities": []
         }
       ],
-      "bearerJwtAzure": [
-        {
-          "tenantIdGUID": null,
-          "readOnly": false,
-          "baseEntities": []
-        }
-      ],
       "bearerJwt": [
         {
           "secret": null,
           "publicKey": null,
           "wellKnownUri": null,
+          "azureTenantId": null,
           "options": {
             "issuer": null
           },
@@ -80,7 +74,7 @@
       "auth": {
         "type": "oauth",
         "options": {
-          "tenantIdGUID": null,
+          "azureTenantId": null,
           "clientId": null,
           "clientSecret": null
         }
