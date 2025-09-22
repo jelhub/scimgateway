@@ -45,7 +45,7 @@ export class HelperRest {
         const type = this.config_entity[baseEntity].connection?.auth?.type
         if (type === 'oauthJwtBearer' || type === 'oauth') {
           // set default baseUrls for Entra ID and Google if not already defined
-          if (this.config_entity[baseEntity]?.connection?.auth?.options?.tenantIdGUID) { // Entra ID, setting baseUrls to graph
+          if (this.config_entity[baseEntity]?.connection?.auth?.options?.azureTenantId) { // Entra ID, setting baseUrls to graph
             if (!this.config_entity[baseEntity].connection.baseUrls) {
               this.config_entity[baseEntity].connection.baseUrls = [this.graphUrl]
             } else if (this.config_entity[baseEntity].connection.baseUrls?.length < 1) {
@@ -85,7 +85,7 @@ export class HelperRest {
     const action = 'getAccessToken'
 
     const serviceAccountKeyFile = this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile
-    const tenantIdGUID = this.config_entity[baseEntity]?.connection?.auth?.options?.tenantIdGUID
+    const azureTenantId = this.config_entity[baseEntity]?.connection?.auth?.options?.azureTenantId
     let tokenUrl: string
     let form: Record<string, any>
     let resource = ''
@@ -94,8 +94,8 @@ export class HelperRest {
       const urlObj = new URL(this.config_entity[baseEntity].connection.baseUrls[0])
       resource = urlObj.origin
     } catch (err) { void 0 }
-    if (tenantIdGUID) {
-      tokenUrl = `https://login.microsoftonline.com/${tenantIdGUID}/oauth2/v2.0/token`
+    if (azureTenantId) {
+      tokenUrl = `https://login.microsoftonline.com/${azureTenantId}/oauth2/v2.0/token`
       if (resource) this.config_entity[baseEntity].connection.auth.options.scope = resource + '/.default' // "https://graph.microsoft.com/.default"
     } else tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
 
@@ -152,7 +152,7 @@ export class HelperRest {
           let jwtClaims: jose.JWTPayload | Record<string, any>
           let jwtHeaders: jose.JWTHeaderParameters
 
-          if (tenantIdGUID) { // Microsoft Entra ID
+          if (azureTenantId) { // Microsoft Entra ID
             if (this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer) { // federated credentials
               const now = Date.now()
               const jwtPayload: jose.JWTPayload = {
@@ -232,7 +232,7 @@ export class HelperRest {
               const jwtPayload: jose.JWTPayload = {
                 iss: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
                 sub: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
-                aud: `https://login.microsoftonline.com/${tenantIdGUID}/v2.0`,
+                aud: `https://login.microsoftonline.com/${azureTenantId}/v2.0`,
                 iat: Math.floor(Date.now() / 1000) - 60,
                 exp: Math.floor(Date.now() / 1000) + 3600,
                 jti: crypto.randomUUID(),
@@ -307,10 +307,10 @@ export class HelperRest {
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl
               || !this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload
               || typeof this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload !== 'object') {
-              throw new Error(`auth.type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no tenantIdGUID/serviceAccountKeyFile using raw) - missing configuration entity.${baseEntity}.connection.auth.options.tokenUrl/jwtPayload`)
+              throw new Error(`auth.type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no azureTenantId/serviceAccountKeyFile using raw) - missing configuration entity.${baseEntity}.connection.auth.options.tokenUrl/jwtPayload`)
             }
             if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.key) {
-              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no tenantIdGUID/serviceAccountKeyFile using raw) - missing options.tls.key configuration`)
+              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no azureTenantId/serviceAccountKeyFile using raw) - missing options.tls.key configuration`)
             }
             tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
             let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._key || ''
@@ -468,7 +468,7 @@ export class HelperRest {
 
         // may use configuration type='oauth' and auto corrected to 'oauthJwtBearer'
         if (this.config_entity[baseEntity]?.connection?.auth?.type == 'oauth') {
-          if (this.config_entity[baseEntity].connection.auth?.options?.tenantIdGUID) {
+          if (this.config_entity[baseEntity].connection.auth?.options?.azureTenantId) {
             if (this.config_entity[baseEntity].connection.auth.options?.tls?.cert
               && this.config_entity[baseEntity].connection.auth.options?.tls?.key
               && this.config_entity[baseEntity].connection.auth.options.clientId
@@ -519,7 +519,7 @@ export class HelperRest {
             param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
             break
           case 'oauthJwtBearer':
-            // auth.options.tenantIdGUID => Microsoft Entra ID
+            // auth.options.azureTenantId => Microsoft Entra ID
             // auth.options.serviceAccountKeyFile => Google Service Account
             // also support custom using tokenUrl/jwtPayload
             param.accessToken = await this.getAccessToken(baseEntity, ctx)
@@ -804,7 +804,7 @@ export class HelperRest {
   *     "entity": {
   *       "undefined": {
   *         "connection": {
-  *           "baseUrls": [  // ignored when using option tenantIdGUID
+  *           "baseUrls": [  // ignored when using option azureTenantId
   *             "<baseUrl>", // "https://host1.company.com:8880",
   *             "<baseUrl2>" // optional using several baseUrls for failover
   *           ],
@@ -846,8 +846,8 @@ export class HelperRest {
   * {
   *   "type": "oauth",
   *   "options": {
-  *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Entra ID authentication - if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
-  *     "tokenUrl": "<tokenUrl>", // must be set if not using tenantIdGUID
+  *     "azureTenantId": "<Entra ID azureTenantId", // Entra ID authentication - if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
+  *     "tokenUrl": "<tokenUrl>", // must be set if not using azureTenantId
   *     "clientId": "<clientId>",
   *     "clientSecret": "<clientSecret>"
   *   }
@@ -905,7 +905,7 @@ export class HelperRest {
   * {
   *   "type": "oauthJwtBearer",
   *   "options": {
-  *     "tenantIdGUID": "<Entra ID tenantIdGUID", // Entra ID authentication, if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
+  *     "azureTenantId": "<Entra ID azureTenantId", // Entra ID authentication, if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
   *     "clientId": "<clientId>",
   *     "tls": { // files located in ./config/certs
   *       "key": "key.pem",
@@ -919,7 +919,7 @@ export class HelperRest {
   * {
   *   "type": "oauthJwtBearer",
   *   "options": {
-  *     "tenantIdGUID": "<Entra ID tenantIdGUID",
+  *     "azureTenantId": "<Entra ID azureTenantId",
   *     "fedCred": {
   *       "issuer": "<https://FQDN-scimgateway", // scimgateway base URL, e.g. https://scimgateway.my-company.com
   *       "subject": "<entra id application object id - client id>",
