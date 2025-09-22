@@ -37,7 +37,7 @@ describe('plugin-api', () => {
     }
     const res = await fetchSCIM('POST', '/api', objApi, options.content.headers)
     expect(res.status).toBe(201)
-    expect(res.body.meta.result).toBe('success')
+    expect(res.body.id).toBeDefined()
   })
 
   test('put /api/100 test', async () => {
@@ -47,7 +47,7 @@ describe('plugin-api', () => {
     }
     const res = await fetchSCIM('PUT', '/api/100', objApi, options.content.headers)
     expect(res.status).toBe(200)
-    expect(res.body.meta.result).toBe('success')
+    expect(res.body.id).toBe(100)
   })
 
   test('patch /api/100 test', async () => {
@@ -56,17 +56,60 @@ describe('plugin-api', () => {
     }
     const res = await fetchSCIM('PATCH', '/api/100', objApi, options.content.headers)
     expect(res.status).toBe(200)
-    expect(res.body.meta.result).toBe('success')
+    expect(res.body.title).toBe('BMW X3')
   })
 
   test('get /api/100 test', async () => {
     const res = await fetchSCIM('GET', '/api/100', undefined, options.std.headers)
     expect(res.status).toBe(200)
-    expect(res.body.meta.result).toBe('success')
+    expect(res.body.id).toBe(100)
   })
+
   test('delete /api/100 test', async () => {
     const res = await fetchSCIM('DELETE', '/api/100', undefined, options.std.headers)
     expect(res.status).toBe(200)
-    expect(res.body.meta.result).toBe('success')
+    expect(res.body.id).toBe(100)
+  })
+
+  // '/pub/api' is public, no authentication
+  test('public post /pub/api test', async () => {
+    const objApi = {
+      title: 'BMW X5',
+      price: 58,
+    }
+    const res = await fetchSCIM('POST', '/pub/api', objApi)
+    expect(res.status).toBe(201)
+    expect(res.body.post).toBeDefined()
+  })
+
+  test('public put /pub/api/100 test', async () => {
+    const objApi = {
+      title: 'BMW X1',
+      price: 21,
+    }
+    const res = await fetchSCIM('PUT', '/pub/api/100', objApi)
+    expect(res.status).toBe(200)
+    expect(res.body.put).toBeDefined()
+  })
+
+  test('public patch /pub/api/100 test', async () => {
+    const objApi = {
+      title: 'BMW X3',
+    }
+    const res = await fetchSCIM('PATCH', '/pub/api/100', objApi)
+    expect(res.status).toBe(200)
+    expect(res.body.patch).toBeDefined()
+  })
+
+  test('public get /pub/api/100 test', async () => {
+    const res = await fetchSCIM('GET', '/pub/api/100', undefined)
+    expect(res.status).toBe(200)
+    expect(res.body.get).toBeDefined()
+  })
+
+  test('public delete /pub/api/100 test', async () => {
+    const res = await fetchSCIM('DELETE', '/pub/api/100', undefined)
+    expect(res.status).toBe(200)
+    expect(res.body.delete).toBeDefined()
   })
 })
