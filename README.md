@@ -1486,9 +1486,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ### v6.0.0
 
-**[MAJOR]**  
- 
- introduces changes to API method response bodies (not SCIM-related)
+**[MAJOR]**
   
 - API method response bodies (no SCIM related) will now be returned "as-is". Previously response body had format `{ result: <content> }`. If response body is parsed by client, client must be changeed to reflect the new response body format.
 - New plugin API method `scimgateway.publicApi()` for handling public path `/pub/api` with no authentication required, please see `plugin-api`  
