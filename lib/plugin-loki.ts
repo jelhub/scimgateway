@@ -104,9 +104,9 @@ for (const baseEntity in config.entity) {
 // =================================================
 // getUsers
 // =================================================
-scimgateway.getUsers = async (baseEntity, getObj, attributes) => {
+scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   const action = 'getUsers'
-  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const users = config.entity[baseEntity].users
@@ -232,9 +232,9 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes) => {
 // =================================================
 // createUser
 // =================================================
-scimgateway.createUser = async (baseEntity, userObj) => {
+scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   const action = 'createUser'
-  scimgateway.logDebug(baseEntity, `handling ${action} userObj=${JSON.stringify(userObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} userObj=${JSON.stringify(userObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const users = config.entity[baseEntity].users
@@ -271,9 +271,9 @@ scimgateway.createUser = async (baseEntity, userObj) => {
 // =================================================
 // deleteUser
 // =================================================
-scimgateway.deleteUser = async (baseEntity, id) => {
+scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   const action = 'deleteUser'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const users = config.entity[baseEntity].users
@@ -287,9 +287,9 @@ scimgateway.deleteUser = async (baseEntity, id) => {
 // =================================================
 // modifyUser
 // =================================================
-scimgateway.modifyUser = async (baseEntity, id, attrObj) => {
+scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyUser'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const users = config.entity[baseEntity].users
@@ -408,9 +408,9 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj) => {
 // =================================================
 // getGroups
 // =================================================
-scimgateway.getGroups = async (baseEntity, getObj, attributes) => {
+scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   const action = 'getGroups'
-  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const groups = config.entity[baseEntity].groups
@@ -502,7 +502,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes) => {
 // =================================================
 scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   const action = 'createGroup'
-  scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const groups = config.entity[baseEntity].groups
@@ -540,9 +540,9 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 // =================================================
 // deleteGroup
 // =================================================
-scimgateway.deleteGroup = async (baseEntity, id) => {
+scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
   const action = 'deleteGroup'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const groups = config.entity[baseEntity].groups
@@ -558,7 +558,7 @@ scimgateway.deleteGroup = async (baseEntity, id) => {
 // =================================================
 scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyGroup'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const groups = config.entity[baseEntity].groups

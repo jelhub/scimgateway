@@ -123,7 +123,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   // scimgateway will automatically filter response according to the attributes list
   //
   const action = 'getUsers'
-  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes} passThrough=${ctx ? 'true' : 'false'}`)
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity: ${baseEntity}`)
 
   const result: any = {
@@ -272,7 +272,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   const action = 'createUser'
-  scimgateway.logDebug(baseEntity, `handling ${action} userObj=${JSON.stringify(userObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} userObj=${JSON.stringify(userObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
   let userBase = null
   if (userObj.entitlements && userObj.entitlements.userbase) { // override default userBase (type userbase will be lowercase)
@@ -338,7 +338,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
 // =================================================
 scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   const action = 'deleteUser'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} passThrough=${ctx ? 'true' : 'false'}`)
 
   const method = 'del'
   let base
@@ -365,7 +365,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyUser'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
   // groups must be handled separate - using group member of user and not user member of group
   if (attrObj.groups) { // not supported by AD - will fail (not allowing updating users memberOf attribute, must update group instead of user)
@@ -539,7 +539,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   // scimgateway will automatically filter response according to the attributes list
   //
   const action = 'getGroups'
-  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes} passThrough=${ctx ? 'true' : 'false'}`)
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity: ${baseEntity}`)
 
   const result: any = {
@@ -683,7 +683,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   const action = 'createGroup'
-  scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.map.group) throw new Error(`${action} error: missing configuration endpoint.map.group`)
   const groupBase = config.entity[baseEntity].ldap.groupBase
@@ -723,7 +723,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 // =================================================
 scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
   const action = 'deleteGroup'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.map.group) throw new Error(`${action} error: missing configuration endpoint.map.group`)
   const method = 'del'
@@ -751,7 +751,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyGroup'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!config.map.group) throw new Error(`${action} error: missing configuration endpoint.map.group`)
   if (attrObj.members && !Array.isArray(attrObj.members)) {

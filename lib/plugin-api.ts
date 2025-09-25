@@ -55,7 +55,7 @@ const helper = new HelperRest(scimgateway)
 //
 scimgateway.postApi = async (baseEntity, body, ctx) => {
   const action = 'postApi'
-  scimgateway.logDebug(baseEntity, `handling ${action} body=${JSON.stringify(body)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} body=${JSON.stringify(body)} passThrough=${ctx ? 'true' : 'false'}`)
 
   if ((typeof (body) !== 'object') || (Object.keys(body).length === 0)) {
     throw new Error('unsupported POST syntax')
@@ -81,7 +81,7 @@ scimgateway.postApi = async (baseEntity, body, ctx) => {
 //
 scimgateway.putApi = async (baseEntity, id, body, ctx) => {
   const action = 'putApi'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} body=${JSON.stringify(body)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} body=${JSON.stringify(body)} passThrough=${ctx ? 'true' : 'false'}`)
 
   if ((typeof (body) !== 'object') || (Object.keys(body).length === 0)) {
     throw new Error('unsupported PUT syntax')
@@ -108,7 +108,7 @@ scimgateway.putApi = async (baseEntity, id, body, ctx) => {
 //
 scimgateway.patchApi = async (baseEntity, id, body, ctx) => {
   const action = 'patchApi'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} body=${JSON.stringify(body)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} body=${JSON.stringify(body)} passThrough=${ctx ? 'true' : 'false'}`)
 
   if ((typeof (body) !== 'object') || (Object.keys(body).length === 0)) {
     throw new Error('unsupported PATCH syntax')
@@ -135,7 +135,7 @@ scimgateway.patchApi = async (baseEntity, id, body, ctx) => {
 //
 scimgateway.getApi = async (baseEntity, id, query, ctx) => {
   const action = 'getApi'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} apiQuery=${JSON.stringify(query)}}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} apiQuery=${JSON.stringify(query)}} passThrough=${ctx ? 'true' : 'false'}`)
 
   const method = 'GET'
   let path = '/products'
@@ -162,7 +162,7 @@ scimgateway.getApi = async (baseEntity, id, query, ctx) => {
 //
 scimgateway.deleteApi = async (baseEntity, id, ctx) => {
   const action = 'deleteApi'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} passThrough=${ctx ? 'true' : 'false'}`)
 
   const method = 'DELETE'
   const path = `/products/${id}`
@@ -212,9 +212,9 @@ const deletePublicApi = async (baseEntity: string, id: string | undefined, body:
   return { delete: { id, body } }
 }
 
-scimgateway.publicApi = async (baseEntity, method, id, query, body) => {
+scimgateway.publicApi = async (baseEntity, method, id, query, body, ctx) => {
   const action = 'publicApi'
-  scimgateway.logDebug(baseEntity, `handling ${action} method=${method} id=${id} query=${query ? JSON.stringify(query) : query} body=${JSON.stringify(body)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} method=${method} id=${id} query=${query ? JSON.stringify(query) : query} body=${JSON.stringify(body)} passThrough=${ctx ? 'true' : 'false'}`)
 
   switch (method) {
     case 'GET':

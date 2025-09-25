@@ -58,7 +58,7 @@ if (!scimgateway.authPassThroughAllowed) {
 // =================================================
 scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   const action = 'getUsers'
-  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes} passThrough=${ctx ? 'true' : 'false'}`)
 
   let soapRequest
   let soapAction
@@ -169,7 +169,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   const action = 'createUser'
-  scimgateway.logDebug(baseEntity, `handling ${action} userObj=${JSON.stringify(userObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} userObj=${JSON.stringify(userObj)} passThrough=${ctx ? 'true' : 'false'}`)
   try {
     if (!userObj.name) userObj.name = {}
     if (!userObj.emails) userObj.emails = { work: {} }
@@ -213,7 +213,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
 // =================================================
 scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   const action = 'deleteUser'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} passThrough=${ctx ? 'true' : 'false'}`)
   try {
     const serviceClient = await getServiceClient(baseEntity, action, ctx)
 
@@ -240,7 +240,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
 // =================================================
 scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyUser'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)} passThrough=${ctx ? 'true' : 'false'}`)
   try {
     // forwardinc modify user will blank all attributes not included in soap request...
     // We therefore need to to retrieve all user attributes from forwardinc and merge with updated attributes.
@@ -309,7 +309,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 // =================================================
 scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   const action = 'getGroups'
-  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes} passThrough=${ctx ? 'true' : 'false'}`)
 
   let soapRequest
   let soapAction
@@ -401,9 +401,9 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 // =================================================
 // createGroup
 // =================================================
-scimgateway.createGroup = async (baseEntity, groupObj) => {
+scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   const action = 'createGroup'
-  scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)} passThrough=${ctx ? 'true' : 'false'}`)
   // groupObj.displayName contains the group to be created
   // if supporting create group, we need some endpoint logic here
   throw new Error(`${action} error: ${action} is not supported`)
@@ -412,9 +412,9 @@ scimgateway.createGroup = async (baseEntity, groupObj) => {
 // =================================================
 // deleteGroup
 // =================================================
-scimgateway.deleteGroup = async (baseEntity, id) => {
+scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
   const action = 'deleteGroup'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} passThrough=${ctx ? 'true' : 'false'}`)
   // if supporting delete group, we need some endpoint logic here
   throw new Error(`${action} error: ${action} is not supported`)
 }
@@ -424,7 +424,7 @@ scimgateway.deleteGroup = async (baseEntity, id) => {
 // =================================================
 scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyGroup'
-  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
   if (!attrObj.members) {
     throw new Error(`${action} error: only supports modification of members`)
