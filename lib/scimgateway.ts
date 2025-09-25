@@ -314,7 +314,7 @@ export class ScimGateway {
   * PATCH http://localhost:8890/pub/api/100  
   * body = {"title":"BMW X3"}
   */
-  publicApi!: (baseEntity: string, method: string, id: string | undefined, query: Record<string, any> | undefined, apiObj: any) => any
+  publicApi!: (baseEntity: string, method: string, id: string | undefined, query: Record<string, any> | undefined, apiObj: any, ctx?: undefined | Record<string, any>) => any
 
   constructor() {
     const funcHandler: any = {}
@@ -2443,7 +2443,7 @@ export class ScimGateway {
         return
       }
       const handle = ctx.routeObj.handle
-      const baseEntity = ctx.routeObj.baseEntity
+      const baseEntity = ctx.routeObj.baseEntity = 'undefined'
       const method = ctx.request.method
       const id = ctx.routeObj.id || undefined
       const query = Object.keys(ctx.query).length > 0 ? ctx.query : undefined
@@ -2453,7 +2453,7 @@ export class ScimGateway {
 
       try {
         logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling publicApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
-        let result = await this.publicApi(baseEntity, method, id, query, body)
+        let result = await this.publicApi(baseEntity, method, id, query, body, ctx.passThrough)
         if (result) {
           if (typeof result === 'string') {
             const r = result.trim()
@@ -2475,8 +2475,10 @@ export class ScimGateway {
       } catch (err: any) {
         const [e, statusCode] = utilsScim.jsonErr('1.1', pluginName, 500, err)
         ctx.response.status = statusCode
-        ctx.response.body = JSON.stringify(e)
-        ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
+        if (err.message) { // may use err.name (xxx#<code>) and no message to avoid returning standard error formatted body e.g., const err=new Error(); err.name=err.name +='#404'; throw err
+          ctx.response.body = JSON.stringify(e)
+          ctx.response.headers.set('content-type', 'application/json; charset=utf-8')
+        }
       }
     }
     funcHandler.publicApiHandler = publicApiHandler
