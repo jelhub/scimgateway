@@ -772,6 +772,8 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
       if (!dn) throw new Error(`${action} error: sidGuidToDn() did not return any objectGUID value for dn=${el.value}`)
       el.value = dn
     }
+    const dnObj = ldapEscDn(config.entity[baseEntity].ldap.isOpenLdap, el.value)
+    el.value = dnObj.toString()
     if (el.operation && el.operation === 'delete') { // delete member from group
       grp.remove[memberAttr].push(el.value) // endpointMapper returns URI encoded id because some IdP's don't encode id used in GET url e.g. Symantec/Broadcom/CA
     } else { // add member to group
@@ -1098,8 +1100,8 @@ const getMemberOfGroups = async (baseEntity: string, id: string, ctx: any) => {
 // using OpenLDAP, DN must be escaped - national characters and special ldap characters
 // using Active Directory (none OpenLDAP), DN should not be escaped, but DN retrieved from AD is character escaped
 //
-const ldapEscDn = (isOpenLdap: any, str: string) => {
-  if (typeof str !== 'string' || str.length < 1) return str
+const ldapEscDn = (isOpenLdap: any, str: string): ldap.DN => {
+  if (typeof str !== 'string' || str.length < 1) return new ldap.DN()
 
   if (!isOpenLdap && str.indexOf('\\') > 0) {
     const conv = str.replace(/\\([0-9A-Fa-f]{2})/g, (_, hex) => {
@@ -1127,6 +1129,10 @@ const ldapEscDn = (isOpenLdap: any, str: string) => {
       continue
     }
     const a = arr[i].split('=')
+    while (a.length > 2) { // 'uid=Firstname \= Lastname'
+      a[1] += '=' + a[2]
+      a.splice(2, 1)
+    }
     if (a.length < 2 && i > 0) { // value having comma and content
       if (arr[i - 1].charAt(arr[i - 1].length - 1) === '\\') {
         arr[i - 1] = arr[i - 1].substring(0, arr[i - 1].length - 1)
@@ -1142,17 +1148,18 @@ const ldapEscDn = (isOpenLdap: any, str: string) => {
     }
     if (i > 0) break // only escape logic on first, assume sub OU's are correct
   }
-  if (isOpenLdap) {
-    str = arr.join(',')
-    return str
-  }
-  // Using dn object and BER encoding
-  // e.g., Active Directory to avoid internal ldapjs OpenLDAP validating and string escaping logic
+
+  // Using dn object instead of string to ensure all escaping will be OK e.g. 'uid=test \= test,dc=example,dc=com'
+  // For non OpenLdap e.g., Active Directory, we must include BER encoding 
   const dn = new ldap.DN()
   for (let i = 0; i < arr.length; i++) {
     const a = arr[i].split('=') // cn=Kürt
+    while (a.length > 2) {
+      a[1] += '=' + a[2]
+      a.splice(2, 1)
+    }
     if (a.length === 2) {
-      if (i === 0) {
+      if (i === 0 && !isOpenLdap) {
         const ua = new Uint8Array(Buffer.from(a[1], 'utf-8'))
         const buf = Buffer.from(new Uint8Array([4, ua.length, ...ua]))
         const rdn: any = {}
@@ -1328,8 +1335,7 @@ const checkIfNewDN = (baseEntity: string, base: any, type: string, obj: any, end
   if (a[1].toLowerCase() !== namingAttr.toLowerCase() + '=') return ''
   if (a[2] === newNamingValue) return ''
   let newDN = a[1] + newNamingValue + a[3]
-  newDN = ldapEscDn(config.entity[baseEntity].ldap.isOpenLdap, newDN)
-  return newDN
+  return ldapEscDn(config.entity[baseEntity].ldap.isOpenLdap, newDN)
 }
 
 //
@@ -1422,7 +1428,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity: ${baseEntity}`)
   let result: any = null
   let client: any = null
-  base = ldapEscDn(config.entity[baseEntity].ldap.isOpenLdap, base)
+  const dnObj = ldapEscDn(config.entity[baseEntity].ldap.isOpenLdap, base)
 
   // support having different upn-domain on IdP and target
   if (options.modification && options.modification.userPrincipalName && config.map.user.userPrincipalName && config.map.user.userPrincipalName.mapDomain) {
@@ -1441,7 +1447,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
         result = await new Promise((resolve, reject) => {
           const results: any = []
 
-          client.search(base, options, (err: any, search: any) => {
+          client.search(dnObj, options, (err: any, search: any) => {
             if (err) {
               return reject(err)
             }
@@ -1510,7 +1516,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
 
       case 'modify':
         result = await new Promise((resolve: any, reject: any) => {
-          const dn = base
+          const dn = dnObj
           const changes: any = []
           for (const key in options.modification) {
             const mod: any = {}
@@ -1549,8 +1555,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
 
       case 'modifyDN':
         result = await new Promise((resolve: any, reject: any) => {
-          let dn = base
-          if (Object.prototype.toString.call(dn) === '[object LdapDn]') dn = base.toString() // needed for client.modifyDN...
+          let dn = dnObj.toString() // needed for client.modifyDN...
           let newDN = options?.modification?.newDN
           if (!newDN) return reject(new Error('modifyDN() missing newDN'))
           if (Object.prototype.toString.call(newDN) === '[object LdapDn]') newDN = newDN.toString()
@@ -1565,7 +1570,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
 
       case 'add':
         result = await new Promise((resolve: any, reject: any) => {
-          client.add(base, options, (err: any) => {
+          client.add(dnObj, options, (err: any) => {
             if (err) {
               return reject(err)
             }
@@ -1576,7 +1581,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
 
       case 'del':
         result = await new Promise((resolve: any, reject: any) => {
-          client.del(base, (err: any) => {
+          client.del(dnObj, (err: any) => {
             if (err) {
               return reject(err)
             }
@@ -1593,7 +1598,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
     if (options.filter && typeof options.filter === 'object') {
       options.filter = options.filter.toString()
     }
-    scimgateway.logDebug(baseEntity, `doRequest method=${method} base=${berDecodeDn(base)} ldapOptions=${JSON.stringify(options)} Error Response = ${err.message}`)
+    scimgateway.logDebug(baseEntity, `doRequest method=${method} base=${berDecodeDn(dnObj)} ldapOptions=${JSON.stringify(options)} Error Response = ${err.message}`)
     if (client) {
       try {
         client.destroy()
@@ -1605,7 +1610,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
   if (options.filter && typeof options.filter === 'object') {
     options.filter = options.filter.toString()
   }
-  scimgateway.logDebug(baseEntity, `doRequest method=${method} base=${berDecodeDn(base)} ldapOptions=${JSON.stringify(options)} Response=${JSON.stringify(result)}`)
+  scimgateway.logDebug(baseEntity, `doRequest method=${method} base=${berDecodeDn(dnObj)} ldapOptions=${JSON.stringify(options)} Response=${JSON.stringify(result)}`)
   return result
 } // doRequest
 
