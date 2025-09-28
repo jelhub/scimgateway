@@ -1279,7 +1279,12 @@ export class ScimGateway {
         if (arrFilter.length === 3 || (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"'))) {
           getObj.attribute = arrFilter[0] // userName
           getObj.operator = arrFilter[1].toLowerCase() // eq
-          getObj.value = decodeURIComponent(arrFilter.slice(2).join(' ').replace(/"/g, '')) // bjensen
+          const value = arrFilter.slice(2).join(' ').replace(/"/g, '')
+          try {
+            getObj.value = decodeURIComponent(value) // bjensen
+          } catch (err) { // e.g., character '%' in string - 'name%test' 
+            getObj.value = value
+          }
         }
       }
 
