@@ -1484,6 +1484,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+
+### v6.0.1
+
+[Fixed]
+- plugin-ldap, failed when the RDN value contained the character '=' e.g., `CN=Firstname \= Lastname,CN=Users,DC=my-company,DC=com`
+- GET using filter failed when filter value contained the character '%' e.g., `GET /Users?filter=userName eq "my % name"`
+
 ### v6.0.0
 
 **[MAJOR]**
