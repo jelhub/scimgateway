@@ -1,5 +1,5 @@
 // =================================================================================
-// File:    plugin-ldap.js
+// File:    plugin-ldap.ts
 //
 // Author:  Jarle Elshaug
 //
