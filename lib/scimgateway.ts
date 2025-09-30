@@ -96,7 +96,7 @@ export class ScimGateway {
    * not want getGroups() requests, user object should include `{ "groups": [] }`
    *  @remarks the value of returned 'id' will be used as 'id' in modifyUser and deleteUser
    */
-  getUsers!: (baseEntity: string, getObj: Record<string, any>, attributes: Array<string>, ctx?: undefined | Record<string, any>) => any
+  getUsers!: (baseEntity: string, getObj: Record<string, any>, attributes: string[], ctx?: undefined | Record<string, any>) => any
   /**
    * createUser method is defined at the plugin and should create user at endpoint  
    * @param baseEntity used for multi tenant or multi endpoint support, either "undefined" or set by request url e.g., http://localhost:8880/loki2/Users gives baseEntity=loki2
@@ -183,7 +183,7 @@ export class ScimGateway {
    * ```
    *  @remarks the value of returned 'id' will be used as 'id' in modifyGroup and deleteGroup
    */
-  getGroups!: (baseEntity: string, getObj: Record<string, any>, attributes: Array<string>, ctx?: undefined | Record<string, any>) => any
+  getGroups!: (baseEntity: string, getObj: Record<string, any>, attributes: string[], ctx?: undefined | Record<string, any>) => any
   /**
    * createGroup method is defined at the plugin and should create group at endpoint  
    * @param baseEntity used for multi tenant or multi endpoint support, either "undefined" or set by request url e.g., http://localhost:8880/loki2/Users gives baseEntity=loki2
@@ -1179,9 +1179,10 @@ export class ScimGateway {
 
       try {
         const ob = utils.copyObj(getObj)
-        const attributes = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
+        const attributes: string[] = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
+        if (attributes.length > 0 && !attributes.includes('id')) attributes.push('id')
         logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
-        let res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
+        let res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
 
         let scimdata: { [key: string]: any } = {
           Resources: [],
@@ -1397,7 +1398,8 @@ export class ScimGateway {
 
         let res: any
         const obj: any = utils.copyObj(getObj)
-        const attributes = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
+        const attributes: string[] = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
+        if (attributes.length > 0 && !attributes.includes('id')) attributes.push('id')
         if (!obj.operator && obj.rawFilter && obj.rawFilter.includes(' or ')) {
           // advanced filtering using or logic - used by One Identity Manager
           // e.g.: (id eq "bjensen") or (id eq "jsmith")
@@ -1420,7 +1422,7 @@ export class ScimGateway {
           }
           if (getObjArr.length > 0) {
             const getObj = async (o: Record<string, any>) => {
-              return await (this as any)[handle.getMethod](baseEntity, o, [], ctx.passThrough)
+              return await (this as any)[handle.getMethod](baseEntity, o, attributes, ctx.passThrough)
             }
             const chunk = 5
             const chunkRes: Record<string, any>[] = []
@@ -1444,7 +1446,7 @@ export class ScimGateway {
 
         if (!res) { // standard
           logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
-          res = await (this as any)[handle.getMethod](baseEntity, obj, [], ctx.passThrough)
+          res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
         }
         // check for user attribute groups and include if needed
         if (Array.isArray(res?.Resources)) {
