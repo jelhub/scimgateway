@@ -960,7 +960,47 @@ Verification:
 - **Reboot** server and verify SCIM Gateway have been automatically started
 
 ## Running as a isolated virtual Docker container  
-On Linux systems we may also run SCIM Gateway as a Docker image (using docker-compose)  
+
+Installing Docker Desktop may be an alternative for creating and testing docker images and containers
+
+There are two options: run SCIM Gateway in a single image, or use Docker Compose, which allows placing configuration and data outside the image and including other images as dependencies (e.g., MSSQL)
+
+### Docker single image
+
+- Install SCIM Gateway within your own package and copy provided docker files:
+
+	```
+	mkdir /opt/my-scimgateway  
+	cd /opt/my-scimgateway  
+	bun init -y  
+	bun install scimgateway  
+	bun pm trust scimgateway  
+	cp ./config/docker/* .  
+	```
+
+	**Dockerfile**   <== Main dockerfile  
+	**.dockerignore** <== Files to exclude from the build context
+
+
+- Build docker images
+
+	`docker build --platform linux/amd64 --force-rm=true -t my-scimgateway:1.0.0 .`
+
+- Create container
+
+	`docker create --init --ulimit memlock=-1:-1 --name my-scimgateway -p 8880:8880 my-scimgateway:1.0.0`
+
+	Note, consider using `-e SEED=<random-characters>` and plugin configuration file my-scimgateway.json must already be encrypted using same SEED environment
+
+- Start container
+
+	`docker start my-scimgateway`
+
+- Stop container
+
+	`docker stop my-scimgateway`
+
+### Docker image using docker-compose
 
 * Docker Pre-requisites:  
 **docker-ce  
@@ -968,12 +1008,14 @@ docker-compose**
 
 - Install SCIM Gateway within your own package and copy provided docker files:
 
-		mkdir /opt/my-scimgateway  
-		cd /opt/my-scimgateway  
-		bun init -y  
-		bun install scimgateway  
-		bun pm trust scimgateway  
-		cp ./config/docker/* .  
+	```
+	mkdir /opt/my-scimgateway  
+	cd /opt/my-scimgateway  
+	bun init -y  
+	bun install scimgateway  
+	bun pm trust scimgateway  
+	cp ./config/docker/* .  
+	```
 
 	**docker-compose.yml**   <== Here is where you would set the exposed port and environment  
 	**Dockerfile**   <== Main dockerfile  
@@ -984,11 +1026,11 @@ docker-compose**
 
 - Create a scimgateway user on your Linux VM.   
 
-		adduser scimgateway
+	`adduser scimgateway`
 
 - Create a directory on your VM host for the scimgateway configs:  
 
-		mkdir /home/scimgateway/config
+	`mkdir /home/scimgateway/config`
 
 - Copy your updated configuration file e.g. /opt/my-scimgateway/config/plugin-loki.json to /home/scimgateway/config.  Use scp to perform the copy.
 
@@ -996,7 +1038,7 @@ docker-compose**
 
 - Build docker images and start it up  
 
-		docker-compose up --build -d
+	`docker-compose up --build -d`
 
 	NOTE: Add the -d flag to run the command above detached.  
 
@@ -1004,9 +1046,11 @@ docker-compose**
 
 	If using default plugin-loki and we have configured `{"persistence": true}`, we could confirm scimgateway created loki.db:
 	
-		su scimgateway  
-		cd /home/scimgateway/config  
-		ls loki.db  
+	```
+	su scimgateway  
+	cd /home/scimgateway/config  
+	ls loki.db  
+	```
 
 To list running containers information:  
 `docker ps`
@@ -1484,6 +1528,10 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.0.2
+
+[Fixed]
+- Gateway now passing provided filter attributes for getUsers()/getGroups to plugin instead of using empty array for having all supported attributes returned
 
 ### v6.0.1
 
