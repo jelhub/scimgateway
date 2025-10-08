@@ -16,6 +16,7 @@ Validated through IdP's:
 
 Latest news:  
 
+- tsx is now included, allowing SCIM Gateway to be run as a module in Node.js. Bun binary build is now supported. A single binary can be compiled that includes both the gateway and the plugin.
 - Major release **v6.0.0** introduces changes to API method response bodies (not SCIM-related) and a new method `publicApi()` for handling public path `/pub/api` requests with no authentication required. In addition, the configuration option `bearerJwtAzure.tenantIdGUID` has been replaced by `bearerJwt.azureTenantId`. See the version history for details.
 - Entra ID [Federated Identity Credentials](https://learn.microsoft.com/en-us/graph/api/resources/federatedidentitycredentials-overview?view=graph-rest-1.0) is now supported. Identity federation allows SCIM Gateway to access Microsoft Entra protected resources without needing to manage secrets
 - External JWKS (JSON Web Key Set) is now supported by JWT Authentication. These are public and typically frequent rotated by modern identity providers
@@ -160,8 +161,8 @@ If internet connection is blocked, we could install on another machine and copy 
 
 >Tip, take a look at bun test scripts located in `node_modules\scimgateway\test\lib`
 
-> If using Node.js instead of Bun, scimgateway must be downloaded from github because Node.js does not support native typescript used by modules. Startup will then be:  
-`node --experimental-strip-types c:\scimgateway\index.ts`
+> If using Node.js instead of Bun, startup will then be:  
+`node --import=tsx ./index.ts`
 
 #### Upgrade SCIM Gateway  
 
@@ -190,20 +191,20 @@ For Node.js (and also Bun), we might set the property `scimgateway_postinstall_s
 
 ## Configuration  
 
-**index.ts** defines one or more plugins to be started by the `const plugins` setting.  
+**index.ts** defines one or more plugins to be started by the `import statement`.  
   
-	// example starting all default plugins:
-	// const plugins = ['loki', 'scim', 'entra-id', 'ldap', 'mssql', 'api', 'mongodb', 'saphana', 'soap']
+	// start one or more plugins:
+	// import './lib/plugin-scim.ts'
+	// import './lib/plugin-entra-id.ts'
+	// import './lib/plugin-ldap.ts'
+	// import './lib/plugin-mongodb.ts'
+	// import './lib/plugin-api.ts'
+	// import './lib/plugin-mssql.ts'
+	// import './lib/plugin-saphana.ts'
+	// import './lib/plugin-soap.ts'
 
-	const plugins = ['loki']
-	
-	for (const plugin of plugins) {
-	  try {
-	    await import(`./lib/plugin-${plugin}.ts`)
-	  } catch (err: any) {
-	    console.error(err)
-	  }
-	}
+	import './lib/plugin-loki.ts'
+	export {}
 
 
 Each endpoint plugin needs a TypeScript file (.ts) and a configuration file (.json).  
@@ -913,6 +914,21 @@ GET `https://<namespace-name>.servicebus.windows.net/<hybrid-connection-name>/<b
 
 If several SCIM Gateway´s (same plugin) connect listeners using the same Azure Relay connectionUrl, there will be load-balancing and round-robin distribution
 
+### Configuration notes - running SCIM Gateway as a single binary
+
+A single binary can be compiled that includes both the gateway and the plugin. The binary must have the same name (prefix) as the configuration file in the config directory, and this directory must be located in the same folder as the binary.
+
+	cd my-scimgateway
+	bun build --compile --target=bun-darwin-arm64 --outfile ./build/plugin-loki ./lib/plugin-loki.ts
+	// for target options, see: https://bun.com/docs/bundler/executables#cross-compile-to-other-platforms
+
+	cp -r ./config ./build
+	// build directory now have what is needed and can be put into production
+	cd build
+	// run the binary - note, binary must have same name (prefix) as the configuration file in the config directory
+	./plugin-loki
+
+
 
 ## Manual startup    
 
@@ -963,7 +979,7 @@ Verification:
 
 Installing Docker Desktop may be an alternative for creating and testing docker images and containers
 
-There are two options: run SCIM Gateway in a single image, or use Docker Compose, which allows placing configuration and data outside the image and including other images as dependencies (e.g., MSSQL)
+There are two options: run SCIM Gateway in a single image, or use Docker Compose, which allows configuration and data outside the image and including other images as dependencies (e.g., MSSQL)
 
 ### Docker single image
 
@@ -1021,7 +1037,7 @@ docker-compose**
 	**Dockerfile**   <== Main dockerfile  
 	**DataDockerfile**   <== Handles volume mapping   
 	**docker-compose-debug.yml** <== Debugging  
-	**docker-compose-mssql.yml** <== Example including MSSQL docker image
+	**docker-compose-mssql.yml** <== Example including MSSQL docker image  
 	**.dockerignore** <== Files to exclude from the build context
 
 - Create a scimgateway user on your Linux VM.   
@@ -1518,6 +1534,7 @@ In addition following general API methods are available for use:
 * scimgateway.patchApi()  
 * scimgateway.getApi()  
 * scimgateway.deleteApi()
+* scimgateway.publicApi()
 
 In code editor (e.g., Visual Studio Code), method details and documentation are shown by IntelliSense 
 
@@ -1527,6 +1544,89 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log
+
+### v6.1.0
+
+[Improved]
+
+- tsx is now included, allowing SCIM Gateway to be run as a module in Node.js. The mandatory plugin section, which previously required complex dynamic loading, can now be simplified using static imports
+
+	**Old plugin-xxx.ts:**
+
+		// start - mandatory plugin initialization
+		const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
+		try {
+		  return (await import('scimgateway')).ScimGateway
+		} catch (err) {
+		  const source = './scimgateway.ts'
+		  return (await import(source)).ScimGateway
+		}
+		})()
+		const scimgateway = new ScimGateway()
+		const config = scimgateway.getConfig()
+		scimgateway.authPassThroughAllowed = false
+		// end - mandatory plugin initialization
+
+	**New plugin-xxx.ts:**
+
+		// start - mandatory plugin initialization
+		import { ScimGateway } from 'scimgateway'
+		const scimgateway = new ScimGateway()
+		const config = scimgateway.getConfig()
+		scimgateway.authPassThroughAllowed = false
+		// end - mandatory plugin initialization
+
+
+	**Old Node.js startup:**
+
+		node --experimental-strip-types c:\scimgateway\index.ts // scimgateway downloaded from github
+
+	**New Node.js startup:**
+
+		node --import=tsx ./index.ts // running in local package
+
+- index.ts now using static import instead of dynamic
+
+	**Old index.ts:**
+
+		const plugins = ['loki']
+		for (const plugin of plugins) {
+		  try {
+		    await import(`./lib/plugin-${plugin}.ts`)
+		  } catch (err: any) {
+		    console.error(err)
+		  }
+		}
+
+	**New index.ts:**
+
+		// start one or more plugins:
+		// import './lib/plugin-scim.ts'
+		// import './lib/plugin-entra-id.ts'
+		// import './lib/plugin-ldap.ts'
+		// import './lib/plugin-mongodb.ts'
+		// import './lib/plugin-api.ts'
+		// import './lib/plugin-mssql.ts'
+		// import './lib/plugin-saphana.ts'
+		// import './lib/plugin-soap.ts'
+
+		import './lib/plugin-loki.ts'
+		export {}
+
+
+- Bun binary build is now supported. A single binary can be compiled that includes both the gateway and the plugin. The binary must have the same name (prefix) as the configuration file in the config directory, and this directory must be located in the same folder as the binary.
+
+		cd my-scimgateway
+		bun build --compile --target=bun-darwin-arm64 --outfile ./build/plugin-loki ./lib/plugin-loki.ts
+		// for target options, see: https://bun.com/docs/bundler/executables#cross-compile-to-other-platforms
+
+		cp -r ./config ./build
+		// build directory now have what is needed and can be put into production
+		cd build
+		// run the binary - note, binary must have same name (prefix) as the configuration file in the config directory
+		./plugin-loki
+
+- Dependencies bump
 
 ### v6.0.2
 

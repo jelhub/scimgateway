@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "6.0.2",
+  "version": "6.1.0",
   "type": "module",
   "description": "Using SCIM protocol as a gateway for user provisioning to other endpoints",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
@@ -36,9 +36,9 @@
   },
   "dependencies": {
     "@ldapjs/asn1": "^2.0.0",
-    "@nats-io/jetstream": "^3.1.0",
-    "@nats-io/nats-core": "^3.1.0",
-    "@nats-io/transport-node": "^3.1.0",
+    "@nats-io/jetstream": "^3.2.0",
+    "@nats-io/nats-core": "^3.2.0",
+    "@nats-io/transport-node": "^3.2.0",
     "@types/ldapjs": "^3.0.6",
     "@types/lokijs": "^1.5.14",
     "@types/tedious": "^18.0.0",
@@ -50,25 +50,23 @@
     "jose": "^6.1.0",
     "ldapjs": "^3.0.7",
     "lokijs": "^1.5.12",
-    "mongodb": "^6.19.0",
+    "mongodb": "^6.20.0",
     "node-machine-id": "1.1.12",
-    "nodemailer": "^7.0.6",
-    "saml": "^3.0.1"
+    "nodemailer": "^7.0.9",
+    "saml": "^3.0.1",
+    "tsx": "^4.20.6"
   },
   "peerDependencies": {
     "typescript": "^5.6.3"
   },
   "devDependencies": {
-    "@stylistic/eslint-plugin": "^5.3.1",
+    "@stylistic/eslint-plugin": "^5.4.0",
     "@types/bun": "latest",
     "@types/dot-object": "^2.1.6",
-    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "latest",
-    "@types/nodemailer": "^7.0.1",
-    "@types/passport": "^1.0.17",
-    "@types/passport-azure-ad": "^4.3.6",
-    "@typescript-eslint/eslint-plugin": "^8.33.0",
-    "@typescript-eslint/parser": "^8.33.0",
+    "@types/nodemailer": "^7.0.2",
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0",
     "eslint": "^9.27.0"
   }
 }
