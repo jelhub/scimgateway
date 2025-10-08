@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
-const plugins = ['loki_test', 'scim_test', 'api_test'] // 'mongodb_test'
+import './lib/plugin-loki_test.ts'
+import './lib/plugin-scim_test.ts'
+import './lib/plugin-api_test.ts'
 
-for (const plugin of plugins) {
-  await import(`./lib/plugin-${plugin}.ts`)
-}
+export {}
