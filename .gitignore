@@ -12,6 +12,7 @@ typings/
 /DataDockerfile
 /sqlserver_data/
 /node_modules/
+/build/
 /.vscode/
 /dbinit/
 /logs/
