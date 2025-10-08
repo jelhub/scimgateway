@@ -25,6 +25,8 @@ import * as utils from './utils.ts'
 import * as utilsScim from './utils-scim.ts'
 import * as stream from './scim-stream.js'
 export * from './helper-rest.ts'
+// @ts-expect-error: cannot find declaration
+import hycoPkg from 'hyco-https'
 
 export class ScimGateway {
   private config: any
@@ -32,7 +34,6 @@ export class ScimGateway {
   private gwName: string
   private scimDef: any
   private jwk: any
-  private countries: any
   private multiValueTypes: any
   private getMemberOf: any
   private getAppRoles: any
@@ -337,16 +338,16 @@ export class ScimGateway {
     pluginName = pluginName.substring(0, pluginName.lastIndexOf('.')) || pluginName
     let pluginDir = path.dirname(requester)
     let configDir = path.join(pluginDir, '..', 'config')
-    if (pluginDir.includes('BUN/root')) {
-      // running compiled binary, binary name will be pluginName
-      // bun build index.ts --target bun --compile --outfile plugin-xxx
+    let gwName = path.basename(fileURLToPath(import.meta.url)).split('.')[0] // prefix of current file - using fileURLToPath because using "__filename" is not supported by nodejs typescript
+    if (pluginDir.includes('$bunfs/root')) {
+      // running compiled binary, binary name must be pluginName
+      // bun build --compile --target=bun-darwin-arm64 --outfile plugin-xxx ./lib/plugin-xxx.ts
       // we then need: ./plugin-xxx and ./config/plugin-xxx.json
-      pluginDir = '.' // only support running binary in current directory (path to binary can't be found)
+      pluginDir = '.' // only support running binary in current directory
       configDir = './config'
+      gwName = 'scimgateway'
     }
     const configFile = path.join(configDir, `${pluginName}.json`) // config name prefix same as pluging name prefix
-    const gwName = path.basename(fileURLToPath(import.meta.url)).split('.')[0] // prefix of current file - using fileURLToPath because using "__filename" is not supported by nodejs typescript
-    const gwPath = path.dirname(fileURLToPath(import.meta.url))
 
     this.config = {}
     // exposed outside class
@@ -355,13 +356,6 @@ export class ScimGateway {
     this.configDir = configDir
     this.configFile = configFile
     this.authPassThroughAllowed = false // set to true by plugin if using Auth PassThrough
-    this.countries = (() => {
-      try {
-        return JSON.parse(fs.readFileSync(path.join(gwPath, 'countries.json')).toString())
-      } catch (err) {
-        return []
-      }
-    })()
 
     let found: Record<string, any> = {}
     let configErr: any
@@ -370,7 +364,10 @@ export class ScimGateway {
       found = this.processConfig()
     } catch (err) { configErr = err }
 
-    const logDir = this.config?.scimgateway?.log?.logDirectory || path.join(pluginDir, '..', 'logs')
+    let logDir: string
+    if (pluginDir === '.') logDir = 'logs' // running bun compiled binary
+    else logDir = this.config?.scimgateway?.log?.logDirectory || path.join(pluginDir, '..', 'logs')
+
     const logger = new Logger(
       pluginName,
       {
@@ -501,59 +498,12 @@ export class ScimGateway {
 
     let isScimv2 = false
     if (this.config.scimgateway.scim.version === '2.0' || this.config.scimgateway.scim.version === 2) {
-      this.scimDef = (() => {
-        try {
-          return JSON.parse(fs.readFileSync(path.join(pluginDir, 'scimdef-v2.json')).toString()) // using custom
-        } catch (err) {
-          return JSON.parse(fs.readFileSync(path.join(gwPath, 'scimdef-v2.json')).toString())
-        }
-      })()
+      this.scimDef = utilsScim.loadScimDef('2.0', pluginDir)
       isScimv2 = true
     } else {
-      this.scimDef = (() => {
-        try {
-          return JSON.parse(fs.readFileSync(path.join(pluginDir, 'scimdef-v1.json')).toString()) // using custom
-        } catch (err) {
-          return JSON.parse(fs.readFileSync(path.join(gwPath, 'scimdef-v1.json')).toString())
-        }
-      })()
+      this.scimDef = utilsScim.loadScimDef('1.1', pluginDir)
     }
-
-    if (this.config.scimgateway.scim.customSchema) { // legacy - merge plugin custom schema extension into core schemas
-      let custom
-      try {
-        custom = JSON.parse(fs.readFileSync(`${configDir}/schemas/${this.config.scimgateway.scim.customSchema}`, 'utf8'))
-      } catch (err: any) {
-        throw new Error(`failed reading file defined in configuration "scim.customSchema": ${err.message}`)
-      }
-      if (!Array.isArray(custom)) custom = [custom]
-      const schemas = ['User', 'Group']
-      let customMerged = false
-      for (let i = 0; i < schemas.length; i++) {
-        const schema = this.scimDef.Schemas.Resources.find((el: Record<string, any>) => el.name === schemas[i])
-        const customSchema = custom.find((el: Record<string, any>) => el.name === schemas[i])
-        if (schema && customSchema && Array.isArray(customSchema.attributes)) {
-          const arr1 = schema.attributes // core:1.0/2.0 schema
-          const arr2 = customSchema.attributes
-          schema.attributes = arr2.filter((arr2Obj: Record<string, any>) => { // only merge attributes (objects) having unique name into core schema
-            if (!arr1.some((arr1Obj: Record<string, any>) => arr1Obj.name === arr2Obj.name)) {
-              customMerged = true
-              if (!isScimv2) arr2Obj.schema = 'urn:scim:schemas:core:1.0'
-              return arr2Obj
-            }
-            return undefined
-          }).concat(arr1)
-        }
-      }
-      if (!customMerged) {
-        const err = [
-          'No custom SCIM schema attributes have been merged. Make sure using correct format e.g. ',
-          '[{"name": "User", "attributes" : [...]}]. ',
-          'Also make sure attribute names in attributes array do not conflict with core:1.0/2.0 SCIM attribute names',
-        ].join()
-        throw new Error(err)
-      }
-    }
+    const isScimv2Initial = isScimv2
 
     // multiValueTypes array contains attributes that will be used by "type converted objects" logic
     // groups, roles, and members are excluded
@@ -2622,14 +2572,23 @@ export class ScimGateway {
         parts.splice(1, 1)
         pathname = parts.join('/') || '/'
       }
+
       const match = pathname.match(/.*\/v(1|2)(\/.*)/)
       if (match) {
-        if ((match[1] === '2' && !isScimv2) || (match[1] === '1' && isScimv2)) {
-          pathname = '/' // path version not matching configured SCIM version, reset to root => NOT_FOUND
-        } else {
-          leadingPath = pathname.substring(0, pathname.indexOf(match[2]))
-          pathname = match[2] // the part after /v1 or /v2
+        if (match[1] === '2' && !isScimv2) {
+          this.scimDef = utilsScim.loadScimDef('2.0', pluginDir)
+          isScimv2 = true
+        } else if (match[1] === '1' && isScimv2) {
+          this.scimDef = utilsScim.loadScimDef('1.1', pluginDir)
+          isScimv2 = false
         }
+        leadingPath = pathname.substring(0, pathname.indexOf(match[2]))
+        pathname = match[2] // the part after /v1 or /v2
+      } else if (isScimv2 !== isScimv2Initial) {
+        // scim version have previously been changed by above v1/v2 path, but now not using v1/v2 and version must be reset to original
+        isScimv2 = isScimv2Initial
+        if (isScimv2) this.scimDef = utilsScim.loadScimDef('2.0', pluginDir)
+        else this.scimDef = utilsScim.loadScimDef('1.1', pluginDir)
       }
 
       let [baseEntity, handle, id, rest]: string[] = pathname.split('/').filter(Boolean)
@@ -3193,8 +3152,6 @@ export class ScimGateway {
         if (this.config.scimgateway.azureRelay?.enabled === true) {
           // Azure Relay listener server
           (async () => {
-            // @ts-expect-error: has no declaration
-            const hycoPkg = await import('hyco-https')
             const hyco = hycoPkg.default || hycoPkg
             let url: URL = {} as URL
             try {
