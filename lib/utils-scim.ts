@@ -1,9 +1,12 @@
-import { fileURLToPath } from 'url'
 import dot from 'dot-object'
 import fs from 'node:fs'
 import path from 'node:path'
 import * as utils from './utils.ts'
+import scimdefV1Default from './scimdef-v1.json' with { type: 'json' }
+import scimdefV2Default from './scimdef-v2.json' with { type: 'json' }
+import countries from './countries.json' with { type: 'json' }
 
+type ScimVersion = '1.1' | '2.0' | 1.1 | 2.0
 type SCIMBulkOperation = {
   method: string
   path: string
@@ -11,8 +14,6 @@ type SCIMBulkOperation = {
   version?: string
   data?: any
 }
-
-let countries: { 'name': string, 'alpha-2': string, 'country-code': string }[]
 
 // Multi-value attributes are customized from array to object based on type
 // except: groups, members and roles
@@ -391,20 +392,12 @@ const recursiveStrMap = function (direction: string, dotMap: any, obj: any, dotP
           }
         } else if (dotMap.sAMAccountName) { // Active Directory
           if (dotMap[`${dotKey}.mapTo`].startsWith('addresses.') && dotMap[`${dotKey}.mapTo`].endsWith('.country')) {
-            if (!countries) {
-              countries = (() => {
-                try {
-                  const currFilePath = path.dirname(fileURLToPath(import.meta.url))
-                  return JSON.parse(fs.readFileSync(path.join(currFilePath, 'countries.json')).toString())
-                } catch (err) {
-                  return []
-                }
-              })()
-            }
-            const arr = countries.filter(el => obj[key] && el.name === obj[key].toUpperCase())
-            if (arr.length === 1) { // country name found in countries, include corresponding c (shortname) and countryCode
-              obj.c = arr[0]['alpha-2']
-              obj.countryCode = arr[0]['country-code']
+            if (countries && Array.isArray(countries)) {
+              const arr = countries.filter(el => obj[key] && el.name === obj[key].toUpperCase())
+              if (arr.length === 1) { // country name found in countries, include corresponding c (shortname) and countryCode
+                obj.c = arr[0]['alpha-2']
+                obj.countryCode = arr[0]['country-code']
+              }
             }
           }
         }
@@ -572,11 +565,11 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
         if (key.startsWith('lastLogon') && !isNaN(dotParse[key])) { // Active Directory date convert e.g. 132340394347050132 => "2020-05-15 20:03:54"
           const ll = new Date(parseInt(dotParse[key], 10) / 10000 - 11644473600000)
           dotParse[key] = ll.getFullYear() + '-'
-          + ('00' + (ll.getMonth() + 1)).slice(-2) + '-' // eslint-disable-line
-          + ('00' + ll.getDate()).slice(-2) + ' '
-          + ('00' + (ll.getHours())).slice(-2) + ':'
-          + ('00' + ll.getMinutes()).slice(-2) + ':'
-          + ('00' + ll.getSeconds()).slice(-2)
+            + ('00' + (ll.getMonth() + 1)).slice(-2) + '-'
+            + ('00' + ll.getDate()).slice(-2) + ' '
+            + ('00' + (ll.getHours())).slice(-2) + ':'
+            + ('00' + ll.getMinutes()).slice(-2) + ':'
+            + ('00' + ll.getSeconds()).slice(-2)
         }
 
         // first element array gives xxx[0] instead of xxx.0
@@ -1035,4 +1028,29 @@ export function bulkTopologicalSort(graph: Map<SCIMBulkOperation, Set<string>>):
   }
 
   return result
+}
+
+/**
+ * load SCIM definition JSON.
+ * - if customPath is provided and v1/v2 file exists, load and return that JSON.
+ * - else return embedded default for requested version.
+ */
+export function loadScimDef(version: ScimVersion, customPath?: string): any {
+  const v = String(version) as '1.1' | '2.0'
+  // optional custom override (from local package)
+  if (customPath && customPath.trim().length > 0) {
+    let customFile = ''
+    if (v === '1.1') customFile = path.join(customPath, 'scimdef-v1.json')
+    else customFile = path.join(customPath, 'scimdef-v2.json')
+
+    try {
+      if (fs.existsSync(customFile)) {
+        const raw = fs.readFileSync(customFile, 'utf8')
+        return JSON.parse(raw)
+      }
+    } catch (err) {
+      console.error(`Failed to load custom SCIM definition "${customFile}":`, (err as Error).message)
+    }
+  }
+  return v === '1.1' ? scimdefV1Default : scimdefV2Default
 }
