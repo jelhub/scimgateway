@@ -58,32 +58,14 @@
 // =====================================================================================================================
 
 import querystring from 'querystring'
-// for supporting nodejs running scimgateway package directly, using dynamic import instead of: import { ScimGateway } from 'scimgateway'
-// scimgateway also inclues HelperRest: import { ScimGateway, HelperRest } from 'scimgateway'
 
 // start - mandatory plugin initialization
-const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
-  try {
-    return (await import('scimgateway')).ScimGateway
-  } catch (err) {
-    const source = './scimgateway.ts'
-    return (await import(source)).ScimGateway
-  }
-})()
-const HelperRest: typeof import('scimgateway').HelperRest = await (async () => {
-  try {
-    return (await import('scimgateway')).HelperRest
-  } catch (err) {
-    const source = './scimgateway.ts'
-    return (await import(source)).HelperRest
-  }
-})()
+import { ScimGateway, HelperRest } from 'scimgateway'
 const scimgateway = new ScimGateway()
+const helper = new HelperRest(scimgateway)
 const config = scimgateway.getConfig()
 scimgateway.authPassThroughAllowed = false
 // end - mandatory plugin initialization
-
-const helper = new HelperRest(scimgateway)
 
 if (config.map) { // having licensDetails map here instead of config file
   config.map.licenseDetails = {

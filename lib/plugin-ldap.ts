@@ -89,18 +89,8 @@ import ldap from 'ldapjs'
 import { BerReader } from '@ldapjs/asn1'
 import fs from 'node:fs'
 
-// for supporting nodejs running scimgateway package directly, using dynamic import instead of: import { ScimGateway } from 'scimgateway'
-// scimgateway also inclues HelperRest: import { ScimGateway, HelperRest } from 'scimgateway'
-
 // start - mandatory plugin initialization
-const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
-  try {
-    return (await import('scimgateway')).ScimGateway
-  } catch (err) {
-    const source = './scimgateway.ts'
-    return (await import(source)).ScimGateway
-  }
-})()
+import { ScimGateway } from 'scimgateway'
 const scimgateway = new ScimGateway()
 const config = scimgateway.getConfig()
 scimgateway.authPassThroughAllowed = false
