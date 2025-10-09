@@ -18,8 +18,8 @@ Latest news:
 
 - Bun binary build is now supported, allowing SCIM Gateway to be compiled into a single executable binary for simplified deployment and execution. SCIM Gateway can now run as an ES module (TypeScript) in Node.js.
 - Major release **v6.0.0** introduces changes to API method response bodies (not SCIM-related) and a new method `publicApi()` for handling public path `/pub/api` requests with no authentication required. In addition, the configuration option `bearerJwtAzure.tenantIdGUID` has been replaced by `bearerJwt.azureTenantId`. See the version history for details.
-- Support for Entra ID [Federated Identity Credentials](https://learn.microsoft.com/en-us/graph/api/resources/federatedidentitycredentials-overview?view=graph-rest-1.0) has been added through internal JWKS (JSON Web Key Set)
-- External JWKS (JSON Web Key Set) is now supported by JWT Authentication. These are public and typically frequent rotated by modern identity providers
+- Support for Entra ID [Federated Identity Credentials](https://learn.microsoft.com/en-us/graph/api/resources/federatedidentitycredentials-overview?view=graph-rest-1.0) has been added through internal JWKS (JSON Web Key Set), allowing SCIM Gateway to access Microsoft Entra–protected resources without the need to manage secrets
+- External JWKS (JSON Web Key Set) is now supported by JWT Authentication, allowing external applicatons access to SCIM Gateway without the need to managed secrets
 - [Azure Relay](https://learn.microsoft.com/en-us/azure/azure-relay/relay-what-is-it) is now supported for secure and hassle-free outbound communication — with just one minute of configuration
 - [ETag](https://datatracker.ietf.org/doc/html/rfc7644#section-3.14) is now supported
 - [Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) is now supported
