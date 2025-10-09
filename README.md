@@ -16,7 +16,7 @@ Validated through IdP's:
 
 Latest news:  
 
-- tsx is now included, allowing SCIM Gateway to be run as a module in Node.js. Bun binary build is now supported. A single binary can be compiled that includes both the gateway and the plugin.
+- SCIM Gateway can now run as an ES module (TypeScript) in Node.js. Bun binary build is now supported, allowing SCIM Gateway to be compiled into a single executable binary for simplified deployment and execution
 - Major release **v6.0.0** introduces changes to API method response bodies (not SCIM-related) and a new method `publicApi()` for handling public path `/pub/api` requests with no authentication required. In addition, the configuration option `bearerJwtAzure.tenantIdGUID` has been replaced by `bearerJwt.azureTenantId`. See the version history for details.
 - Entra ID [Federated Identity Credentials](https://learn.microsoft.com/en-us/graph/api/resources/federatedidentitycredentials-overview?view=graph-rest-1.0) is now supported. Identity federation allows SCIM Gateway to access Microsoft Entra protected resources without needing to manage secrets
 - External JWKS (JSON Web Key Set) is now supported by JWT Authentication. These are public and typically frequent rotated by modern identity providers
@@ -916,16 +916,16 @@ If several SCIM Gateway´s (same plugin) connect listeners using the same Azure 
 
 ### Configuration notes - running SCIM Gateway as a single binary
 
-A single binary can be compiled that includes both the gateway and the plugin. The binary must have the same name (prefix) as the configuration file in the config directory, and this directory must be located in the same folder as the binary.
+Bun binary build allowing SCIM Gateway to be compiled into a single executable binary for simplified deployment and execution. The binary must have the same name (prefix) as the configuration file in the config directory, and this directory must be located in the same folder as the binary.
 
 	cd my-scimgateway
 	bun build --compile --target=bun-darwin-arm64 --outfile ./build/plugin-loki ./lib/plugin-loki.ts
-	// for target options, see: https://bun.com/docs/bundler/executables#cross-compile-to-other-platforms
+	# for target options, see: https://bun.com/docs/bundler/executables#cross-compile-to-other-platforms
 
 	cp -r ./config ./build
-	// build directory now have what is needed and can be put into production
+	# build directory now ready for production deployment
 	cd build
-	// run the binary - note, binary must have same name (prefix) as the configuration file in the config directory
+	# run the binary - note, binary must have same name (prefix) as the configuration file in the config directory
 	./plugin-loki
 
 
@@ -1549,7 +1549,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 [Improved]
 
-- tsx is now included, allowing SCIM Gateway to be run as a module in Node.js. The mandatory plugin section, which previously required complex dynamic loading, can now be simplified using static imports
+- `tsx` is now included, allowing SCIM Gateway to run as an ES module (TypeScript) in Node.js. The mandatory plugin section, which previously required complex dynamic loading, can now be simplified using static imports
 
 	**Old plugin-xxx.ts:**
 
@@ -1613,17 +1613,16 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 		import './lib/plugin-loki.ts'
 		export {}
 
-
-- Bun binary build is now supported. A single binary can be compiled that includes both the gateway and the plugin. The binary must have the same name (prefix) as the configuration file in the config directory, and this directory must be located in the same folder as the binary.
+- Bun binary build is now supported allowing SCIM Gateway to be compiled into a single executable binary for simplified deployment and execution. The binary must have the same name (prefix) as the configuration file in the config directory, and this directory must be located in the same folder as the binary.
 
 		cd my-scimgateway
 		bun build --compile --target=bun-darwin-arm64 --outfile ./build/plugin-loki ./lib/plugin-loki.ts
-		// for target options, see: https://bun.com/docs/bundler/executables#cross-compile-to-other-platforms
+		# for target options, see: https://bun.com/docs/bundler/executables#cross-compile-to-other-platforms
 
 		cp -r ./config ./build
-		// build directory now have what is needed and can be put into production
+		# build directory now ready for production deployment
 		cd build
-		// run the binary - note, binary must have same name (prefix) as the configuration file in the config directory
+		# run the binary - note, binary must have same name (prefix) as the configuration file in the config directory
 		./plugin-loki
 
 - Dependencies bump
