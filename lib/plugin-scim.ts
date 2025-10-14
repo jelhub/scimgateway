@@ -74,7 +74,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 
   try {
     const response = await helper.doRequest(baseEntity, method, path, body, ctx)
-    if (response.statusCode < 200 || response.statusCode > 299) {
+    if (response.statusCode > 399) {
       throw new Error(`${response.statusMessage} - ${JSON.stringify(response.body)}`)
     } else if (!response.body) {
       throw new Error('got empty response on REST request')
@@ -170,7 +170,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
 
   try {
     const response = await helper.doRequest(baseEntity, method, path, body, ctx)
-    if (response.statusCode < 200 || response.statusCode > 299) {
+    if (response.statusCode > 399) {
       throw new Error(`${response.statusMessage} - ${JSON.stringify(response.body)}`)
     }
     return null
@@ -192,7 +192,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
 
   try {
     const response = await helper.doRequest(baseEntity, method, path, body, ctx)
-    if (response.statusCode < 200 || response.statusCode > 299) {
+    if (response.statusCode > 399) {
       throw new Error(`${response.statusMessage} - ${JSON.stringify(response.body)}`)
     }
     return null
@@ -275,7 +275,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 
   try {
     const response = await helper.doRequest(baseEntity, method, path, body, ctx)
-    if (response.statusCode < 200 || response.statusCode > 299) {
+    if (response.statusCode > 399) {
       throw new Error(`${response.statusMessage} - ${JSON.stringify(response.body)}`)
     }
     return null
@@ -327,7 +327,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 
   try {
     const response = await helper.doRequest(baseEntity, method, path, body, ctx)
-    if (response.statusCode < 200 || response.statusCode > 299) {
+    if (response.statusCode > 399) {
       throw new Error(`${response.statusMessage} - ${JSON.stringify(response.body)}`)
     } else if (!response.body) {
       throw new Error('got empty response on REST request')
@@ -377,7 +377,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 
   try {
     const response = await helper.doRequest(baseEntity, method, path, body, ctx)
-    if (response.statusCode < 200 || response.statusCode > 299) {
+    if (response.statusCode > 399) {
       throw new Error(`${response.statusMessage} - ${JSON.stringify(response.body)}`)
     }
     return null
@@ -399,7 +399,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
 
   try {
     const response = await helper.doRequest(baseEntity, method, path, body, ctx)
-    if (response.statusCode < 200 || response.statusCode > 299) {
+    if (response.statusCode > 399) {
       throw new Error(`${response.statusMessage} - ${JSON.stringify(response.body)}`)
     }
     return null
@@ -471,7 +471,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
 
   try {
     const response = await helper.doRequest(baseEntity, method, path, body, ctx)
-    if (response.statusCode < 200 || response.statusCode > 299) {
+    if (response.statusCode > 399) {
       throw new Error(`${response.statusMessage} - ${JSON.stringify(response.body)}`)
     }
     return null
