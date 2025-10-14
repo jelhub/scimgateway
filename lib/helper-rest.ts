@@ -706,7 +706,7 @@ export class HelperRest {
           } catch (err) { void 0 }
         }
       }
-      if (f.status < 200 || f.status > 299) {
+      if (f.status > 399) {
         if (f.status === 429) { // throttle
           const v = f.headers.get('retry-after')
           if (v) retryAfter = parseInt(v, 10) + 1
