@@ -131,7 +131,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   const method = 'search'
   const scope = 'sub'
   let base = config.entity[baseEntity].ldap.userBase
-  let ldapOptions
+  let ldapOptions: Record<string, any>
 
   const [userIdAttr, err] = scimgateway.endpointMapper('outbound', 'userName', config.map.user) // e.g. 'userName' => 'sAMAccountName'
   if (err) throw new Error(`${action} error: ${err.message}`)
@@ -177,6 +177,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
           }
         }
       }
+      ldapOptions.paged = false
     } else if (getObj.operator === 'eq' && getObj.attribute === 'group.value') {
       // optional - only used when groups are member of users, not default behavior - correspond to getGroupUsers() in versions < 4.x.x
       throw new Error(`${action} error: not supporting groups member of user filtering: ${getObj.rawFilter}`)
@@ -1433,7 +1434,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
     client = await getServiceClient(baseEntity, ctx)
     switch (method) {
       case 'search':
-        options.paged = { pageSize: 200, pagePause: false } // parse entire directory calling 'page' method for each page
+        if (options.paged !== false) options.paged = { pageSize: 200, pagePause: false } // parse entire directory calling 'page' method for each page
         result = await new Promise((resolve, reject) => {
           const results: any = []
 
