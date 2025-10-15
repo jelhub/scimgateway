@@ -144,13 +144,13 @@
           "namingAttribute": {
             "user": [
               {
-                "attribute": "cn",
+                "attribute": "CN",
                 "mapTo": "userName"
               }
             ],
             "group": [
               {
-                "attribute": "cn",
+                "attribute": "CN",
                 "mapTo": "displayName"
               }
             ]
