@@ -328,7 +328,7 @@ export class ScimGateway {
         })
       }
       const e = new Error()
-      requester = e.stack?.[1] || ''
+      requester = e.stack?.[1] ?? ''
       try { // node.js using url-path win: file:///path - linux: file://path
         requester = fileURLToPath(requester)
       } catch (err) { void 0 }
@@ -340,9 +340,8 @@ export class ScimGateway {
     let configDir = path.join(pluginDir, '..', 'config')
     let gwName = path.basename(fileURLToPath(import.meta.url)).split('.')[0] // prefix of current file - using fileURLToPath because using "__filename" is not supported by nodejs typescript
     if (pluginDir.includes('$bunfs/root')) {
-      // running compiled binary, binary name must be pluginName
-      // bun build --compile --target=bun-darwin-arm64 --outfile plugin-xxx ./lib/plugin-xxx.ts
-      // we then need: ./plugin-xxx and ./config/plugin-xxx.json
+      // running compiled binary - binary prefix name must match the config prefix name located in the config folder in the same directory as the binary.
+      // bun build --compile ./lib/plugin-xxx.ts --target=bun-darwin-arm64 --outfile ./build/plugin-xxx
       pluginDir = '.' // only support running binary in current directory
       configDir = './config'
       gwName = 'scimgateway'
@@ -388,8 +387,8 @@ export class ScimGateway {
     )
 
     if (configErr) {
-      logger.error(`${gwName}[${pluginName}] ${configErr.message}`)
-      logger.error(`${gwName}[${pluginName}] stopping...`)
+      logger.error(`${gwName} ${configErr.message}`)
+      logger.error(`${gwName} stopping...`)
       throw (new Error('Using exception to stop further asynchronous code execution (ensure synchronous logger flush to logfile and exit program), please ignore this one...'))
     }
     this.logger = logger
@@ -524,31 +523,52 @@ export class ScimGateway {
       if (ctx.path === '/ping' || ctx.path === '/favicon.ico' || ctx.path.startsWith('/apple-touch-icon')) return
       const ellapsed = performance.now() - ctx.perfStart
       let userName
-      const [authType, authToken] = (ctx.request.headers.get('authorization') || '').split(' ') // [0] = 'Basic' or 'Bearer'
-      if (authType === 'Basic') [userName] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
+      const [authType, authToken] = (ctx.request.headers.get('authorization') ?? '').split(' ') // [0] = 'Basic' or 'Bearer'
+      if (authType === 'Basic') [userName] = (Buffer.from(authToken, 'base64').toString() ?? '').split(':')
       if (!userName && authType === 'Bearer') userName = 'token'
       let outbound = ctx.response.body
 
-      if (typeof outbound === 'string' && outbound.length > 1500 && outbound.includes('"Resources":')) {
+      if (typeof outbound === 'string' && outbound.includes('"Resources":') && outbound.length > 1500) {
         try {
           const o = JSON.parse(outbound)
           if (o?.Resources?.length > 1) {
             o.Resources = [o.Resources[0]]
-            o.Resources.push({ loggerComment: '===REST OF OBJECTS TRUNCATED BECAUSE OF LOG LENGTH===' })
+            o.Resources.push({ loggerComment: '===OBJECTS TRUNCATED BECAUSE OF LOG LENGTH===' })
             outbound = JSON.stringify(o)
           }
         } catch (err) { }
       }
 
-      if (ctx.response.status && (ctx.response.status < 200 || ctx.response.status > 299)) {
+      const logEvent = {
+        baseEntity: ctx?.routeObj?.baseEntity,
+        durationMs: ellapsed,
+        clientIp: ctx.ip,
+        issuer: userName,
+        target: ctx.target, // userName/displayName
+        status: ctx.response.status,
+        method: ctx.request.method,
+        url: ctx.request.url,
+        requestBody: JSON.stringify(ctx.request.body),
+        responseBody: outbound,
+      }
+      let msg = utils.statusText(logEvent.status)
+
+      if (ctx.response.status && ctx.response.status > 399) {
+        try {
+          const o = JSON.parse(ctx.response.body ?? '')
+          if (o.detail) msg = o.detail
+          else if (o.Errors && Array.isArray(o.Errors) && o.Errors[0]?.description) msg = o.Errors[0].description
+        } catch (err) { }
         if (ctx.response.status === 401 && !ctx.request.headers.has('authorization')) {
-          logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
+          logger.warn(msg, logEvent)
         } else if (ctx.response.status === 404) {
-          logger.warn(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
-        } else if (ctx.response.status === 412 || ctx.response.status === 304) {
-          logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
-        } else logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${userName} ${ctx.response.status} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
-      } else logger.info(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ellapsed} ${ctx.ip} ${ctx.response.status} ${userName} ${ctx.request.method} ${ctx.request.url} Inbound=${JSON.stringify(ctx.request.body)} Outbound=${outbound}`, { baseEntity: ctx?.routeObj?.baseEntity })
+          logger.warn(msg, logEvent)
+        } else if (ctx.response.status === 412) {
+          logger.info(msg, logEvent)
+        } else logger.error(msg, logEvent)
+      } else {
+        logger.info(msg, logEvent)
+      }
     }
 
     // start auth methods - used by auth
@@ -556,7 +576,7 @@ export class ScimGateway {
       return await new Promise((resolve, reject) => { // basic auth
         if (!found.Basic) return resolve(false)
         if (authType !== 'Basic' || !authToken) return resolve(false)
-        const [userName, userPassword] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
+        const [userName, userPassword] = (Buffer.from(authToken, 'base64').toString() ?? '').split(':')
         if (!userName || !userPassword) return resolve(false)
         const arr = this.config.scimgateway.auth.basic
         for (let i = 0; i < arr.length; i++) {
@@ -758,7 +778,7 @@ export class ScimGateway {
       if (!found.PassThrough || !this.authPassThroughAllowed || path.endsWith('/logger')) return false
       if (!authToken) return false
       if (authType === 'Basic') {
-        const [userName, userPassword] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
+        const [userName, userPassword] = (Buffer.from(authToken, 'base64').toString() ?? '').split(':')
         if (!userName || !userPassword) return false
       }
       const obj = this.config.scimgateway.auth.passThrough
@@ -774,7 +794,7 @@ export class ScimGateway {
     // end auth methods - used by auth
 
     const isAuthorized = async (ctx: Context): Promise<boolean> => { // authentication/authorization
-      const [authType, authToken] = (ctx.request.headers.get('authorization') || '').split(' ') // [0] = 'Basic' or 'Bearer'
+      const [authType, authToken] = (ctx.request.headers.get('authorization') ?? '').split(' ') // [0] = 'Basic' or 'Bearer'
       let arrResolve: boolean[] = []
       try {
         // authenticate
@@ -801,7 +821,7 @@ export class ScimGateway {
           }
           ctx.response.headers.set('www-authenticate', `Bearer ${str}`)
         } else ctx.response.headers.set('www-authenticate', 'Basic realm=""')
-        logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${err.message}`)
+        logger.error(`${gwName} ${err.message}`)
         return false
       }
       for (const i in arrResolve) {
@@ -817,7 +837,7 @@ export class ScimGateway {
       if (pwErrCount < 3) pwErrCount += 1
       else { // delay brute force attempts
         const delay = (this.config.scimgateway.idleTimeout || 120) - 5
-        logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] ${ctx.request.url} => max authentication failures reached, delaying response with ${delay} seconds to prevent brute force`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.error(`${gwName} ${ctx.request.url} => max authentication failures reached, delaying response with ${delay} seconds to prevent brute force`, { baseEntity: ctx?.routeObj?.baseEntity })
         await new Promise((resolve) => {
           setTimeout(() => { resolve(null) }, 1000 * delay)
         })
@@ -873,7 +893,7 @@ export class ScimGateway {
     const getHandlerLoggerSSE = async (ctx: Context) => {
       const levelInt = logger.levelToInt(this.config?.scimgateway?.log?.loglevel?.push || 'info')
       const encoder = new TextEncoder()
-      logger.info(`${gwName}[${pluginName}] remote logger connected from ip address ${ctx.ip}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.info(`${gwName} remote logger connected from ip address ${ctx.ip}`, { baseEntity: ctx?.routeObj?.baseEntity })
 
       return new Response(
         new ReadableStream({
@@ -897,7 +917,7 @@ export class ScimGateway {
               clearInterval(keepAliveInterval)
               logger.unsubscribe(sub)
               controller.close()
-              logger.info(`${gwName}[${pluginName}] remote logger disconnected from ip address ${ctx.ip}`, { baseEntity: ctx?.routeObj?.baseEntity })
+              logger.info(`${gwName} remote logger disconnected from ip address ${ctx.ip}`, { baseEntity: ctx?.routeObj?.baseEntity })
             }
 
             ctx.request.signal.onabort = cleanup // Bun
@@ -922,7 +942,7 @@ export class ScimGateway {
     // { issuer: <scimgateway-baseUrl>, kid: { privateKey, publicKey } }
     // example issuer: https://scimgateway.my-company.com
     const getHandlerOauthWellKnown = async (ctx: Context) => {
-      logger.debug(`${gwName}[${pluginName}] [oauth] .well-known request`)
+      logger.debug(`${gwName} [oauth] .well-known request`)
       if (!this.jwk || (Object.keys(this.jwk).length < 1)) {
         ctx.response.body = '{}'
         ctx.response.status = 200
@@ -941,7 +961,7 @@ export class ScimGateway {
     // this.jwk is managed by helper-rest oauthJwtBearer - Entra ID Federated Identity
     // { issuer: <scimgateway-baseUrl>, kid: { privateKey, publicKey } }
     const getHandlerOauthJwks = async (ctx: Context) => {
-      logger.debug(`${gwName}[${pluginName}] [oauth] jwks_uri request`)
+      logger.debug(`${gwName} [oauth] jwks_uri request`)
       if (!this.jwk || (Object.keys(this.jwk).length < 1)) {
         ctx.response.body = '{"keys":[]}'
         ctx.response.status = 200
@@ -965,9 +985,9 @@ export class ScimGateway {
     // oauth token request, POST /oauth/token
     const postHandlerOauthToken = async (ctx: Context) => {
       const baseEntity = ctx.routeObj.baseEntity
-      logger.debug(`${gwName}[${pluginName}][${baseEntity}] [oauth] token request`)
+      logger.debug(`${gwName} [oauth] token request`)
       if (!found.BearerOAuth) {
-        logger.error(`${gwName}[${pluginName}][${baseEntity}] [oauth] token request, but plugin is missing auth.bearerOAuth configuration`)
+        logger.error(`${gwName} [oauth] token request, but plugin is missing auth.bearerOAuth configuration`)
         ctx.response.status = 500
         return
       }
@@ -975,7 +995,7 @@ export class ScimGateway {
       try {
         if (!jsonBody) throw new Error('missing body')
         if (typeof jsonBody !== 'object') { // might have application/x-www-form-urlencoded or multipart/form-data body, but incorrect Content-Type header
-          logger.debug(`${gwName}[${pluginName}][${baseEntity}] [oauth] continue request validation even though incorrect body vs header Content-Type: ${ctx.request.headers.get('content-type')}`)
+          logger.debug(`${gwName} [oauth] continue request validation even though incorrect body vs header Content-Type: ${ctx.request.headers.get('content-type')}`)
           let body = utils.formUrlEncodedToJSON(jsonBody)
           if (Object.keys(body).length < 1) {
             body = utils.formDataMultipartToJSON(jsonBody)
@@ -986,13 +1006,13 @@ export class ScimGateway {
         }
         jsonBody = utils.copyObj(jsonBody) // no changes to original
       } catch (err: any) {
-        logger.error(`${gwName}[${pluginName}][${baseEntity}] [oauth] token request error: ${err.message}`)
+        logger.error(`${gwName} [oauth] token request error: ${err.message}`)
         ctx.response.status = 401
         return
       }
-      const [authType, authToken] = (ctx.request.headers.get('authorization') || '').split(' ') // [0] = 'Basic'
+      const [authType, authToken] = (ctx.request.headers.get('authorization') ?? '').split(' ') // [0] = 'Basic'
       if (authType === 'Basic') { // id and secret may be in authorization header if not already included in body
-        const [id, secret] = (Buffer.from(authToken, 'base64').toString() || '').split(':')
+        const [id, secret] = (Buffer.from(authToken, 'base64').toString() ?? '').split(':')
         if (jsonBody.grant_type && id && secret) {
           if (jsonBody.grant_type === 'client_credentials' || jsonBody.grant_type === 'refresh_token') { // don't use refresh_token but allowing as type
             jsonBody.client_id = id
@@ -1036,7 +1056,7 @@ export class ScimGateway {
             pwErrCount += 1
           } else { // delay brute force attempts
             const delay = (this.config.scimgateway.idleTimeout || 120) - 5
-            logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] ${ctx.origin + ctx.path} ${errDescr} => delaying response with ${delay} seconds to prevent brute force`)
+            logger.error(`${gwName} [oauth] ${ctx.origin + ctx.path} ${errDescr} => delaying response with ${delay} seconds to prevent brute force`)
             await new Promise((resolve) => {
               setTimeout(() => {
                 resolve(ctx)
@@ -1049,7 +1069,7 @@ export class ScimGateway {
       }
 
       if (err) {
-        logger.error(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [oauth] token request client_id: ${jsonBody ? jsonBody.client_id : ''} error: ${errDescr}`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.error(`${gwName} [oauth] token request client_id: ${jsonBody ? jsonBody.client_id : ''} error: ${errDescr}`, { baseEntity: ctx?.routeObj?.baseEntity })
         ctx.response.status = 401
         const errMsg = {
           error: err,
@@ -1107,7 +1127,7 @@ export class ScimGateway {
     const getHandlerId = async (ctx: Context) => {
       const handle = handler[ctx.routeObj.handle]
       const baseEntity = ctx.routeObj.baseEntity
-      const id = decodeURIComponent(path.basename(ctx.routeObj.id || '', '.json')) // supports <id>.json
+      const id = decodeURIComponent(path.basename(ctx.routeObj.id ?? '', '.json')) // supports <id>.json
 
       if (!id) {
         const err = new Error('missing id')
@@ -1125,13 +1145,13 @@ export class ScimGateway {
         value: id,
       }
 
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Get ${handle.description}] ${getObj.attribute}=${getObj.value}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [Get ${handle.description}] ${getObj.attribute}=${getObj.value}`, { baseEntity: ctx?.routeObj?.baseEntity })
 
       try {
         const ob = utils.copyObj(getObj)
         const attributes: string[] = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
         if (attributes.length > 0 && !attributes.includes('id')) attributes.push('id')
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
         let res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
 
         let scimdata: { [key: string]: any } = {
@@ -1153,11 +1173,15 @@ export class ScimGateway {
           ctx.response.body = JSON.stringify(e)
           return
         }
-        const userObj = scimdata.Resources[0]
-        const eTag = utils.getEtag(userObj)
+        const obj = scimdata.Resources[0]
+        const eTag = utils.getEtag(obj)
 
         const eTagIfMatch = ctx.request.headers.get('if-match')?.split(',').map((item: string) => item.trim()).filter(Boolean)
         const eTagIfNoneMatch = ctx.request.headers.get('if-none-match')?.split(',').map((item: string) => item.trim()).filter(Boolean)
+
+        if (obj.userName) ctx.target = obj.userName
+        else if (obj.externalId) ctx.target = obj.externalId
+        else if (obj.displayName) ctx.target = obj.displayName
 
         if (eTag) {
           if (eTagIfMatch && !eTagIfMatch.includes(eTag) && !eTagIfMatch.includes('*')) {
@@ -1175,15 +1199,15 @@ export class ScimGateway {
         }
 
         // check for user attribute groups and include if needed
-        if (handle.getMethod === handler.users.getMethod && Object.keys(userObj).length > 0) {
+        if (handle.getMethod === handler.users.getMethod && Object.keys(obj).length > 0) {
           if (attributes.length === 0 || attributes.includes('groups')) { // include groups
-            if (!userObj.groups && userObj.id) {
-              userObj.groups = await getMemberOf(baseEntity, userObj.id, handler.groups.getMethod, ctx.passThrough)
+            if (!obj.groups && obj.id) {
+              obj.groups = await getMemberOf(baseEntity, obj.id, handler.groups.getMethod, ctx.passThrough)
             }
           }
         }
 
-        scimdata = utils.stripObj(userObj, ctx.query.attributes, ctx.query.excludedAttributes)
+        scimdata = utils.stripObj(obj, ctx.query.attributes, ctx.query.excludedAttributes)
         scimdata = utilsScim.addSchemas(scimdata, isScimv2, handle.description, undefined)
 
         if (!this.config.scimgateway.scim.skipMetaLocation) {
@@ -1339,7 +1363,7 @@ export class ScimGateway {
 
       let info = ''
       if (getObj.operator === 'eq' && ['id', 'userName', 'externalId', 'displayName', 'members.value'].includes(getObj.attribute)) info = ` ${getObj.attribute}=${getObj.value}`
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Get ${handle.description}s]${info}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [Get ${handle.description}s]${info}`, { baseEntity: ctx?.routeObj?.baseEntity })
       try {
         getObj.startIndex = ctx.query.startIndex ? parseInt(ctx.query.startIndex) : undefined
         getObj.count = ctx.query.count ? parseInt(ctx.query.count) : undefined
@@ -1376,7 +1400,7 @@ export class ScimGateway {
             }
             const chunk = 5
             const chunkRes: Record<string, any>[] = []
-            logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} with chunks and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+            logger.debug(`${gwName} calling ${handle.getMethod} with chunks`, { baseEntity: ctx?.routeObj?.baseEntity })
             do {
               const arrChunk = getObjArr.splice(0, chunk)
               const results = await Promise.allSettled(arrChunk.map(o => getObj(o))) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
@@ -1395,7 +1419,7 @@ export class ScimGateway {
         }
 
         if (!res) { // standard
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+          logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
           res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
         }
         // check for user attribute groups and include if needed
@@ -1421,6 +1445,13 @@ export class ScimGateway {
             scimdata.totalResults = res.totalResults
           } else if (Array.isArray(res)) scimdata.Resources = res
           else if (typeof (res) === 'object' && Object.keys(res).length > 0) scimdata.Resources[0] = res
+        }
+
+        if (scimdata.Resources.length === 1) {
+          const obj = scimdata.Resources[0]
+          if (obj.userName) ctx.target = obj.userName
+          else if (obj.externalId) ctx.target = obj.externalId
+          else if (obj.displayName) ctx.target = obj.displayName
         }
 
         let location: string | undefined = ctx.origin + ctx.path
@@ -1459,11 +1490,11 @@ export class ScimGateway {
     const postHandler = async (ctx: Context) => {
       const handle = handler[ctx.routeObj.handle]
       const baseEntity = ctx.routeObj.baseEntity
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Create ${handle.description}]`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [Create ${handle.description}]`, { baseEntity: ctx?.routeObj?.baseEntity })
       let jsonBody = ctx.request.body
       try {
         if (!jsonBody) throw new Error('missing body')
-        if (typeof jsonBody !== 'object') throw new Error('body is not JSON')
+        if (typeof jsonBody !== 'object' || jsonBody === null) throw new Error('body is not JSON')
         jsonBody = utils.copyObj(jsonBody) // no changes to original
       } catch (err: any) {
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
@@ -1471,6 +1502,10 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
         return
       }
+
+      if (jsonBody.userName) ctx.target = jsonBody.userName
+      else if (jsonBody.externalId) ctx.target = jsonBody.externalId
+      else if (jsonBody.displayName) ctx.target = jsonBody.displayName
 
       if (handle.createMethod === 'createUser' && !jsonBody.userName && !jsonBody.externalId) {
         const err = new Error('userName or externalId is mandatory')
@@ -1486,9 +1521,9 @@ export class ScimGateway {
         return
       }
 
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] POST ${ctx.origin + ctx.path} body=${JSON.stringify(jsonBody)}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} POST ${ctx.origin + ctx.path} body=${JSON.stringify(jsonBody)}`, { baseEntity: ctx?.routeObj?.baseEntity })
       const [scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes)
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] convertedBody=${JSON.stringify(scimdata)}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} convertedBody=${JSON.stringify(scimdata)}`, { baseEntity: ctx?.routeObj?.baseEntity })
       if (err) {
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
         ctx.response.status = statusCode
@@ -1507,7 +1542,7 @@ export class ScimGateway {
             delete scimdata.groups
           }
         }
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.createMethod} and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.debug(`${gwName} calling ${handle.createMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
         const res = await (this as any)[handle.createMethod](baseEntity, scimdata, ctx.passThrough)
         for (const key in res) { // merge any result e.g: {'id': 'xxxx'}
           jsonBody[key] = res[key]
@@ -1515,26 +1550,25 @@ export class ScimGateway {
 
         if (!jsonBody.id) { // retrieve all attributes including id
           let res: any
+          let obj: any
           try {
             if (handle.createMethod === 'createUser') {
-              let ob = {}
               const attributes: string[] = []
-              if (jsonBody.userName) ob = { attribute: 'userName', operator: 'eq', value: jsonBody.userName }
-              else if (jsonBody.externalId) ob = { attribute: 'externalId', operator: 'eq', value: jsonBody.externalId }
-              res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
+              if (jsonBody.userName) obj = { attribute: 'userName', operator: 'eq', value: jsonBody.userName }
+              else if (jsonBody.externalId) obj = { attribute: 'externalId', operator: 'eq', value: jsonBody.externalId }
+              res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
             } else if (handle.createMethod === 'createGroup') {
-              let ob = {}
               const attributes: string[] = []
-              if (jsonBody.externalId) ob = { attribute: 'externalId', operator: 'eq', value: jsonBody.externalId }
-              else if (jsonBody.displayName) ob = { attribute: 'displayName', operator: 'eq', value: jsonBody.displayName }
-              res = await (this as any)[handle.getMethod](baseEntity, ob, attributes, ctx.passThrough)
+              if (jsonBody.externalId) obj = { attribute: 'externalId', operator: 'eq', value: jsonBody.externalId }
+              else if (jsonBody.displayName) obj = { attribute: 'displayName', operator: 'eq', value: jsonBody.displayName }
+              res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
             }
-          } catch (err) { void 0 }
-          let obj: any
-          if (res.Resources && Array.isArray(res.Resources) && res.Resources.length === 1) {
-            obj = res.Resources[0]
+          } catch (err: any) {
+            logger.warn(`${gwName} ${handle.createMethod} succeeded, but corresponding ${handle.getMethod} ${obj?.value} failed with error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
           }
-          if (obj && obj.id) jsonBody = obj // id found, using returned object
+          if (res?.Resources && Array.isArray(res.Resources) && res.Resources.length === 1) {
+            if (res.Resources[0]?.id) jsonBody = res.Resources[0] // id found, using returned object
+          }
         }
 
         const eTag = utils.getEtag(jsonBody)
@@ -1585,7 +1619,7 @@ export class ScimGateway {
     const deleteHandler = async (ctx: Context) => {
       const handle = handler[ctx.routeObj.handle] // h = Users/Groups
       const baseEntity = ctx.routeObj.baseEntity
-      const id = decodeURIComponent(ctx.routeObj.id || '')
+      const id = decodeURIComponent(ctx.routeObj.id ?? '')
       if (!id || id.includes('/')) {
         const err = new Error('missing id')
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
@@ -1593,7 +1627,23 @@ export class ScimGateway {
         ctx.response.body = JSON.stringify(e)
         return
       }
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Delete ${handle.description}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [Delete ${handle.description}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
+
+      if (handle.getMethod === handler.users.getMethod || handle.getMethod === handler.groups.getMethod) { // getUsers/getGroups implemented
+        // get userName/displayName for logging purposes
+        const obj = { attribute: 'id', operator: 'eq', value: id }
+        let res: any
+        try {
+          res = await (this as any)[handle.getMethod](baseEntity, obj, [], ctx.passThrough)
+          if (res?.Resources?.length === 1) {
+            const obj = res.Resources[0]
+            logger.debug(`${gwName} ${handle.description?.toLowerCase()} to be deleted: ${JSON.stringify(obj)}`, { baseEntity: ctx?.routeObj?.baseEntity })
+            if (obj.userName) ctx.target = obj.userName
+            else if (obj.externalId) ctx.target = obj.externalId
+            else if (obj.displayName) ctx.target = obj.displayName
+          }
+        } catch (err) { }
+      }
 
       try {
         if (handle.deleteMethod === 'deleteUser') {
@@ -1609,7 +1659,8 @@ export class ScimGateway {
             })) // result not handled - ignore any failures
           }
         }
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.deleteMethod} and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+
+        logger.debug(`${gwName} calling ${handle.deleteMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
         await (this as any)[handle.deleteMethod](baseEntity, id, ctx.passThrough)
         ctx.response.status = 204
       } catch (err: any) {
@@ -1640,7 +1691,7 @@ export class ScimGateway {
       const jsonBody = ctx.request.body
       try {
         if (!jsonBody) throw new Error('missing body')
-        if (typeof jsonBody !== 'object') throw new Error('body is not JSON')
+        if (typeof jsonBody !== 'object' || jsonBody === null) throw new Error('body is not JSON')
         if (!id || id.includes('/')) throw new Error('missing id')
       } catch (err: any) {
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
@@ -1649,7 +1700,7 @@ export class ScimGateway {
         return
       }
 
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Modify ${handle.description}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [Modify ${handle.description}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
 
       const eTagIfMatch = ctx.request.headers.get('if-match')?.split(',').map((item: string) => item.trim()).filter(Boolean)
       const eTagIfNoneMatch = ctx.request.headers.get('if-none-match')?.split(',').map((item: string) => item.trim()).filter(Boolean)
@@ -1657,18 +1708,25 @@ export class ScimGateway {
         let eTag = ''
         if (handle.getMethod === handler.users.getMethod || handle.getMethod === handler.groups.getMethod) { // getUsers or getGroups implemented
           const ob = { attribute: 'id', operator: 'eq', value: id }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+          logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
           const res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
           if (res) {
+            let obj: any
             if (res.Resources && Array.isArray(res.Resources)) {
               if (res.Resources.length === 1) {
-                eTag = utils.getEtag(res.Resources[0])
+                obj = res.Resources[0]
               }
             } else if (Array.isArray(res)) {
               if (res.length === 1) {
-                eTag = utils.getEtag(res[0])
+                obj = res[0]
               }
-            } else if (typeof (res) === 'object' && res !== null) eTag = utils.getEtag(res[0])
+            } else if (typeof (res) === 'object' && res !== null) obj = res[0]
+            if (obj) {
+              eTag = utils.getEtag(obj)
+              if (obj.userName) ctx.target = obj.userName
+              else if (obj.externalId) ctx.target = obj.externalId
+              else if (obj.displayName) ctx.target = obj.displayName
+            }
           }
         }
         if (eTag)
@@ -1689,7 +1747,7 @@ export class ScimGateway {
       let scimdata: any, err: any
       if (jsonBody.Operations) [scimdata, err] = utilsScim.convertedScim20(jsonBody, this.multiValueTypes) // v2.0
       else [scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes) // v1.1
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] convertedBody=${JSON.stringify(scimdata)}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} convertedBody=${JSON.stringify(scimdata)}`, { baseEntity: ctx?.routeObj?.baseEntity })
       if (err) {
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
         ctx.response.status = statusCode
@@ -1714,7 +1772,7 @@ export class ScimGateway {
         if (Array.isArray(scimdata.members) && scimdata.members.length === 0 && handle.modifyMethod === 'modifyGroup') {
           res = await replaceUsrGrp(ctx.routeObj.handle, baseEntity, id, scimdata, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough, undefined)
         } else {
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.modifyMethod} and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+          logger.debug(`${gwName} calling ${handle.modifyMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
           res = await (this as any)[handle.modifyMethod](baseEntity, id, scimdata, ctx.passThrough)
         }
 
@@ -1739,7 +1797,7 @@ export class ScimGateway {
             return
           }
           const ob = { attribute: 'id', operator: 'eq', value: id }
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling ${handle.getMethod} and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+          logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
           res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
         }
 
@@ -1752,6 +1810,12 @@ export class ScimGateway {
           } else if (Array.isArray(res)) scimdata.Resources = res
           else if (typeof (res) === 'object') scimdata.Resources[0] = res
           else scimdata.Resources = []
+          if (scimdata.Resources.length === 1) {
+            const obj = scimdata.Resources[0]
+            if (obj.userName) ctx.target = obj.userName
+            else if (obj.externalId) ctx.target = obj.externalId
+            else if (obj.displayName) ctx.target = obj.displayName
+          }
         } else scimdata.Resources = []
         if (scimdata.Resources.length === 0 || scimdata.Resources.length > 1) {
           ctx.response.status = 204
@@ -1790,9 +1854,9 @@ export class ScimGateway {
       id = decodeURIComponent(id)
 
       // get current object
-      logger.debug(`${gwName}[${pluginName}][${baseEntity}] calling ${handle.getMethod} and awaiting result`, { baseEntity })
+      logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity })
       const res = await (this as any)[handle.getMethod](baseEntity, { attribute: 'id', operator: 'eq', value: id }, [], ctxPassThrough)
-      logger.debug(`${gwName}[${pluginName}][${baseEntity}] "${handle.getMethod}" result: ${res ? JSON.stringify(res) : ''}`, { baseEntity })
+      logger.debug(`${gwName} "${handle.getMethod}" result: ${res ? JSON.stringify(res) : ''}`, { baseEntity })
       let currentObj
       if (res && res.Resources && Array.isArray(res.Resources)) {
         if (res.Resources.length === 1) currentObj = res.Resources[0]
@@ -1850,7 +1914,7 @@ export class ScimGateway {
 
       // update object
       if (Object.keys(scimdata).length > 0) {
-        logger.debug(`${gwName}[${pluginName}][${baseEntity}] calling ${handle.modifyMethod} and awaiting result`, { baseEntity })
+        logger.debug(`${gwName} calling ${handle.modifyMethod}`, { baseEntity })
         await (this as any)[handle.modifyMethod](baseEntity, id, scimdata, ctxPassThrough)
       }
 
@@ -1866,7 +1930,7 @@ export class ScimGateway {
             let res: any
             try {
               res = await (this as any)[handler.groups.getMethod](baseEntity, { attribute: 'members.value', operator: 'eq', value: decodeURIComponent(id) }, ['id', 'displayName'], ctxPassThrough)
-              logger.debug(`${gwName}[${pluginName}][${baseEntity}] "${handler.groups.getMethod}" result: ${res ? JSON.stringify(res) : ''}`, { baseEntity })
+              logger.debug(`${gwName} "${handler.groups.getMethod}" result: ${res ? JSON.stringify(res) : ''}`, { baseEntity })
             } catch (err) { void 0 } // method may be implemented, but throwing error like groups not supported/implemented
             currentGroups = []
             if (res && res.Resources && Array.isArray(res.Resources) && res.Resources.length > 0) {
@@ -1947,7 +2011,7 @@ export class ScimGateway {
       const id = ctx.routeObj.id ? decodeURIComponent(ctx.routeObj.id) : ctx.routeObj.id
       const obj = ctx.request.body
 
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [PUT ${handle[0].toUpperCase() + handle.slice(1)}] id=${id} body=${JSON.stringify(obj)}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [PUT ${handle[0].toUpperCase() + handle.slice(1)}] id=${id} body=${JSON.stringify(obj)}`, { baseEntity: ctx?.routeObj?.baseEntity })
       try {
         if (!obj) throw new Error('missing body')
         if (typeof obj !== 'object') throw new Error('body is not JSON')
@@ -2003,7 +2067,7 @@ export class ScimGateway {
 
     const postBulkHandler = async (ctx: Context) => {
       const baseEntity = ctx.routeObj.baseEntity
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [Bulk Operations]`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [Bulk Operations]`, { baseEntity: ctx?.routeObj?.baseEntity })
       const bulkBody: SCIMBulkRequest = utils.copyObj(ctx.request.body)
       try {
         if (!bulkBody) throw new Error('missing body')
@@ -2035,7 +2099,7 @@ export class ScimGateway {
           } catch (err: any) {
             resolvedErr = err
           }
-          const path = decodeURIComponent(op.path || '')
+          const path = decodeURIComponent(op.path ?? '')
           const bulkReq = new Request(new URL(ctx.origin + `${baseEntity === 'undefined' ? path : '/' + baseEntity + path}`), {
             method: op?.method,
             headers: new Headers(ctx.request.headers as any),
@@ -2102,7 +2166,7 @@ export class ScimGateway {
           }
 
           let errResponse
-          if (body && bulkCtx.response.status && bulkCtx.response.status > 299) {
+          if (body && bulkCtx.response.status && bulkCtx.response.status > 399) {
             errCount++
             if (body?.Errors && Array.isArray(body.Errors)) { // scim v1
               errResponse = body.Errors[0]
@@ -2154,7 +2218,7 @@ export class ScimGateway {
     const postApiHandler = async (ctx: Context) => {
       const baseEntity = ctx.routeObj.baseEntity
       const obj = ctx.request.body
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [POST ${ctx.routeObj.handle}]`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [POST ${ctx.routeObj.handle}]`, { baseEntity: ctx?.routeObj?.baseEntity })
 
       if (!obj) {
         const err = new Error('missing body')
@@ -2165,7 +2229,7 @@ export class ScimGateway {
         return
       }
       try {
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling postApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.debug(`${gwName} calling postApi`, { baseEntity: ctx?.routeObj?.baseEntity })
         const result = await this.postApi(baseEntity, obj, ctx.passThrough)
         if (result) {
           if (typeof result === 'string') {
@@ -2206,7 +2270,7 @@ export class ScimGateway {
       const baseEntity = ctx.routeObj.baseEntity
       const id = ctx.routeObj.id
       const obj = ctx.request.body
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [PUT ${ctx.routeObj.handle}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [PUT ${ctx.routeObj.handle}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
 
       try {
         if (!obj) throw new Error('missing body')
@@ -2220,7 +2284,7 @@ export class ScimGateway {
       }
 
       try {
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling putApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.debug(`${gwName} calling putApi`, { baseEntity: ctx?.routeObj?.baseEntity })
         let result = await this.putApi(baseEntity, id, obj, ctx.passThrough)
         if (result) {
           if (typeof result === 'string') {
@@ -2263,7 +2327,7 @@ export class ScimGateway {
       const id = ctx.routeObj.id as string
       const body = ctx.request.body
 
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [PATCH ${handle} ] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [PATCH ${handle} ] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
 
       if (!body) {
         const err = new Error('missing body')
@@ -2274,7 +2338,7 @@ export class ScimGateway {
         return
       } else {
         try {
-          logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling patchApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+          logger.debug(`${gwName} calling patchApi`, { baseEntity: ctx?.routeObj?.baseEntity })
           let result = await this.patchApi(baseEntity, id, body, ctx.passThrough)
           if (result) {
             if (typeof result === 'string') {
@@ -2316,11 +2380,11 @@ export class ScimGateway {
       const baseEntity = ctx.routeObj.baseEntity
       const id = ctx.routeObj.id as string
 
-      if (id) logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [GET ${handle}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
-      else logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [GET ${handle}]`)
+      if (id) logger.debug(`${gwName} [GET ${handle}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      else logger.debug(`${gwName} [GET ${handle}]`)
 
       try {
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling getApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.debug(`${gwName} calling getApi`, { baseEntity: ctx?.routeObj?.baseEntity })
         let result = await this.getApi(baseEntity, id, ctx.query, ctx.passThrough)
         if (result) {
           if (typeof result === 'string') {
@@ -2357,10 +2421,10 @@ export class ScimGateway {
     const deleteApiHandler = async (ctx: Context) => {
       const baseEntity = ctx.routeObj.baseEntity
       const id = ctx.routeObj.id
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [DELETE ${ctx.routeObj.handle}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [DELETE ${ctx.routeObj.handle}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
       try {
         if (!id || id.includes('/')) throw new Error('missing id')
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling deleteApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.debug(`${gwName} calling deleteApi`, { baseEntity: ctx?.routeObj?.baseEntity })
         let result = await this.deleteApi(baseEntity, id, ctx.passThrough)
         if (result) {
           if (typeof result === 'string') {
@@ -2406,10 +2470,10 @@ export class ScimGateway {
       const query = Object.keys(ctx.query).length > 0 ? ctx.query : undefined
       const body = ctx.request.body
 
-      logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] [${method} public ${handle}] id=${id} query=${query ? JSON.stringify(query) : query}`, { baseEntity: ctx?.routeObj?.baseEntity })
+      logger.debug(`${gwName} [${method} public ${handle}] id=${id} query=${query ? JSON.stringify(query) : query}`, { baseEntity: ctx?.routeObj?.baseEntity })
 
       try {
-        logger.debug(`${gwName}[${pluginName}][${ctx?.routeObj?.baseEntity}] calling publicApi and awaiting result`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.debug(`${gwName} calling publicApi`, { baseEntity: ctx?.routeObj?.baseEntity })
         let result = await this.publicApi(baseEntity, method, id, query, body, ctx.passThrough)
         if (result) {
           if (typeof result === 'string') {
@@ -2460,7 +2524,7 @@ export class ScimGateway {
       try {
         const ob = { attribute: 'members.value', operator: 'eq', value: decodeURIComponent(id) }
         const attributes = ['id', 'displayName']
-        logger.debug(`${gwName}[${pluginName}][${baseEntity}] calling ${handler.groups.getMethod} and awaiting result - groups to be included`, { baseEntity })
+        logger.debug(`${gwName} calling ${handler.groups.getMethod} - groups to be included`, { baseEntity })
         res = await (this as any)[handler.groups.getMethod](baseEntity, ob, attributes, ctxPassThrough)
       } catch (err) { void 0 }
       if (res && res.Resources && Array.isArray(res.Resources) && res.Resources.length > 0) {
@@ -2510,6 +2574,7 @@ export class ScimGateway {
       ip: string
       origin: string
       passThrough: Record<string, any> | undefined
+      target?: string | undefined
     }
 
     const ipHeaders: string[] = [
@@ -2704,7 +2769,7 @@ export class ScimGateway {
       } else if (!ctx.routeObj.handle) {
         ctx.response.status = 404 // NOT_FOUND
       } else if (!ipAllowList(ctx.ip)) {
-        logger.debug(`${gwName}[${pluginName}] client ip ${ctx.ip} not in ipAllowList`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.debug(`${gwName} client ip ${ctx.ip} not in ipAllowList`, { baseEntity: ctx?.routeObj?.baseEntity })
         ctx.response.status = 401
       } else if (!await isAuthorized(ctx)) {
         ctx.response.status = 401
@@ -2720,14 +2785,14 @@ export class ScimGateway {
       const chainingBaseUrl = this.config.scimgateway.chainingBaseUrl // http(s)://<host>:<port>
       if (!chainingBaseUrl) {
         ctx.response.status = 500
-        logger.error(`${gwName}[${pluginName}] onChainingHandler error: configuration scimgateway.chainingBaseUrl missing`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.error(`${gwName} onChainingHandler error: configuration scimgateway.chainingBaseUrl missing`, { baseEntity: ctx?.routeObj?.baseEntity })
         return
       }
       try {
         new URL(chainingBaseUrl)
       } catch (err: any) {
         ctx.response.status = 500
-        logger.error(`${gwName}[${pluginName}] onChainingHandler error: configuration scimgateway.chainingBaseUrl must use correct syntax 'http(s)://host:port' error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.error(`${gwName} onChainingHandler error: configuration scimgateway.chainingBaseUrl must use correct syntax 'http(s)://host:port' error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
         return
       }
       try {
@@ -2752,7 +2817,7 @@ export class ScimGateway {
           ctx.response.body = jBody.body ? JSON.stringify(jBody.body) : err.message
         } catch (parseErr) {
           ctx.response.status = 500
-          logger.error(`${gwName}[${pluginName}] onChainingHandler error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
+          logger.error(`${gwName} onChainingHandler error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
         }
       }
     }
@@ -2760,53 +2825,24 @@ export class ScimGateway {
     const onPublisherHandler = async (ctx: Context) => {
       if (!this.pub) {
         ctx.response.status = 500
-        logger.error(`${gwName}[${pluginName}] onPublisherHandler error: publisher not initialized`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.error(`${gwName} onPublisherHandler error: publisher not initialized`, { baseEntity: ctx?.routeObj?.baseEntity })
         return
       }
       try {
         ctx.response = await this.pub.publish({ ctx })
       } catch (err: any) {
         ctx.response.status = 500
-        logger.error(`${gwName}[${pluginName}] onPublisherHandler error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.error(`${gwName} onPublisherHandler error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
         return
       }
     }
 
     const onAfterHandle = async (ctx: Context): Promise<Response> => {
       if (!ctx.response.status) ctx.response.status = 200
-      switch (ctx.response.status) {
-        case 401:
-          if (!ctx.response.body) {
-            ctx.response.body = 'Unauthorized'
-            ctx.response.headers.set('content-type', 'text/plain')
-          } else {
-            try {
-              const b = JSON.parse(ctx.response.body)
-              if (b.schemas) { // 401 - do not return scim formatted error message e.g., using PassThrough
-                ctx.response.body = 'Unauthorized'
-                ctx.response.headers.set('content-type', 'text/plain')
-              }
-            } catch (err) { void 0 }
-          }
-          break
-        case 403:
-          if (!ctx.response.body) {
-            ctx.response.body = 'Forbidden'
-            ctx.response.headers.set('content-type', 'text/plain')
-          }
-          break
-        case 404:
-          if (!ctx.response.body) {
-            ctx.response.body = 'NOT_FOUND'
-            ctx.response.headers.set('content-type', 'text/plain')
-          }
-          break
-        case 500:
-          if (!ctx.response.body) {
-            ctx.response.body = 'Internal Server Error'
-            ctx.response.headers.set('content-type', 'text/plain')
-          }
-          break
+      if (ctx.response.status === 401) {
+        // 401 - do not return scim formatted error message e.g., using PassThrough
+        ctx.response.body = utils.statusText(ctx.response.status)
+        ctx.response.headers.set('content-type', 'text/plain')
       }
       let body = ctx.response.body
       if (body === '') body = undefined
@@ -2825,7 +2861,7 @@ export class ScimGateway {
     logger.info('===================================================================')
 
     if (!this.config.scimgateway.port && this.config.scimgateway.azureRelay?.enabled !== true) {
-      logger.info(`${gwName}[${pluginName}] port deactivated, not allowing incoming traffic`)
+      logger.info(`${gwName} port deactivated, not allowing incoming traffic`)
     } else {
       let hostname: string | undefined = undefined // '0.0.0.0'
       const tls: any = { // TlsOptions
@@ -2858,7 +2894,7 @@ export class ScimGateway {
         }
       } catch (err: any) {
         const msg = `tls/certificate configuration error: ${err.message}`
-        logger.error(`${gwName}[${pluginName}] startup error: ${msg}`)
+        logger.error(`${gwName} startup error: ${msg}`)
         throw new Error(msg)
       }
 
@@ -3054,7 +3090,7 @@ export class ScimGateway {
           fetch: async (req, srv) => {
             // start route handlers
             const reqWithRaw = req as Request & { raw: IncomingMessage }
-            return await route(reqWithRaw, srv.requestIP(req)?.address || '')
+            return await route(reqWithRaw, srv.requestIP(req)?.address ?? '')
           },
         })
       } else {
@@ -3113,7 +3149,7 @@ export class ScimGateway {
             request.raw = req
 
             // start route processing and retrieve response
-            const response = await route(request, req.socket.remoteAddress || '')
+            const response = await route(request, req.socket.remoteAddress ?? '')
 
             // convert Fetch API response (Bun standard) to nodejs res
             let headers: any
@@ -3157,13 +3193,13 @@ export class ScimGateway {
             try {
               url = new URL(this.config.scimgateway.azureRelay.connectionUrl) // Azure Relay hybrid connection URL: 'https://<namespace>.servicebus.windows.net/<hybrid-connection-name>'
             } catch (err: any) {
-              logger.error(`${gwName}[${pluginName}] Azure Relay configuration scimgateway.azureRelay.connectionUrl - error: ${err.message}`)
+              logger.error(`${gwName} Azure Relay configuration scimgateway.azureRelay.connectionUrl - error: ${err.message}`)
             }
 
             const ns = url.hostname// <namespace>.servicebus.windows.net
             const path = url?.pathname?.replace(/^[\s\/]+|[\s\/]+$/g, '') // <hybrid-connection-name> - removing any leading/trailing whitespace and '/'  
             const keyrule = this.config.scimgateway.azureRelay.keyRule || 'RootManageSharedAccessKey'
-            const key = this.config.scimgateway.azureRelay.apiKey || '' // Azure Relay - SAS Primary Key
+            const key = this.config.scimgateway.azureRelay.apiKey ?? '' // Azure Relay - SAS Primary Key
             const uri = hyco.createRelayListenUri(ns, path) // wss://<namespace>.servicebus.windows.net:443/$hc/<hybrid-connection-name>?sb-hc-action=listen
 
             server = hyco.createRelayedServer(
@@ -3191,7 +3227,7 @@ export class ScimGateway {
                   if (!this.helperRest) this.helperRest = this.newHelperRest()
                   await this.helperRest.doRequest('undefined', 'GET', `${this.config.scimgateway.azureRelay.connectionUrl}/ping`, null, null, options)
                 } catch (err: any) {
-                  logger.error(`${gwName}[${pluginName}] Azure Relay listener failed to start - ping test doRequest() returned an error - please verify configuration scimgateway.azureRelay.connectionUrl/apiKey including the Azure Relay setup}`)
+                  logger.error(`${gwName} Azure Relay listener failed to start - ping test doRequest() returned an error - please verify configuration scimgateway.azureRelay.connectionUrl/apiKey including the Azure Relay setup}`)
                 }
               }, 5 * 1000)
             }
@@ -3226,17 +3262,17 @@ export class ScimGateway {
 
       // server has been started
       if (this.config.scimgateway.azureRelay?.enabled === true) {
-        logger.info(`${gwName}[${pluginName}] now listening SCIM ${this.config.scimgateway.scim.version} using Azure Relay ${this.config.scimgateway.azureRelay.connectionUrl}...`)
+        logger.info(`${gwName} now listening SCIM ${this.config.scimgateway.scim.version} using Azure Relay ${this.config.scimgateway.azureRelay.connectionUrl}...`)
       } else {
-        logger.info(`${gwName}[${pluginName}] now listening SCIM ${this.config.scimgateway.scim.version}${tls.key || tls.pfx ? ' TLS' : ''} at ${hostname || '0.0.0.0'}:${this.config.scimgateway.port}...`)
+        logger.info(`${gwName} now listening SCIM ${this.config.scimgateway.scim.version}${tls.key || tls.pfx ? ' TLS' : ''} at ${hostname || '0.0.0.0'}:${this.config.scimgateway.port}...`)
       }
-      if (this.config.scimgateway.chainingBaseUrl) logger.info(`${gwName}[${pluginName}] using remote gateway ${this.config.scimgateway.chainingBaseUrl}`)
+      if (this.config.scimgateway.chainingBaseUrl) logger.info(`${gwName} using remote gateway ${this.config.scimgateway.chainingBaseUrl}`)
     }
 
     // starting SCIM Stream subscribers
     if (this.config.scimgateway.stream.subscriber.enabled && this.config.scimgateway.stream.subscriber.entity
       && Object.keys(this.config.scimgateway.stream.subscriber.entity).length > 0) {
-      logger.info(`${gwName}[${pluginName}] starting SCIM Stream subscribers...`)
+      logger.info(`${gwName} starting SCIM Stream subscribers...`)
       const sub: any = new stream.Subscriber(this, funcHandler)
       for (const baseEntity in this.config.scimgateway.stream.subscriber.entity) {
         const cfgSub: any = utils.copyObj(this.config.scimgateway.stream.subscriber.entity[baseEntity])
@@ -3250,7 +3286,7 @@ export class ScimGateway {
     // starting SCIM Stream publisher
     if (this.config.scimgateway.stream.publisher.enabled && this.config.scimgateway.stream.publisher.entity
       && Object.keys(this.config.scimgateway.stream.publisher.entity).length > 0) {
-      logger.info(`${gwName}[${pluginName}] starting SCIM Stream publishers...`)
+      logger.info(`${gwName} starting SCIM Stream publishers...`)
       const pub: any = new stream.Publisher(this)
       for (const baseEntity in this.config.scimgateway.stream.publisher.entity) {
         const cfgPub: any = utils.copyObj(this.config.scimgateway.stream.publisher.entity[baseEntity])
@@ -3282,12 +3318,12 @@ export class ScimGateway {
           content: msgHtml,
         }
         this.sendMail(eObj, true)
-        logger.debug(`${gwName}[${pluginName}] emailOnError sent to: ${eObj.to} cc: ${eObj.cc}`)
+        logger.debug(`${gwName} emailOnError sent to: ${eObj.to} cc: ${eObj.cc}`)
       })
     }
 
     const gracefulShutdown = async function () {
-      logger.info(`${gwName}[${pluginName}] now stopping...`)
+      logger.info(`${gwName} now stopping...`)
       await logger.close()
       if (server) {
         if (typeof server.stop === 'function') { // Bun
@@ -3311,7 +3347,7 @@ export class ScimGateway {
 
     process.setMaxListeners(Infinity)
     process.on('unhandledRejection', (err: { [key: string]: any }) => { // older versions of V8, unhandled promise rejections are silently dropped
-      logger.error(`${gwName}[${pluginName}] Async function with unhandledRejection: ${err.stack}`)
+      logger.error(`${gwName} async function with unhandledRejection: ${err.stack}`)
     })
     process.once('SIGTERM', gracefulShutdown) // kill (windows subsystem lacks signaling support for process.kill)
     process.once('SIGINT', gracefulShutdown) // Ctrl+C
@@ -3321,28 +3357,28 @@ export class ScimGateway {
   * logDebug logs debug message
   **/
   logDebug(baseEntity: string | undefined, msg: string) {
-    this.logger.debug(`${this.pluginName}[${baseEntity}] ${msg}`, { baseEntity })
+    this.logger.debug(msg, { baseEntity })
   }
 
   /**
   * logInfo logs info message
   **/
   logInfo(baseEntity: string | undefined, msg: string) {
-    this.logger.info(`${this.pluginName}[${baseEntity}] ${msg}`, { baseEntity })
+    this.logger.info(msg, { baseEntity })
   }
 
   /**
   * logWarn logs warning message
   **/
   logWarn(baseEntity: string | undefined, msg: string) {
-    this.logger.warn(`${this.pluginName}[${baseEntity}] ${msg}`, { baseEntity })
+    this.logger.warn(msg, { baseEntity })
   }
 
   /**
   * logError logs error message
   **/
   logError(baseEntity: string | undefined, msg: string) {
-    this.logger.error(`${this.pluginName}[${baseEntity}] ${msg}`, { baseEntity })
+    this.logger.error(msg, { baseEntity })
   }
 
   /**
@@ -3551,7 +3587,7 @@ export class ScimGateway {
     const authType = this.config.scimgateway?.email?.auth?.type ? this.config.scimgateway.email.auth.type.toLowerCase() : ''
 
     if (typeof msgObj !== 'object' || !msgObj.from || !msgObj.to || !msgObj.content) {
-      logger.error(`${gwName}[${pluginName}] sendMail failed: missing or invalid msgObj argument`)
+      logger.error(`${gwName} sendMail failed: missing or invalid msgObj argument`)
       return
     }
     if (!isHtml) {
@@ -3605,9 +3641,9 @@ export class ScimGateway {
         const path = `/users/${msgObj.from}/sendMail`
         try {
           await this.helperRest.doRequest('undefined', 'POST', path, emailMessage)
-          logger.debug(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
+          logger.debug(`${gwName} sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
         } catch (err: any) {
-          logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
+          logger.error(`${gwName} sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
         }
         return
       } else if (this.config.scimgateway.email.auth?.options?.serviceAccountKeyFile) {
@@ -3627,18 +3663,18 @@ Content-Transfer-Encoding: quoted-printable
         const path = `/gmail/v1/users/${msgObj.from}/messages/send`
         try { // using opt connection argument type=oauthJwtBearer and options scope/subject because we want to keep simplified email.auth.type=oauth and options serviceAccountKeyFile
           await this.helperRest.doRequest('undefined', 'POST', path, emailMessage, null, { connection: { auth: { type: 'oauthJwtBearer', options: { jwtPayload: { scope: 'https://www.googleapis.com/auth/gmail.send', subject: msgObj.from } } } } })
-          logger.debug(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
+          logger.debug(`${gwName} sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
         } catch (err: any) {
-          logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
+          logger.error(`${gwName} sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
         }
         return
       }
-      logger.error(`${gwName}[${pluginName}] sendMail error: type oauth supports only ExO (scimgateway.email.auth.options.azureTenantId) or Google Workspace Gmail (scimgateway.email.auth.options.serviceAccountKeyFile)`)
+      logger.error(`${gwName} sendMail error: type oauth supports only ExO (scimgateway.email.auth.options.azureTenantId) or Google Workspace Gmail (scimgateway.email.auth.options.serviceAccountKeyFile)`)
       return
     }
 
     if (authType !== 'smtp') {
-      logger.error(`${gwName}[${pluginName}] sendMail error: configuration scimgateway.email.auth.type must be set to oauth or smtp`)
+      logger.error(`${gwName} sendMail error: configuration scimgateway.email.auth.type must be set to oauth or smtp`)
       return
     }
 
@@ -3656,7 +3692,7 @@ Content-Transfer-Encoding: quoted-printable
     smtpConfig.auth.pass = this.config.scimgateway?.email?.auth?.options?.password
 
     if (!this.config.scimgateway?.email?.auth?.options?.host || !this.config.scimgateway?.email?.auth?.options?.username) {
-      logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending error: missing scimgateway.email.options configuration for auth type smtp`)
+      logger.error(`${gwName} sendMail subject '${msgObj.subject}' sending error: missing scimgateway.email.options configuration for auth type smtp`)
       return
     }
 
@@ -3673,8 +3709,8 @@ Content-Transfer-Encoding: quoted-printable
     else mailOptions.text = msgObj.content
 
     transporter.sendMail(mailOptions, function (err) {
-      if (err != null) logger.error(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
-      else logger.debug(`${gwName}[${pluginName}] sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
+      if (err != null) logger.error(`${gwName} sendMail subject '${msgObj.subject}' sending failed: ${err.message}`)
+      else logger.debug(`${gwName} sendMail subject '${msgObj.subject}' sent to: ${msgObj.to}${(msgObj.cc) ? ',' + msgObj.cc : ''}`)
     })
   }
 
