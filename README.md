@@ -8,11 +8,11 @@ Author: Jarle Elshaug
 Validated through IdP's:  
 
 - Symantec/Broadcom Identity Manager
-- Microsoft Entra ID  
-- One Identity Manager/OneLogin  
-- Okta 
-- Omada 
-- SailPoint/IdentityNow  
+- Microsoft Entra ID
+- One Identity Manager
+- Okta
+- Omada
+- SailPoint/IdentityNow
 
 Latest news:  
 
@@ -46,86 +46,43 @@ Latest news:
 
 SCIM Gateway facilitates user management using the standardized REST-based SCIM 1.1 or 2.0 protocol, offering easier, more powerful, and consistent provisioning while avoiding vendor lock-in. Acting as a translator for incoming SCIM requests, the gateway seamlessly enables CRUD functionality (create, read, update, and delete) for users and groups. By implementing endpoint-specific protocols, it ensures provisioning across diverse destinations. With the gateway, your destinations become SCIM-compatible interfaces, streamlining integration and simplifying user management.  
 
-
 ![](https://jelhub.github.io/images/ScimGateway.svg)
 
-SCIM Gateway is based on popular asynchronous event driven framework [Bun](https://bun.sh/) or [Node.js](https://nodejs.dev/) using TypeScript/JavaScript. It is cloud and firewall friendly. Runs on almost all operating systems, and may load balance between hosts (horizontal) and cpu's (vertical).
+SCIM Gateway is built on the modern, asynchronous, event-driven framework [Bun](https://bun.sh/) or [Node.js](https://nodejs.dev/) using TypeScript/JavaScript. It is designed to be cloud and firewall friendly, runs on nearly all operating systems
 
-**Following example plugins are included:**
+The following fully functional plugins are included for demonstration and production use:
 
-* **Loki** (NoSQL Document-Oriented Database)  
-SCIM Gateway becomes a standalone SCIM endpoint  
-Demonstrates user provisioning towards document-oriented database  
-Using [LokiJS](https://github.com/techfort/LokiJS) for a fast, in-memory document-oriented database (much like MongoDB/PouchDB)  
-Default gives two predefined test users loaded using in-memory only (no persistence)  
-Configuration `{"persistence": true}` gives persistence file store (no test users)  
-Example of a fully functional SCIM Gateway plugin  
+| Plugin | Endpoint Type | Description |
+| :--- | :--- | :--- |
+| **Loki** | NoSQL Database | Makes the SCIM Gateway a standalone SCIM endpoint using internal [LokiJS](https://github.com/techfort/LokiJS) |
+| **MongoDB** | NoSQL Database | Like plugin Loki, but using external MongoDB. Demonstrates multi-tenant or multi-endpoint through `baseEntity`|
+| **Entra ID** | REST Webservices | Entra ID user provisioning via Microsoft Graph API |
+| **SCIM** | REST Webservice | Using plugin Loki as a SCIM provisioning endpoint. May become a SCIM version-gateway (e.g., 1.1 => 2.0) |
+| **API** | REST Webservices | A non-SCIM plugin demonstrating API Gateway functionality for custom REST specifications |
+| **Soap** | SOAP Webservice | Demonstrates user provisioning to a SOAP-based endpoint with example WSDLs |
+| **MSSQL** | Database | Demonstrates user provisioning to an MSSQL database |
+| **SAP HANA** | Database | Demonstrates SAP HANA-specific user provisioning |
+| **LDAP** | Directory | A fully functional LDAP plugin pre-configured for Microsoft Active Directory |
 
-* **MongoDB** (NoSQL Document-Oriented Database)  
-Same as plugin "Loki", but using external MongoDB  
-Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL
-
-* **SCIM** (REST Webservice)  
-Demonstrates user provisioning towards REST-Based endpoint (type SCIM)  
-Using plugin Loki as SCIM endpoint through HelperRest  
-Can be used as SCIM version-gateway e.g. 1.1=>2.0 or 2.0=>1.1  
-
-* **Soap** (SOAP Webservice)  
-Demonstrates user provisioning towards SOAP-Based endpoint  
-Example WSDLs are included  
-Using endpoint "Forwardinc" as an example (comes with Symantec/Broadcom/CA IM SDK - SDKWS)   
-Shows how to implement a highly configurable multi tenant or multi endpoint solution through `baseEntity` in URL  
-
-* **MSSQL** (MSSQL Database)  
-Demonstrates user provisioning towards MSSQL database  
-
-* **SAP HANA** (SAP HANA Database)  
-Demonstrates SAP HANA specific user provisioning  
-
-* **Entra ID** (REST Webservices)  
-Entra ID user provisioning including license management (App Service plans) e.g. Office 365  
-Using Microsoft Graph API through HelperRest  
-Using customized SCIM attributes according to Microsoft Graph API  
-Includes Symantec/Broadcom ConnectorXpress metafile for creating provisioning "Azure - ScimGateway" endpoint type  
-
-* **LDAP** (Directory)  
-Fully functional LDAP plugin  
-Pre-configured for Microsoft Active Directory  
-Using endpointMapper (like plugin-entra-id) for attribute mapping flexibility  
-
-* **API** (REST Webservices)  
-Demonstrates API Gateway/plugin functionality using post/put/patch/get/delete combined with HelperRest  
-None SCIM plugin, becomes what you want it to become.  
-Methods included can also be used in standard SCIM plugins  
-Endpoint complexity could be put in this plugin, and client could instead communicate through Gateway using your own simplified REST specification.  
-One example of usage could be creation of tickets in ServiceDesk and also the other way, closing a ticket could automatically approve/reject corresponding workflow in IdP.  
-
-    
 ## Installation  
 
 #### Install Bun  
 
-[Bun](https://bun.sh/) is a prerequisite and must be installed on the server.  
+[Bun](https://bun.sh/) is a prerequisite and must be installed  
 
 Note, Bun installs by default in the current user’s `HOMEPATH\.bun`. To install it elsewhere, set `BUN_INSTALL=<install-path>` as a global or system environment variable before installing. The installation will add Bun to the current user’s path, but consider adding it to the global or system path for easier access across all users.
 
-#### Install SCIM Gateway  
+#### SCIM Gateway Installation
 
-Open a command window (run as administrator)  
-Create your own package directory e.g. c:\my-scimgateway and install SCIM Gateway within this package.
+Create a package directory and install the SCIM Gateway:
 
 	mkdir c:\my-scimgateway
 	cd c:\my-scimgateway
 	bun init -y
 	bun install scimgateway
 	bun pm trust scimgateway
-
-**c:\\my-scimgateway** will now be `<package-root>` 
  
-index.ts, lib and config directories containing example plugins have been copied to your package from the original scimgateway package located under node_modules. Bun requires `bun pm trust scimgateway` for allowing postinstall copying these files.   
-
-If internet connection is blocked, we could install on another machine and copy the `<package-root>` folder.
-
+index.ts, lib and config directories containing example plugins are copied to your package. The command `bun pm trust scimgateway` is required to allow the `postinstall` script to copy these files.
 
 #### Startup and verify default Loki plugin 
 
@@ -159,28 +116,15 @@ If internet connection is blocked, we could install on another machine and copy 
 
 	"Ctrl + c" to stop the SCIM Gateway
 
->Tip, take a look at bun test scripts located in `node_modules\scimgateway\test\lib`
-
-> If using Node.js instead of Bun, startup will then be:  
+> For Node.js, the startup command is:  
 `node --import=tsx ./index.ts`
 
-#### Upgrade SCIM Gateway  
+#### Upgrade Process  
 
-Not needed after a fresh install  
+The recommended upgrade method is to rename the existing package folder, perform a fresh installation, and then copy your custom `index.ts`, `config`, and `lib` folders from the previous installation.
 
-The best and easiest way to upgrade is renaming existing scimgateway package folder, create a new one and do a fresh installation. After the installation we copy `index.ts, config and lib folder` (customized plugins) from previous installation to the new installation. You should also read the version history to see if custom plugins needs to be updated.
-
-Alternatives are:  
-
-Upgrade to latest minor version:  
-
-	cd c:\my-scimgateway
-	bun install scimgateway
-
-Note, always backup/copy c:\\my-scimgateway before upgrading. Custom plugins and corresponding configuration files will not be affected.  
-
-To force a major upgrade (version x.\*.\* => y.\*.\*) that will brake compability with any existing custom plugins, we have to include the `@latest` suffix in the install command:  
-`bun install scimgateway@latest`
+- Minor Upgrade: `bun install scimgateway`
+- Major Upgrade: `bun install scimgateway@latest` (Use with caution, as it may break compatibility with existing custom plugins)
 
 ##### Avoid (re-)adding the files created during `postinstall`
 
@@ -191,171 +135,32 @@ For Node.js (and also Bun), we might set the property `scimgateway_postinstall_s
 
 ## Configuration  
 
-**index.ts** defines one or more plugins to be started by the `import statement`.  
-  
-	// start one or more plugins:
-	// import './lib/plugin-scim.ts'
-	// import './lib/plugin-entra-id.ts'
-	// import './lib/plugin-ldap.ts'
-	// import './lib/plugin-mongodb.ts'
-	// import './lib/plugin-api.ts'
-	// import './lib/plugin-mssql.ts'
-	// import './lib/plugin-saphana.ts'
-	// import './lib/plugin-soap.ts'
+**index.ts** defines one or more plugins to be started  
 
-	import './lib/plugin-loki.ts'
+	// start one or more plugins:
+	import './lib/plugin-entra-id.ts'
 	export {}
 
 
 Each endpoint plugin needs a TypeScript file (.ts) and a configuration file (.json).  
-**They both must have the same naming prefix**. For SAP Hana endpoint we have:  
->lib\plugin-saphana.ts  
->config\plugin-saphana.json
+**They both must have the same naming prefix**. For Entra ID endpoint we have:  
+>lib\plugin-entra-id.ts  
+>config\plugin-entra-id.json
 
+A plugin configuration file has two main JSON objects: `scimgateway` and `endpoint`  
 
-Edit specific plugin configuration file according to your needs.  
-Below shows an example of config\plugin-saphana.json  
-  
 	{
 	  "scimgateway": {
-	    "port": 8884,
-	    "localhostonly": false,
-	    "chainingBaseUrl": null,
-        "scim": {
-          "version": "2.0",
-          "skipTypeConvert" : false,
-          "skipMetaLocation" false,
-          "groupMemberOfUser": false
-          "usePutSoftSync" : false
-        },
-        "log": {
-          "loglevel": {
-            "file": "debug",
-            "console": "error"
-          },
-          "customMasking": []
-        },
-        "auth": {
-          "basic": [
-            {
-              "username": "gwadmin",
-              "password": "password",
-              "readOnly": false,
-              "baseEntities": []
-            }
-          ],
-          "bearerToken": [
-            {
-              "token": null,
-              "readOnly": false,
-              "baseEntities": []
-            }
-          ],
-          "bearerJwt": [
-            {
-              "secret": null,
-              "publicKey": null,
-              "wellKnownUri": null,
-              "azureTenantId": null,
-              "options": {
-                "issuer": null
-               },
-              "readOnly": false,
-              "baseEntities": []
-            }
-          ],
-          "bearerOAuth": [
-            {
-              "clientId": null,
-              "clientSecret": null,
-              "readOnly": false,
-              "baseEntities": []
-            }
-          ],
-          "passThrough": {
-             "enabled": false,
-             "readOnly": false,
-             "baseEntities": []
-          }
-        },
-	    "certificate": {
-	      "key": null,
-	      "cert": null,
-	      "ca": null,
-	      "pfx": {
-	        "bundle": null,
-	        "password": null
-	      }
-	    },
-	    "ipAllowList": [],
-	    "email": {
-	      "auth": {
-	        "type": "oauth",
-	        "options": {
-	          "azureTenantId": null,
-	          "clientId": null,
-	          "clientSecret": null
-	        }
-	      },
-	      "emailOnError": {
-	        "enabled": false,
-	        "from": null,
-	        "to": null
-	      }
-	    },
-	    "stream": {
-	      "baseUrls": [],
-	      "certificate": {
-	        "ca": null
-	      },
-	      "subscriber": {
-	        "enabled": false,
-	        "entity": {
-	          "undefined": {
-	            "nats": {
-	              "tenant": null,
-	              "subject": null,
-	              "jwt": null,
-	              "secret": null
-	            },
-	            "deleteUserOnLastGroupRoleRemoval": false,
-	            "convertRolesToGroups": false,
-	            "generateUserPassword": false,
-	            "modifyOnly": false,
-	            "replaceDomains": []
-	          }
-	        }
-	      },
-	      "publisher": {
-	        "enabled": false,
-	        "entity": {
-	          "undefined": {
-	            "nats": {
-	              "tenant": null,
-	              "subject": null,
-	              "jwt": null,
-	              "secret": null
-	            }
-	          }
-	        }
-	      }
-	    }
+	    ...
 	  },
 	  "endpoint": {
-	    "host": "hostname",
-	    "port": 30015,
-	    "username": "username",
-	    "password": "password",
-	    "saml_provider": "saml_provider_name"
+	    ...
 	  }
 	}
 
+`scimgateway`: Contains fixed attributes used by the core gateway functionality (e.g., port, logging, and authentication).
 
-Configuration file have two main JSON objects: `scimgateway` and `endpoint`  
-
-Definitions in `scimgateway` object have fixed attributes, but values can be modified. Sections not used/configured can be removed. This object is used by the core functionality of the SCIM Gateway.  
-
-Definitions in `endpoint` object are customized according to our plugin code. Plugin typically need this information for communicating with endpoint  
+`endpoint`: Contains customized definitions required by the plugin code for communication with the destination system (e.g., host, port, credentials).
 
 - **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway
 
@@ -919,7 +724,7 @@ If several SCIM Gateway´s (same plugin) connect listeners using the same Azure 
 Bun binary build allowing SCIM Gateway to be compiled into a single executable binary for simplified deployment and execution. The binary must have the same name (prefix) as the configuration file in the config directory, and this directory must be located in the same folder as the binary.
 
 	cd my-scimgateway
-	bun build --compile --target=bun-darwin-arm64 --outfile ./build/plugin-loki ./lib/plugin-loki.ts
+	bun build --compile ./lib/plugin-loki.ts --target=bun-darwin-arm64 --outfile ./build/plugin-loki
 	# for target options, see: https://bun.com/docs/bundler/executables#cross-compile-to-other-platforms
 
 	cp -r ./config ./build
@@ -1545,6 +1350,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.1
+
+[Fixed]
+
+- plugin-ldap, a createUser operation followed immediately by a readUser (automatically performed by SCIM Gateway) may not find the newly created user on some systems, such as Samba AD, due to timing issues
+
+
+[Improved]
+
+- the final info log message now includes a JSON serialization of all elements, such as durationMs, status, requestBody, responseBody, ...
+
 ### v6.1.0
 
 [Improved]
@@ -1616,7 +1432,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 - Bun binary build is now supported allowing SCIM Gateway to be compiled into a single executable binary for simplified deployment and execution. The binary must have the same name (prefix) as the configuration file in the config directory, and this directory must be located in the same folder as the binary.
 
 		cd my-scimgateway
-		bun build --compile --target=bun-darwin-arm64 --outfile ./build/plugin-loki ./lib/plugin-loki.ts
+		bun build --compile ./lib/plugin-loki.ts --target=bun-darwin-arm64 --outfile ./build/plugin-loki
 		# for target options, see: https://bun.com/docs/bundler/executables#cross-compile-to-other-platforms
 
 		cp -r ./config ./build
