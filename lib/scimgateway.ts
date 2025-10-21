@@ -555,7 +555,7 @@ export class ScimGateway {
 
       if (ctx.response.status && ctx.response.status > 399) {
         try {
-          const o = JSON.parse(ctx.response.body ?? '')
+          const o = JSON.parse(ctx.response.body as string ?? '')
           if (o.detail) msg = o.detail
           else if (o.Errors && Array.isArray(o.Errors) && o.Errors[0]?.description) msg = o.Errors[0].description
         } catch (err) { }
@@ -2161,7 +2161,7 @@ export class ScimGateway {
 
           let body: any
           if (bulkCtx.response.body) {
-            body = JSON.parse(bulkCtx.response.body)
+            body = JSON.parse(bulkCtx.response.body as string)
             if (op.bulkId && body.id) bulkIdMap.set(op.bulkId, body.id)
           }
 
@@ -2387,6 +2387,10 @@ export class ScimGateway {
         logger.debug(`${gwName} calling getApi`, { baseEntity: ctx?.routeObj?.baseEntity })
         let result = await this.getApi(baseEntity, id, ctx.query, ctx.passThrough)
         if (result) {
+          if (result instanceof ReadableStream) { // support long-running tasks
+            ctx.response.body = result
+            return
+          }
           if (typeof result === 'string') {
             const r = result.trim()
             if (r.startsWith('<') && r.endsWith('>')) {
@@ -2565,7 +2569,7 @@ export class ScimGateway {
       response: {
         headers: Headers // HeadersInit
         status?: number
-        body?: string
+        body?: string | ReadableStream<any>
       }
       routeObj: RouteObj
       perfStart: number
@@ -2838,6 +2842,91 @@ export class ScimGateway {
     }
 
     const onAfterHandle = async (ctx: Context): Promise<Response> => {
+      if (ctx.response.body instanceof ReadableStream && !ctx.response.headers.get('Content-Type')?.includes('text/event-stream')) {
+        // This handles long-running tasks from plugins that return a ReadableStream.
+        // Currently available by getApiHandler() - GET /api
+        // ReadableStream body gives header "Transfer-Encoding: chunked" keeping connection open until last chunk and stream is closed
+        // In addition implementing heartbeat for preventing proxy/loadbalancer closing connection
+        //
+        // corresponding plugin example code:
+        /*
+          const { readable, writable } = new TransformStream()
+            // process the original stream in the background
+            ; (async () => {
+              const writer = writable.getWriter()
+              try {
+                const options = { abortTimeout: 5 * 60 } // 5 minutes
+                const data = await helper.doRequest(,,,,,options)
+                await writer.write(new TextEncoder().encode(data.body ?? ''))
+              } catch (err: any) {
+                await writer.write(new TextEncoder().encode(`error: ${err.message}`))
+              } finally {
+                await writer.close()
+              } 
+            })()
+          return readable // return the readable part immediately
+        */
+        const originalStream = ctx.response.body
+        const originalHeaders = new Headers(ctx.response.headers)
+        let originalStatus = ctx.response.status || 200
+
+        const { readable, writable } = new TransformStream()
+
+        const processStream = async () => {
+          const reader = originalStream.getReader()
+          const writer = writable.getWriter()
+
+          // Heartbeat to keep the connection alive for long-running tasks
+          const heartbeat = setInterval(() => {
+            if (writer.desiredSize && writer.desiredSize > 0) {
+              writer.write(new Uint8Array([32])).catch(() => {}) // space
+            }
+          }, 15000)
+
+          try {
+            const { done, value } = await reader.read()
+            if (!done) {
+              const firstChunkText = new TextDecoder().decode(value).trim()
+              if (firstChunkText.startsWith('<') && firstChunkText.endsWith('>')) {
+                originalHeaders.set('content-type', 'text/html; charset=utf-8')
+              } else if (firstChunkText.startsWith('{') || firstChunkText.startsWith('[')) {
+                originalHeaders.set('content-type', 'application/json; charset=utf-8')
+              } else {
+                originalHeaders.set('content-type', 'text/plain; charset=utf-8')
+              }
+
+              if (firstChunkText.startsWith('error: ')) {
+                originalStatus = 500
+              }
+              ctx.response.body = firstChunkText
+
+              // Write the first chunk and then pipe the rest
+              await writer.write(value)
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                await writer.write(value)
+              }
+            }
+          } catch (err: any) {
+            logger.error(`${gwName} onAfterHandle streaming error: ${err.message}`)
+            await writer.abort(err).catch(() => {})
+          } finally {
+            clearInterval(heartbeat)
+            await writer.close().catch(() => {})
+            reader.releaseLock()
+          }
+        }
+        processStream()
+
+        const response = new Response(readable, { status: originalStatus, headers: originalHeaders })
+        ctx.response.status = response.status
+        ctx.response.headers = response.headers
+        logResult(ctx)
+        return response
+      }
+
+      // default non-streaming responses
       if (!ctx.response.status) ctx.response.status = 200
       if (ctx.response.status === 401) {
         // 401 - do not return scim formatted error message e.g., using PassThrough
@@ -3346,8 +3435,12 @@ export class ScimGateway {
     }
 
     process.setMaxListeners(Infinity)
-    process.on('unhandledRejection', (err: { [key: string]: any }) => { // older versions of V8, unhandled promise rejections are silently dropped
-      logger.error(`${gwName} async function with unhandledRejection: ${err.stack}`)
+    process.on('unhandledRejection', (reason: any, _promise: Promise<any>) => { // older versions of V8, unhandled promise rejections are silently dropped
+      if (reason instanceof Error) {
+        logger.error(`${gwName} async function with unhandledRejection: ${reason.stack}`)
+      } else {
+        logger.error(`${gwName} async function with unhandledRejection: ${JSON.stringify(reason)}`)
+      }
     })
     process.once('SIGTERM', gracefulShutdown) // kill (windows subsystem lacks signaling support for process.kill)
     process.once('SIGINT', gracefulShutdown) // Ctrl+C
@@ -3582,7 +3675,6 @@ export class ScimGateway {
   **/
   async sendMail(msgObj: Record<string, any>, isHtml: boolean = false) {
     const gwName = this.gwName
-    const pluginName = this.pluginName
     const logger = this.logger
     const authType = this.config.scimgateway?.email?.auth?.type ? this.config.scimgateway.email.auth.type.toLowerCase() : ''
 
@@ -3683,7 +3775,7 @@ Content-Transfer-Encoding: quoted-printable
       host: this.config.scimgateway?.email?.auth?.options?.host, // e.g. smtp.office365.com
       port: this.config.scimgateway?.email?.auth?.options?.port || 587,
       secure: (this.config.scimgateway?.email?.auth?.options?.port === 465), // false on 25/587
-      tls: { ciphers: 'TLSv1.2' },
+      tls: { minVersion: 'TLSv1.2' },
       proxy: this.config.scimgateway?.email?.proxy,
     }
 
