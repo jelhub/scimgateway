@@ -625,8 +625,13 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
             dotNewObj[arrMapTo[i]] = dotParse[key] // {"active": {"mapTo": "accountEnabled"} => str.replace("accountEnabled", "active")
           }
         }
-        const arr = mapTo.split('.') // addresses.work.postalCode
-        if (arr.length > 2 && complexObj[arr[0]]) complexArr.push(arr[0]) // addresses
+        const mapTos = mapTo.split(',').map((item: string) => item.trim()) // 'displayName,addresses.work.postalCode'
+        for (let i = 0; i < mapTos.length; i++) {
+          const arr = mapTos[i].split('.') // addresses.work.postalCode
+          if (arr.length > 2 && complexObj[arr[0]]) {
+            complexArr.push(arr[0]) // addresses
+          }
+        }
       }
       break
 
@@ -662,7 +667,6 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
       }
       newObj = tmpObj
     }
-
     if (arrUnsupported.length > 0) { // delete from newObj when not included in map
       for (const i in arrUnsupported) {
         const arr = arrUnsupported[i].split('.') // emails.work.type
