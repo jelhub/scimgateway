@@ -21,7 +21,7 @@ Latest news:
 - Major release **v6.0.0** introduces changes to API method response bodies (not SCIM-related) and a new method `publicApi()` for handling public path `/pub/api` requests with no authentication required. In addition, the configuration option `bearerJwtAzure.tenantIdGUID` has been replaced by `bearerJwt.azureTenantId`. See the version history for details.
 - Support for Entra ID [Federated Identity Credentials](https://learn.microsoft.com/en-us/graph/api/resources/federatedidentitycredentials-overview?view=graph-rest-1.0) has been added through internal JWKS (JSON Web Key Set), allowing SCIM Gateway to access Microsoft Entra–protected resources without the need to manage secrets
 - External JWKS (JSON Web Key Set) is now supported by JWT authentication, allowing external applications to access SCIM Gateway without the need to manage secrets
-- [Azure Relay](https://learn.microsoft.com/en-us/azure/azure-relay/relay-what-is-it) is now supported for secure and hassle-free outbound communication — with just one minute of configuration
+- [Azure Relay](https://learn.microsoft.com/en-us/azure/azure-relay/relay-what-is-it) is now supported for secure and hassle-free outbound-only communication — with just one minute of configuration
 - [ETag](https://datatracker.ietf.org/doc/html/rfc7644#section-3.14) is now supported
 - [Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) is now supported
 - Remote real-time log subscription for centralized logging and monitoring. Using browser `https://<host>/logger`, curl or custom client API - see configuration notes  
