@@ -86,7 +86,7 @@ Create a package directory and install the SCIM Gateway:
 	bun install scimgateway
 	bun pm trust scimgateway
  
-`index.ts`, `lib` and `config` directories containing example plugins are copied to your package. The command `bun pm trust scimgateway` is required to allow the `postinstall` script to copy these files.
+index.ts, lib and config directories containing example plugins are copied to your package. The command `bun pm trust scimgateway` is required to allow the `postinstall` script to copy these files.
 
 #### Startup and verify default Loki plugin 
 
