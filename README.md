@@ -1,18 +1,19 @@
 # SCIM Gateway  
 
-[![Build Status](https://app.travis-ci.com/jelhub/scimgateway.svg?branch=master)](https://app.travis-ci.com/github/jelhub/scimgateway) [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dm/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/docs/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)  
+[![Build Status](https://app.travis-ci.com/jelhub/scimgateway.svg?branch=master)](https://app.travis-ci.com/github/jelhub/scimgateway) [![npm Version](https://img.shields.io/npm/v/scimgateway.svg?style=flat-square&label=latest)](https://www.npmjs.com/package/scimgateway)[![npm Downloads](https://img.shields.io/npm/dm/scimgateway.svg?style=flat-square)](https://www.npmjs.com/package/scimgateway) [![chat disqus](https://jelhub.github.io/images/chat.svg)](https://elshaug.xyz/docs/scimgateway#disqus_thread) [![GitHub forks](https://img.shields.io/github/forks/jelhub/scimgateway.svg?style=social&label=Fork)](https://github.com/jelhub/scimgateway)
 
----  
-Author: Jarle Elshaug  
+---
+**Author:** Jarle Elshaug
 
-Validated through IdP's:  
+**Validated through IdPs:**
 
-- Symantec/Broadcom Identity Manager
-- Microsoft Entra ID
-- One Identity Manager
-- Okta
-- Omada
-- SailPoint/IdentityNow
+*   Symantec/Broadcom Identity Manager
+*   Microsoft Entra ID
+*   One Identity Manager
+*   Okta
+*   Omada
+*   SailPoint/IdentityNow
+---
 
 Latest news:  
 
@@ -42,6 +43,8 @@ Latest news:
 - Includes API Gateway for none SCIM/provisioning - becomes what you want it to become   
 - Running SCIM Gateway as a Docker container  
 
+---
+
 ## Overview  
 
 SCIM Gateway facilitates user management using the standardized REST-based SCIM 1.1 or 2.0 protocol, offering easier, more powerful, and consistent provisioning while avoiding vendor lock-in. Acting as a translator for incoming SCIM requests, the gateway seamlessly enables CRUD functionality (create, read, update, and delete) for users and groups. By implementing endpoint-specific protocols, it ensures provisioning across diverse destinations. With the gateway, your destinations become SCIM-compatible interfaces, streamlining integration and simplifying user management.  
@@ -54,8 +57,8 @@ The following fully functional plugins are included for demonstration and produc
 
 | Plugin | Endpoint Type | Description |
 | :--- | :--- | :--- |
-| **Loki** | NoSQL Database | Makes the SCIM Gateway a standalone SCIM endpoint using internal [LokiJS](https://github.com/techfort/LokiJS) |
-| **MongoDB** | NoSQL Database | Like plugin Loki, but using external MongoDB. Demonstrates multi-tenant or multi-endpoint through `baseEntity`|
+| **Loki** | NoSQL Database | Transforms the SCIM Gateway into a standalone SCIM endpoint utilizing the internal [LokiJS](https://github.com/techfort/LokiJS) database. Includes two test users and groups |
+| **MongoDB** | NoSQL Database | Similar to the Loki plugin, but using an externally managed MongoDB database, showcasing multi-tenant and multi-endpoint capabilities via `baseEntity` |
 | **Entra ID** | REST Webservices | Entra ID user provisioning via Microsoft Graph API |
 | **SCIM** | REST Webservice | Using plugin Loki as a SCIM provisioning endpoint. May become a SCIM version-gateway (e.g., 1.1 => 2.0) |
 | **API** | REST Webservices | A non-SCIM plugin demonstrating API Gateway functionality for custom REST specifications |
@@ -65,6 +68,7 @@ The following fully functional plugins are included for demonstration and produc
 | **LDAP** | Directory | A fully functional LDAP plugin pre-configured for Microsoft Active Directory |
 
 ## Installation  
+To get started with SCIM Gateway, follow the instructions below.
 
 #### Install Bun  
 
@@ -82,7 +86,7 @@ Create a package directory and install the SCIM Gateway:
 	bun install scimgateway
 	bun pm trust scimgateway
  
-index.ts, lib and config directories containing example plugins are copied to your package. The command `bun pm trust scimgateway` is required to allow the `postinstall` script to copy these files.
+`index.ts`, `lib` and `config` directories containing example plugins are copied to your package. The command `bun pm trust scimgateway` is required to allow the `postinstall` script to copy these files.
 
 #### Startup and verify default Loki plugin 
 
@@ -91,7 +95,7 @@ index.ts, lib and config directories containing example plugins are copied to yo
 	Start a browser
 
 	http://localhost:8880/ping
-	=> Health check with a "hello" response
+	=> Returns a health check with a "hello" response
 
 	http://localhost:8880/Users
 	http://localhost:8880/Groups
@@ -126,7 +130,7 @@ The recommended upgrade method is to rename the existing package folder, perform
 - Minor Upgrade: `bun install scimgateway`
 - Major Upgrade: `bun install scimgateway@latest` (Use with caution, as it may break compatibility with existing custom plugins)
 
-##### Avoid (re-)adding the files created during `postinstall`
+##### Avoid (re-)adding the example plugins created during `postinstall`
 
 For production we do not need example plugins to be incuded by the `postinstall` job  
 Bun will by default exlude any `postinstall` jobs unless we have trusted the scimgateway package using the `bun pm trust scimgateway` that updates package.json `{ trustedDependencies: ["scimgateway"] }`
@@ -135,7 +139,7 @@ For Node.js (and also Bun), we might set the property `scimgateway_postinstall_s
 
 ## Configuration  
 
-**index.ts** defines one or more plugins to be started  
+The `index.ts` file defines the plugins to be started.
 
 	// start one or more plugins:
 	import './lib/plugin-entra-id.ts'
@@ -143,7 +147,7 @@ For Node.js (and also Bun), we might set the property `scimgateway_postinstall_s
 
 
 Each endpoint plugin needs a TypeScript file (.ts) and a configuration file (.json).  
-**They both must have the same naming prefix**. For Entra ID endpoint we have:  
+They both must have the **same naming prefix**. For the Entra ID endpoint, the corresponding files are:
 >lib\plugin-entra-id.ts  
 >config\plugin-entra-id.json
 
@@ -158,39 +162,39 @@ A plugin configuration file has two main JSON objects: `scimgateway` and `endpoi
 	  }
 	}
 
-`scimgateway`: Contains fixed attributes used by the core gateway functionality (e.g., port, logging, and authentication).
+`scimgateway`: Contains fixed attributes used by the core gateway functionality, such as port, logging, and authentication.
 
-`endpoint`: Contains customized definitions required by the plugin code for communication with the destination system (e.g., host, port, credentials).
+`endpoint`: Contains customized definitions required by the plugin code for communication with the destination system, including host, port, and credentials.
 
-- **port** - Gateway will listen on this port number. Clients (e.g. Provisioning Server) will be using this port number for communicating with the gateway
+- **port**: The gateway will listen on this port number. Clients, such as a provisioning server, will use this port to communicate with the gateway.
 
-- **localhostonly** - true or false. False means gateway accepts incoming requests from all clients. True means traffic from only localhost (127.0.0.1) is accepted.
+- **localhostonly**: Set to `true` to accept incoming requests only from localhost (127.0.0.1). Set to `false` to accept requests from all clients.
 
-- **chainingBaseUrl** - baseUrl for chaining anohter gateway, syntax: `http(s)://host:port`. If defined, gateway beave much like a reverse proxy, validating authorization unless PassThrough mode is enabled. See `Configuration notes` for details
+- **chainingBaseUrl**: The base URL for chaining another gateway, with the syntax `http(s)://host:port`. When defined, the gateway behaves like a reverse proxy, validating authorization unless PassThrough mode is enabled. See `Configuration notes` for details.
 
-- **idleTimeout** - default 120, sets the the number of seconds to wait before timing out a connection due to inactivity
+- **idleTimeout**: The number of seconds to wait before timing out a connection due to inactivity. The default value is 120 seconds.
 
-- **scim.version** - "1.1" or "2.0". Default is "2.0".
+- **scim.version**: Specifies the SCIM protocol version to use, either "1.1" or "2.0". The default is "2.0".
 
-- **scim.skipTypeConvert** - true or false, default false. Multivalue attributes supporting types e.g. emails, phoneNumbers, ims, photos, addresses, entitlements and x509Certificates (but not roles, groups and members) will be become "type converted objects" when sent to modifyUser and createUser. This for simplicity of checking attributes included and also for the endpointMapper method (used by plugin-ldap and plugin-entra-id), e.g.:
+- **scim.skipTypeConvert**: When set to `true`, multivalue attributes with types (e.g., emails, phoneNumbers, ims, photos, addresses, entitlements, and x509Certificates, but not roles, groups, and members) will not be converted into "type converted objects" when sent to `modifyUser` and `createUser`. This is useful for simplifying attribute checks and for the `endpointMapper` method used by `plugin-ldap` and `plugin-entra-id`. For example:
 
 		"emails": {
 		  "work": {"value": "jsmith@example.com", "type": "work"},
 		  "home": {"value": "", "type": "home", "operation": "delete"},
 		  "undefined": {"value": "jsmith@hotmail.com"}
 		}  
-
-        skipTypeConvert set to true gives attribute "as-is": array, allow duplicate types including blank, but values to be deleted have been marked with "operation": "delete"
   
+        When `skipTypeConvert` is set to `true`, the attribute is provided "as-is" as an array, allowing duplicate types including blank types. Values to be deleted are marked with `"operation": "delete"`.
+
 		"emails": [
 		  {"value": "jsmith@example.com", "type": "work"},
 		  {"value": "john.smith.org", "type": "home", "operation": "delete"},
 		  {"value": "jsmith@hotmail.com"}
 		]  
 
-- **scim.skipMetaLocation** - true or false, default false. If set to true, `meta.location` which contains protocol and hostname from request-url, will be excluded from response e.g. `"{...,meta":{"location":"https://my-company.com/<...>"}}`. If using reverse proxy and not including headers `X-Forwarded-Proto` and `X-Forwarded-Host`, originator will be the proxy and we might not want to expose internal protocol and hostname being used by the proxy request.
+- **scim.skipMetaLocation**: When set to `true`, the `meta.location` attribute, which contains the protocol and hostname from the request URL, will be excluded from the response (e.g., `"{...,meta":{"location":"https://my-company.com/<...>"}}`). This is useful when using a reverse proxy and not including the `X-Forwarded-Proto` and `X-Forwarded-Host` headers, as the originator will be the proxy and the internal protocol and hostname should not be exposed.
 
-- **scim.groupMemberOfUser** - true or false, default false. If body contains groups and groupMemberOfUser=true, groups attribute will remain at user object (groups are member of user) instead of default user member of groups that will use modifyGroup method for maintaining group members.
+- **scim.groupMemberOfUser**: When set to `true`, and the request body contains groups, the `groups` attribute will remain on the user object (groups are members of the user). The default behavior is for the user to be a member of the groups, which uses the `modifyGroup` method to maintain group members.
 
 - **scim.usePutSoftSync** - true or false, default false. `PUT /Users/bjensen` will replace the user bjensen with body content. If set to `true`, only PUT body content will be replaced. Any additional existing user attributes and groups supported by plugin will remain as-is.
 
@@ -1169,36 +1173,6 @@ Endpoint configuration example:
 
 For details, please see section "CA Identity Manager as IdP using SCIM Gateway"
 
-## SCIM Gateway REST API 
-      
-	Create = POST http://localhost:8880/Users  
-	(body contains the user information)
-	
-	Update = PATCH http://localhost:8880/Users/<id>
-	(body contains the attributes to be updated)
-	
-	Search/Read = GET http://localhost:8880/Users?userName eq 
-	"userID"&attributes=<comma separated list of scim-schema defined attributes>
-	
-	Search/explore all users:
-	GET http://localhost:8880/Users?attributes=userName
-	
-	Delete = DELETE http://localhost:8880/Users/<id>
-
-Discovery:
-
-	GET http://localhost:8880/ServiceProviderConfigs
-	Specification compliance, authentication schemes, data models.
-	
-	GET http://localhost:8880/Schemas
-	Introspect resources and attribute extensions.
-
-Note:  
-
-- userName (mandatory) = UserID  
-- id (mandatory) = Unique id. Could be set to the same as UserID but don't have to.  
-
-
 ## API Gateway    
 
 SCIM Gateway also works as an API Gateway when using url `/api` or `/<baseEntity>/api`  
@@ -1213,35 +1187,33 @@ Following methods for the none SCIM based api-plugin are supported:
 		PATCH /api/{id} + body  
 		DELETE /api/{id}  
 
-These methods can also be used in standard SCIM plugins  
+These methods can also be included in standard SCIM plugins  
 Please see example plugin: **plugin-api.ts**
 
- 
 ## How to build your own plugins  
-For JavaScript coding editor you may use [Visual Studio Code](https://code.visualstudio.com/ "Visual Studio Code") 
+For coding editor you may use [Visual Studio Code](https://code.visualstudio.com/ "Visual Studio Code") 
 
 Preparation:
 
 * Copy "best matching" example plugin e.g. `lib\plugin-mssql.ts` and `config\plugin-mssql.json` and rename both copies to your plugin name prefix e.g. plugin-mine.ts and plugin-mine.json 
 * Edit plugin-mine.json and define a unique port number for the gateway setting  
-* Edit index.ts and include your plugin in the startup e.g. `const plugins = ['mine']');`  
-* Start SCIM Gateway and verify using using your own SCIM API requests or your IdP/IGA system.  
+* Edit index.ts and include your plugin in the startup e.g. `import './lib/plugin-mine.ts'`  
+* Start SCIM Gateway and verify
 
-Now we are ready for custom coding by editing plugin-mine.ts
+We are now ready for custom coding by editing plugin-mine.ts
 Coding should be done step by step and each step should be verified and tested before starting the next 
 
 1. **Turn off group functionality** - getGroups to return empty response (gateway automatically use getGroups for some of the methods if groups not included)  
 Please see plugin-saphana that do not use groups.
 2. **getUsers** (test provisioning retrieve all accounts and single account)
-4. **createUser** (test provisioning new account)
-5. **deleteUser** (test provisioning delete account)
-6. **modifyUser** (test provisioning modify account)
-7. **Turn on group functionality** - getGroups having logic for returning groups if groups are supported  
+3. **createUser** (test provisioning new account)
+4. **deleteUser** (test provisioning delete account)
+5. **modifyUser** (test provisioning modify account)
+6. **Turn on group functionality** - getGroups having logic for returning groups if groups are supported  
 7. **getGroups** (test provisioning retrieve groups)
 8. **modifyGroup** (test provisioning modify group members)  
-12. **createGroup** (test provisioning new group)
-13. **deleteGroup** (test provisioning delete account)
-
+9.  **createGroup** (test provisioning new group)
+10.  **deleteGroup** (test provisioning delete account)
 
 Template used by CA Provisioning role should only include endpoint supported attributes defined in our plugin. Template should therefore have no links to global user for none supported attributes (e.g. remove %UT% from "Job Title" if our endpoint/code do not support title)  
 
@@ -1293,33 +1265,14 @@ advanced options - **Synchronized** = enabled (toggled on)
 Plugins should have following initialization:  
 
 	// start - mandatory plugin initialization
-	const ScimGateway: typeof import('scimgateway').ScimGateway = await (async () => {
-	  try {
-	    return (await import('scimgateway')).ScimGateway
-	  } catch (err) {
-	    const source = './scimgateway.ts'
-	    return (await import(source)).ScimGateway
-	  }
-	})()
+	import { ScimGateway, HelperRest } from 'scimgateway'
 	const scimgateway = new ScimGateway()
+	const helper = new HelperRest(scimgateway)
 	const config = scimgateway.getConfig()
 	scimgateway.authPassThroughAllowed = false
 	// end - mandatory plugin initialization
-	
-If using REST, we could also include the HelperRest:
 
-	// start - mandatory plugin initialization
-	...
-	const HelperRest: typeof import('scimgateway').HelperRest = await (async () => {
-	  try {
-	    return (await import('scimgateway')).HelperRest
-	  } catch (err) {
-	    const source = './scimgateway.ts'
-	    return (await import(source)).HelperRest
-	  }
-	})()
-	...
-	// end - mandatory plugin initialization
+	HelperRest could included and used by REST plugins
 
 Plugins should include following SCIM Gateway methods:  
 
@@ -1349,6 +1302,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log
+
+### v6.1.2
+
+[Fixed]
+- SMTP mail functionality failed because of an updated dependency
+- endpointMapper failed when `mapTo` included multiple comma-separated attributes and one of them was a multivalued attribute, e.g. `{ "mail": { "mapTo": "userName,emails.work.value" } }`
 
 ### v6.1.1
 
@@ -3572,5 +3531,3 @@ This plugin now replace previous `plugin-testmode`
 
 ### v0.2.0  
 Initial version
-
-
