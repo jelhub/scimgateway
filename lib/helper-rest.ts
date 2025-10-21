@@ -34,109 +34,137 @@ export class HelperRest {
     this.scimgateway = scimgateway
     this.idleTimeout = (scimgateway as any)?.config?.scimgateway.idleTimeout || 120
     this.idleTimeout = this.idleTimeout - 1
-    if (optionalEntities && optionalEntities.entity) this.config_entity = utils.copyObj(optionalEntities.entity)
-    else this.config_entity = utils.copyObj(scimgateway.getConfig())?.entity
-    let entityFound = false
-    let connectionFound = false
+    if (optionalEntities && optionalEntities.entity) this.config_entity = utils.copyObj(optionalEntities.entity) ?? {}
+    else this.config_entity = utils.copyObj(scimgateway.getConfig())?.entity ?? {}
+
     for (const baseEntity in this.config_entity) {
-      entityFound = true
-      if (this.config_entity[baseEntity]?.connection) {
-        connectionFound = true
-        const type = this.config_entity[baseEntity].connection?.auth?.type
+      const connectionObj = this.config_entity[baseEntity]?.connection
+      if (connectionObj) {
+        const type = connectionObj.auth?.type
         if (type === 'oauthJwtBearer' || type === 'oauth') {
           // set default baseUrls for Entra ID and Google if not already defined
-          if (this.config_entity[baseEntity]?.connection?.auth?.options?.azureTenantId) { // Entra ID, setting baseUrls to graph
-            if (!this.config_entity[baseEntity].connection.baseUrls) {
-              this.config_entity[baseEntity].connection.baseUrls = [this.graphUrl]
-            } else if (this.config_entity[baseEntity].connection.baseUrls?.length < 1) {
-              this.config_entity[baseEntity].connection.baseUrls = [this.graphUrl]
+          if (connectionObj.auth?.options?.azureTenantId) { // Entra ID, setting baseUrls to graph
+            if (!connectionObj.baseUrls) {
+              connectionObj.baseUrls = [this.graphUrl]
+            } else if (connectionObj.baseUrls?.length < 1) {
+              connectionObj.baseUrls = [this.graphUrl]
             }
-          } else if (this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile) { // Google, setting baseUrls to googleapis
-            if (!this.config_entity[baseEntity].connection.baseUrls) {
-              this.config_entity[baseEntity].connection.baseUrls = [this.googleUrl]
-            } else if (this.config_entity[baseEntity].connection.baseUrls?.length < 1) {
-              this.config_entity[baseEntity].connection.baseUrls = [this.googleUrl]
+          } else if (connectionObj.auth?.options?.serviceAccountKeyFile) { // Google, setting baseUrls to googleapis
+            if (!connectionObj.baseUrls) {
+              connectionObj.baseUrls = [this.googleUrl]
+            } else if (connectionObj.baseUrls?.length < 1) {
+              connectionObj.baseUrls = [this.googleUrl]
             }
           }
         }
       }
     }
-    let errMsg = ''
-    if (!entityFound) errMsg = 'HelperRest initialization error: missing configuration \'endpoint.entity.<name>\''
-    else if (!connectionFound) errMsg = 'HelperRest initialization error: missing configuration \'endpoint.entity.<name>.connection\''
-    if (errMsg) this.scimgateway.logError('undefined', errMsg)
   }
 
   /**
    * getAccessToken returns oauth accesstoken object
    * @param baseEntity 
+   * @param connectionObj endpoint.entity.baseEntity.connection
    * @param ctx 
-   * @returns oauth accesstoken object
+   * @returns { access_token: 'xxx', token_type: 'Bearer/Basic', validTo: 'xxx' }
    */
-  public async getAccessToken(baseEntity: string, ctx?: Record<string, any> | undefined) { // public in case token is needed for other logic e.g. sending mail
+  public async getAccessToken(baseEntity: string, connectionObj: Record<string, any>, ctx?: Record<string, any> | undefined) { // public in case token is needed for other logic e.g. sending mail
     await this.lock.acquire()
     const d = Math.floor(Date.now() / 1000) // seconds (unix time)
-    if (this._serviceClient[baseEntity] && this._serviceClient[baseEntity].accessToken
-      && (this._serviceClient[baseEntity].accessToken.validTo >= d + 30)) { // avoid simultaneously token requests
+    if (this._serviceClient[baseEntity]?.accessToken?.validTo >= d + 30) { // avoid simultaneously token requests
       this.lock.release()
       return this._serviceClient[baseEntity].accessToken
     }
 
     const action = 'getAccessToken'
-
-    const serviceAccountKeyFile = this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile
-    const azureTenantId = this.config_entity[baseEntity]?.connection?.auth?.options?.azureTenantId
+    if (typeof connectionObj !== 'object' || connectionObj === null) connectionObj = {}
+    const serviceAccountKeyFile = connectionObj.auth?.options?.serviceAccountKeyFile
+    const azureTenantId = connectionObj.auth?.options?.azureTenantId
     let tokenUrl: string
     let form: Record<string, any>
     let resource = ''
 
     try {
-      const urlObj = new URL(this.config_entity[baseEntity].connection.baseUrls[0])
+      const urlObj = new URL(connectionObj.baseUrls[0])
       resource = urlObj.origin
     } catch (err) { void 0 }
     if (azureTenantId) {
       tokenUrl = `https://login.microsoftonline.com/${azureTenantId}/oauth2/v2.0/token`
-      if (resource) this.config_entity[baseEntity].connection.auth.options.scope = resource + '/.default' // "https://graph.microsoft.com/.default"
-    } else tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
+      if (resource) connectionObj.auth.options.scope = resource + '/.default' // "https://graph.microsoft.com/.default"
+    } else tokenUrl = connectionObj.auth?.options?.tokenUrl
 
     try {
-      switch (this.config_entity[baseEntity]?.connection?.auth?.type) {
+      switch (connectionObj.auth?.type) {
+        case 'basic':
+          if (!connectionObj.auth?.options?.username || !connectionObj.auth?.options?.password) {
+            const err = new Error(`auth.type 'basic' - missing connection configuration: auth.options.username/password`)
+            throw err
+          }
+          this.lock.release()
+          return {
+            access_token: Buffer.from(`${connectionObj.auth.options.username}:${connectionObj.auth.options.password}`).toString('base64'),
+            token_type: 'Basic',
+          }
         case 'oauth':
+          if (!connectionObj.auth?.options?.clientId || !connectionObj.auth?.options?.clientSecret) {
+            const err = new Error(`auth.type 'oauth' - missing connection configuration: auth.options.clientId/clientSecret`)
+            throw err
+          }
           form = {
             grant_type: 'client_credentials',
-            client_id: this.config_entity[baseEntity].connection.auth.options.clientId,
-            client_secret: this.config_entity[baseEntity].connection.auth.options.clientSecret,
+            client_id: connectionObj.auth.options.clientId,
+            client_secret: connectionObj.auth.options.clientSecret,
           }
-          if (this.config_entity[baseEntity].connection.auth.options.scope) form.scope = this.config_entity[baseEntity].connection.auth.options.scope // required using Entra ID /oauth2/v2.0/token
-          if (this.config_entity[baseEntity].connection.auth.options.resource) resource = this.config_entity[baseEntity].connection.auth.options.resource // required using Entra ID /oauth2/token
+          if (connectionObj.auth.options.scope) form.scope = connectionObj.auth.options.scope // required using Entra ID /oauth2/v2.0/token
+          if (connectionObj.auth.options.resource) resource = connectionObj.auth.options.resource // required using Entra ID /oauth2/token
 
           break
 
         case 'token':
-          tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
+          if (!connectionObj.auth?.options?.tokenUrl || !connectionObj.auth?.options?.password) {
+            const err = new Error(`missing connection configuration: auth.options.tokenUrl/password`)
+            throw err
+          }
+          tokenUrl = connectionObj.auth.options.tokenUrl
           form = { // example username/password in body
-            username: this.config_entity[baseEntity].connection.auth.options.username,
-            password: this.config_entity[baseEntity].connection.auth.options.password,
+            username: connectionObj.auth.options.username,
+            password: connectionObj.auth.options.password,
           }
           break
 
+        case 'bearer':
+          if (!connectionObj.auth?.options?.token) {
+            const err = new Error(`missing connection configuration: auth.options.token`)
+            throw err
+          }
+          this.lock.release()
+          return {
+            access_token: Buffer.from(connectionObj.auth.options.token).toString('base64'),
+            token_type: 'Bearer',
+          }
+
         case 'oauthSamlBearer':
-          tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
+          if (!connectionObj.auth?.options?.samlPayload?.clientId || !connectionObj.auth?.options?.samlPayload?.companyId
+            || !connectionObj.auth?.options?.tls?.key) {
+            const err = new Error(`auth.type 'oauthSamlBearer' - missing connection configuration: auth.options.tls and/or options.samlPayload.clientId/companyId`)
+            throw err
+          }
+          tokenUrl = connectionObj.auth.options.tokenUrl
           const context = null
-          const cert = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.cert).toString()
-          const key = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key).toString()
+          const cert = fs.readFileSync(connectionObj.auth.options.tls.cert).toString()
+          const key = fs.readFileSync(connectionObj.auth.options.tls.key).toString()
 
           const tokenEndpoint = tokenUrl
           const delay = 1
 
           // mandatory: clientId, companyId and nameId
-          const clientId = this.config_entity[baseEntity].connection.auth.options.samlPayload.clientId
-          const companyId = this.config_entity[baseEntity].connection.auth.options.samlPayload.companyId
-          const nameId = this.config_entity[baseEntity].connection.auth.options.samlPayload.nameId
-          const userIdentifierFormat = this.config_entity[baseEntity].connection.auth.options.samlPayload.userIdentifierFormat || 'userName'
-          const lifetime = this.config_entity[baseEntity].connection.auth.options.samlPayload.lifetime || 3600
-          const issuer = this.config_entity[baseEntity].connection.auth.options.samlPayload.clientId || `https://scimgateway.${this.scimgateway.pluginName}.com`
-          const audience = this.config_entity[baseEntity].connection.auth.options.samlPayload.audience || `scimgateway/${this.scimgateway.pluginName}`
+          const clientId = connectionObj.auth.options.samlPayload.clientId
+          const companyId = connectionObj.auth.options.samlPayload.companyId
+          const nameId = connectionObj.auth.options.samlPayload.nameId
+          const userIdentifierFormat = connectionObj.auth.options.samlPayload.userIdentifierFormat || 'userName'
+          const lifetime = connectionObj.auth.options.samlPayload.lifetime || 3600
+          const issuer = connectionObj.auth.options.samlPayload.clientId || `https://scimgateway.${this.scimgateway.pluginName}.com`
+          const audience = connectionObj.auth.options.samlPayload.audience || `scimgateway/${this.scimgateway.pluginName}`
 
           form = {
             token_url: tokenUrl,
@@ -149,16 +177,19 @@ export class HelperRest {
           break
 
         case 'oauthJwtBearer':
+          // auth.options.azureTenantId => Microsoft Entra ID
+          // auth.options.serviceAccountKeyFile => Google Service Account
+          // also support custom using tokenUrl/jwtPayload
           let jwtClaims: jose.JWTPayload | Record<string, any>
           let jwtHeaders: jose.JWTHeaderParameters
 
           if (azureTenantId) { // Microsoft Entra ID
-            if (this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer) { // federated credentials
+            if (connectionObj.auth?.options?.fedCred?.issuer) { // federated credentials
               const now = Date.now()
               const jwtPayload: jose.JWTPayload = {
-                iss: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer, // entra id federated credentials issuer - scimgateway base URL, e.g. https://scimgateway.my-company.com
-                sub: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.subject, // entra id application object id - client id
-                name: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.name, // entra id federated credentials unique name e.g. plugin-entra-id
+                iss: connectionObj.auth?.options?.fedCred?.issuer, // entra id federated credentials issuer - scimgateway base URL, e.g. https://scimgateway.my-company.com
+                sub: connectionObj.auth?.options?.fedCred?.subject, // entra id application object id - client id
+                name: connectionObj.auth?.options?.fedCred?.name, // entra id federated credentials unique name e.g. plugin-entra-id
                 aud: 'api://AzureADTokenExchange', // entra id federated credentials audience
                 // below is not used by entra id federated credentials token-generation - could be skipped
                 iat: Math.floor(now / 1000) - 60,
@@ -184,8 +215,8 @@ export class HelperRest {
 
               form = {
                 grant_type: 'client_credentials',
-                scope: this.config_entity[baseEntity].connection.auth.options.scope, // "https://graph.microsoft.com/.default"
-                client_id: this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.subject,
+                scope: connectionObj.auth.options.scope, // "https://graph.microsoft.com/.default"
+                client_id: connectionObj.auth?.options?.fedCred?.subject,
                 client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
                 client_assertion: await new jose.SignJWT(jwtClaims)
                   .setProtectedHeader(jwtHeaders)
@@ -204,34 +235,34 @@ export class HelperRest {
                   }, ttl * 1000)
                 })()
               }
-              this.scimgateway.jwk.issuer = this.config_entity[baseEntity]?.connection?.auth?.options?.fedCred?.issuer // all baseEntities should use same issuer
+              this.scimgateway.jwk.issuer = connectionObj.auth?.options?.fedCred?.issuer // all baseEntities should use same issuer
             } else { // standard certificate
-              if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.cert) {
-                throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.tls.key/cert configuration`)
+              if (!connectionObj.auth?.options?.tls?.cert) {
+                throw new Error(`auth type '${connectionObj.auth?.type}' - missing options.tls.key/cert configuration`)
               }
-              let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._key || ''
-              let cert = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._cert || ''
-              let certPem = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._certPem || ''
+              let privateKey = connectionObj.auth?.options?.tls?._key || ''
+              let cert = connectionObj.auth?.options?.tls?._cert || ''
+              let certPem = connectionObj.auth?.options?.tls?._certPem || ''
               if (!privateKey || !cert) {
-                const privateKeyPem = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key, 'utf-8') || ''
-                certPem = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.cert, 'utf-8') || ''
+                const privateKeyPem = fs.readFileSync(connectionObj.auth.options.tls.key, 'utf-8') || ''
+                certPem = fs.readFileSync(connectionObj.auth.options.tls.cert, 'utf-8') || ''
                 if (privateKeyPem) {
                   privateKey = createPrivateKey(privateKeyPem) // PEM => KeyObject
-                  this.config_entity[baseEntity].connection.auth.options.tls._key = privateKey
+                  connectionObj.auth.options.tls._key = privateKey
                 }
                 if (certPem) {
                   cert = createPublicKey(certPem)
-                  this.config_entity[baseEntity].connection.auth.options.tls._cert = cert
-                  this.config_entity[baseEntity].connection.auth.options.tls._certPem = certPem
+                  connectionObj.auth.options.tls._cert = cert
+                  connectionObj.auth.options.tls._certPem = certPem
                 }
               }
               if (!privateKey || !cert) {
-                throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing options.tls.key/cert file content`)
+                throw new Error(`auth type '${connectionObj.auth?.type}' - missing options.tls.key/cert file content`)
               }
 
               const jwtPayload: jose.JWTPayload = {
-                iss: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
-                sub: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
+                iss: connectionObj.auth?.options?.clientId,
+                sub: connectionObj.auth?.options?.clientId,
                 aud: `https://login.microsoftonline.com/${azureTenantId}/v2.0`,
                 iat: Math.floor(Date.now() / 1000) - 60,
                 exp: Math.floor(Date.now() / 1000) + 3600,
@@ -251,8 +282,8 @@ export class HelperRest {
 
               form = {
                 grant_type: 'client_credentials',
-                scope: this.config_entity[baseEntity].connection.auth.options.scope, // "https://graph.microsoft.com/.default"
-                client_id: this.config_entity[baseEntity]?.connection?.auth?.options?.clientId,
+                scope: connectionObj.auth.options.scope, // "https://graph.microsoft.com/.default"
+                client_id: connectionObj.auth?.options?.clientId,
                 client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
                 client_assertion: await new jose.SignJWT(jwtClaims)
                   .setProtectedHeader(jwtHeaders)
@@ -260,35 +291,35 @@ export class HelperRest {
               }
             }
           } else if (serviceAccountKeyFile) { // Google - using Service Account key json-file
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.scope || !this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.subject) {
-              const err = new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - using auth.options 'serviceAccountKeyFile' requires mandatory configuration entity.${baseEntity}.connection.auth.options.jwtPayload.scope/subject`)
+            if (!connectionObj.auth?.options?.jwtPayload?.scope || !connectionObj.auth?.options?.jwtPayload?.subject) {
+              const err = new Error(`auth type '${connectionObj.auth?.type}' - using auth.options 'serviceAccountKeyFile' requires mandatory configuration entity.${baseEntity}.connection.auth.options.jwtPayload.scope/subject`)
               throw err
             }
-            let gkey: Record<string, any> = this.config_entity[baseEntity]?.connection?.auth?.options?._gkey
+            let gkey: Record<string, any> = connectionObj.auth?.options?._gkey
             if (!gkey) {
               gkey = await (async () => {
                 try {
                   const jsonObject = await import(serviceAccountKeyFile, { assert: { type: 'json' } })
                   return jsonObject.default // access the object via the `default` property
                 } catch (err: any) {
-                  throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - serviceAccountKeyFile error: ${err.message}`)
+                  throw new Error(`auth type '${connectionObj.auth?.type}' - serviceAccountKeyFile error: ${err.message}`)
                 }
               })()
-              this.config_entity[baseEntity].connection.auth.options._gkey = gkey
+              connectionObj.auth.options._gkey = gkey
             }
 
             tokenUrl = gkey.token_uri // https://oauth2.googleapis.com/token
             const privateKey = createPrivateKey(gkey.private_key) // PEM => KeyObject
             const jwtPayload: jose.JWTPayload = {
               iss: gkey.client_email, // service account email/user
-              sub: this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.subject, // gmail sender mail-address: noreply@mycompany.com
+              sub: connectionObj.auth?.options?.jwtPayload?.subject, // gmail sender mail-address: noreply@mycompany.com
               aud: gkey.token_uri,
               iat: Math.floor(Date.now() / 1000) - 60, // issued at
               exp: Math.floor(Date.now() / 1000) + 3600, // expiration time
             }
             jwtClaims = {
               ...jwtPayload,
-              scope: this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload?.scope, // https://www.googleapis.com/auth/gmail.send
+              scope: connectionObj.auth?.options?.jwtPayload?.scope, // https://www.googleapis.com/auth/gmail.send
             }
             jwtHeaders = {
               alg: 'RS256',
@@ -304,25 +335,25 @@ export class HelperRest {
             }
           } else {
             // standard JWT - requires all configuation: tokenUrl, jwtPayload and tls.key
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl
-              || !this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload
-              || typeof this.config_entity[baseEntity]?.connection?.auth?.options?.jwtPayload !== 'object') {
-              throw new Error(`auth.type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no azureTenantId/serviceAccountKeyFile using raw) - missing configuration entity.${baseEntity}.connection.auth.options.tokenUrl/jwtPayload`)
+            if (!connectionObj.auth?.options?.tokenUrl
+              || !connectionObj.auth?.options?.jwtPayload
+              || typeof connectionObj.auth?.options?.jwtPayload !== 'object') {
+              throw new Error(`auth.type '${connectionObj.auth?.type}' (no azureTenantId/serviceAccountKeyFile using raw) - missing connection configuration: auth.options.tokenUrl/jwtPayload`)
             }
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.key) {
-              throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' (no azureTenantId/serviceAccountKeyFile using raw) - missing options.tls.key configuration`)
+            if (!connectionObj.auth?.options?.tls?.key) {
+              throw new Error(`auth type '${connectionObj.auth?.type}' (no azureTenantId/serviceAccountKeyFile using raw) - missing options.tls.key configuration`)
             }
-            tokenUrl = this.config_entity[baseEntity].connection.auth.options.tokenUrl
-            let privateKey = this.config_entity[baseEntity]?.connection?.auth?.options?.tls?._key || ''
+            tokenUrl = connectionObj.auth.options.tokenUrl
+            let privateKey = connectionObj.auth?.options?.tls?._key || ''
             if (!privateKey) {
-              privateKey = fs.readFileSync(this.config_entity[baseEntity].connection.auth.options.tls.key, 'utf-8') || ''
+              privateKey = fs.readFileSync(connectionObj.auth.options.tls.key, 'utf-8') || ''
               if (privateKey) {
                 privateKey = createPrivateKey(privateKey)
-                this.config_entity[baseEntity].connection.auth.options.tls._key = privateKey
+                connectionObj.auth.options.tls._key = privateKey
               }
             }
 
-            let jwtPayload: jose.JWTPayload = this.config_entity[baseEntity].connection.auth.options.jwtPayload
+            let jwtPayload: jose.JWTPayload = connectionObj.auth.options.jwtPayload
             if (!jwtPayload.iat) jwtPayload.iat = Math.floor(Date.now() / 1000) - 60
             if (!jwtPayload.exp) jwtPayload.exp = Math.floor(Date.now() / 1000) + 3600
 
@@ -345,18 +376,19 @@ export class HelperRest {
           break
 
         default:
-          throw new Error(`getAccessToken() none supported entity.${baseEntity}.connection.auth.type: '${this.config_entity[baseEntity]?.connection?.auth?.type}'`)
+          // no auth or PassTrough
+          return {}
       }
 
       if (!tokenUrl) {
-        throw new Error(`auth type '${this.config_entity[baseEntity]?.connection?.auth?.type}' - missing tokenUrl`)
+        throw new Error(`auth type '${connectionObj.auth?.type}' - missing tokenUrl`)
       }
 
       this.scimgateway.logDebug(baseEntity, `${action}: Retrieving accesstoken`)
       const method = 'POST'
       let connOpt: any = {}
-      if (this.config_entity[baseEntity].connection.options && typeof this.config_entity[baseEntity].connection.options === 'object') {
-        connOpt = utils.copyObj(this.config_entity[baseEntity].connection.options)
+      if (connectionObj.options && typeof connectionObj.options === 'object') {
+        connOpt = utils.copyObj(connectionObj.options)
       }
       if (!connOpt.headers) connOpt.headers = {}
       connOpt.headers['Content-Type'] = 'application/x-www-form-urlencoded' // body must be query string formatted (no JSON)
@@ -371,7 +403,7 @@ export class HelperRest {
         const err = new Error(`[${action}] Error message: ${jbody.error_description}`)
         throw (err)
       }
-      if (this.config_entity[baseEntity]?.connection?.auth?.type === 'token') { // in case response using token instead of access_token
+      if (connectionObj.auth?.type === 'token') { // in case response using token instead of access_token
         if (jbody.token) jbody.access_token = jbody.token
         else if (jbody.accessToken) jbody.access_token = jbody.accessToken
       }
@@ -382,6 +414,7 @@ export class HelperRest {
 
       const d = Math.floor(Date.now() / 1000) // seconds (unix time)
       jbody.validTo = d + parseInt(jbody.expires_in) // instead of using expires_on (clock may not be in sync with NTP, AAD default expires_in = 3600 seconds)
+      jbody.token_type = jbody.token_type || 'Bearer'
 
       this.lock.release()
       return jbody
@@ -400,8 +433,9 @@ export class HelperRest {
    * @param ctx optional, ctx included if using Auth PassThrough
    * @returns client.options needed for connect
    */
-  private async getServiceClient(baseEntity: string, method: string, path: string, opt?: any, ctx?: any) {
+  private async getServiceClient(baseEntity: string, connectionObj: Record<string, any>, method: string, path: string, opt?: any, ctx?: any) {
     const action = 'getServiceClient'
+    if (typeof connectionObj !== 'object' || connectionObj === null) connectionObj = {}
     let urlObj: any
     if (!path) path = ''
     try {
@@ -412,15 +446,15 @@ export class HelperRest {
       //
       if (this._serviceClient[baseEntity]) { // serviceClient already exist - token specific
         this.scimgateway.logDebug(baseEntity, `${action}: Using existing client`)
-        if (this._serviceClient[baseEntity].accessToken) {
+        if (this._serviceClient[baseEntity].accessToken?.validTo) {
           // check if token refresh is needed when using oauth
           const d = Math.floor(Date.now() / 1000) // seconds (unix time)
           if (this._serviceClient[baseEntity].accessToken.validTo < d + 30) { // less than 30 sec before token expiration
             this.scimgateway.logDebug(baseEntity, `${action}: Accesstoken about to expire in ${this._serviceClient[baseEntity].accessToken.validTo - d} seconds`)
             try {
-              const accessToken = await this.getAccessToken(baseEntity, ctx)
+              const accessToken = await this.getAccessToken(baseEntity, connectionObj, ctx)
               this._serviceClient[baseEntity].accessToken = accessToken
-              this._serviceClient[baseEntity].options.headers['Authorization'] = ` Bearer ${accessToken.access_token}`
+              this._serviceClient[baseEntity].options.headers['Authorization'] = `${accessToken.token_type} ${accessToken.access_token}`
             } catch (err) {
               delete this._serviceClient[baseEntity]
               const newErr = err
@@ -436,13 +470,13 @@ export class HelperRest {
           const err = new Error(`unsupported baseEntity: ${baseEntity}`)
           throw err
         }
-        if (!this.config_entity[baseEntity]?.connection?.baseUrls || !Array.isArray(this.config_entity[baseEntity].connection.baseUrls) || this.config_entity[baseEntity].connection.baseUrls.length < 1) {
-          const err = new Error(`missing configuration entity.${baseEntity}.connection.baseUrls`)
+        if (!connectionObj.baseUrls || !Array.isArray(connectionObj.baseUrls) || connectionObj.baseUrls.length < 1) {
+          const err = new Error(`missing connection configuration: baseUrls`)
           throw err
         }
-        urlObj = new URL(this.config_entity[baseEntity].connection.baseUrls[0])
+        urlObj = new URL(connectionObj.baseUrls[0])
         const param: any = {
-          baseUrl: this.config_entity[baseEntity].connection.baseUrls[0],
+          baseUrl: connectionObj.baseUrls[0],
           options: {
             json: true, // json-object response instead of string
             headers: {
@@ -460,92 +494,47 @@ export class HelperRest {
 
         let orgConnection: any
         if (opt?.connection) { // allow overriding/extending configuration connection by caller argument opt.connection
-          let org = this.config_entity[baseEntity]?.connection
+          let org = connectionObj
           orgConnection = utils.copyObj(org)
           if (!org) org = {}
           org = utils.extendObj(org, opt.connection)
         }
 
         // may use configuration type='oauth' and auto corrected to 'oauthJwtBearer'
-        if (this.config_entity[baseEntity]?.connection?.auth?.type == 'oauth') {
-          if (this.config_entity[baseEntity].connection.auth?.options?.azureTenantId) {
-            if (this.config_entity[baseEntity].connection.auth.options?.tls?.cert
-              && this.config_entity[baseEntity].connection.auth.options?.tls?.key
-              && this.config_entity[baseEntity].connection.auth.options.clientId
-            ) this.config_entity[baseEntity].connection.auth.type = 'oauthJwtBearer'
-          } else if (this.config_entity[baseEntity]?.connection?.auth?.options?.serviceAccountKeyFile) {
-            this.config_entity[baseEntity].connection.auth.type = 'oauthJwtBearer'
+        if (connectionObj.auth?.type == 'oauth') {
+          if (connectionObj.auth?.options?.azureTenantId) {
+            if (connectionObj.auth.options?.tls?.cert
+              && connectionObj.auth.options?.tls?.key
+              && connectionObj.auth.options.clientId
+            ) connectionObj.auth.type = 'oauthJwtBearer'
+          } else if (connectionObj.auth?.options?.serviceAccountKeyFile) {
+            connectionObj.auth.type = 'oauthJwtBearer'
           }
         }
 
-        switch (this.config_entity[baseEntity]?.connection?.auth?.type) {
-          case 'basic':
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.username || !this.config_entity[baseEntity]?.connection?.auth?.options?.password) {
-              const err = new Error(`auth.type 'basic' - missing configuration entity.${baseEntity}.connection.auth.options.username/password`)
-              throw err
-            }
-            param.options.headers['Authorization'] = 'Basic ' + Buffer.from(`${this.config_entity[baseEntity].connection.auth.options.username}:${this.config_entity[baseEntity].connection.auth.options.password}`).toString('base64')
-            break
-          case 'oauth':
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.clientSecret) {
-              const err = new Error(`auth.type 'oauth' - missing configuration entity.${baseEntity}.connection.auth.options.clientId/clientSecret`)
-              throw err
-            }
-            param.accessToken = await this.getAccessToken(baseEntity, ctx)
-            param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
-            break
-          case 'token':
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.tokenUrl || !this.config_entity[baseEntity]?.connection?.auth?.options?.password) {
-              const err = new Error(`missing configuration entity.${baseEntity}.connection.auth.options.tokenUrl/password`)
-              throw err
-            }
-            param.accessToken = await this.getAccessToken(baseEntity, ctx)
-            param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
-            break
-          case 'bearer':
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.token) {
-              const err = new Error(`missing configuration entity.${baseEntity}.connection.auth.options.token`)
-              throw err
-            }
-            param.options.headers['Authorization'] = 'Bearer ' + Buffer.from(this.config_entity[baseEntity].connection.auth.options.token).toString('base64')
-            break
-          case 'oauthSamlBearer':
-            if (!this.config_entity[baseEntity]?.connection?.auth?.options?.samlPayload?.clientId || !this.config_entity[baseEntity]?.connection?.auth?.options?.samlPayload?.companyId
-              || !this.config_entity[baseEntity]?.connection?.auth?.options?.tls?.key) {
-              const err = new Error(`auth.type 'oauthSamlBearer' - missing configuration entity.${baseEntity}.connection.auth.options.tls and/or options.samlPayload.clientId/companyId`)
-              throw err
-            }
-            param.accessToken = await this.getAccessToken(baseEntity, ctx)
-            param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
-            break
-          case 'oauthJwtBearer':
-            // auth.options.azureTenantId => Microsoft Entra ID
-            // auth.options.serviceAccountKeyFile => Google Service Account
-            // also support custom using tokenUrl/jwtPayload
-            param.accessToken = await this.getAccessToken(baseEntity, ctx)
-            param.options.headers['Authorization'] = `Bearer ${param.accessToken.access_token}`
-            break
-
-          default:
-            // no auth or PassTrough
+        param.accessToken = await this.getAccessToken(baseEntity, connectionObj, ctx)
+        if (param.accessToken?.access_token && param.accessToken?.token_type) {
+          param.options.headers['Authorization'] = `${param.accessToken.token_type} ${param.accessToken.access_token}`
+        } else { // no auth or PassTrough
+          delete param.accessToken
         }
 
         if (orgConnection) {
-          this.config_entity[baseEntity].connection = orgConnection // reset back to original
+          connectionObj = orgConnection // reset back to original
           if (opt?.connection) delete opt.connection
         }
 
         // proxy
-        if (this.config_entity[baseEntity]?.connection?.proxy?.host) {
-          const agent = new HttpsProxyAgent(this.config_entity[baseEntity].connection.proxy.host)
+        if (connectionObj.proxy?.host) {
+          const agent = new HttpsProxyAgent(connectionObj.proxy.host)
           param.options.agent = agent // proxy
-          if (this.config_entity[baseEntity].connection.proxy.username && this.config_entity[baseEntity].connection.proxy.password) {
-            param.options.headers['Proxy-Authorization'] = 'Basic ' + Buffer.from(`${this.config_entity[baseEntity].connection.proxy.username}:${this.config_entity[baseEntity].connection.proxy.password}`).toString('base64') // using proxy with auth
+          if (connectionObj.proxy.username && connectionObj.proxy.password) {
+            param.options.headers['Proxy-Authorization'] = 'Basic ' + Buffer.from(`${connectionObj.proxy.username}:${connectionObj.proxy.password}`).toString('base64') // using proxy with auth
           }
         }
 
-        if (this.config_entity[baseEntity]?.connection?.options) { // http connect options
-          const connOpt: any = utils.copyObj(this.config_entity[baseEntity].connection.options)
+        if (connectionObj.options) { // http connect options
+          const connOpt: any = utils.copyObj(connectionObj.options)
           try {
             // using fs.readFileSync().toString() instead of Bun.file().text() for nodejs compability
             if (connOpt?.tls?.key) connOpt.tls.key = fs.readFileSync(connOpt.tls.key).toString()
@@ -615,11 +604,11 @@ export class HelperRest {
     }
 
     // proxy
-    if (this.config_entity[baseEntity]?.connection?.proxy?.host) {
-      const agent = new HttpsProxyAgent(this.config_entity[baseEntity].connection.proxy.host)
+    if (connectionObj.proxy?.host) {
+      const agent = new HttpsProxyAgent(connectionObj.proxy.host)
       options.agent = agent // proxy
-      if (this.config_entity[baseEntity].connection.proxy.username && this.config_entity[baseEntity].connection.proxy.password) {
-        options.headers['Proxy-Authorization'] = 'Basic ' + Buffer.from(`${this.config_entity[baseEntity].connection.proxy.username}:${this.config_entity[baseEntity].connection.proxy.password}`).toString('base64') // using proxy with auth
+      if (connectionObj.proxy.username && connectionObj.proxy.password) {
+        options.headers['Proxy-Authorization'] = 'Basic ' + Buffer.from(`${connectionObj.proxy.username}:${connectionObj.proxy.password}`).toString('base64') // using proxy with auth
       }
     }
 
@@ -653,93 +642,100 @@ export class HelperRest {
   * @param baseEntity baseEntity
   * @param method GET, PATCH, PUT, DELETE
   * @param path path e.g., /Users (baseUrls configuration will automatically be included) or use full url e.g., https://my-company.com/Users 
-  * @param body body
-  * @param ctx ctx when using Auth PassThrough
-  * @param opt web-standard fetch client options, e.g., options not defined as general options in configuration file
+  * @param body optional, body
+  * @param ctx coptional, ctx when using Auth PassThrough
+  * @param opt optional, web-standard fetch client options, e.g., using custom options not defined as general options in configuration file
   * @param retryCount internal use only - internal counter for retry and failover logic to other baseUrls defined
   **/
   private async doRequestHandler(baseEntity: string, method: string, path: string, body?: any, ctx?: any, opt?: any, retryCount?: number): Promise<any> {
+    const connectionObj = this.config_entity[baseEntity]?.connection ?? {}
     let retryAfter = 0
     try {
-      const cli = await this.getServiceClient(baseEntity, method, path, opt, ctx)
+      const controller = new AbortController()
+      const signal = controller.signal
+      const cli = await this.getServiceClient(baseEntity, connectionObj, method, path, opt, ctx)
       const options = cli.options
-      let dataString = ''
-      if (body) {
-        if (options.headers['Content-Type']) {
-          const type: string = options.headers['Content-Type'].toLowerCase().trim()
-          if (type.startsWith('application/x-www-form-urlencoded')) {
-            if (typeof body === 'string') dataString = body
-            else dataString = querystring.stringify(body) // JSON to query string syntax + URL encoded
+      const timeout = setTimeout(() => controller.abort(), options.abortTimeout ? options.abortTimeout * 1000 : this.idleTimeout * 1000) // 120 seconds default abort timeout
+      options.signal = signal
+
+      try {
+        let dataString = ''
+        if (body) {
+          if (options.headers['Content-Type']) {
+            const type: string = options.headers['Content-Type'].toLowerCase().trim()
+            if (type.startsWith('application/x-www-form-urlencoded')) {
+              if (typeof body === 'string') dataString = body
+              else dataString = querystring.stringify(body) // JSON to query string syntax + URL encoded
+            } else {
+              if (typeof body === 'string') dataString = body
+              else dataString = JSON.stringify(body)
+            }
           } else {
+            options.headers['Content-Type'] = 'application/json; charset=utf-8'
             if (typeof body === 'string') dataString = body
             else dataString = JSON.stringify(body)
           }
+          options.headers['Content-Length'] = Buffer.byteLength(dataString, 'utf8')
+          options.body = dataString
+        } else if (options.headers) delete options.headers['Content-Type']
+
+        const url = `${options.protocol}//${options.host}${options.port ? ':' + options.port : ''}${options.path}`
+
+        // execute request
+        const f = await fetch(url, options)
+        if (!f.status) throw new Error('Response missing status code')
+
+        const result: any = {
+          statusCode: f.status,
+          statusMessage: f.statusText,
+          body: null,
+        }
+
+        const contentType = f.headers.get('content-type')
+        if (contentType?.includes('json')) {
+          result.body = await f.json().catch(() => f.text())
         } else {
-          options.headers['Content-Type'] = 'application/json; charset=utf-8'
-          if (typeof body === 'string') dataString = body
-          else dataString = JSON.stringify(body)
+          const bodyText = await f.text()
+          try { result.body = JSON.parse(bodyText) } catch (err) { result.body = bodyText }
         }
-        options.headers['Content-Length'] = Buffer.byteLength(dataString, 'utf8')
-        options.body = dataString
-      } else if (options.headers) delete options.headers['Content-Type']
-      const controller = new AbortController()
-      const signal = controller.signal
-      const timeout = setTimeout(() => controller.abort(), options.abortTimeout ? options.abortTimeout * 1000 : this.idleTimeout * 1000) // 120 seconds default abort timeout
-      options.signal = signal
-      const url = `${options.protocol}//${options.host}${options.port ? ':' + options.port : ''}${options.path}`
-      // execute request
-      const f = await fetch(url, options)
-      clearTimeout(timeout)
-      if (!f.status) throw new Error('response missing statusCode header')
-      const result: any = {
-        statusCode: f.status,
-        statusMessage: f.statusText,
-        body: null,
-      }
-      const contentType = f.headers.get('content-type')
-      if (contentType) {
-        if (contentType.includes('json')) result.body = await f.json()
-        else {
-          result.body = await f.text()
-          try {
-            result.body = JSON.parse(result)
-          } catch (err) { void 0 }
-        }
-      }
-      if (f.status > 399) {
-        if (f.status === 429) { // throttle
-          const v = f.headers.get('retry-after')
-          if (v) retryAfter = parseInt(v, 10) + 1
-          else retryAfter = 10
-        }
-        throw new Error(JSON.stringify(result))
-      }
-      this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${options.protocol}//${options.host}${(options.port ? `:${options.port}` : '')}${options.path} Body = ${JSON.stringify(body)} Response = ${JSON.stringify(result)}`)
-      if (result.body && typeof result.body === 'object' && result.body['@odata.nextLink']) { // {"@odata.nextLink": "https://graph.microsoft.com/beta/users?$top=100&$skiptoken=xxx"}
-        // OData paging
-        const nextUrl = result.body['@odata.nextLink'].split('?')[1] // keep search query
-        const arr = result['@odata.nextLink'].split('?')[0].split('/')
-        const objType = (arr[arr.length - 1]) // users
-        let startIndexNext = ''
-        if (this._serviceClient[baseEntity].nextLink[objType]) {
-          for (const k in this._serviceClient[baseEntity].nextLink[objType]) {
-            if (this._serviceClient[baseEntity].nextLink[objType][k] === nextUrl) return result // repetive startIndex=1
-            startIndexNext = k
-            break
+
+        if (f.status > 399) {
+          if (f.status === 429) { // throttle
+            const v = f.headers.get('retry-after')
+            if (v) retryAfter = parseInt(v, 10) + 1
+            else retryAfter = 10
           }
+          throw new Error(JSON.stringify(result))
         }
-        const a = result.body['@odata.nextLink'].split('top=')
-        let top = '0'
-        if (a.length > 1) {
-          top = a[1].split('&')[0]
+        this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${options.protocol}//${options.host}${(options.port ? `:${options.port}` : '')}${options.path} Body = ${JSON.stringify(body)} Response = ${JSON.stringify(result)}`)
+        if (result.body && typeof result.body === 'object' && result.body['@odata.nextLink']) { // {"@odata.nextLink": "https://graph.microsoft.com/beta/users?$top=100&$skiptoken=xxx"}
+          // OData paging
+          const nextUrl = result.body['@odata.nextLink'].split('?')[1] // keep search query
+          const arr = result['@odata.nextLink'].split('?')[0].split('/')
+          const objType = (arr[arr.length - 1]) // users
+          let startIndexNext = ''
+          if (this._serviceClient[baseEntity].nextLink[objType]) {
+            for (const k in this._serviceClient[baseEntity].nextLink[objType]) {
+              if (this._serviceClient[baseEntity].nextLink[objType][k] === nextUrl) return result // repetive startIndex=1
+              startIndexNext = k
+              break
+            }
+          }
+          const a = result.body['@odata.nextLink'].split('top=')
+          let top = '0'
+          if (a.length > 1) {
+            top = a[1].split('&')[0]
+          }
+          if (!startIndexNext) startIndexNext = (Number(top) + 1).toString()
+          else startIndexNext = (Number(startIndexNext) + Number(top) + 1).toString()
+          // reset and set new nextLink
+          this._serviceClient[baseEntity].nextLink[objType] = {}
+          this._serviceClient[baseEntity].nextLink[objType][startIndexNext] = nextUrl
         }
-        if (!startIndexNext) startIndexNext = (Number(top) + 1).toString()
-        else startIndexNext = (Number(startIndexNext) + Number(top) + 1).toString()
-        // reset and set new nextLink
-        this._serviceClient[baseEntity].nextLink[objType] = {}
-        this._serviceClient[baseEntity].nextLink[objType][startIndexNext] = nextUrl
+        return result
+      } finally {
+        clearTimeout(timeout)
       }
-      return result
     } catch (err: any) { // includes failover/retry logic based on config baseUrls array
       let statusCode
       try { statusCode = JSON.parse(err.message).statusCode } catch (e) { void 0 }
@@ -750,7 +746,7 @@ export class HelperRest {
       let urlObj
       try { urlObj = new URL(path) } catch (err) { void 0 }
       let isServiceClient = !urlObj && this._serviceClient[baseEntity] && !this.lock.isLocked() // !isLocked to avoid retry ongoing doRequest with failing getAccessToken()
-      let oAuthTokeErr = statusCode === 401 && this.config_entity[baseEntity].connection?.auth?.type && this.config_entity[baseEntity].connection.auth.type.startsWith('oauth')
+      let oAuthTokeErr = statusCode === 401 && connectionObj?.auth?.type && connectionObj.auth.type.startsWith('oauth')
 
       if (isServiceClient && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || statusCode === 504 || oAuthTokeErr || retryAfter)) {
         this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
@@ -760,11 +756,11 @@ export class HelperRest {
             resolve(null)
           }, retryAfter * 1000))
         }
-        if (retryCount < this.config_entity[baseEntity].connection.baseUrls.length) {
+        if (retryCount < connectionObj.baseUrls.length) {
           retryCount++
           if (isServiceClient) {
-            this.updateServiceClient(baseEntity, { baseUrl: this.config_entity[baseEntity].connection.baseUrls[retryCount - 1] })
-            this.scimgateway.logDebug(baseEntity, `${(this.config_entity[baseEntity].connection.baseUrls.length > 1) ? 'failover ' : ''}retry[${retryCount}] using baseUrl = ${this._serviceClient[baseEntity].baseUrl}`)
+            this.updateServiceClient(baseEntity, { baseUrl: connectionObj.baseUrls[retryCount - 1] })
+            this.scimgateway.logDebug(baseEntity, `${(connectionObj.baseUrls.length > 1) ? 'failover ' : ''}retry[${retryCount}] using baseUrl = ${this._serviceClient[baseEntity].baseUrl}`)
           }
           if (oAuthTokeErr) {
             delete this._serviceClient[baseEntity] // ensure new getAccessToken request - token used should not have been expired, but rejected for other reason e.g. token server restart and no persistent token store?
