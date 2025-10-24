@@ -2879,7 +2879,7 @@ export class ScimGateway {
           // Heartbeat to keep the connection alive for long-running tasks
           const heartbeat = setInterval(() => {
             if (writer.desiredSize && writer.desiredSize > 0) {
-              writer.write(new Uint8Array([32])).catch(() => {}) // space
+              writer.write(new Uint8Array([32])).catch(() => { }) // space
             }
           }, 15000)
 
@@ -2910,10 +2910,10 @@ export class ScimGateway {
             }
           } catch (err: any) {
             logger.error(`${gwName} onAfterHandle streaming error: ${err.message}`)
-            await writer.abort(err).catch(() => {})
+            await writer.abort(err).catch(() => { })
           } finally {
             clearInterval(heartbeat)
-            await writer.close().catch(() => {})
+            await writer.close().catch(() => { })
             reader.releaseLock()
           }
         }
@@ -3290,35 +3290,67 @@ export class ScimGateway {
             const keyrule = this.config.scimgateway.azureRelay.keyRule || 'RootManageSharedAccessKey'
             const key = this.config.scimgateway.azureRelay.apiKey ?? '' // Azure Relay - SAS Primary Key
             const uri = hyco.createRelayListenUri(ns, path) // wss://<namespace>.servicebus.windows.net:443/$hc/<hybrid-connection-name>?sb-hc-action=listen
+            const tokenTtlSec = 12 * 60 * 60 // valid ttl for the 'listen' connect, we need heartbeath to ensure current listener stays connected
+            let heartbeatTimer: any | undefined
 
             server = hyco.createRelayedServer(
               {
                 server: uri,
-                token: () => hyco.createRelayToken(uri, keyrule, key),
+                token: () => hyco.createRelayToken(uri, keyrule, key, tokenTtlSec),
               },
               async (req: IncomingMessage, res: ServerResponse) => {
                 doFetchApi(req, res)
               })
-            server.listen()
+            server.listen() // 'sb-hc-action': 'listen'
 
-            { // check if Azure Relay listener is working by sending a 5 sec delayed ping request
-              let options = {
-                connection: {
-                  options: {
-                    headers: {
-                      ServiceBusAuthorization: hyco.createRelayToken(uri, keyrule, key),
-                    },
-                  },
-                },
-              }
-              setTimeout(async () => {
+            server.on('error', (err: any) => {
+              logger.error(`${gwName} Azure Relay error: ${err?.message || JSON.stringify(err)}} - please verify configuration scimgateway.azureRelay.connectionUrl/apiKey including the Azure Relay setup`)
+            })
+
+            server.on('listening', () => {
+              startHeartbeat()
+            })
+
+            const startHeartbeat = () => {
+              stopHeartbeat()
+              // keep-alive every 45s
+              const intervalMs = 45_000
+              let errCount = -1
+              heartbeatTimer = setInterval(async () => {
                 try {
-                  if (!this.helperRest) this.helperRest = this.newHelperRest()
-                  await this.helperRest.doRequest('undefined', 'GET', `${this.config.scimgateway.azureRelay.connectionUrl}/ping`, null, null, options)
-                } catch (err: any) {
-                  logger.error(`${gwName} Azure Relay listener failed to start - ping test doRequest() returned an error - please verify configuration scimgateway.azureRelay.connectionUrl/apiKey including the Azure Relay setup}`)
+                  const options: any = {
+                    method: 'GET',
+                    headers: {
+                      'ServiceBusAuthorization': hyco.createRelayToken(uri, keyrule, key),
+                      'sb-hc-action': 'connect', // relay will default to 'connect' 
+                    },
+                  }
+                  const f = await fetch(`${this.config.scimgateway.azureRelay.connectionUrl}/ping`, options)
+                  if (!f.ok) {
+                    const msg = await f.text()
+                    if (msg.includes('no listeners connected')) { // listener has stopped => restart
+                      logger.debug(`${gwName} Azure Relay listener heartbeath:  listener has stopped, now restarting listener}`)
+                      server.close()
+                      server.listen()
+                    } else {
+                      errCount++
+                      if (errCount % 10 === 0) {
+                        logger.error(`${gwName} Azure Relay listener heartbeath error: ${msg}}`)
+                        errCount = 0
+                      }
+                    }
+                  } else if (errCount > -1) errCount = -1
+                } catch (e: any) {
+                  logger.error(`${gwName} Azure Relay listener heartbeath error: ${e?.message || JSON.stringify(e)}}`)
                 }
-              }, 5 * 1000)
+              }, intervalMs)
+            }
+
+            const stopHeartbeat = () => {
+              if (heartbeatTimer) {
+                clearInterval(heartbeatTimer)
+                heartbeatTimer = undefined
+              }
             }
           })()
         } else {
