@@ -3311,7 +3311,8 @@ export class ScimGateway {
               startHeartbeat()
             })
 
-            const startHeartbeat = () => {
+            const startHeartbeat = async () => {
+              logger.debug(`${gwName} Azure Relay listener heartbeath initiated`)
               stopHeartbeat()
               // keep-alive every 45s
               const intervalMs = 45_000
@@ -3336,13 +3337,16 @@ export class ScimGateway {
                       errCount++
                       if (errCount % 10 === 0) {
                         logger.error(`${gwName} Azure Relay listener heartbeath error: ${msg}}`)
-                        errCount = 0
                       }
                     }
-                  } else if (errCount > -1) errCount = -1
+                  }
                 } catch (e: any) {
-                  logger.error(`${gwName} Azure Relay listener heartbeath error: ${e?.message || JSON.stringify(e)}}`)
+                  errCount++
+                  if (errCount % 10 === 0) {
+                    logger.error(`${gwName} Azure Relay listener heartbeath general error: ${e?.message || JSON.stringify(e)}}`)
+                  }
                 }
+                if (errCount > 100) errCount = 0
               }, intervalMs)
             }
 
