@@ -176,10 +176,11 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
       arrMatches = element.path.match(rePattern)
 
       if (Array.isArray(arrMatches) && arrMatches.length === 3) { // [type eq "work"]
-        if (arrMatches[1] === 'primary') {
+        if (arrMatches[1] === 'type') type = arrMatches[2].replace(/"/g, '') // work
+        else if (arrMatches[1] === 'primary') {
           type = 'primary'
           primaryValue = arrMatches[2].replace(/"/g, '') // True
-        } else type = arrMatches[2].replace(/"/g, '') // work
+        }
       }
 
       rePattern = /^(.*)\[(type|primary) eq .*\]\.(.*)$/ // "path":"addresses[type eq \"work\"].streetAddress" - "path":"roles[primary eq \"True\"].streetAddress"
@@ -670,7 +671,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
     if (arrUnsupported.length > 0) { // delete from newObj when not included in map
       for (const i in arrUnsupported) {
         const arr = arrUnsupported[i].split('.') // emails.work.type
-        dot.delete(arrUnsupported[i], newObj) // delete leaf
+        if (!mapObj[arrUnsupported[i]]) dot.delete(arrUnsupported[i], newObj) // delete leaf - check mapObj incase unsupported outbound (scim) match a defined inbound (target) map attribute that should not be deleted
         for (let i = arr.length - 2; i > -1; i--) { // delete above if not empty
           let oStr = arr[0]
           for (let j = 1; j <= i; j++) {
