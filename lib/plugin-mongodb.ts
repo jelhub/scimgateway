@@ -353,9 +353,9 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
       userObj[key] = userObj[key].filter((el: Record<string, any>) => {
         const index = delArr.findIndex((e) => {
           let elExist = false
-          for (const k in el) {
-            if (k === 'primary') continue
-            if (el[k] !== e[k]) {
+          for (const k in e) {
+            if (k === 'primary' || k === 'operation') continue
+            if (e[k] !== el[k]) {
               elExist = false
               break
             }
@@ -377,11 +377,17 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
             }
           }
         }
-        const index = userObj[key].findIndex((e: Record<string, any>) => { // avoid adding existing
+        const index = userObj[key].findIndex((e: Record<string, any>, _index: number) => { // avoid adding existing
+          if (el.value && el.value === e.value && el.type === e.type) {
+            for (const k in el) {
+              e[k] = el[k]
+            }
+            return true
+          }
           let elExist = false
           for (const k in el) {
-            if (k === 'primary') continue
             if (el[k] !== e[k]) {
+              if (k === 'primary') continue
               elExist = false
               break
             }
