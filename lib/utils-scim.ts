@@ -170,7 +170,10 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
     let arrMatches: any = null
     let primaryValue: any = null
 
-    if (element.op) element.op = element.op.toLowerCase()
+    if (element.op) {
+      element.op = element.op.toLowerCase()
+      if (element.op === 'delete') element.op = 'remove' // correct none standard
+    }
 
     if (element.path) {
       arrMatches = element.path.match(rePattern)
