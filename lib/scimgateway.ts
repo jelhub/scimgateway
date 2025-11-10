@@ -1574,7 +1574,7 @@ export class ScimGateway {
         const eTag = utils.getEtag(jsonBody)
         if (addGrps.length > 0 && handle.createMethod === 'createUser') { // add group membership
           const addGroups = async (groupId: string) => {
-            return await (this as any)[handler.groups.modifyMethod](baseEntity, groupId, { members: [{ value: jsonBody.id }] }, ctx.passThrough)
+            return await (this as any)[handler.groups.modifyMethod](baseEntity, groupId, { members: [{ value: decodeURIComponent(jsonBody.id) }] }, ctx.passThrough)
           }
           const res = await Promise.allSettled(addGrps.map((groupId: string) => addGroups(groupId)))
           const errAdd = res.filter(result => result.status === 'rejected').map(result => result.reason.message)
