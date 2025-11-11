@@ -6,22 +6,44 @@
 // Purpose: General ldap plugin having plugin-ldap.json configured for Active Directory.
 //          Using endpointMapper for attribute flexibility. Includes some special logic
 //          for Active Directory attributes like userAccountControl, unicodePW
-//          and objectSid/objectGUID. objectSid/objectGUID can be used in mapper configuration.
-//          e.g: replacing config.map.user.dn and config.map.group.dn with
-//          config.map.user.objectSid or config.map.user.objectGUID e.g:
+//          and objectSid/objectGUID (mS-DS-ConsistencyGuid).
+//          e.g., using objectGUID for common identifier (userName/externalId)
 //
-//          "objectSid": {
-//            "mapTo": "id",
-//            "type": "string"
-//           },
-//           "objectGUID": {
-//             "mapTo": "userName",
-//             "type": "string"
-//            },
-//            "userPrincipalName": {
-//              "mapTo": "externalId",
-//              "type": "string"
-//             }
+//          {
+//            "map": {
+//              "user": {
+//                "dn": {
+//                  "mapTo": "id",
+//                  "type": "string"
+//                },
+//                "objectGUID": { // Entra ID: immutableId
+//                  "mapTo": "userName", // Entra ID: Matching precedence 1
+//                  "type": "string"
+//                },
+//                "userPrincipalName": {
+//                  "mapTo": "externalId", // Entra ID: Matching precedence 2
+//                  "type": "string"
+//                },
+//                ...
+//              },
+//              "group": {
+//                "dn": {
+//                  "mapTo": "id", // or "id,externalId" - then skip both "objectGUID" and "cn" - Entra ID: Matching precedence 1 = externalId, which is linked to a custom extension attribute having dn
+//                  "type": "string"
+//                },
+//                "objectGUID": { // Entra ID: immutableId
+//                  "mapTo": "externalId", // Entra ID: Matching precedence 1
+//                  "type": "string"
+//                },
+//                "cn": {
+//                  "mapTo": "displayName", // Entra ID: Matching precedence 2
+//                  "type": "string"
+//                },
+//                ...
+//              }
+//            }
+//          
+//
 //
 // Additional user/group filtering for restricting scope may be configured in endpoint.entity.xxx.ldap e.g:
 // {
@@ -121,60 +143,37 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     totalResults: null,
   }
 
-  if (attributes.length < 1) {
-    for (const key in config.map.user) { // attributes = 'id,userName,attributes=profileUrl,entitlements,x509Certificates.value,preferredLanguage,addresses,displayName,timezone,name.middleName,roles,locale,title,photos,meta.location,ims,phoneNumbers,emails,meta.version,name.givenName,name.honorificSuffix,name.honorificPrefix,name.formatted,nickName,meta.created,active,externalId,meta.lastModified,name.familyName,userType,groups.value'
-      if (config.map.user[key].mapTo) attributes.push(config.map.user[key].mapTo)
+  attributes = [] // ignore original, all attributes needed because of object meta.version and ETag
+  if (attributes.length === 0) {
+    for (const key in config.map.user) {
+      attributes = [...attributes, ...config.map.user[key].mapTo.split(',')]
     }
   }
-  const [attrs] = scimgateway.endpointMapper('outbound', attributes, config.map.user) // SCIM/CustomSCIM => endpoint attribute naming
 
+  const [attrs] = scimgateway.endpointMapper('outbound', attributes, config.map.user) // SCIM/CustomSCIM => endpoint attribute naming
   const method = 'search'
   const scope = 'sub'
   let base = config.entity[baseEntity].ldap.userBase
   let ldapOptions: Record<string, any>
 
-  const [userIdAttr, err] = scimgateway.endpointMapper('outbound', 'userName', config.map.user) // e.g. 'userName' => 'sAMAccountName'
-  if (err) throw new Error(`${action} error: ${err.message}`)
-
   // start mandatory if-else logic
   if (getObj.operator) {
     if (getObj.operator === 'eq' && ['id', 'userName', 'externalId'].includes(getObj.attribute)) {
       // mandatory - unique filtering - single unique user to be returned - correspond to getUser() in versions < 4.x.x
-      if (getObj.attribute === 'id') { // lookup using dn or objectSid/objectGUID (Active Directory)
-        if (config.useSID_id) {
-          const sid = convertStringToSid(getObj.value) // sid using formatted string instead of default hex
-          if (!sid) throw new Error(`${action} error: ${getObj.attribute}=${getObj.value} - attribute having a none valid SID string`)
-          base = `<SID=${sid}>`
-        } else if (config.useGUID_id) {
-          const guid = Buffer.from(getObj.value, 'base64').toString('hex')
-          base = `<GUID=${guid}>` // '<GUID=b3975b675d3a21498b4e511e1a8ccb9e>'
-        } else base = getObj.value
+      if (getObj.attribute === 'id') { // lookup using dn
+        base = getObj.value
         ldapOptions = {
           attributes: attrs,
         }
       } else {
-        const [userIdAttr, err] = scimgateway.endpointMapper('outbound', getObj.attribute, config.map.user) // e.g. 'userName' => 'sAMAccountName'
+        // search instead of lookup
+        const [userAttr, err] = scimgateway.endpointMapper('outbound', getObj.attribute, config.map.user) // e.g. 'userName' => 'sAMAccountName'
         if (err) throw new Error(`${action} error: ${err.message}`)
-        if (userIdAttr === 'objectSid') {
-          const sid = convertStringToSid(getObj.value)
-          if (!sid) throw new Error(`${action} error: ${getObj.attribute}=${getObj.value} - attribute having a none valid SID string`)
-          base = `<SID=${sid}>`
-          ldapOptions = {
-            attributes: attrs,
-          }
-        } else if (userIdAttr === 'objectGUID') {
-          const guid = Buffer.from(getObj.value, 'base64').toString('hex')
-          base = `<GUID=${guid}>`
-          ldapOptions = {
-            attributes: attrs,
-          }
-        } else { // search instead of lookup
-          const filter = createAndFilter(baseEntity, 'user', [{ attribute: userIdAttr, value: getObj.value }])
-          ldapOptions = {
-            filter,
-            scope: 'sub',
-            attributes: attrs,
-          }
+        const filter = createAndFilter(baseEntity, 'user', [{ attribute: userAttr, value: getObj.value }])
+        ldapOptions = {
+          filter,
+          scope: 'sub',
+          attributes: attrs,
         }
       }
       ldapOptions.paged = false
@@ -201,7 +200,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all users to be returned - correspond to exploreUsers() in versions < 4.x.x
-    const filter = createAndFilter(baseEntity, 'user', [{ attribute: userIdAttr, value: '*' }])
+    const filter = createAndFilter(baseEntity, 'user', [{}])
     ldapOptions = {
       filter,
       scope,
@@ -223,32 +222,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         if ((userAccountControl & 0x0002) === 0x0002) user.userAccountControl = false
         else user.userAccountControl = true
       }
-
-      if (user.memberOf) {
-        if (!config.map.group) user.memberOf = [] // empty any values
-        if (config.useSID_id || config.useGUID_id) { // Active Directory - convert memberOf having dn values to objectSid/objectGUID
-          const arr: string[] = []
-          try {
-            if (Array.isArray(user.memberOf)) {
-              for (let i = 0; i < user.memberOf.length; i++) {
-                const id = await dnToSidGuid(baseEntity, user.memberOf[i], ctx)
-                if (!id) throw new Error(`dnToGuid did not return any objectGUID value for dn=${user.memberOf[i]}`)
-                arr.push(id)
-              }
-              user.memberOf = arr
-            } else {
-              const id = await dnToSidGuid(baseEntity, user.memberOf, ctx)
-              if (!id) throw new Error(`dnToGuid did not return any objectGUID value for dn=${user.memberOf}`)
-              user.memberOf = [id]
-            }
-          } catch (err: any) {
-            throw new Error(err.message)
-          }
-        }
-      }
-
       const scimObj = scimgateway.endpointMapper('inbound', user, config.map.user)[0] // endpoint attribute naming => SCIM
-      // if (!scimObj.groups) scimObj.groups = []
       return scimObj
     }))
   } catch (err: any) {
@@ -278,6 +252,14 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
 
   // endpoint spesific attribute handling
   if (endpointObj.sAMAccountName !== undefined) { // Active Directory
+    const illegalCharsRegex = /["\/\\\[\]:;\|=,\+\*\?<>\u0000-\u001F]/
+    if (illegalCharsRegex.test(endpointObj.sAMAccountName)) {
+      throw new Error(`${action} error: sAMAccountName '${endpointObj.sAMAccountName}' contains disallowed characters: " / \\ [ ] : ; | = , + * ? < > or control characters`)
+    }
+    const chars = Array.from(endpointObj.sAMAccountName) // handles unicode correctly
+    if (chars.length > 20) {
+      throw new Error(`${action} error: sAMAccountName '${endpointObj.sAMAccountName}' exceeds maximum length of 20 characters`)
+    }
     const userAccountControl = 512 // NORMAL_ACCOUNT
     endpointObj.userAccountControl = userAccountControl ^ 0x0002 // disable user (will be enabled if password provided)
     if (!endpointObj.userPrincipalName) {
@@ -302,13 +284,17 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   // endpointObj.objectClass is mandatory and must must match your ldap schema
   endpointObj.objectClass = config.entity[baseEntity].ldap.userObjectClasses // Active Directory: ["user", "person", "organizationalPerson", "top"]
 
-  let base = ''
-  const [userNamingAttr, scimAttr] = getNamingAttribute(baseEntity, 'user') // ['CN', 'userName']
-  const arr = scimAttr.split('.')
-  if (arr.length < 2) {
-    base = `${userNamingAttr}=${userObj[scimAttr]},${userBase}`
-  } else {
-    base = `${userNamingAttr}=${userObj[arr[0]][arr[1]]},${userBase}`
+  let base = endpointObj.dn || ''
+  if (!base) { // default
+    const [userNamingAttr, scimAttr] = getNamingAttribute(baseEntity, 'user') // ['CN', 'userName']
+    const arr = scimAttr.split('.')
+    if (arr.length < 2) {
+      if (!userObj[scimAttr]) throw new Error(`${action} error: configuration namingAttribute mapTo SCIM attribute '${scimAttr}', but attribute not included in request`)
+      base = `${userNamingAttr}=${userObj[scimAttr]},${userBase}`
+    } else {
+      if (!userObj[arr[0]][arr[1]]) throw new Error(`${action} error: configuration namingAttribute mapTo SCIM attribute '${scimAttr}', but attribute not included in request`)
+      base = `${userNamingAttr}=${userObj[arr[0]][arr[1]]},${userBase}`
+    }
   }
 
   const method = 'add'
@@ -319,7 +305,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
     return null
   } catch (err: any) {
     const newErr = new Error(`${action} error: ${err.message}`)
-    if (newErr.message.includes('ENTRY_EXISTS')) newErr.name += '#409' // customErrCode
+    if (newErr.message.includes('Entry Already Exists') || newErr.message.includes('ENTRY_EXISTS')) newErr.name += '#409' // customErrCode
     throw newErr
   }
 }
@@ -332,15 +318,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   scimgateway.logDebug(baseEntity, `handling ${action} id=${id} passThrough=${ctx ? 'true' : 'false'}`)
 
   const method = 'del'
-  let base
-  if (config.useSID_id) {
-    const sid = convertStringToSid(id)
-    if (!sid) throw new Error(`${action} error: id=${id} - attribute having a none valid SID string`)
-    base = `<SID=${sid}>`
-  } else if (config.useGUID_id) {
-    const guid = Buffer.from(id, 'base64').toString('hex')
-    base = `<GUID=${guid}>`
-  } else base = id // dn
+  let base = id // dn
   const ldapOptions = {}
 
   try {
@@ -378,15 +356,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
     }
 
     const method = 'modify'
-    let base
-    if (config.useSID_id) {
-      const sid = convertStringToSid(id)
-      if (!sid) throw new Error(`${action} error: id=${id} - attribute having a none valid SID string`)
-      base = `<SID=${sid}>`
-    } else if (config.useGUID_id) {
-      const guid = Buffer.from(id, 'base64').toString('hex')
-      base = `<GUID=${guid}>`
-    } else base = id // dn
+    let base = id // dn
 
     try {
       if (grp.add[groupsAttr].length > 0) {
@@ -419,15 +389,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
     // const usr = await scimgateway.getUser(baseEntity, { filter: 'id', identifier: id }, 'active', ctx)
     const activeAttr = 'userAccountControl'
     const method = 'search'
-    let base
-    if (config.useSID_id) {
-      const sid = convertStringToSid(id)
-      if (!sid) throw new Error(`${action} error: id=${id} - attribute having a none valid SID string`)
-      base = `<SID=${sid}>`
-    } else if (config.useGUID_id) {
-      const guid = Buffer.from(id, 'base64').toString('hex')
-      base = `<GUID=${guid}>`
-    } else base = id // dn
+    let base = id // dn
     const ldapOptions: any = {
       attributes: activeAttr,
     }
@@ -455,15 +417,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   }
 
   const method = 'modify'
-  let base
-  if (config.useSID_id) {
-    const sid = convertStringToSid(id)
-    if (!sid) throw new Error(`${action} error: id=${id} - attribute having a none valid SID string`)
-    base = `<SID=${sid}>`
-  } else if (config.useGUID_id) {
-    const guid = Buffer.from(id, 'base64').toString('hex')
-    base = `<GUID=${guid}>`
-  } else base = id // dn
+  let base = id // dn
 
   if (Object.keys(endpointObj).length < 1) return null
   const ldapOptions = {
@@ -474,38 +428,37 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   try {
     const newDN = checkIfNewDN(baseEntity, base, 'user', attrObj, endpointObj)
     await doRequest(baseEntity, method, base, ldapOptions, ctx)
-    if (newDN && config.entity[baseEntity].ldap.allowModifyDN) {
-      // modify DN
-      await doRequest(baseEntity, 'modifyDN', base, { modification: { newDN } }, ctx)
-      // clean up zoombie group members and use the new user DN incase not handled by ldap server
-      const [memberAttr] = scimgateway.endpointMapper('outbound', 'members.value', config.map.group)
-      if (memberAttr) {
-        const grp: any = { add: {}, remove: {} }
-        grp.add[memberAttr] = []
-        grp.remove[memberAttr] = []
-        let r
-        try {
-          const ob = { attribute: 'members.value', operator: 'eq', value: base } // base is old DN
-          const attributes = ['id', 'displayName']
-          r = await scimgateway.getGroups(baseEntity, ob, attributes, ctx)
-        } catch (err) { } // ignore errors incase method not implemented
-        if (r && r.Resources && Array.isArray(r.Resources) && r.Resources.length > 0) {
-          for (let i = 0; i < r.Resources.length; i++) {
-            if (!r.Resources[i].id) continue
-            const grpId = decodeURIComponent(r.Resources[i].id)
-            grp.remove[memberAttr] = [base]
-            grp.add[memberAttr] = [newDN]
-            await Promise.all([
-              doRequest(baseEntity, method, grpId, { operation: 'add', modification: grp.add }, ctx),
-              doRequest(baseEntity, method, grpId, { operation: 'delete', modification: grp.remove }, ctx),
-            ])
-          }
+    if (!newDN) return null
+    // modify DN
+    await doRequest(baseEntity, 'modifyDN', base, { modification: { newDN } }, ctx)
+    // clean up zoombie group members and use the new user DN incase not handled by ldap server
+    const [memberAttr] = scimgateway.endpointMapper('outbound', 'members.value', config.map.group)
+    if (memberAttr) {
+      const grp: any = { add: {}, remove: {} }
+      grp.add[memberAttr] = []
+      grp.remove[memberAttr] = []
+      let r
+      try {
+        const ob = { attribute: 'members.value', operator: 'eq', value: base } // base is old DN
+        const attributes = ['id', 'displayName']
+        r = await scimgateway.getGroups(baseEntity, ob, attributes, ctx)
+      } catch (err) { } // ignore errors incase method not implemented
+      if (r && r.Resources && Array.isArray(r.Resources) && r.Resources.length > 0) {
+        for (let i = 0; i < r.Resources.length; i++) {
+          if (!r.Resources[i].id) continue
+          const grpId = decodeURIComponent(r.Resources[i].id)
+          grp.remove[memberAttr] = [base]
+          grp.add[memberAttr] = [newDN]
+          await Promise.all([
+            doRequest(baseEntity, method, grpId, { operation: 'add', modification: grp.add }, ctx),
+            doRequest(baseEntity, method, grpId, { operation: 'delete', modification: grp.remove }, ctx),
+          ])
         }
-        // return full user object to avoid scimgateway doing same getUser() using original id/dn that now will fail
-        const getObj = { attribute: 'id', operator: 'eq', value: newDN }
-        const res = await scimgateway.getUsers(baseEntity, getObj, [], ctx)
-        return res
       }
+      // return full user object to avoid scimgateway doing same getUser() using original id/dn that now will fail
+      const getObj = { attribute: 'id', operator: 'eq', value: newDN }
+      const res = await scimgateway.getUsers(baseEntity, getObj, [], ctx)
+      return res
     }
     return null
   } catch (err: any) {
@@ -543,62 +496,39 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     return result
   }
 
-  if (attributes.length < 1) {
+  attributes = [] // ignore original, all attributes needed because of object meta.version and ETag
+  if (attributes.length === 0) {
     for (const key in config.map.group) {
       if (config.map.group[key].mapTo) {
-        attributes.push(config.map.group[key].mapTo)
+        attributes = [...attributes, ...config.map.group[key].mapTo.split(',')]
       }
     }
   }
 
-  const [attrs] = scimgateway.endpointMapper('outbound', attributes, config.map.group) // SCIM/CustomSCIM => endpoint attribute naming
+  let [attrs] = scimgateway.endpointMapper('outbound', attributes, config.map.group) // SCIM/CustomSCIM => endpoint attribute naming
   const method = 'search'
   const scope = 'sub'
   let base = config.entity[baseEntity].ldap.groupBase
   let ldapOptions
 
-  const [groupDisplayNameAttr, err1] = scimgateway.endpointMapper('outbound', 'displayName', config.map.group) // e.g. 'displayName' => 'cn'
-  if (err1) throw new Error(`${action} error: ${err1.message}`)
-
   // mandatory if-else logic - start
   if (getObj.operator) {
     if (getObj.operator === 'eq' && ['id', 'displayName', 'externalId'].includes(getObj.attribute)) {
       // mandatory - unique filtering - single unique user to be returned - correspond to getUser() in versions < 4.x.x
-      if (getObj.attribute === 'id') { // lookup using dn or objectSid/objectGUID (Active Directory)
-        if (config.useSID_id) {
-          const sid = convertStringToSid(getObj.value) // sid using formatted string instead of default hex
-          if (!sid) throw new Error(`${action} error: ${getObj.attribute}=${getObj.value} - attribute having a none valid SID string`)
-          base = `<SID=${sid}>`
-        } else if (config.useGUID_id) {
-          const guid = Buffer.from(getObj.value, 'base64').toString('hex')
-          base = `<GUID=${guid}>`
-        } else base = getObj.value
+      if (getObj.attribute === 'id') { // lookup using dn
+        base = getObj.value
         ldapOptions = {
           attributes: attrs,
         }
       } else {
         const [groupIdAttr, err] = scimgateway.endpointMapper('outbound', getObj.attribute, config.map.group)
         if (err) throw new Error(`${action} error: ${err.message}`)
-        if (groupIdAttr === 'objectSid') {
-          const sid = convertStringToSid(getObj.value)
-          if (!sid) throw new Error(`${action} error: ${getObj.attribute}=${getObj.value} - attribute having a none valid SID string`)
-          base = `<SID=${sid}>`
-          ldapOptions = {
-            attributes: attrs,
-          }
-        } else if (groupIdAttr === 'objectGUID') {
-          const guid = Buffer.from(getObj.value, 'base64').toString('hex')
-          base = `<GUID=${guid}>`
-          ldapOptions = {
-            attributes: attrs,
-          }
-        } else { // search instead of lookup
-          const filter = createAndFilter(baseEntity, 'group', [{ attribute: groupIdAttr, value: getObj.value }])
-          ldapOptions = {
-            filter,
-            scope,
-            attributes: attrs,
-          }
+        // search instead of lookup
+        const filter = createAndFilter(baseEntity, 'group', [{ attribute: groupIdAttr, value: getObj.value }])
+        ldapOptions = {
+          filter,
+          scope,
+          attributes: attrs,
         }
       }
     } else if (getObj.operator === 'eq' && getObj.attribute === 'members.value') {
@@ -625,7 +555,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreGroups() in versions < 4.x.x
-    const filter = createAndFilter(baseEntity, 'group', [{ attribute: groupDisplayNameAttr, value: '*' }])
+    const filter = createAndFilter(baseEntity, 'group', [{}])
     ldapOptions = {
       filter,
       scope,
@@ -641,23 +571,6 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     else {
       const groups: any = await doRequest(baseEntity, method, base, ldapOptions, ctx)
       result.Resources = await Promise.all(groups.map(async (group: any) => { // Promise.all because of async map
-        if (config.useSID_id || config.useGUID_id) {
-          if (group.member) {
-            const arr: string[] = []
-            if (Array.isArray(group.member)) {
-              for (let i = 0; i < group.member.length; i++) {
-                const id = await dnToSidGuid(baseEntity, group.member[i], ctx)
-                if (!id) throw new Error(`dnToSidGuid() did not return any ${config.useSID_id ? 'objectSid' : 'objectGUID'} value for dn=${group.member[i]}`)
-                arr.push(id)
-              }
-              group.member = arr
-            } else {
-              const id = await dnToSidGuid(baseEntity, group.member, ctx)
-              if (!id) throw new Error(`dnToSidGuid() did not return any ${config.useSID_id ? 'objectSid' : 'objectGUID'} value for ${group.member}`)
-              group.member = [id]
-            }
-          }
-        }
         return scimgateway.endpointMapper('inbound', group, config.map.group)[0] // endpoint attribute naming => SCIM
       }))
     }
@@ -685,13 +598,17 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   // endpointObj.objectClass is mandatory and must must match your ldap schema
   endpointObj.objectClass = config.entity[baseEntity].ldap.groupObjectClasses // Active Directory: ["group"]
 
-  let base = ''
-  const [groupNamingAttr, scimAttr] = getNamingAttribute(baseEntity, 'group') // ['CN', 'displayName']
-  const arr = scimAttr.split('.')
-  if (arr.length < 2) {
-    base = `${groupNamingAttr}=${groupObj[scimAttr]},${groupBase}`
-  } else {
-    base = `${groupNamingAttr}=${groupObj[arr[0]][arr[1]]},${groupBase}`
+  let base = endpointObj.dn || ''
+  if (!base) { // default
+    const [groupNamingAttr, scimAttr] = getNamingAttribute(baseEntity, 'group') // ['CN', 'displayName']
+    const arr = scimAttr.split('.')
+    if (arr.length < 2) {
+      if (!groupObj[scimAttr]) throw new Error(`${action} error: configuration namingAttribute mapTo SCIM attribute '${scimAttr}', but attribute not included in request`)
+      base = `${groupNamingAttr}=${groupObj[scimAttr]},${groupBase}`
+    } else {
+      if (!groupObj[arr[0]][arr[1]]) throw new Error(`${action} error: configuration namingAttribute mapTo SCIM attribute '${scimAttr}', but attribute not included in request`)
+      base = `${groupNamingAttr}=${groupObj[arr[0]][arr[1]]},${groupBase}`
+    }
   }
 
   const method = 'add'
@@ -699,9 +616,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 
   try {
     await doRequest(baseEntity, method, base, ldapOptions, ctx)
-    const res = await scimgateway.getGroups(baseEntity, { attribute: 'id', operator: 'eq', value: base }, [], ctx)
-    if (res && Array.isArray(res.Resources) && res.Resources.length === 1) return res.Resources[0]
-    else return null
+    return null
   } catch (err: any) {
     const newErr = new Error(`${action} error: ${err.message}`)
     if (newErr.message.includes('ENTRY_EXISTS')) newErr.name += '#409' // customErrCode
@@ -718,15 +633,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
 
   if (!config.map.group) throw new Error(`${action} error: missing configuration endpoint.map.group`)
   const method = 'del'
-  let base
-  if (config.useSID_id) {
-    const sid = convertStringToSid(id)
-    if (!sid) throw new Error(`${action} error: id=${id} - attribute having a none valid SID string`)
-    base = `<SID=${sid}>`
-  } else if (config.useGUID_id) {
-    const guid = Buffer.from(id, 'base64').toString('hex')
-    base = `<GUID=${guid}>`
-  } else base = id // dn
+  let base = id // dn
   const ldapOptions = {}
 
   try {
@@ -758,11 +665,6 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
 
   for (let i = 0; i < attrObj?.members?.length; i++) {
     const el = attrObj.members[i]
-    if (config.useSID_id || config.useGUID_id) {
-      const dn = await sidGuidToDn(baseEntity, el.value, ctx)
-      if (!dn) throw new Error(`${action} error: sidGuidToDn() did not return any objectGUID value for dn=${el.value}`)
-      el.value = dn
-    }
     const dnObj = ldapEscDn(config.entity[baseEntity].ldap.isOpenLdap, el.value)
     el.value = dnObj.toString()
     if (el.operation && el.operation === 'delete') { // delete member from group
@@ -773,15 +675,18 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   }
 
   const method = 'modify'
-  let base
-  if (config.useSID_id) base = `<SID=${id}>`
-  else if (config.useGUID_id) base = `<GUID=${id}>`
-  else base = id // dn
+  let base = id // dn
 
   try {
     delete attrObj.members
     const [endpointObj] = scimgateway.endpointMapper('outbound', attrObj, config.map.group)
     const newDN = checkIfNewDN(baseEntity, base, 'group', attrObj, endpointObj)
+    if (newDN && config.entity[baseEntity].ldap.allowModifyDN) {
+      await doRequest(baseEntity, 'modifyDN', base, { modification: { newDN } }, ctx)
+      const getObj = { attribute: 'id', operator: 'eq', value: newDN.toString() }
+      const res = await scimgateway.getGroups(baseEntity, getObj, [], ctx)
+      return res // return full group object to avoid scimgateway doing same getUser() using original id/dn that now will fail
+    }
     if (Object.keys(endpointObj).length > 0) {
       const ldapOptions = {
         operation: 'replace',
@@ -803,12 +708,6 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
       }
       await doRequest(baseEntity, method, base, ldapOptions, ctx)
     }
-    if (newDN && config.entity[baseEntity].ldap.allowModifyDN) {
-      await doRequest(baseEntity, 'modifyDN', base, { modification: { newDN } }, ctx)
-      const getObj = { attribute: 'id', operator: 'eq', value: newDN }
-      const res = await scimgateway.getGroups(baseEntity, getObj, [], ctx)
-      return res // return full group object to avoid scimgateway doing same getUser() using original id/dn that now will fail
-    }
     return null
   } catch (err: any) {
     throw new Error(`${action} error: ${err.message}`)
@@ -825,20 +724,31 @@ const _serviceClient: Record<string, any> = {}
 // createAndFilter creates AndFilter object to be used as filter instead of standard string filter
 // Using AndFilter object for eliminating internal ldapjs escaping problems related to values with some
 // combinations of parentheses e.g. ab(c)d
-//
+// guidType undefined/base64/dn/dashed - if objectGUID/mS-DS-ConsistencyGuid included default is raw base64, but also support using dn or dashed 8-4-4-12
+// return [filter, guidType]
 const createAndFilter = (baseEntity: string, type: string, arrObj: any) => {
   const objFilters: ldap.PresenceFilter[] | ldap.SubstringFilter[] = []
+  if (!Array.isArray(arrObj)) arrObj = []
 
-  // add arrObj
-  for (let i = 0; i < arrObj.length; i++) {
-    if (arrObj[i].value.indexOf('*') > -1) { // SubstringFilter or PresenceFilter
-      const arr = arrObj[i].value.split('*')
+  arrObj.forEach((obj: any) => {
+    if (Object.keys(obj).length === 0) return
+    // objectGUID (mS-DS-ConsistencyGuid) and objectSid must be converted
+    if ((obj.attribute === 'objectGUID' || obj.attribute === 'mS-DS-ConsistencyGuid') && obj.value && obj.value !== '*') {
+      if (isBase64(obj.value)) obj.value = Buffer.from(obj.value, 'base64') // raw binary
+    } else if (obj.attribute === 'objectSid' && obj.value && obj.value !== '*') {
+      const s = convertStringToSid(obj.value)
+      if (s) obj.value = Buffer.from(obj.value, 'utf-8')
+    }
+
+    // add arrObj
+    if (obj.value.indexOf('*') > -1) { // SubstringFilter or PresenceFilter
+      const arr = obj.value.split('*')
       if (arr.length === 2 && !arr[0] && !arr[1]) { // cn=*
-        const f = new ldap.PresenceFilter({ attribute: arrObj[i].attribute })
+        const f = new ldap.PresenceFilter({ attribute: obj.attribute })
         objFilters.push(f)
       } else { // cn=ab*cd*e
         const fObj: any = {
-          attribute: arrObj[i].attribute,
+          attribute: obj.attribute,
         }
         const arrAny: any = []
         fObj.initial = arr[0]
@@ -854,10 +764,10 @@ const createAndFilter = (baseEntity: string, type: string, arrObj: any) => {
         objFilters.push(f)
       }
     } else { // EqualityFilter cn=abc
-      const f = new ldap.EqualityFilter({ attribute: arrObj[i].attribute, value: arrObj[i].value })
+      const f = new ldap.EqualityFilter({ attribute: obj.attribute, value: obj.value })
       objFilters.push(f)
     }
-  }
+  })
 
   // add from configuration objectClass and userFiter/groupFilter
   switch (type) {
@@ -892,62 +802,11 @@ const createAndFilter = (baseEntity: string, type: string, arrObj: any) => {
   }
 
   // put all into AndFilter
-  const filter = new ldap.AndFilter({
+  return new ldap.AndFilter({
     filters: [
       ...objFilters,
     ],
   })
-
-  return filter
-}
-
-//
-// dnToSidGuid is used for Active Directory to return objectGUID based on dn
-//
-const dnToSidGuid = async (baseEntity: string, dn: any, ctx: any): Promise<string> => {
-  const method = 'search'
-  const ldapOptions: any = {}
-  if (config.useSID_id) ldapOptions.attributes = ['objectSid']
-  else if (config.useGUID_id) ldapOptions.attributes = ['objectGUID']
-  else throw new Error('dnToSidGuid() invalid call, configuration not using objectSid or objectGUID')
-
-  try {
-    const base = dn
-    const objects: any = await doRequest(baseEntity, method, base, ldapOptions, ctx)
-    if (objects.length !== 1) throw new Error(`did not find unique object having dn=${base}`)
-    if (config.useSID_id) return objects[0].objectSid
-    else return objects[0].objectGUID
-  } catch (err: any) {
-    const newErr = new Error(`dnToSidGuid() ${err.message}`)
-    throw newErr
-  }
-}
-
-//
-// guidToDn is used for Active Directory to return dn based on objectGUID
-//
-const sidGuidToDn = async (baseEntity: string, id: string, ctx: any): Promise<string> => {
-  const method = 'search'
-  const ldapOptions = {
-    attributes: ['dn'],
-  }
-  try {
-    let base
-    if (config.useSID_id) {
-      const sid = convertStringToSid(id)
-      if (!sid) throw new Error(`sidGuidToDn() error: id=${id} - attribute having a none valid SID string`)
-      base = `<SID=${sid}>`
-    } else if (config.useGUID_id) {
-      const guid = Buffer.from(id, 'base64').toString('hex')
-      base = `<GUID=${guid}>`
-    } else throw new Error('invalid call to sidGuidToDn(), configuration not using objectSid or objectGUID')
-    const objects: any = await doRequest(baseEntity, method, base, ldapOptions, ctx)
-    if (objects.length !== 1) throw new Error(`did not find unique object having ${config.useSID_id ? 'objectSid' : 'objectGUID'} =${id}`)
-    return objects[0].dn
-  } catch (err: any) {
-    const newErr = new Error(`sidGuidToDN() ${err.message}`)
-    throw newErr
-  }
 }
 
 //
@@ -1024,36 +883,10 @@ const convertStringToSid = (sidStr: string) => {
 // [{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }]
 //
 const getMemberOfGroups = async (baseEntity: string, id: string, ctx: any) => {
-  const action = 'getMemberOfGroups'
+  const _action = 'getMemberOfGroups'
   if (!config.map.group) throw new Error('missing configuration endpoint.map.group') // not using groups
 
   let idDn = id
-  if (config.useSID_id || config.useGUID_id) { // need dn
-    const method = 'search'
-    let base
-    if (config.useSID_id) {
-      const sid = convertStringToSid(id)
-      if (!sid) throw new Error(`${action} error: ${id}=${id} - attribute having a none valid SID string`)
-      base = `<SID=${sid}>`
-    } else {
-      const guid = Buffer.from(id, 'base64').toString('hex')
-      base = `<GUID=${guid}>`
-    }
-
-    const ldapOptions = {
-      attributes: ['dn'],
-    }
-
-    try {
-      const users: any = await doRequest(baseEntity, method, base, ldapOptions, ctx)
-      if (users.length !== 1) throw new Error(`${action} error: did not find unique user having ${config.useSID_id ? 'objectSid' : 'objectGUID'} =${id}`)
-      idDn = users[0].dn
-    } catch (err) {
-      const newErr = err
-      throw newErr
-    }
-  }
-
   const attributes = ['id', 'displayName']
   const [attrs, err] = scimgateway.endpointMapper('outbound', attributes, config.map.group) // SCIM/CustomSCIM => endpoint attribute naming
   if (err) throw err
@@ -1286,10 +1119,12 @@ const getNamingAttribute = (baseEntity: string, type: string) => {
 }
 
 const checkIfNewDN = (baseEntity: string, base: any, type: string, obj: any, endpointObj: any) => {
+  if (config.entity[baseEntity].ldap.allowModifyDN !== true) return ''
   if (typeof obj !== 'object' || Object.keys(obj).length < 1) return ''
   if (typeof endpointObj !== 'object' || Object.keys(endpointObj).length < 1) return ''
+  if (endpointObj.dn && endpointObj.dn.toLowerCase() !== base.toLowerCase()) return endpointObj.dn // special
 
-  const namingAttr = base.split('=')[0] // cn
+  const namingAttr = base.split('=')[0].toLowerCase() // cn
   let scimAttr = ''
   if (endpointObj[namingAttr]) { // naming attribute can't be modified, have to use modifyDN()
     delete endpointObj[namingAttr] // modifying original ldapOptions
@@ -1326,7 +1161,7 @@ const checkIfNewDN = (baseEntity: string, base: any, type: string, obj: any, end
   if (a[1].toLowerCase() !== namingAttr.toLowerCase() + '=') return ''
   if (a[2] === newNamingValue) return ''
   let newDN = a[1] + newNamingValue + a[3]
-  return ldapEscDn(config.entity[baseEntity].ldap.isOpenLdap, newDN)
+  return newDN
 }
 
 //
@@ -1378,7 +1213,7 @@ const getServiceClient = async (baseEntity: string, ctx: any) => {
         url: config.entity[baseEntity].baseUrl,
         connectTimeout: 5000,
         tlsOptions: _serviceClient[baseEntity].tlsOptions,
-        strictDN: false, // false => allows none standard ldap base dn e.g. <SID=...> / <GUID=...>  ref. objectSid/objectGUID
+        strictDN: false, // false => allows none standard ldap base dn e.g. <SID=...> / <GUID=...>  ref. objectSid/objectGUID (mS-DS-ConsistencyGuid)
       })
       await new Promise((resolve, reject) => {
         if (ctx?.request?.header?.authorization) { // using ctx authentication PassThrough
@@ -1419,16 +1254,41 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity: ${baseEntity}`)
   let result: any = null
   let client: any = null
-  const dnObj = ldapEscDn(config.entity[baseEntity].ldap.isOpenLdap, base)
 
-  // support having different upn-domain on IdP and target
-  if (options.modification && options.modification.userPrincipalName && config.map.user.userPrincipalName && config.map.user.userPrincipalName.mapDomain) {
-    if (options.modification.userPrincipalName.endsWith(config.map.user.userPrincipalName.mapDomain.outbound)) {
-      const old = options.modification.userPrincipalName
-      options.modification.userPrincipalName = options.modification.userPrincipalName.replace(config.map.user.userPrincipalName.mapDomain.outbound, config.map.user.userPrincipalName.mapDomain.inbound)
-      scimgateway.logDebug(baseEntity, `inbound upnMapDomain ${old} => ${options.modification.userPrincipalName}`)
+  const filters = options.filter?.filters || []
+  for (let i = 0; i < filters.length; i++) {
+    if (filters[i].attribute === 'dn' && isDN(filters[i].value)) {
+      base = filters[i].value
+      options.paged = false
+      delete options.filter
+      delete options.sub
+      break
+    } else if (filters[i].attribute === 'userPrincipalName' && config.map?.user?.userPrincipalName?.mapDomain) {
+      if (filters[i].value.endsWith(config.map.user.userPrincipalName.mapDomain.outbound)) {
+        filters[i].value = filters[i].value.replace(config.map.user.userPrincipalName.mapDomain.outbound, config.map.user.userPrincipalName.mapDomain.inbound)
+        break
+      }
     }
   }
+
+  let dnObj = ldapEscDn(config.entity[baseEntity].ldap.isOpenLdap, base)
+  if (!isDN(dnObj.toString())) {
+    if (method === 'search') return []
+    else throw new Error(`base '${base}' is not a valid DN`)
+  }
+
+  // support having different upn-domain on IdP and target
+  const obj: any = options.modification || options
+  if (obj?.userPrincipalName && config.map?.user?.userPrincipalName?.mapDomain) {
+    if (obj.userPrincipalName.endsWith(config.map.user.userPrincipalName.mapDomain.outbound)) {
+      const old = obj.userPrincipalName
+      obj.userPrincipalName = obj.userPrincipalName.replace(config.map.user.userPrincipalName.mapDomain.outbound, config.map.user.userPrincipalName.mapDomain.inbound)
+      scimgateway.logDebug(baseEntity, `inbound upnMapDomain ${old} => ${obj.userPrincipalName}`)
+    }
+  }
+
+  if (options.objectGUID && isBase64(options.objectGUID)) options.objectGUID = Buffer.from(options.objectGUID, 'base64').toString('hex')
+  if (options['mS-DS-ConsistencyGuid'] && isBase64(options['mS-DS-ConsistencyGuid'])) options['mS-DS-ConsistencyGuid'] = Buffer.from(options['mS-DS-ConsistencyGuid'], 'base64').toString('hex')
 
   try {
     client = await getServiceClient(baseEntity, ctx)
@@ -1444,24 +1304,25 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
             }
 
             search.on('searchEntry', (entry: any) => {
-              if (!entry.pojo || !entry.pojo.attributes) return
-              const obj: any = { dn: entry.pojo.objectName }
-              entry.pojo.attributes.map((el: any) => {
-                if (el.values.length > 1) obj[el.type] = el.values
-                else obj[el.type] = el.values[0]
-                return null
+              const obj: any = { dn: entry.objectName }
+              entry.attributes.forEach((attr: any) => {
+                if (attr.values.length > 1) {
+                  obj[attr.type] = attr.values
+                } else {
+                  obj[attr.type] = attr.values[0]
+                }
+                if (attr.type === 'objectGUID' || attr.type === 'mS-DS-ConsistencyGuid') {
+                  const buffer = attr.buffers[0]
+                  if (!Buffer.isBuffer(buffer) || buffer.length !== 16) {
+                    throw new Error(`expected a 16-byte Buffer (raw ${attr.type})`)
+                  }
+                  obj[attr.type] = buffer.toString('base64')
+                } else if (attr.type === 'objectSid') {
+                  const sidStr = convertSidToString(attr.buffers[0]) // e.g., S-1-5-21-2657077294-4200173015-2627628055-1255
+                  if (!sidStr) return reject(new Error(`doRequest() error: failed to convert SID ${obj.objectSid} to string`))
+                  obj.objectSid = sidStr
+                }
               })
-              // objectSid/objectGUID - assume Active Directory - can't use default utf-8 when attribute value is hex
-              if (obj.objectSid) {
-                const b = Buffer.from(obj.objectSid, 'utf-8')
-                const sidStr = convertSidToString(b) // using string: S-1-5-21-2657077294-4200173015-2627628055-1255
-                if (!sidStr) throw new Error(`doRequest() error: failed to convert SID ${b.toString('hex')} to string}`)
-                obj.objectSid = sidStr
-              }
-              if (obj.objectGUID) {
-                const b = Buffer.from(obj.objectGUID, 'utf-8')
-                obj.objectGUID = b.toString('base64') // using base64: nitWLrhokUqKl1DywiavXg==
-              }
               if (obj.userPrincipalName && config.map.user.userPrincipalName && config.map.user.userPrincipalName.mapDomain) {
                 if (obj.userPrincipalName.endsWith(config.map.user.userPrincipalName.mapDomain.inbound)) {
                   const old = obj.userPrincipalName
@@ -1470,6 +1331,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
                 }
               }
 
+              obj.dn = berDecodeDn(obj.dn)
               if (obj.dn && obj.dn.indexOf('\\') > 0) {
                 // for OpenLDAP ensure dn is not hex escaped e.g.: cn=K\c3\bcrt => cn=Kürt
                 // because dn may be be used as value in standard attributes like group memberOf
@@ -1496,7 +1358,7 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
             */
 
             search.on('error', (err: any) => {
-              if (err.message.includes('LdapErr: DSID-0C0909F2') || err.message.includes('NO_OBJECT')) return resolve([]) // object not found when using base <SID=...> or <GUID=...> ref. objectSid/objectGUID
+              if (err.message.includes('LdapErr: DSID-0C0909F2') || err.message.includes('NO_OBJECT')) return resolve([]) // object not found when using base <SID=...> or <GUID=...> ref. objectSid/objectGUID (mS-DS-ConsistencyGuid)
               reject(err)
             })
 
@@ -1509,6 +1371,14 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
         result = await new Promise((resolve: any, reject: any) => {
           const dn = dnObj
           const changes: any = []
+
+          if (!options.modification) return resolve()
+          if (options.modification['mS-DS-ConsistencyGuid']) delete options.modification['mS-DS-ConsistencyGuid']
+          if (options.modification.objectGUID) delete options.modification.objectGUID
+          if (options.modification.objectSid) delete options.modification.objectSid
+          if (options.modification.dn) delete options.modification.dn
+          if (Object.keys(options.modification).length === 0) return resolve()
+
           for (const key in options.modification) {
             const mod: any = {}
             mod.type = key
@@ -1561,6 +1431,23 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
 
       case 'add':
         result = await new Promise((resolve: any, reject: any) => {
+          if (!options) return reject(new Error('add operation missing options'))
+          if (options['mS-DS-ConsistencyGuid']) delete options['mS-DS-ConsistencyGuid']
+          if (options.objectGUID) delete options.objectGUID
+          if (options.objectSid) delete options.objectSid
+          if (options.dn) { // support dn spesified attribute
+            const rdns = options.dn.split(',')
+            if (rdns.length > 2) {
+              const entry = rdns[0].split('=')
+              if (entry.length === 2) {
+                const namingAttr = entry[0].toLowerCase()
+                const namingVal = entry[1]
+                options[namingAttr] = namingVal
+              }
+            }
+            dnObj = ldapEscDn(config.entity[baseEntity].ldap.isOpenLdap, options.dn)
+            delete options.dn
+          }
           client.add(dnObj, options, (err: any) => {
             if (err) {
               return reject(err)
@@ -1605,6 +1492,84 @@ const doRequest = async (baseEntity: string, method: string, base: any, options:
   return result
 } // doRequest
 
+/**
+ * isDN checks if string is dn
+  * @param input string
+  * @returns boolean
+ */
+const isDN = (input: string) => {
+  if (typeof input !== 'string') return false
+  const rdns = input.split(',')
+  if (rdns.length < 2) return false
+  if (rdns[0].split('=').length === 2 && rdns[1].split('=').length === 2) return true
+  return false
+}
+
+/**
+ * isBase64 checks if string is Base64 encoded
+  * @param input string
+  * @returns boolean
+ */
+const isBase64 = (input: string) => {
+  if (typeof input !== 'string' || input.length < 5) return false
+  const str = input.trim()
+  if (str.length === 0) return false
+  const base64Regex = /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=|[A-Za-z0-9+\/]{4})$/
+  if (!base64Regex.test(str)) return false
+  try {
+    const buf = Buffer.from(str, 'base64')
+    const reEncoded = buf.toString('base64')
+    return reEncoded === str
+  } catch {
+    return false
+  }
+}
+
+const guidDashedToAdHex = (textGuid: string) => {
+  if (typeof textGuid !== 'string' || textGuid.length < 5) return ''
+  const s = textGuid.trim().toLowerCase()
+
+  // Validate structure xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  const m = s.match(/^([0-9a-f]{8})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{4})-([0-9a-f]{12})$/)
+  if (!m) return ''
+
+  const [_, d1, d2, d3, d4, d5] = m
+
+  // Helper: reverse by bytes (pairs of hex chars)
+  const reverseBytes = (hex: any) =>
+    hex.match(/.{2}/g).reverse().join('')
+
+  // Data1, Data2, Data3 are little-endian in textual GUID, so reverse them to get raw byte order
+  const d1LE = reverseBytes(d1) // 8 hex -> 8 hex reversed by bytes
+  const d2LE = reverseBytes(d2) // 4 hex -> 4 hex reversed by bytes
+  const d3LE = reverseBytes(d3) // 4 hex -> 4 hex reversed by bytes
+
+  // Data4 is 16 hex (8 bytes) already in byte order; concatenate as-is
+  const adHex = d1LE + d2LE + d3LE + d4 + d5 // 32 hex chars total
+
+  return adHex
+}
+
+const base64GuidToDashedGuid = (base64Guid: string) => {
+  const rawBuffer = Buffer.from(base64Guid, 'base64')
+  if (rawBuffer.length !== 16) {
+    throw new Error('invalid Base64 string length for a GUID.')
+  }
+  const buffer = rawBuffer
+  // Data1, Data2, and Data3 are stored in AD's objectGUID in big-endian/raw order,
+  // but must be swapped to display in the little-endian GUID string format.
+  const reordered = Buffer.from([
+    buffer[3], buffer[2], buffer[1], buffer[0], // Data1 (4 bytes reversed)
+    buffer[5], buffer[4], // Data2 (2 bytes reversed)
+    buffer[7], buffer[6], // Data3 (2 bytes reversed)
+    buffer[8], buffer[9], buffer[10], buffer[11],
+    buffer[12], buffer[13], buffer[14], buffer[15], // Data4 (8 bytes remain in place)
+  ])
+
+  const hex = reordered.toString('hex')
+  return `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`
+}
+
 //
 // Cleanup on exit
 //
@@ -1618,7 +1583,7 @@ process.on('SIGINT', () => { // Ctrl+C
 // at the end to ensure scimgatway logger have started
 //
 if (!config?.map?.user) {
-  scimgateway.logError('', 'configuration map.user is missing')
+  scimgateway.logError('', 'error: configuration map.user is missing')
   throw new Error('using exception to exit, please ignore message...')
 } else {
   let isOpenLdapFound = false
@@ -1631,8 +1596,13 @@ if (!config?.map?.user) {
   let idFound = false
   let userNameFound = false
   for (const key in config.map.user) {
-    if (config.map.user[key].mapTo === 'id') idFound = true
-    else if (['userName', 'externalId'].includes(config.map.user[key].mapTo)) userNameFound = true
+    if (config.map.user[key].mapTo.split(',').includes('id')) {
+      idFound = true
+      if (key.toLowerCase() !== 'dn') {
+        scimgateway.logError('', 'error: configuration map.user id must be linked to dn - map.user.dn.mapTo="id"')
+        throw new Error('using exception to exit, please ignore message...')
+      }
+    } else if (['userName', 'externalId'].includes(config.map.user[key].mapTo)) userNameFound = true
     if (config.map.user[key]?.type === 'array' && config.map.user[key]?.typeInbound === 'string') {
       if (!Object.prototype.hasOwnProperty.call(config.map.user[key], 'typeOutboundReverse')) {
         config.map.user[key].typeOutboundReverse = !isOpenLdapFound
@@ -1640,22 +1610,34 @@ if (!config?.map?.user) {
     }
   }
   if (!idFound || !userNameFound) {
-    scimgateway.logError('', 'configuration map.user missing mapTo definition for mandatory id/userName')
+    scimgateway.logError('', 'error: configuration map.user missing mapTo definition for mandatory id/userName')
     throw new Error('using exception to exit, please ignore message...')
   }
 }
+let displayNameFound = false
 if (!config?.map?.group) {
-  scimgateway.logInfo('', 'configuration map.group is not defiend and groups will not be supported')
+  scimgateway.logInfo('', 'error: configuration map.group is not defiend and groups will not be supported')
 } else {
   let idFound = false
-  let displayNameFound = false
   for (const key in config.map.group) {
-    if (config.map.group[key].mapTo === 'id') idFound = true
-    else if (config.map.group[key].mapTo === 'displayName') displayNameFound = true
+    const arr = config.map.group[key].mapTo.split(',')
+    for (const mapTo of arr) {
+      if (mapTo === 'id') {
+        idFound = true
+        if (key.toLowerCase() !== 'dn') {
+          scimgateway.logError('', 'error: configuration map.group id must be linked to dn - map.group.dn.mapTo="id"')
+          throw new Error('using exception to exit, please ignore message...')
+        }
+        break
+      } else if (mapTo === 'displayName') {
+        displayNameFound = true
+        break
+      }
+    }
     if (idFound && displayNameFound) break
   }
-  if ((!idFound || !displayNameFound) && (Object.keys(config.map.group).length > 0)) {
-    scimgateway.logError('', 'configuration map.group missing mapTo definition for mandatory id/displayName')
+  if ((!idFound) && (Object.keys(config.map.group).length > 0)) {
+    scimgateway.logError('', 'error: configuration map.group missing mapTo definition for mandatory id')
     throw new Error('using exception to exit, please ignore message...')
   }
 }
@@ -1664,75 +1646,73 @@ for (const key in config.entity) {
   const userBase = config.entity[key]?.ldap?.userBase
   const groupBase = config.entity[key]?.ldap?.groupBase
   if (!userBase) {
-    scimgateway.logError('', `configuration missing mandatory endpoint.entity.${key}.ldap.userBase`)
+    scimgateway.logError(key, `error: configuration missing mandatory endpoint.entity.${key}.ldap.userBase`)
     throw new Error('using exception to exit, please ignore message...')
   }
   if (!groupBase && config?.map?.group && Object.keys(config.map.group).length > 0) {
-    scimgateway.logError('', `configuration missing mandatory endpoint.entity.${key}.ldap.groupBase`)
-    throw new Error('using exception to exit, please ignore message...')
-  }
-  let usrArr = config.entity[key]?.ldap?.namingAttribute?.user
-  if (!usrArr || !Array.isArray(usrArr)) { // check for legacy
-    const attr = config.entity[key]?.ldap?.userNamingAttr
-    if (attr) {
-      usrArr = [{ attribute: attr, mapTo: 'userName' }]
-      if (!config.entity[key].ldap.namingAttribute) config.entity[key].ldap.namingAttribute = {}
-      config.entity[key].ldap.namingAttribute.user = scimgateway.copyObj(usrArr)
-    }
-  }
-  if (!Array.isArray(usrArr) || usrArr.length !== 1) {
-    scimgateway.logError('', `configuration missing namingAttribute: endpoint.entity.${key}.ldap.namingAttribute.user`)
-    throw new Error('using exception to exit, please ignore message...')
-  }
-  if (!usrArr[0].attribute || !usrArr[0].mapTo) {
-    scimgateway.logError('', `configuration missing attribute/mapTo: endpoint.entity.${key}.ldap.namingAttribute.user`)
-    throw new Error('using exception to exit, please ignore message...')
-  }
-  const [endpointAttr] = scimgateway.endpointMapper('outbound', usrArr[0].mapTo, config.map.user)
-  if (!endpointAttr) {
-    scimgateway.logError('', `configuration namingAttribute mapTo:${usrArr[0].mapTo} cannot be found in the map user configuration`)
+    scimgateway.logError('', `error: configuration missing mandatory endpoint.entity.${key}.ldap.groupBase`)
     throw new Error('using exception to exit, please ignore message...')
   }
 
-  let grpArr = config.entity[key]?.ldap?.namingAttribute?.group
-  if (config?.map?.group && Object.keys(config.map.group).length > 0) {
-    if (!grpArr || !Array.isArray(grpArr)) { // check for legacy
-      const attr = config.entity[key]?.ldap?.groupNamingAttr
+  const userIds = config.map?.user?.dn?.mapTo?.split(',') || []
+  if (userIds.length === 1) { // may override namingAttribute if length > 1
+    let usrArr = config.entity[key]?.ldap?.namingAttribute?.user
+    if (!usrArr || !Array.isArray(usrArr)) { // check for legacy
+      const attr = config.entity[key]?.ldap?.userNamingAttr
       if (attr) {
-        grpArr = [{ attribute: attr, mapTo: 'displayName' }]
+        usrArr = [{ attribute: attr, mapTo: 'userName' }]
         if (!config.entity[key].ldap.namingAttribute) config.entity[key].ldap.namingAttribute = {}
-        config.entity[key].ldap.namingAttribute.group = scimgateway.copyObj(grpArr)
+        config.entity[key].ldap.namingAttribute.user = scimgateway.copyObj(usrArr)
       }
     }
-    if (!Array.isArray(grpArr) || grpArr.length !== 1) {
-      scimgateway.logError('', `configuration missing namingAttribute: endpoint.entity.${key}.ldap.namingAttribute.group`)
+    if (!Array.isArray(usrArr) || usrArr.length !== 1) {
+      scimgateway.logError(key, `error: configuration missing namingAttribute: endpoint.entity.${key}.ldap.namingAttribute.user`)
       throw new Error('using exception to exit, please ignore message...')
     }
-    if (!grpArr[0].attribute || !grpArr[0].mapTo) {
-      scimgateway.logError('', 'configuration missing attribute/mapTo: endpoint.entity.${key}.ldap.namingAttribute.group')
+    if (!usrArr[0].attribute || !usrArr[0].mapTo) {
+      scimgateway.logError('', `error: configuration missing attribute/mapTo: endpoint.entity.${key}.ldap.namingAttribute.user`)
       throw new Error('using exception to exit, please ignore message...')
     }
-    const [endpointAttr] = scimgateway.endpointMapper('outbound', grpArr[0].mapTo, config.map.group)
+    const [endpointAttr] = scimgateway.endpointMapper('outbound', usrArr[0].mapTo, config.map.user)
     if (!endpointAttr) {
-      scimgateway.logError('', 'configuration namingAttribute mapTo:${grpArr[0].mapTo} cannot be found in the map group configuration')
+      scimgateway.logError(key, `error: configuration namingAttribute mapTo:${usrArr[0].mapTo} cannot be found in the map user configuration`)
       throw new Error('using exception to exit, please ignore message...')
+    }
+  }
+
+  const groupIds = config.map?.group?.dn?.mapTo?.split(',') || []
+  if (groupIds.length === 1) {
+    if (!displayNameFound && (Object.keys(config.map.group).length > 0)) {
+      scimgateway.logError('', 'error: configuration map.group missing mapTo definition for mandatory displayName')
+      throw new Error('using exception to exit, please ignore message...')
+    }
+    let grpArr = config.entity[key]?.ldap?.namingAttribute?.group
+    if (config?.map?.group && Object.keys(config.map.group).length > 0) {
+      if (!grpArr || !Array.isArray(grpArr)) { // check for legacy
+        const attr = config.entity[key]?.ldap?.groupNamingAttr
+        if (attr) {
+          grpArr = [{ attribute: attr, mapTo: 'displayName' }]
+          if (!config.entity[key].ldap.namingAttribute) config.entity[key].ldap.namingAttribute = {}
+          config.entity[key].ldap.namingAttribute.group = scimgateway.copyObj(grpArr)
+        }
+      }
+      if (!Array.isArray(grpArr) || grpArr.length !== 1) {
+        scimgateway.logError(key, `error: configuration missing namingAttribute: endpoint.entity.${key}.ldap.namingAttribute.group`)
+        throw new Error('using exception to exit, please ignore message...')
+      }
+      if (!grpArr[0].attribute || !grpArr[0].mapTo) {
+        scimgateway.logError(key, 'error:  configuration missing attribute/mapTo: endpoint.entity.${key}.ldap.namingAttribute.group')
+        throw new Error('using exception to exit, please ignore message...')
+      }
+      const [endpointAttr] = scimgateway.endpointMapper('outbound', grpArr[0].mapTo, config.map.group)
+      if (!endpointAttr) {
+        scimgateway.logError(key, 'error: configuration namingAttribute mapTo:${grpArr[0].mapTo} cannot be found in the map group configuration')
+        throw new Error('using exception to exit, please ignore message...')
+      }
     }
   }
 }
 
-config.useSID_id = config.map.user.objectSid && config.map.user.objectSid.mapTo === 'id' // AD proprietary SID/GUID
-config.useGUID_id = config.map.user.objectGUID && config.map.user.objectGUID.mapTo === 'id'
-if (config.useSID_id && config.map.group) {
-  if (!config.map.group.objectSid || config.map.group.objectSid.mapTo !== 'id') {
-    scimgateway.logError('', 'configuration missing group.objectSid - user and group should be using the same attribute')
-    throw new Error('using exception to exit, please ignore message...')
-  }
-} else if (config.useGUID_id && config.map.group) {
-  if (!config.map.group.objectGUID || config.map.group.objectGUID.mapTo !== 'id') {
-    scimgateway.logError('', 'configuration missing group.objectGUID - user and group should be using the same attribute')
-    throw new Error('using exception to exit, please ignore message...')
-  }
-}
 if (config.map.user.userPrincipalName && config.map.user.userPrincipalName.mapDomain) { // support mapping different inbound/outbound upn domain names
   if (config.map.user.userPrincipalName.mapDomain.inbound && config.map.user.userPrincipalName.mapDomain.outbound) {
     const inbound = config.map.user.userPrincipalName.mapDomain.inbound
@@ -1740,4 +1720,30 @@ if (config.map.user.userPrincipalName && config.map.user.userPrincipalName.mapDo
     config.map.user.userPrincipalName.mapDomain.inbound = inbound.startsWith('@') ? inbound : '@' + inbound // "@my-company.com"
     config.map.user.userPrincipalName.mapDomain.outbound = outbound.startsWith('@') ? outbound : '@' + outbound // "@test.onmicrosoft.com
   } else delete config.map.user.userPrincipalName.mapDomain
+}
+
+// check if dn linked to id
+let isDnUserLinkedToId = false
+let isDnGroupLinkedToId = false
+if (config.map?.user?.dn) {
+  const mapTo = config.map.user.dn.mapTo || ''
+  if (mapTo.split(',').includes('id')) isDnUserLinkedToId = true
+} else if (config?.map?.user?.DN) {
+  const mapTo = config.map.user.DN.mapTo || ''
+  if (mapTo.split(',').includes('id')) isDnUserLinkedToId = true
+}
+if (config.map?.group?.dn) {
+  const mapTo = config.map.group.dn.mapTo || ''
+  if (mapTo.split(',').includes('id')) isDnGroupLinkedToId = true
+} else if (config.map?.group?.DN) {
+  const mapTo = config.map.group.DN.mapTo || ''
+  if (mapTo.split(',').includes('id')) isDnGroupLinkedToId = true
+}
+if (!isDnUserLinkedToId) {
+  scimgateway.logError('', 'error: mandatory map.user.dn must have mapTo id')
+  throw new Error('using exception to exit, please ignore message...')
+}
+if (!isDnGroupLinkedToId) {
+  scimgateway.logError('', 'error: mandatory map.group.dn must have mapTo id')
+  throw new Error('using exception to exit, please ignore message...')
 }
