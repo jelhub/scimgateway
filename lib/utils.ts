@@ -698,9 +698,17 @@ export const getBase64CertificateThumbprint = function (pemCertContent: string, 
  */
 export const getEtag = function (obj: Record<string, any>): string {
   if (typeof obj !== 'object' || obj === null) return ''
+
+  let o = obj
+  if (obj.groups) { // exclude user groups
+    const newObj = copyObj(obj)
+    delete newObj.groups
+    o = newObj
+  }
+
   const hash = crypto
     .createHash('sha256')
-    .update(JSON.stringify(obj), 'utf8')
+    .update(JSON.stringify(o), 'utf8')
     .digest('base64url')
     .substring(0, 22)
 
