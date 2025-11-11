@@ -1303,9 +1303,22 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.3
+
+[Fixed]
+
+- azure relay, recover on failure
+- plugin-ldap, some improvements for Active Directory and the use of objectGUID/mS-DS-ConsistencyGuid
+- plugin-mongodb, group meta.version not standarized
+- when modifying group members, if an error occurs, the gateway now checks whether it was caused by adding an existing member or removing a non-existing member. In such cases, it returns 200 OK instead of an error.
+
+[Improved]
+- Dependencies bump
+
 ### v6.1.2
 
 [Fixed]
+
 - SMTP mail functionality failed because of an updated dependency
 - endpointMapper failed when `mapTo` included multiple comma-separated attributes and one of them was a multivalued attribute, e.g. `{ "mail": { "mapTo": "userName,emails.work.value" } }`
 
