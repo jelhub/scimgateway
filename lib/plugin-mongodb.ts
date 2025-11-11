@@ -77,14 +77,14 @@ async function loadHandler(baseEntity: string, ctx: undefined | Record<string, a
     config.entity[baseEntity][clientIdentifier].client = client
     config.entity[baseEntity].db = db
 
-    if (await isMongoCollection(baseEntity, 'users')) users = await db.collection('users')
+    if (await isMongoCollection(baseEntity, 'users')) users = db.collection('users')
     else {
-      users = await db.collection('users')
+      users = db.collection('users')
       users.createIndex({ id: 1 }, { unique: true })
     }
-    if (await isMongoCollection(baseEntity, 'groups')) groups = await db.collection('groups')
+    if (await isMongoCollection(baseEntity, 'groups')) groups = db.collection('groups')
     else {
-      groups = await db.collection('groups')
+      groups = db.collection('groups')
       groups.createIndex({ id: 1 }, { unique: true })
     }
   } catch (error: any) {
@@ -99,9 +99,9 @@ async function loadHandler(baseEntity: string, ctx: undefined | Record<string, a
     await dropMongoCollection(baseEntity, 'groups')
 
     try {
-      users = await db.collection('users')
+      users = db.collection('users')
       users.createIndex({ id: 1 }, { unique: true })
-      groups = await db.collection('groups')
+      groups = db.collection('groups')
       groups.createIndex({ id: 1 }, { unique: true })
     } catch (error: any) {
       throw new Error(`${action} error: failed to get collections for database '${client.options.dbName}' - ${error.message}`)
@@ -235,7 +235,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         o.meta.version = `W/"${o.meta.version}"`
       }
       return o
-    }) // virtual attribute groups automatically handled by scimgateway
+    })
     Array.prototype.push.apply(ret.Resources, arr)
     ret.totalResults = totalResults
     return ret
@@ -568,7 +568,11 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     const groupsArr: Record<string, any>[] = await groups.find(findObj, { projection: projection }).sort({ _id: 1 }).skip(getObj.startIndex - 1).limit(getObj.count).toArray()
     const totalResults = await groups.countDocuments(findObj, { projection: projection })
     const arr = groupsArr.map((obj) => {
-      return decodeDotDate(obj)
+      const o = decodeDotDate(obj)
+      if (o.meta && o.meta.version !== undefined) {
+        o.meta.version = `W/"${o.meta.version}"`
+      }
+      return o
     })
     Array.prototype.push.apply(ret.Resources, arr)
     ret.totalResults = totalResults
