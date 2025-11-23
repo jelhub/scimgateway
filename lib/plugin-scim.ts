@@ -87,10 +87,10 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       else if (typeof (response.body) === 'object' && Object.keys(response.body).length > 0) responseArr = [response.body]
     }
 
-    if (!getObj.startIndex && !getObj.count) { // client request without paging
-      getObj.startIndex = 1
-      getObj.count = responseArr.length
-    }
+    // no paging support
+    if (!getObj.startIndex) getObj.startIndex = 1
+    if (!getObj.count) getObj.count = responseArr.length
+    if (getObj.count > responseArr.length) getObj.count = responseArr.length
 
     for (let i = 0; i < responseArr.length && (i + 1 - getObj.startIndex) < getObj.count; ++i) {
       const userObj: any = responseArr[i]
@@ -340,10 +340,10 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       else if (typeof (response.body) === 'object' && Object.keys(response.body).length > 0) responseArr = [response.body]
     }
 
-    if (!getObj.startIndex && !getObj.count) { // client request without paging
-      getObj.startIndex = 1
-      getObj.count = responseArr.length
-    }
+    // no paging support
+    if (!getObj.startIndex) getObj.startIndex = 1
+    if (!getObj.count) getObj.count = responseArr.length
+    if (getObj.count > responseArr.length) getObj.count = responseArr.length
 
     for (let i = 0; i < responseArr.length && (i + 1 - getObj.startIndex) < getObj.count; ++i) {
       const groupObj = responseArr[i]
