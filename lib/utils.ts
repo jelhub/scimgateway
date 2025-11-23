@@ -744,7 +744,6 @@ export class TimerMapCache {
   createItem(item: string): string {
     if (!item) return ''
     this.itemCache.set(item, setTimeout(() => {
-      console.log('deleting item')
       this.itemCache.delete(item)
     },
     this.itemTimeout))
