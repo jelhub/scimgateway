@@ -854,7 +854,7 @@ export class ScimGateway {
     const getHandlerSchemas = async (ctx: Context) => {
       let tx = this.scimDef.Schemas
       tx = utilsScim.addResources(tx, undefined, undefined, undefined)
-      tx = utilsScim.addSchemas(tx, isScimv2, undefined, undefined)
+      tx = utilsScim.addSchemasStripAttr(tx, isScimv2)
       ctx.response.body = JSON.stringify(tx)
     }
     funcHandler.getHandlerSchemas = getHandlerSchemas
@@ -1208,7 +1208,7 @@ export class ScimGateway {
         }
 
         scimdata = utils.stripObj(obj, ctx.query.attributes, ctx.query.excludedAttributes)
-        scimdata = utilsScim.addSchemas(scimdata, isScimv2, handle.description, undefined)
+        scimdata = utilsScim.addSchemasStripAttr(scimdata, isScimv2, handle.description)
 
         if (!this.config.scimgateway.scim.skipMetaLocation) {
           const location = ctx.origin + ctx.path
@@ -1365,10 +1365,8 @@ export class ScimGateway {
       if (getObj.operator === 'eq' && ['id', 'userName', 'externalId', 'displayName', 'members.value'].includes(getObj.attribute)) info = ` ${getObj.attribute}=${getObj.value}`
       logger.debug(`${gwName} [Get ${handle.description}s]${info}`, { baseEntity: ctx?.routeObj?.baseEntity })
       try {
-        getObj.startIndex = ctx.query.startIndex ? parseInt(ctx.query.startIndex) : undefined
-        getObj.count = ctx.query.count ? parseInt(ctx.query.count) : undefined
-        if (getObj.startIndex && !getObj.count) getObj.count = 200 // defaults to 200 (plugin may override)
-        if (getObj.count && !getObj.startIndex) getObj.startIndex = 1
+        getObj.startIndex = ctx.query.startIndex ? parseInt(ctx.query.startIndex, 10) : 1
+        getObj.count = ctx.query.count ? parseInt(ctx.query.count, 10) : 200 // defaults to 200 (plugin may override)
 
         let res: any
         const obj: any = utils.copyObj(getObj)
@@ -1435,16 +1433,17 @@ export class ScimGateway {
             }
           }
         }
-        let scimdata: { [key: string]: any } = {
-          Resources: [],
-          totalResults: null,
-        }
-        if (res) {
-          if (res.Resources && Array.isArray(res.Resources)) {
-            scimdata.Resources = res.Resources
-            scimdata.totalResults = res.totalResults
-          } else if (Array.isArray(res)) scimdata.Resources = res
-          else if (typeof (res) === 'object' && Object.keys(res).length > 0) scimdata.Resources[0] = res
+
+        let location: string | undefined = ctx.origin + ctx.path
+        if (this.config.scimgateway.scim.skipMetaLocation) location = undefined
+        else if (ctx.query.excludedAttributes && ctx.query.excludedAttributes.includes('meta')) location = undefined
+
+        let scimdata = utilsScim.addResources(res, ctx.query.startIndex, ctx.query.sortBy, ctx.query.sortOrder)
+        scimdata = utilsScim.addSchemasStripAttr(scimdata, isScimv2, handle.description, ctx.query.attributes, ctx.query.excludedAttributes, location)
+        if (getObj.count === 0) {
+          scimdata.Resources = []
+          scimdata.itemsPerPage = 0
+          // keep totalResults
         }
 
         if (scimdata.Resources.length === 1) {
@@ -1453,16 +1452,6 @@ export class ScimGateway {
           else if (obj.externalId) ctx.target = obj.externalId
           else if (obj.displayName) ctx.target = obj.displayName
         }
-
-        let location: string | undefined = ctx.origin + ctx.path
-        if (this.config.scimgateway.scim.skipMetaLocation) location = undefined
-        else if (ctx.query.excludedAttributes && ctx.query.excludedAttributes.includes('meta')) location = undefined
-        for (let i = 0; i < scimdata.Resources.length; i++) {
-          utils.getEtag(scimdata.Resources[i])
-          scimdata.Resources[i] = utils.stripObj(scimdata.Resources[i], ctx.query.attributes, ctx.query.excludedAttributes)
-        }
-        scimdata = utilsScim.addResources(scimdata, ctx.query.startIndex, ctx.query.sortBy, ctx.query.sortOrder)
-        scimdata = utilsScim.addSchemas(scimdata, isScimv2, handle.description, location)
 
         ctx.response.body = JSON.stringify(scimdata)
       } catch (err: any) {
@@ -1593,7 +1582,7 @@ export class ScimGateway {
           if (!jsonBody.meta) jsonBody.meta = {}
           jsonBody.meta.location = location
         }
-        jsonBody = utilsScim.addSchemas(jsonBody, isScimv2, handle.description, undefined)
+        jsonBody = utilsScim.addSchemasStripAttr(jsonBody, isScimv2, handle.description)
         if (eTag) ctx.response.headers.set('ETag', eTag)
         if (jsonBody?.meta?.location) ctx.response.headers.set('Location', jsonBody.meta.location)
         ctx.response.status = 201
@@ -1731,7 +1720,7 @@ export class ScimGateway {
         }
 
         scimres = utils.stripObj(userObj, ctx.query.attributes, ctx.query.excludedAttributes)
-        scimres = utilsScim.addSchemas(scimres, isScimv2, handle.description, undefined)
+        scimres = utilsScim.addSchemasStripAttr(scimres, isScimv2, handle.description)
         if (eTag) ctx.response.headers.set('ETag', eTag)
         if (scimres?.meta?.location) ctx.response.headers.set('Location', scimres.meta.location)
         ctx.response.status = 200
@@ -2560,23 +2549,34 @@ export class ScimGateway {
       if (typeof (this as any)[handler.groups.getMethod] !== 'function') return groups // method not implemented
       if (this.config.scimgateway.scim.groupMemberOfUser) return groups // only support user member of group
       let res: any
-      try {
-        const ob = { attribute: 'members.value', operator: 'eq', value: decodeURIComponent(id) }
-        const attributes = ['id', 'displayName']
-        logger.debug(`${gwName} calling ${handler.groups.getMethod} - groups to be included`, { baseEntity })
-        res = await (this as any)[handler.groups.getMethod](baseEntity, ob, attributes, ctxPassThrough)
-      } catch (err) { void 0 }
-      if (res && res.Resources && Array.isArray(res.Resources) && res.Resources.length > 0) {
-        for (let i = 0; i < res.Resources.length; i++) {
-          if (!res.Resources[i].id) continue
-          const el: any = {}
-          el.value = res.Resources[i].id
-          if (res.Resources[i].displayName) el.display = res.Resources[i].displayName
-          if (isScimv2) el.type = 'direct'
-          else el.type = { value: 'direct' }
-          groups.push(el) // { "value": "Admins", "display": "Admins", "type": "direct"}
+      const ob: Record<string, any> = { attribute: 'members.value', operator: 'eq', value: decodeURIComponent(id) }
+      const attributes = ['id', 'displayName']
+      const count = 200
+      let startIndex = 1
+      let nextStartIndex = 1
+      do {
+        try {
+          logger.debug(`${gwName} calling ${handler.groups.getMethod} - groups to be included`, { baseEntity })
+          startIndex = nextStartIndex
+          ob.startIndex = startIndex
+          ob.count = count
+          res = await (this as any)[handler.groups.getMethod](baseEntity, ob, attributes, ctxPassThrough)
+        } catch (err) { void 0 }
+        if (res && res.Resources) {
+          if (Array.isArray(res.Resources) && res.Resources.length > 0) {
+            for (let i = 0; i < res.Resources.length; i++) {
+              if (!res.Resources[i].id) continue
+              const el: any = {}
+              el.value = res.Resources[i].id
+              if (res.Resources[i].displayName) el.display = res.Resources[i].displayName
+              if (isScimv2) el.type = 'direct'
+              else el.type = { value: 'direct' }
+              groups.push(el) // { "value": "Admins", "display": "Admins", "type": "direct"}
+            }
+            nextStartIndex = utilsScim.getNextStartIndex(res.totalResults, startIndex, res.Resources.length)
+          }
         }
-      }
+      } while (nextStartIndex > startIndex)
       return groups
     }
     this.getMemberOf = getMemberOf
