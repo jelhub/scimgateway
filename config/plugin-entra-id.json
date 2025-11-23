@@ -195,6 +195,10 @@
           "mapTo": "companyName",
           "type": "string"
         },
+        "employeeHireDate": {
+          "mapTo": "employeeHireDate",
+          "type": "string"
+        },
         "employeeOrgData.costCenter": {
           "mapTo": "employeeOrgData.costCenter",
           "type": "string"
@@ -238,6 +242,10 @@
           "mapTo": "businessPhones",
           "type": "array",
           "typeInbound": "string"
+        },
+        "faxNumber": {
+          "mapTo": "faxNumber",
+          "type": "string"
         },
         "country": {
           "mapTo": "country",
@@ -298,7 +306,7 @@
           "type": "string"
         },
         "displayName": {
-          "mapTo": "displayName,externalId",
+          "mapTo": "displayName",
           "type": "string"
         },
         "securityEnabled": {
