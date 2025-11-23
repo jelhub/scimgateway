@@ -65,10 +65,9 @@ export class HelperRest {
    * getAccessToken returns oauth accesstoken object
    * @param baseEntity 
    * @param connectionObj endpoint.entity.baseEntity.connection
-   * @param ctx 
    * @returns { access_token: 'xxx', token_type: 'Bearer/Basic', validTo: 'xxx' }
    */
-  public async getAccessToken(baseEntity: string, connectionObj: Record<string, any>, ctx?: Record<string, any> | undefined) { // public in case token is needed for other logic e.g. sending mail
+  public async getAccessToken(baseEntity: string, connectionObj: Record<string, any>) { // public in case token is needed for other logic e.g. sending mail
     await this.lock.acquire()
     const d = Math.floor(Date.now() / 1000) // seconds (unix time)
     if (this._serviceClient[baseEntity]?.accessToken?.validTo >= d + 30) { // avoid simultaneously token requests
@@ -229,7 +228,7 @@ export class HelperRest {
               if (!this.scimgateway.jwk[kid]) {
                 this.scimgateway.jwk[kid] = { publicKey, privateKey }
                 const ttl = 5 * 60
-                ;(async () => {
+                  ; (async () => {
                   setTimeout(async () => {
                     delete this.scimgateway.jwk[kid]
                   }, ttl * 1000)
@@ -393,7 +392,7 @@ export class HelperRest {
       if (!connOpt.headers) connOpt.headers = {}
       connOpt.headers['Content-Type'] = 'application/x-www-form-urlencoded' // body must be query string formatted (no JSON)
 
-      const response = await this.doRequest(baseEntity, method, tokenUrl, form, ctx, connOpt)
+      const response = await this.doRequest(baseEntity, method, tokenUrl, form, undefined, connOpt)
       if (!response.body) {
         const err = new Error(`[${action}] No data retrieved from: ${method} ${tokenUrl}`)
         throw (err)
@@ -452,7 +451,7 @@ export class HelperRest {
           if (this._serviceClient[baseEntity].accessToken.validTo < d + 30) { // less than 30 sec before token expiration
             this.scimgateway.logDebug(baseEntity, `${action}: Accesstoken about to expire in ${this._serviceClient[baseEntity].accessToken.validTo - d} seconds`)
             try {
-              const accessToken = await this.getAccessToken(baseEntity, connectionObj, ctx)
+              const accessToken = await this.getAccessToken(baseEntity, connectionObj)
               this._serviceClient[baseEntity].accessToken = accessToken
               this._serviceClient[baseEntity].options.headers['Authorization'] = `${accessToken.token_type} ${accessToken.access_token}`
             } catch (err) {
@@ -512,7 +511,7 @@ export class HelperRest {
           }
         }
 
-        param.accessToken = await this.getAccessToken(baseEntity, connectionObj, ctx)
+        param.accessToken = await this.getAccessToken(baseEntity, connectionObj)
         if (param.accessToken?.access_token && param.accessToken?.token_type) {
           param.options.headers['Authorization'] = `${param.accessToken.token_type} ${param.accessToken.access_token}`
         } else { // no auth or PassTrough
@@ -561,8 +560,6 @@ export class HelperRest {
 
         // OData support
         this._serviceClient[baseEntity].nextLink = {} // OData pagination (Entra ID)
-        this._serviceClient[baseEntity].nextLink.users = null
-        this._serviceClient[baseEntity].nextLink.groups = null
       }
 
       if (ctx?.headers?.get) { // Auth PassThrough using ctx header
@@ -679,7 +676,35 @@ export class HelperRest {
           options.body = dataString
         } else if (options.headers) delete options.headers['Content-Type']
 
-        const url = `${options.protocol}//${options.host}${options.port ? ':' + options.port : ''}${options.path}`
+        let url = `${options.protocol}//${options.host}${options.port ? ':' + options.port : ''}${options.path}`
+        if (url.includes('$count=true') && url.includes('graph.microsoft.com')) {
+          options.headers['ConsistencyLevel'] = 'eventual'
+        }
+
+        if (this._serviceClient[baseEntity]?.nextLink[url]) {
+          if (ctx?.paging?.startIndex && ctx.paging.startIndex > 1) {
+            if (ctx.paging.startIndex === this._serviceClient[baseEntity]?.nextLink[url].startIndex) {
+              url = this._serviceClient[baseEntity]?.nextLink[url]['@odata.nextLink']
+            } else {
+              if (!ctx) ctx = {}
+              if (!ctx.paging) ctx.paging = {}
+              if (this._serviceClient[baseEntity]?.nextLink[url].totalResults
+                && ctx.paging.startIndex > this._serviceClient[baseEntity]?.nextLink[url].totalResults) {
+                ctx.paging.totalResults = this._serviceClient[baseEntity]?.nextLink[url].totalResults
+                return { body: { value: [] } }
+              } else {
+                // reset the paging cursor - none expected startIndex sequence, using default none paged url
+                ctx.paging.startIndex = 1 // caller should check and return this new startIndex in final response
+                delete this._serviceClient[baseEntity].nextLink[url]
+              }
+            }
+          }
+        } else {
+          if (ctx?.paging?.startIndex > 1 && !this._serviceClient[baseEntity]?.nextLink[url]) { // no previous paging and invalid startIndex
+            ctx.paging.totalResults = ctx.paging.startIndex - 1
+            return { body: { value: [] } }
+          }
+        }
 
         // execute request
         const f = await fetch(url, options)
@@ -708,30 +733,50 @@ export class HelperRest {
           throw new Error(JSON.stringify(result))
         }
         this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${options.protocol}//${options.host}${(options.port ? `:${options.port}` : '')}${options.path} Body = ${JSON.stringify(body)} Response = ${JSON.stringify(result)}`)
-        if (result.body && typeof result.body === 'object' && result.body['@odata.nextLink']) { // {"@odata.nextLink": "https://graph.microsoft.com/beta/users?$top=100&$skiptoken=xxx"}
-          // OData paging
-          const nextUrl = result.body['@odata.nextLink'].split('?')[1] // keep search query
-          const arr = result['@odata.nextLink'].split('?')[0].split('/')
-          const objType = (arr[arr.length - 1]) // users
-          let startIndexNext = ''
-          if (this._serviceClient[baseEntity].nextLink[objType]) {
-            for (const k in this._serviceClient[baseEntity].nextLink[objType]) {
-              if (this._serviceClient[baseEntity].nextLink[objType][k] === nextUrl) return result // repetive startIndex=1
-              startIndexNext = k
-              break
+
+        // OData paging logic
+        // client prerequisite for enabling doRequest() OData paging support (see plugin-entra-id):
+        //   let paging = { startIndex: getObj.startIndex }
+        //   if (!ctx) ctx = { paging }
+        //   else ctx.paging = paging
+        if (result.body && typeof result.body === 'object') {
+          if (result.body['@odata.nextLink']) { // {"@odata.nextLink": "https://graph.microsoft.com/beta/users?$top=100&$skiptoken=xxx"}
+            if (!ctx) ctx = {}
+            if (!ctx.paging) ctx.paging = {}
+            const nextLinkBase = decodeURIComponent(result.body['@odata.nextLink'].substring(0, result.body['@odata.nextLink'].indexOf('$skiptoken') - 1))
+            const count = result.body['@odata.count']
+            if (count !== undefined) {
+              ctx.paging.totalResults = count
+            }
+            let totalResults = ctx.paging.totalResults
+            if (!totalResults) totalResults = (this._serviceClient[baseEntity].nextLink[nextLinkBase]?.totalResults)
+            let isCount = this._serviceClient[baseEntity].nextLink[nextLinkBase]?.isCount || count !== undefined
+            const itemsPerPage = result.body.value.length
+            this._serviceClient[baseEntity].nextLink[nextLinkBase] = {}
+            this._serviceClient[baseEntity].nextLink[nextLinkBase]['startIndex'] = ctx.paging.startIndex ? ctx.paging.startIndex + itemsPerPage : itemsPerPage + 1
+            this._serviceClient[baseEntity].nextLink[nextLinkBase]['@odata.nextLink'] = result.body['@odata.nextLink']
+            this._serviceClient[baseEntity].nextLink[nextLinkBase]['isCount'] = isCount
+            if (isCount) {
+              this._serviceClient[baseEntity].nextLink[nextLinkBase]['totalResults'] = totalResults // count=true ignored when using nextLink
+              ctx.paging.totalResults = totalResults
+            } else {
+              const totalResults = ctx.paging.startIndex - 1 + (itemsPerPage * 2) // ensure new client paging
+              this._serviceClient[baseEntity].nextLink[nextLinkBase]['totalResults'] = totalResults
+              ctx.paging.totalResults = totalResults
+            }
+          } else { // no more paging
+            const linkBase = decodeURIComponent(url.substring(0, url.indexOf('$skiptoken') - 1))
+            if (ctx?.paging?.startIndex && ctx.paging.startIndex > 1 && this._serviceClient[baseEntity]?.nextLink[linkBase]) {
+              if (!this._serviceClient[baseEntity]?.nextLink[linkBase].isCount) { // final no count page
+                const itemsPerPage = result.body.value.length
+                const totalResults = ctx.paging.startIndex - 1 + itemsPerPage
+                this._serviceClient[baseEntity].nextLink[linkBase]['totalResults'] = totalResults
+                ctx.paging.totalResults = totalResults
+              }
             }
           }
-          const a = result.body['@odata.nextLink'].split('top=')
-          let top = '0'
-          if (a.length > 1) {
-            top = a[1].split('&')[0]
-          }
-          if (!startIndexNext) startIndexNext = (Number(top) + 1).toString()
-          else startIndexNext = (Number(startIndexNext) + Number(top) + 1).toString()
-          // reset and set new nextLink
-          this._serviceClient[baseEntity].nextLink[objType] = {}
-          this._serviceClient[baseEntity].nextLink[objType][startIndexNext] = nextUrl
         }
+
         return result
       } finally {
         clearTimeout(timeout)
@@ -974,36 +1019,6 @@ export class HelperRest {
   **/
   public async doRequest(baseEntity: string, method: string, path: string, body?: any, ctx?: any, opt?: any) {
     return await this.doRequestHandler(baseEntity, method, path, body, ctx, opt)
-  }
-
-  /**
-  * nextLinkPaging returns paging url when using OData e.g., Entra ID 
-  * @param baseEntity baseEntity
-  * @param objType e.g., 'users' or 'groups', a type that corresponds with what's being used by endpoint url request
-  * @param startIndex SCIM startIndex paramenter
-  * @returns paging url to be used
-  **/
-  public nextLinkPaging(baseEntity: string, objType: string, startIndex: number) {
-    objType = objType.toLowerCase() // users or groups
-    let nextPath = ''
-    if (!startIndex || !this._serviceClient[baseEntity]) return ''
-    if (startIndex < 2) {
-      if (this._serviceClient[baseEntity].nextLink[objType]) {
-        this._serviceClient[baseEntity].nextLink[objType] = null
-      }
-      return ''
-    }
-    if (this._serviceClient[baseEntity].nextLink[objType]) {
-      if (this._serviceClient[baseEntity].nextLink[objType][startIndex]) {
-        nextPath = `/users?${this._serviceClient[baseEntity].nextLink[objType][startIndex]}`
-      } else {
-        this._serviceClient[baseEntity].nextLink[objType] = null
-        return ''
-      }
-    } else {
-      return ''
-    }
-    return nextPath
   }
 
   /**
