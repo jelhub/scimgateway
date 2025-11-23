@@ -101,9 +101,17 @@ if (config.map) { // having licensDetails map here instead of config file
 }
 
 const userAttributes: string[] = []
-for (const key in config.map.user) { // userAttributes = ['country', 'preferredLanguage', 'mail', 'city', 'displayName', 'postalCode', 'jobTitle', 'businessPhones', 'onPremisesSyncEnabled', 'officeLocation', 'name.givenName', 'passwordPolicies', 'id', 'state', 'department', 'mailNickname', 'manager.managerId', 'active', 'userName', 'name.familyName', 'proxyAddresses.value', 'servicePlan.value', 'mobilePhone', 'streetAddress', 'onPremisesImmutableId', 'userType', 'usageLocation']
+for (const key in config.map.user) { // userAttributes = ['id', 'country', 'preferredLanguage', 'mail', 'city', 'displayName', 'postalCode', 'jobTitle', 'businessPhones', 'onPremisesSyncEnabled', 'officeLocation', 'name.givenName', 'passwordPolicies', 'id', 'state', 'department', 'mailNickname', 'manager.managerId', 'active', 'userName', 'name.familyName', 'proxyAddresses.value', 'servicePlan.value', 'mobilePhone', 'streetAddress', 'onPremisesImmutableId', 'userType', 'usageLocation']
   if (config.map.user[key].mapTo) userAttributes.push(config.map.user[key].mapTo)
 }
+if (!userAttributes.includes('id')) userAttributes.push('id')
+
+const groupAttributes: string[] = []
+for (const key in config.map.group) { // groupAttributes = ['id', 'displayName', 'securityEnabled', 'mailEnabled']
+  if (config.map.group[key].mapTo) groupAttributes.push(config.map.group[key].mapTo)
+}
+if (!groupAttributes.includes('id')) groupAttributes.push('id')
+if (!groupAttributes.includes('members.value')) groupAttributes.push('members.value')
 
 // =================================================
 // getUsers
@@ -150,17 +158,16 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all users to be returned - correspond to exploreUsers() in versions < 4.x.x
-    if (getObj.startIndex && getObj.startIndex > 1) { // paging
-      path = helper.nextLinkPaging(baseEntity, 'users', getObj.startIndex)
-      if (!path) return ret
-    } else {
-      getObj.count = (!getObj.count || getObj.count > 999) ? 999 : getObj.count
-      path = `/users?$top=${getObj.count}` // paging not supported using filter (Entra ID default page=100, max=999)
-    }
+    path = `/users?$top=${getObj.count}&$count=true`
   }
   // mandatory if-else logic - end
 
   if (!path) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
+
+  // enable doRequest() OData paging support 
+  let paging = { startIndex: getObj.startIndex }
+  if (!ctx) ctx = { paging }
+  else ctx.paging = paging
 
   try {
     let response: any
@@ -176,10 +183,16 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       const [scimObj] = scimgateway.endpointMapper('inbound', response.body.value[i], config.map.user) // endpoint => SCIM/CustomSCIM attribute standard
       if (scimObj && typeof scimObj === 'object' && Object.keys(scimObj).length > 0) ret.Resources.push(scimObj)
     }
-    if (getObj.count === response.body.value.length) ret.totalResults = 99999999 // to ensure we get a new paging request - don't know the total numbers of users - metadata directoryObject collections are not countable
+
+    if (getObj.startIndex !== ctx.paging.startIndex) { // changed by doRequest()
+      ret.startIndex = ctx.paging.startIndex
+    }
+    if (ctx.paging.totalResults) ret.totalResults = ctx.paging.totalResults // set by doRequest()
     else ret.totalResults = getObj.startIndex ? getObj.startIndex - 1 + response.body.value.length : response.body.value.length
+
     return (ret)
   } catch (err: any) {
+    if (err.message.includes('Request_ResourceNotFound')) return { Resources: [] }
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -329,9 +342,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     totalResults: null,
   }
 
-  if (attributes.length < 1) attributes = ['id', 'displayName', 'members.value']
-  if (!attributes.includes('id')) attributes.push('id')
-
+  if (attributes.length === 0) attributes = groupAttributes
   let includeMembers = false
   if (attributes.includes('members.value') || attributes.includes('members')) {
     includeMembers = true
@@ -356,9 +367,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     } else if (getObj.operator === 'eq' && getObj.attribute === 'members.value') {
       // mandatory - return all groups the user 'id' (getObj.value) is member of - correspond to getGroupMembers() in versions < 4.x.x
       // Resources = [{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }]
-      // not using below expand because Entra ID returns only a maximum of 20 items for the expanded relationship
-      // path = `/users/${getObj.value}/memberOf/microsoft.graph.group?$select=id,displayName&$expand=members($select=id,displayName)`
-      path = `/users/${getObj.value}/memberOf/microsoft.graph.group?$select=id,displayName`
+      path = `/users/${getObj.value}/memberOf/microsoft.graph.group?$top=${getObj.count}&$count=true&select=id,displayName`
     } else {
       // optional - simpel filtering
       throw new Error(`${action} error: not supporting simpel filtering: ${getObj.rawFilter}`)
@@ -368,15 +377,17 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreGroups() in versions < 4.x.x
-    // Entra paging not supported because of select filter (Entra default page=100, max=999)
-    // TODO: use a query that supports paging to fix current 999 limit of groups
-    getObj.count = 999
-    if (includeMembers) path = `/groups?$top=${getObj.count}&$select=${attrs.join()}&$expand=members($select=id,displayName)`
-    else path = `/groups?$top=${getObj.count}&$select=${attrs.join()}`
+    if (includeMembers) path = `/groups?$top=${getObj.count}&$count=true&$select=${attrs.join()}&$expand=members($select=id,displayName)`
+    else path = `/groups?$top=${getObj.count}&$count=true&$select=${attrs.join()}`
   }
   // mandatory if-else logic - end
 
   if (!path) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
+
+  // enable doRequest() OData paging support 
+  let paging = { startIndex: getObj.startIndex }
+  if (!ctx) ctx = { paging }
+  else ctx.paging = paging
 
   try {
     let response = await helper.doRequest(baseEntity, method, path, body, ctx)
@@ -411,12 +422,15 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       }
     }
 
-    // Entra paging not supported because of select filter
-    getObj.startIndex = 1
-    ret.totalResults = getObj.startIndex ? getObj.startIndex - 1 + response.body.value.length : response.body.value.length
+    if (getObj.startIndex !== ctx.paging.startIndex) { // changed by doRequest()
+      ret.startIndex = ctx.paging.startIndex
+    }
+    if (ctx.paging.totalResults) ret.totalResults = ctx.paging.totalResults // set by doRequest()
+    else ret.totalResults = getObj.startIndex ? getObj.startIndex - 1 + response.body.value.length : response.body.value.length
 
     return (ret)
   } catch (err: any) {
+    if (err.message.includes('Request_ResourceNotFound')) return { Resources: [] }
     throw new Error(`${action} error: ${err.message}`)
   }
 }
@@ -427,6 +441,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   const action = 'createGroup'
   scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)} passThrough=${ctx ? 'true' : 'false'}`)
+
   const body: any = { displayName: groupObj.displayName }
   body.mailNickName = groupObj.displayName
   body.mailEnabled = false
@@ -454,7 +469,12 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
   const action = 'deleteGroup'
   scimgateway.logDebug(baseEntity, `handling ${action} id=${id} passThrough=${ctx ? 'true' : 'false'}`)
-  throw new Error(`${action} error: ${action} is not supported`)
+
+  const method = 'DELETE'
+  const path = `/groups/${id}`
+  const body = null
+
+  await helper.doRequest(baseEntity, method, path, body, ctx)
 }
 
 // =================================================
