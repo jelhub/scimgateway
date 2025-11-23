@@ -515,8 +515,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
               const keyRoot = key2.split('.').slice(0, -1).join('.') // xx.yy.mapTo => xx.yy
               if (dotMap[`${keyRoot}.type`] === 'array' && arrIndex >= 0) {
                 dotNewObj[`${keyRoot}.${arrIndex}`] = dotParse[keyOrg] // servicePlan.0.value => servicePlan.0 and groups[0].value => memberOf.0
-              }
-              dotNewObj[keyRoot] = dotParse[key] // {"accountEnabled": {"mapTo": "active"} => str.replace("accountEnabled", "active")
+              } else dotNewObj[keyRoot] = dotParse[key] // {"accountEnabled": {"mapTo": "active"} => str.replace("accountEnabled", "active")
               break
             }
           }
@@ -768,14 +767,25 @@ export function addResources(data: any, startIndex?: string, sortBy?: string, so
   if (Array.isArray(data)) res.Resources = data
   else if (data.Resources) {
     res.Resources = data.Resources
-    res.totalResults = data.totalResults
   } else res.Resources.push(data)
+
+  if (Object.hasOwn(data, 'totalResults')) res.totalResults = data.totalResults
+  if (data.startIndex) {
+    res.startIndex = data.startIndex
+  } else if (startIndex) {
+    res.startIndex = parseInt(startIndex, 10)
+  } else {
+    res.startIndex = 1
+  }
 
   // pagination
   if (!res.totalResults) res.totalResults = res.Resources.length // Specifies the total number of results matching the Consumer query
   res.itemsPerPage = res.Resources.length // Specifies the number of search results returned in a query response page
-  if (startIndex) res.startIndex = parseInt(startIndex) // The 1-based index of the first result in the current set of search results
-  else res.startIndex = 1
+
+  if (!res.startIndex || isNaN(res.startIndex)) {
+    if (startIndex) res.startIndex = parseInt(startIndex) // The 1-based index of the first result in the current set of search results
+    else res.startIndex = 1
+  }
   if (res.startIndex > res.totalResults) { // invalid paging request
     res.Resources = []
     res.itemsPerPage = 0
@@ -785,7 +795,7 @@ export function addResources(data: any, startIndex?: string, sortBy?: string, so
   return res
 }
 
-export function addSchemas(data: Record<string, any>, isScimv2: boolean, type?: string, location?: string) {
+export function addSchemasStripAttr(data: Record<string, any>, isScimv2: boolean, type?: string, attributes?: string, excludedAttributes?: string, location?: string) {
   if (!type) {
     if (isScimv2) data.schemas = ['urn:ietf:params:scim:api:messages:2.0:ListResponse']
     else data.schemas = ['urn:scim:schemas:core:1.0']
@@ -796,6 +806,9 @@ export function addSchemas(data: Record<string, any>, isScimv2: boolean, type?: 
     if (isScimv2) data.schemas = ['urn:ietf:params:scim:api:messages:2.0:ListResponse']
     else data.schemas = ['urn:scim:schemas:core:1.0']
     for (let i = 0; i < data.Resources.length; i++) {
+      utils.getEtag(data.Resources[i])
+      data.Resources[i] = utils.stripObj(data.Resources[i], attributes, excludedAttributes)
+
       if (isScimv2) { // scim v2 add schemas/resourceType on each element
         if (type === 'User') {
           const val = 'urn:ietf:params:scim:schemas:core:2.0:User'
@@ -1061,4 +1074,15 @@ export function loadScimDef(version: ScimVersion, customPath?: string): any {
     }
   }
   return v === '1.1' ? scimdefV1Default : scimdefV2Default
+}
+
+/**
+* returns next pagination startIndex
+* pagination should stop when nextStartIndex <= startIndex
+*/
+export function getNextStartIndex(totalResults: number, startIndex: number, itemsPerPage: number): number {
+  if (totalResults === undefined || startIndex == undefined || itemsPerPage === undefined) return startIndex
+  const nextStartIndex = startIndex + itemsPerPage
+  if (nextStartIndex >= totalResults) return startIndex
+  return nextStartIndex
 }
