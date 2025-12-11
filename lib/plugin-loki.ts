@@ -148,7 +148,6 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       queryObj[getObj.attribute] = getObj.value
       usersArr = users.chain().find(queryObj).data()
     } else {
-      throw new Error(`${action} error: not supporting SIMBLE filtering: ${getObj.rawFilter}`)
       // optional - simpel filtering
       const dt = Date.parse(getObj.value)
       if (!isNaN(dt)) { // date string to timestamp
@@ -160,8 +159,8 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       usersArr = users.chain().find(queryObj).data() // {name.familyName: { $eq: "Jensen" } }
     }
   } else if (getObj.rawFilter) {
-    // optional - advanced filtering having combined and / or, or using not
-    // note, advanced filtering "light" using and / or (not combined) is handled by scimgateway core through plugin simpel filtering above
+    // optional - advanced filtering having and/or/not - use getObj.rawFilter
+    // note, advanced filtering "light" using and/or (not combined) is handled by scimgateway through plugin simpel filtering above
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all users to be returned - correspond to exploreUsers() in versions < 4.x.x
@@ -436,8 +435,8 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       groupsArr = groups.chain().find(queryObj).data()
     }
   } else if (getObj.rawFilter) {
-    // optional - advanced filtering having combined and / or, or using not
-    // note, advanced filtering "light" using and / or (not combined) is handled by scimgateway core through plugin simpel filtering above
+    // optional - advanced filtering having and/or/not - use getObj.rawFilter
+    // note, advanced filtering "light" using and/or (not combined) is handled by scimgateway through plugin simpel filtering above
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreUsers() in versions < 4.x.x
