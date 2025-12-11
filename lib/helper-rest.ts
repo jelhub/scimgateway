@@ -677,10 +677,6 @@ export class HelperRest {
         } else if (options.headers) delete options.headers['Content-Type']
 
         let url = `${options.protocol}//${options.host}${options.port ? ':' + options.port : ''}${options.path}`
-        if ((url.includes('$count=true') || url.includes('$search=')) && url.includes('graph.microsoft.com')) {
-          options.headers['ConsistencyLevel'] = 'eventual'
-        }
-
         if (this._serviceClient[baseEntity]?.nextLink[url]) {
           if (ctx?.paging?.startIndex && ctx.paging.startIndex > 1) {
             if (ctx.paging.startIndex === this._serviceClient[baseEntity]?.nextLink[url].startIndex) {
