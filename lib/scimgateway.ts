@@ -1247,11 +1247,17 @@ export class ScimGateway {
         startIndex: undefined,
         count: undefined,
       }
+      let isAndFilter = false
+      let isOrFilter = false
+      if (getObj.rawFilter) {
+        if (getObj.rawFilter.includes(' and ')) isAndFilter = true
+        if (getObj.rawFilter.includes(' or ')) isOrFilter = true
+      }
 
-      if (ctx.query.filter) {
+      if (getObj.rawFilter && !isAndFilter && !isOrFilter) {
         ctx.query.filter = ctx.query.filter.trim()
         const arrFilter = ctx.query.filter.split(' ')
-        if (arrFilter.length === 3 || (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"'))) {
+        if (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"')) {
           getObj.attribute = arrFilter[0] // userName
           getObj.operator = arrFilter[1].toLowerCase() // eq
           const value = arrFilter.slice(2).join(' ').replace(/"/g, '')
@@ -1371,17 +1377,23 @@ export class ScimGateway {
         let res: any
         const obj: any = utils.copyObj(getObj)
         const attributes: string[] = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
-        if (attributes.length > 0 && !attributes.includes('id')) attributes.push('id')
-        if (!obj.operator && obj.rawFilter && obj.rawFilter.includes(' or ')) {
-          // advanced filtering using or logic - used by One Identity Manager
-          // e.g.: (id eq "bjensen") or (id eq "jsmith")
+        if (attributes.length > 0 && !attributes.includes('id')) attributes.push('id') // id is mandatory
+
+        if ((!isAndFilter && !isOrFilter) || (isAndFilter && isOrFilter)) { // standard
+          logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
+          res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
+        } else {
+          // advanced filtering "light", using and / or (not combined)
+          // e.g.: (id eq "bjensen") or (id eq "jsmith") - (id eq "bjensen") and (name.givenName eq "Barbara") and (name.familyName eq "Jensen")
           // handled by scimgateway instead of plugins if supported operator being used
-          const arr = obj.rawFilter.split(' or ')
+          const splitBy = isAndFilter ? ' and ' : ' or '
+          const arr = obj.rawFilter.split(splitBy)
+          const originalGetObjArrLength = arr.length
           let getObjArr: object[] = []
           for (let i = 0; i < arr.length; i++) {
             arr[i] = arr[i].replace(/\(/g, '').replace(/\)/g, '').trim()
             const arrFilter = arr[i].split(' ')
-            if (arrFilter.length === 3 || (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"'))) {
+            if (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"')) {
               const o: any = {}
               o.attribute = arrFilter[0] // id
               o.operator = arrFilter[1].toLowerCase() // eq
@@ -1392,19 +1404,20 @@ export class ScimGateway {
               break
             }
           }
+
           if (getObjArr.length > 0) {
             const getObj = async (o: Record<string, any>) => {
               return await (this as any)[handle.getMethod](baseEntity, o, attributes, ctx.passThrough)
             }
             const chunk = 5
             const chunkRes: Record<string, any>[] = []
-            logger.debug(`${gwName} calling ${handle.getMethod} with chunks`, { baseEntity: ctx?.routeObj?.baseEntity })
+            logger.debug(`${gwName} calling ${handle.getMethod} chunks`, { baseEntity: ctx?.routeObj?.baseEntity })
             do {
               const arrChunk = getObjArr.splice(0, chunk)
               const results = await Promise.allSettled(arrChunk.map(o => getObj(o))) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
               const errors = results.filter(result => result.status === 'rejected').map(result => result.reason.message)
               if (errors.length > 0) {
-                const errMsg = `${handle.getMethod} with chunks returned errors: ${errors.join(', ')}`
+                const errMsg = `${handle.getMethod} chunks error: ${errors.join(', ')}`
                 throw new Error(errMsg)
               }
               const arrArr = results.map(result => result?.value?.Resources)
@@ -1412,14 +1425,28 @@ export class ScimGateway {
                 Array.prototype.push.apply(chunkRes, arrArr[i])
               }
             } while (getObjArr.length > 0)
-            res = { Resources: chunkRes }
+
+            if (isAndFilter) {
+              const idCounts = new Map<string, number>()
+              for (const item of chunkRes) {
+                if (item.id) {
+                  idCounts.set(item.id, (idCounts.get(item.id) || 0) + 1)
+                }
+              }
+              const intersectionIds = new Set<string>()
+              for (const [id, count] of idCounts.entries()) {
+                if (count === originalGetObjArrLength) intersectionIds.add(id)
+              }
+              res = { Resources: Array.from(new Map(chunkRes.filter(item => intersectionIds.has(item.id)).map(item => [item.id, item])).values()) }
+            } else if (isOrFilter) {
+              const uniqueResources = Array.from(new Map(chunkRes.map(item =>
+                [item.id, item])).values(),
+              )
+              res = { Resources: uniqueResources }
+            }
           }
         }
 
-        if (!res) { // standard
-          logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
-          res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
-        }
         // check for user attribute groups and include if needed
         if (Array.isArray(res?.Resources)) {
           if (handle.getMethod === handler.users.getMethod) {
@@ -1820,8 +1847,8 @@ export class ScimGateway {
           }
         }
 
-        if (!res) { // include full object in response, TODO: for user, include groups if missing
-          if (typeof (this as any)[handle.getMethod] !== 'function') {
+        if (!res) { // for modifyUser include full object in response - TODO: include user's groups if missing
+          if (handle.modifyMethod === 'modifyGroup' || typeof (this as any)[handle.getMethod] !== 'function') {
             ctx.response.status = 204
             return
           }
@@ -1829,7 +1856,6 @@ export class ScimGateway {
           logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
           res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
         }
-
         return response(res)
       } catch (err: any) {
         // check if error caused by: add existing member or remove none existing member => should not be an error
@@ -1842,7 +1868,7 @@ export class ScimGateway {
             if (typeof (this as any)[handle.getMethod] === 'function') {
               res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
             }
-          } catch (err) {}
+          } catch (e) {}
           if (res?.Resources && Array.isArray(res.Resources) && res.Resources[0]?.members && Array.isArray(res.Resources[0].members)) {
             const currentMembers = res.Resources[0].members
             let isOk: boolean = true
@@ -1856,7 +1882,8 @@ export class ScimGateway {
               }
             })
             if (isOk) {
-              return response(res)
+              ctx.response.status = 204
+              return
             }
           }
         }
@@ -2805,6 +2832,10 @@ export class ScimGateway {
       if (ctx.request.method === 'POST' && ctx.path.endsWith('/oauth/token')) {
         await postHandlerOauthToken(ctx)
         if (!ctx.response.status) ctx.response.status = 401 // Unauthorized
+      } else if (ctx.path.endsWith('/auth')) { // use case: external auth validation
+        if (!await isAuthorized(ctx)) {
+          ctx.response.status = 401
+        } else ctx.response.status = 200
       } else if (!ctx.routeObj.handle) {
         ctx.response.status = 404 // NOT_FOUND
       } else if (!ipAllowList(ctx.ip)) {
