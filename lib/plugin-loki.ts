@@ -148,6 +148,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       queryObj[getObj.attribute] = getObj.value
       usersArr = users.chain().find(queryObj).data()
     } else {
+      throw new Error(`${action} error: not supporting SIMBLE filtering: ${getObj.rawFilter}`)
       // optional - simpel filtering
       const dt = Date.parse(getObj.value)
       if (!isNaN(dt)) { // date string to timestamp
@@ -159,44 +160,9 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       usersArr = users.chain().find(queryObj).data() // {name.familyName: { $eq: "Jensen" } }
     }
   } else if (getObj.rawFilter) {
-    // optional - advanced filtering having and/or/not - use getObj.rawFilter
-    //
-    // support "or" filter using "eq"
-    // e.g.: (id eq "bjensen") or (id eq "jsmith")
-    //
-    const arr = getObj.rawFilter.split(' or ')
-    const getObjArr: any = []
-
-    for (let i = 0; i < arr.length; i++) {
-      arr[i] = arr[i].replace(/\(/g, '').replace(/\)/g, '').trim()
-      const arrFilter = arr[i].split(' ')
-      if (arrFilter.length === 3 || (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"'))) {
-        const o: any = {}
-        o.attribute = arrFilter[0] // id
-        o.operator = arrFilter[1].toLowerCase() // eq
-        o.value = decodeURIComponent(arrFilter.slice(2).join(' ').replace(/"/g, '')) // bjensen
-        getObjArr.push(o)
-      }
-    }
-
-    const o: any = {}
-    for (let i = 0; i < getObjArr.length; i++) {
-      if (getObjArr[i].operator === 'eq') {
-        if (!o[getObjArr[i].attribute]) o[getObjArr[i].attribute] = []
-        o[getObjArr[i].attribute].push(getObjArr[i].value)
-      } else {
-        throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
-      }
-    } // { id: [ 'bjensen', 'jsmith' ] }
-
-    for (const k in o) {
-      const f: any = {}
-      f[k] = { $in: o[k] } // { id: { $in: ['bjensen', 'jsmith'] } }
-      const u = users.chain().find(f).data()
-      if (!usersArr) usersArr = []
-      Array.prototype.push.apply(usersArr, u)
-    }
-    if (!usersArr) throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
+    // optional - advanced filtering having combined and / or, or using not
+    // note, advanced filtering "light" using and / or (not combined) is handled by scimgateway core through plugin simpel filtering above
+    throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all users to be returned - correspond to exploreUsers() in versions < 4.x.x
     usersArr = users.chain().data()
@@ -470,7 +436,8 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       groupsArr = groups.chain().find(queryObj).data()
     }
   } else if (getObj.rawFilter) {
-    // optional - advanced filtering having and/or/not - use getObj.rawFilter
+    // optional - advanced filtering having combined and / or, or using not
+    // note, advanced filtering "light" using and / or (not combined) is handled by scimgateway core through plugin simpel filtering above
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreUsers() in versions < 4.x.x
