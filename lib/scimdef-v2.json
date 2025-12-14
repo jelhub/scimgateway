@@ -870,11 +870,11 @@
             "type": "string",
             "multiValued": false,
             "description": "Human readable name for the Group. REQUIRED.",
-            "required": false,
+            "required": true,
             "caseExact": false,
             "mutability": "readWrite",
             "returned": "default",
-            "uniqueness": "none"
+            "uniqueness": "server"
           },
           {
             "name": "members",
@@ -1713,7 +1713,6 @@
   "Resources": [
     {
       "id": "bjensen",
-      "externalId": "bjensen",
       "userName": "bjensen",
       "name": {
         "formatted": "Ms. Barbara J Jensen, III",
@@ -1832,7 +1831,6 @@
     },
     {
       "id": "jsmith",
-      "externalId": "jsmith",
       "userName": "jsmith",
       "name": {
         "formatted": "Mr. John Smith",

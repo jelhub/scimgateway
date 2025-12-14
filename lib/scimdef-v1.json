@@ -945,7 +945,6 @@
   "Resources": [
     {
       "id": "bjensen",
-      "externalId": "bjensen",
       "userName": "bjensen",
       "name": {
         "formatted": "Ms. Barbara J Jensen, III",
@@ -1059,7 +1058,6 @@
     },
     {
       "id": "jsmith",
-      "externalId": "jsmith",
       "userName": "jsmith",
       "name": {
         "formatted": "Mr. John Smith",
