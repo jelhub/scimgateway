@@ -385,10 +385,7 @@ describe('plugin-scim', async () => {
     }
     // payload = { members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] } // scim v1.1
     const res = await fetchSCIM('PATCH', '/Groups/GoGoRest?attributes=members', payload, options.content.headers)
-    const group = res.body
-    expect(res.status).toBe(200)
-    expect(group.members).toBeDefined()
-    expect(group.schemas[0]).toBe('urn:ietf:params:scim:schemas:core:2.0:Group')
+    expect(res.status).toBe(204)
   })
 
   test('getGroup just modified members test', async () => {

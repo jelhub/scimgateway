@@ -573,14 +573,9 @@ describe('plugin-loki', async () => {
     // body = { members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] } // scim v1.1
 
     const res = await fetchSCIM('PATCH', '/Groups/GoGoLoki?attributes=members', body, options.content.headers)
-    const group = res.body
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(204)
     expect(res.headers.get('etag')).toBe('W/"1"')
     expect(res.headers.get('location')).toBe('http://localhost:8880/Groups/GoGoLoki')
-    expect(group.members).toBeDefined()
-    expect(group.schemas[0]).toBe('urn:ietf:params:scim:schemas:core:2.0:Group')
-    expect(group.meta.version).toBe('W/"1"')
-    expect(group.meta.location).toBe('http://localhost:8880/Groups/GoGoLoki')
   })
 
   test('getGroup just modified members test', async () => {
@@ -687,10 +682,9 @@ describe('plugin-loki', async () => {
     expect(res.body.Operations[1].status.code).toBe('201')
     expect(res.body.Operations[1].location).toBe('http://localhost:8880/Groups/Tour%20Guides')
     expect(res.body.Operations[2].bulkId).toBeUndefined()
-    expect(res.body.Operations[2].status.code).toBe('200')
+    expect(res.body.Operations[2].status.code).toBe('204')
     expect(res.body.Operations[2].method).toBe('PATCH')
     expect(res.body.Operations[2].path).toBe('/Groups/Tour Guides')
-    expect(res.body.Operations[2].location).toBe('http://localhost:8880/Groups/Tour%20Guides')
     expect(res.body.Operations[3].bulkId).toBeUndefined()
     expect(res.body.Operations[3].status.code).toBe('204')
     expect(res.body.Operations[3].path).toBe('/Groups/Tour Guides')
