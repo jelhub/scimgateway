@@ -1525,13 +1525,13 @@ export class ScimGateway {
 
       if (handle.createMethod === 'createUser' && !jsonBody.userName && !jsonBody.externalId) {
         const err = new Error('userName or externalId is mandatory')
-        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 400, err)
         ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       } else if (handle.createMethod === 'createGroup' && !jsonBody.displayName && !jsonBody.externalId) {
         const err = new Error('displayName or externalId is mandatory')
-        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
+        const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 400, err)
         ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
@@ -1750,8 +1750,11 @@ export class ScimGateway {
         scimres = utilsScim.addSchemasStripAttr(scimres, isScimv2, handle.description)
         if (eTag) ctx.response.headers.set('ETag', eTag)
         if (scimres?.meta?.location) ctx.response.headers.set('Location', scimres.meta.location)
-        ctx.response.status = 200
-        ctx.response.body = JSON.stringify(scimres)
+        if (handle.modifyMethod === 'modifyGroup') ctx.response.status = 204 // skip body
+        else {
+          ctx.response.status = 200
+          ctx.response.body = JSON.stringify(scimres)
+        }
       }
 
       logger.debug(`${gwName} [Modify ${handle.description}] id=${id}`, { baseEntity: ctx?.routeObj?.baseEntity })
@@ -1847,8 +1850,8 @@ export class ScimGateway {
           }
         }
 
-        if (!res) { // for modifyUser include full object in response - TODO: include user's groups if missing
-          if (handle.modifyMethod === 'modifyGroup' || typeof (this as any)[handle.getMethod] !== 'function') {
+        if (!res) { // include full object in response - TODO: include user's groups if missing
+          if (typeof (this as any)[handle.getMethod] !== 'function') {
             ctx.response.status = 204
             return
           }
