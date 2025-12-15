@@ -1303,6 +1303,17 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+
+### v6.1.5
+
+[Improved]
+
+- complex filtering (and/or) now handled by scimgateway using plugin's simple filtering logic
+- modify group response now returns http status 204 (No Content) instead of 200 OK (full group object)
+- url `/auth` can now be used for validating external authentication
+- plugin-entra-id, now supports filter `sw` (startsWith) 
+
+
 ### v6.1.4
 
 [Fixed]
