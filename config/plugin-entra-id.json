@@ -280,7 +280,7 @@
           "type": "string"
         },
         "servicePlan": {
-          "mapTo": "servicePlan.value",
+          "mapTo": "servicePlans.value",
           "type": "array"
         },
         "usageLocation": {
