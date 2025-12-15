@@ -140,6 +140,11 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   const method = 'GET'
   const body = null
   let path
+  let options: Record<string, any> = {}
+  let isExpandManager = true
+
+  if (!Object.hasOwn(getObj, 'count')) getObj.count = 200
+  if (getObj.count > 500) getObj.count = 500 // Entra ID max 999
 
   // mandatory if-else logic - start
   if (getObj.operator) {
@@ -151,14 +156,33 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       throw new Error(`${action} error: not supporting groups member of user filtering: ${getObj.rawFilter}`)
     } else {
       // optional - simpel filtering
-      throw new Error(`${action} error: not supporting simpel filtering: ${getObj.rawFilter}`)
+      if (getObj.attribute) {
+        const [endpointAttr] = scimgateway.endpointMapper('outbound', getObj.attribute, config.map.user)
+        if (!endpointAttr) throw new Error(`${action} filter error: not supporting ${getObj.rawFilter} because there are no map.user configuration of SCIM attribute '${getObj.attribute}'`)
+        if (!operatorMap[getObj.operator]) throw new Error(`${action} error: operator '${getObj.operator}' is not supported in filter: ${getObj.rawFilter}`)
+
+        const odataFilter = operatorMap[getObj.operator](endpointAttr, getObj.value)
+        // advanced queries like 'contains', '$search', and '$count' require the ConsistencyLevel header.
+        if (!options.headers) options.headers = {}
+        options.headers.ConsistencyLevel = 'eventual'
+
+        if (odataFilter.startsWith('$search=')) {
+          path = `/users?$top=${getObj.count}&$count=true&${odataFilter}`
+          isExpandManager = false // using $search we cannot include $expand=manager
+        } else { // eq, sw, co, etc.
+          path = `/users?$top=${getObj.count}&$count=true&$filter=${odataFilter}`
+        }
+      }
     }
   } else if (getObj.rawFilter) {
     // optional - advanced filtering having and/or/not - use getObj.rawFilter
+    // note, advanced filtering "light" using and/or (not combined) is handled by scimgateway through plugin simpel filtering above
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all users to be returned - correspond to exploreUsers() in versions < 4.x.x
-    path = `/users?$top=${getObj.count}&$count=true`
+    path = `/users?$top=${getObj.count}&$count=true` // $count=true requires ConsistencyLevel
+    if (!options.headers) options.headers = {}
+    options.headers.ConsistencyLevel = 'eventual'
   }
   // mandatory if-else logic - end
 
@@ -173,13 +197,27 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     let response: any
     if (path === 'getUser') { // special
       response = { body: { value: [] } }
-      const userObj: any = await getUser(baseEntity, getObj.value, attributes, ctx)
+      const userObj: any = await getUser(baseEntity, getObj.value, attributes, ctx, options)
       if (userObj) response.body.value.push(userObj)
-    } else response = await helper.doRequest(baseEntity, method, path, body, ctx)
+    } else {
+      if (isExpandManager) path += '&$expand=manager($select=userPrincipalName)'
+      response = await helper.doRequest(baseEntity, method, path, body, ctx, options)
+    }
     if (!response.body.value) {
       throw new Error(`invalid response: ${JSON.stringify(response)}`)
     }
-    for (let i = 0; i < response.body.value.length; ++i) { // map to corresponding inbound
+    for (let i = 0; i < response.body.value.length; ++i) {
+      if (response.body.value[i].manager?.userPrincipalName) {
+        let managerId = response.body.value[i].manager.userPrincipalName
+        if (managerId) response.body.value[i].manager = managerId
+        else delete response.body.value[i].manager
+      } else if (!isExpandManager && response.body.value[i].id) {
+        const userObj: any = await getUser(baseEntity, response.body.value[i].id, [], ctx, options)
+        if (userObj && userObj.manager) {
+          response.body.value[i] = userObj
+        }
+      }
+      // map to inbound
       const [scimObj] = scimgateway.endpointMapper('inbound', response.body.value[i], config.map.user) // endpoint => SCIM/CustomSCIM attribute standard
       if (scimObj && typeof scimObj === 'object' && Object.keys(scimObj).length > 0) ret.Resources.push(scimObj)
     }
@@ -227,6 +265,12 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
   } catch (err: any) {
     const newErr = new Error(`${action} error: ${err.message}`)
     if (err.message.includes('userPrincipalName already exists')) newErr.name += '#409' // customErrCode
+    else if (err.message.includes('Property netId is invalid')) {
+      newErr.name += '#409'
+      let addMsg = ''
+      if (userObj.mail) addMsg = ' e.g., mail'
+      newErr.message = 'userPrincipalName already exists and/or other unique attribute conflicts' + addMsg
+    }
     throw newErr
   }
 }
@@ -262,6 +306,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const objManager: Record<string, any> = {}
   if (Object.prototype.hasOwnProperty.call(parsedAttrObj, 'manager')) {
     objManager.manager = parsedAttrObj.manager
+    if (objManager.manager === '') objManager.manager = null
     delete parsedAttrObj.manager
   }
 
@@ -269,21 +314,31 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
     return new Promise((resolve, reject) => {
       (async () => {
         if (JSON.stringify(parsedAttrObj) === '{}') return resolve(null)
+        let res: any
         for (const key in parsedAttrObj) { // if object the modified AAD object must contain all elements, if not they will be cleared e.g. employeeOrgData
           if (typeof parsedAttrObj[key] === 'object') { // get original object and merge
             const method = 'GET'
-            const path = `/users/${id}?$select=${key}`
+            const path = `/users/${id}`
             try {
-              const res = await helper.doRequest(baseEntity, method, path, null, ctx)
-              if (res && res.body && res.body[key]) {
+              if (!res) {
+                res = await helper.doRequest(baseEntity, method, path, null, ctx)
+              }
+              if (res?.body && res.body[key]) {
                 const fullKeyObj = Object.assign(res.body[key], parsedAttrObj[key]) // merge original with modified
                 if (fullKeyObj && Object.keys(fullKeyObj).length > 0) {
+                  for (const k in fullKeyObj) {
+                    if (fullKeyObj[k] === '') {
+                      fullKeyObj[k] = null
+                    }
+                  }
                   parsedAttrObj[key] = fullKeyObj
                 }
               }
             } catch (err) {
               return reject(err)
             }
+          } else if (parsedAttrObj[key] === '') {
+            parsedAttrObj[key] = null
           }
         }
         const method = 'PATCH'
@@ -352,6 +407,10 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   const method = 'GET'
   const body = null
   let path
+  let options: Record<string, any> = {}
+
+  if (!Object.hasOwn(getObj, 'count')) getObj.count = 500
+  if (getObj.count > 500) getObj.count = 500 // Entra ID max 999
 
   // mandatory if-else logic - start
   if (getObj.operator) {
@@ -370,15 +429,33 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       path = `/users/${getObj.value}/memberOf/microsoft.graph.group?$top=${getObj.count}&$count=true&select=id,displayName`
     } else {
       // optional - simpel filtering
-      throw new Error(`${action} error: not supporting simpel filtering: ${getObj.rawFilter}`)
+      if (getObj.attribute) {
+        const [endpointAttr] = scimgateway.endpointMapper('outbound', getObj.attribute, config.map.group)
+        if (!endpointAttr) throw new Error(`${action} filter error: not supporting ${getObj.rawFilter} because there are no map.group configuration of SCIM attribute '${getObj.attribute}'`)
+        if (!operatorMap[getObj.operator]) throw new Error(`${action} error: operator '${getObj.operator}' is not supported in filter: ${getObj.rawFilter}`)
+
+        const odataFilter = operatorMap[getObj.operator](endpointAttr, getObj.value)
+        // advanced queries like 'contains', '$search', and '$count' require the ConsistencyLevel header.
+        if (!options.headers) options.headers = {}
+        options.headers.ConsistencyLevel = 'eventual'
+
+        if (odataFilter.startsWith('$search=')) {
+          path = `/groups?$top=${getObj.count}&$count=true&${odataFilter}`
+        } else {
+          path = `/groups?$top=${getObj.count}&$count=true&$filter=${odataFilter}`
+        } // all attributes, not using: path += `&$select=${attrs}`
+      }
     }
   } else if (getObj.rawFilter) {
     // optional - advanced filtering having and/or/not - use getObj.rawFilter
+    // note, advanced filtering "light" using and/or (not combined) is handled by scimgateway through plugin simpel filtering above
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreGroups() in versions < 4.x.x
     if (includeMembers) path = `/groups?$top=${getObj.count}&$count=true&$select=${attrs.join()}&$expand=members($select=id,displayName)`
-    else path = `/groups?$top=${getObj.count}&$count=true&$select=${attrs.join()}`
+    else path = `/groups?$top=${getObj.count}&$count=true&$select=${attrs.join()}` // $count=true requires ConsistencyLevel
+    if (!options.headers) options.headers = {}
+    options.headers.ConsistencyLevel = 'eventual'
   }
   // mandatory if-else logic - end
 
@@ -390,7 +467,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   else ctx.paging = paging
 
   try {
-    let response = await helper.doRequest(baseEntity, method, path, body, ctx)
+    let response = await helper.doRequest(baseEntity, method, path, body, ctx, options)
     if (!response.body) {
       throw new Error(`invalid response: ${JSON.stringify(response)}`)
     }
@@ -491,58 +568,47 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
     throw new Error(`${action} error: ${JSON.stringify(attrObj)} - correct syntax is { "members": [...] }`)
   }
 
-  const arrGrpAdd: Record<string, any>[] = []
-  const arrGrpDel: Record<string, any>[] = []
-  attrObj.members.forEach(function (el) {
-    if (el.operation && el.operation === 'delete') { // delete member from group e.g {"members":[{"operation":"delete","value":"bjensen"}]}
-      arrGrpDel.push(el.value)
-    } else if (el.value) { // add member to group {"members":[{value":"bjensen"}]}
-      arrGrpAdd.push(el.value)
+  const membersToAdd = attrObj.members.filter(m => m.value && m.operation !== 'delete').map(m => m.value)
+  const membersToRemove = attrObj.members.filter(m => m.value && m.operation === 'delete').map(m => m.value)
+  const promises: Promise<any>[] = []
+
+  if (membersToAdd.length > 0) {
+    const graphUrl = helper.getGraphUrl()
+    const method = 'POST'
+    const path = `/groups/${id}/members/$ref`
+    membersToAdd.forEach((memberId) => {
+      const body = { '@odata.id': `${graphUrl}/directoryObjects/${memberId}` }
+      promises.push(helper.doRequest(baseEntity, method, path, body, ctx))
+    })
+  }
+
+  if (membersToRemove.length > 0) {
+    const method = 'DELETE'
+    const body = null
+    membersToRemove.forEach((memberId) => {
+      const path = `/groups/${id}/members/${memberId}/$ref`
+      promises.push(helper.doRequest(baseEntity, method, path, body, ctx))
+    })
+  }
+
+  try {
+    const allErrors: string[] = []
+    for (let i = 0; i < promises.length; i += 5) {
+      const chunk = promises.slice(i, i + 5)
+      const results = await Promise.allSettled(chunk)
+      const errors = results
+        .filter(r => r.status === 'rejected')
+        .map(r => (r as PromiseRejectedResult).reason.message)
+        .filter(msg => !msg.includes('already exist'))
+      allErrors.push(...errors)
     }
-  })
-
-  const addGrps = () => { // add groups
-    return new Promise((resolve, reject) => {
-      (async () => {
-        if (arrGrpAdd.length < 1) return resolve(null)
-        const method = 'POST'
-        const path = `/groups/${id}/members/$ref`
-        const graphUrl = helper.getGraphUrl()
-        for (let i = 0, len = arrGrpAdd.length; i < len; i++) {
-          const body = { '@odata.id': `${graphUrl}/directoryObjects/${arrGrpAdd[i]}` }
-          try {
-            await helper.doRequest(baseEntity, method, path, body, ctx)
-            if (i === len - 1) resolve(null) // loop completed
-          } catch (err) {
-            return reject(err)
-          }
-        }
-      })()
-    })
+    if (allErrors.length > 0) {
+      throw new Error(allErrors.join(', '))
+    }
+    return null
+  } catch (err: any) {
+    throw new Error(`${action} error: ${err.message}`)
   }
-
-  const removeGrps = () => { // remove groups
-    return new Promise((resolve, reject) => {
-      (async () => {
-        if (arrGrpDel.length < 1) return resolve(null)
-        const method = 'DELETE'
-        const body = null
-        for (let i = 0, len = arrGrpDel.length; i < len; i++) {
-          const path = `/groups/${id}/members/${arrGrpDel[i]}/$ref`
-          try {
-            await helper.doRequest(baseEntity, method, path, body, ctx)
-            if (i === len - 1) resolve(null) // loop completed
-          } catch (err) {
-            return reject(err)
-          }
-        }
-      })()
-    })
-  }
-
-  return Promise.all([addGrps(), removeGrps()])
-    .then((res) => { return res })
-    .catch((err) => { throw new Error(`${action} error: ${err.message}`) })
 }
 
 // =================================================
@@ -664,86 +730,87 @@ scimgateway.getServicePlans = async (baseEntity, getObj, attributes, ctx) => {
 // getUser
 // addOn helper for plugin-azure-ad
 // =================================================
-const getUser = async (baseEntity: string, uid: string, attributes: string[], ctx?: undefined | Record<string, any>) => { // uid = id, userName (upn) or externalId (upn)
-  if (attributes.length < 1) {
-    attributes = userAttributes
-  }
+const getUser = async (baseEntity: string, uid: string, attributes: string[], ctx?: undefined | Record<string, any>, options?: undefined | Record<string, any>) => { // uid = id, userName (upn) or externalId (upn)
+  try {
+    if (attributes.length < 1) {
+      attributes = userAttributes
+    }
 
-  const user = () => {
-    return new Promise((resolve, reject) => {
-      (async () => {
-        const method = 'GET'
-        const path = `/users/${querystring.escape(uid)}?$expand=manager($select=userPrincipalName)` // beta returns all attributes or use: ?$select=${attrs.join()}
-        const body = null
-        try {
-          const response = await helper.doRequest(baseEntity, method, path, body, ctx)
-          const userObj = response.body
-          if (!userObj) {
-            const err = new Error('Got empty response when retrieving data for ' + uid)
-            return reject(err)
-          }
-          let managerId
-          if (userObj.manager && userObj.manager.userPrincipalName) managerId = userObj.manager.userPrincipalName
-          delete userObj.manager
-          if (managerId) userObj.manager = managerId
-          resolve(userObj)
-        } catch (err) {
-          return reject(err)
-        }
-      })()
-    })
-  }
+    const userPromise = (async () => {
+      const method = 'GET'
+      const path = `/users/${querystring.escape(uid)}?$expand=manager($select=userPrincipalName)`
+      const body = null
+      const response = await helper.doRequest(baseEntity, method, path, body, ctx)
+      const userObj = response.body
+      if (!userObj) {
+        throw new Error('Got empty response when retrieving data for ' + uid)
+      }
+      if (userObj.manager?.userPrincipalName) {
+        userObj.manager = userObj.manager.userPrincipalName
+      } else {
+        delete userObj.manager
+      }
+      return userObj
+    })()
 
-  const license = () => {
-    return new Promise((resolve, reject) => {
-      (async () => {
-        if (!attributes.includes('servicePlan.value')) return resolve(null) // licenses not requested
-        const method = 'GET'
-        const path = `/users/${querystring.escape(uid)}/licenseDetails`
-        const body = null
-        const retObj: Record<string, any> = {}
-        retObj.servicePlan = []
-        try {
-          const response = await helper.doRequest(baseEntity, method, path, body, ctx)
-          if (!response.body.value) {
-            const err = new Error('No content for license information ' + uid)
-            return reject(err)
-          } else {
-            if (response.body.value.length < 1) return resolve(null) // User with no licenses
-            for (let i = 0; i < response.body.value.length; i++) {
-              const skuPartNumber = response.body.value[i].skuPartNumber
-              for (let index = 0; index < response.body.value[i].servicePlans.length; index++) {
-                if (response.body.value[i].servicePlans[index].provisioningStatus === 'Success'
-                  || response.body.value[i].servicePlans[index].provisioningStatus === 'PendingInput') {
-                  const servicePlan = { value: `${skuPartNumber}::${response.body.value[i].servicePlans[index].servicePlanName}` }
-                  retObj.servicePlan.push(servicePlan)
-                }
+    const licensePromise = (async () => {
+      if (!attributes.includes('servicePlans.value')) return null // licenses not requested
+      const method = 'GET'
+      const path = `/users/${querystring.escape(uid)}/licenseDetails`
+      const body = null
+      const retObj: Record<string, any> = { servicePlan: [] }
+      try {
+        const response = await helper.doRequest(baseEntity, method, path, body, ctx, options)
+        if (response.body?.value?.length > 0) {
+          for (const licenseDetail of response.body.value) {
+            const skuPartNumber = licenseDetail.skuPartNumber
+            for (const servicePlan of licenseDetail.servicePlans) {
+              if (['Success', 'PendingInput'].includes(servicePlan.provisioningStatus)) {
+                retObj.servicePlan.push({ value: `${skuPartNumber}::${servicePlan.servicePlanName}` })
               }
             }
           }
-          resolve(retObj)
-        } catch (err: any) {
-          let statusCode
-          try { statusCode = JSON.parse(err.message).statusCode } catch (e) {}
-          if (statusCode === 404) return resolve(null) // user have no plans
-          return reject(err)
         }
-      })()
-    })
-  }
-
-  return Promise.all([user(), license()])
-    .then((results) => {
-      let retObj = {}
-      for (const i in results) { // merge async.parallell results to one
-        retObj = Object.assign(retObj, results[i])
+        return retObj
+      } catch (err: any) {
+        let statusCode
+        try { statusCode = JSON.parse(err.message).statusCode } catch (e) { }
+        if (statusCode === 404) return null // user has no plans
+        throw err // re-throw other errors
       }
-      return retObj
-    })
-    .catch((err) => {
-      if (err.message.includes('empty response')) return null // no user found
-      else throw (err)
-    })
+    })()
+
+    const [userResult, licenseResult] = await Promise.all([
+      userPromise,
+      licensePromise,
+    ])
+
+    let retObj = {}
+    if (userResult) retObj = Object.assign(retObj, userResult)
+    if (licenseResult) retObj = Object.assign(retObj, licenseResult)
+    return retObj
+  } catch (err: any) {
+    if (err.message.includes('Request_ResourceNotFound') || err.message.includes('empty response')) return null // no user found
+    throw err
+  }
+}
+
+//
+// SCIM to OData filter operator map
+//
+type ScimOpFn = (attribute: string, value?: string) => string
+const operatorMap: Record<string, ScimOpFn> = {
+  eq: (a, v) => `${a} eq ${['true', 'false'].includes(v as string) ? v : `'${v}'`}`,
+  ne: (a, v) => `${a} ne ${['true', 'false'].includes(v as string) ? v : `'${v}'`}`,
+  // co: (a, v) => `contains(${a}, '${v}')`, // not supported by Entra ID
+  // co: (a, v) => `$search="${a}:${v}"`, // comment out - Entra ID do not support true “contains”
+  sw: (a, v) => `startswith(${a}, '${v}')`,
+  // ew: (a, v) => `endswith(${a}, '${v}')`, // not supported by Entra ID
+  pr: a => `${a} ne null`,
+  gt: (a, v) => `${a} gt ${v}`,
+  ge: (a, v) => `${a} ge ${v}`,
+  lt: (a, v) => `${a} lt ${v}`,
+  le: (a, v) => `${a} le ${v}`,
 }
 
 //
