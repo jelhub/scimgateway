@@ -153,10 +153,31 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       if (!isNaN(dt)) { // date string to timestamp
         getObj.value = dt
       }
+
       const queryObj: any = {}
-      queryObj[getObj.attribute] = {}
-      queryObj[getObj.attribute][getObj.operator] = getObj.value
-      usersArr = users.chain().find(queryObj).data() // {name.familyName: { $eq: "Jensen" } }
+      if (getObj.attribute.startsWith('urn:')) { // extension schema
+        const pos = getObj.attribute.lastIndexOf('.')
+        const schema = getObj.attribute.substring(0, pos)
+        const attr = getObj.attribute.substring(pos + 1)
+        usersArr = users.chain().where((obj: any) => {
+          if (!obj[schema]) return false
+          const val = obj[schema][attr]
+          if (val === undefined) return false
+          if (getObj.operator === '$regex') return getObj.value.test(val)
+          if (getObj.operator === '$contains') return val.includes(getObj.value)
+          if (getObj.operator === '$eq') return val === getObj.value
+          if (getObj.operator === '$ne') return val !== getObj.value
+          if (getObj.operator === '$gte') return val >= getObj.value
+          if (getObj.operator === '$lte') return val <= getObj.value
+          if (getObj.operator === '$gt') return val > getObj.value
+          if (getObj.operator === '$lt') return val < getObj.value
+          return false
+        }).data()
+      } else {
+        queryObj[getObj.attribute] = {}
+        queryObj[getObj.attribute][getObj.operator] = getObj.value
+        usersArr = users.chain().find(queryObj).data()
+      }
     }
   } else if (getObj.rawFilter) {
     // optional - advanced filtering having and/or/not - use getObj.rawFilter
