@@ -606,7 +606,7 @@ export class ScimGateway {
                 if (!arr[i].baseEntities.includes(baseEntity)) return reject(new Error(`baseEntity=${baseEntity} not allowed for this bearerToken according to bearerToken configuration baseEntitites=${arr[i].baseEntities}`))
               }
             }
-            if (arr[i].readOnly === true && method !== 'GET') return reject(new Error('only allowing readOnly for this bearerToken according to bearerToken configuration readOnly=true'))
+            if (arr[i].readOnly === true && method !== 'GET') return reject(new Error('only allowing readOnly according to bearerToken configuration readOnly=true'))
             return resolve(true)
           }
         }
@@ -673,7 +673,6 @@ export class ScimGateway {
         if (Array.isArray(el?.baseEntities) && el.baseEntities.length > 0) {
           if (!el.baseEntities.includes(baseEntity)) return false
         }
-        if (el.readOnly === true && method !== 'GET') return false
         return true // authorization OK
       } catch (err: any) {
         throw new Error(`JWT error: ${err.message}`)
@@ -699,7 +698,10 @@ export class ScimGateway {
       const arr = this.config.scimgateway.auth.bearerJwt
       for (let i = 0; i < arr.length; i++) {
         try {
-          if (await jwtVerify(baseEntity, method, arr[i], authToken) === true) return true
+          if (await jwtVerify(baseEntity, method, arr[i], authToken) === true) {
+            if (arr[i].readOnly === true && method !== 'GET') throw new Error('only allowing readOnly according to bearerJwt configuration readOnly=true')
+            return true
+          }
         } catch (err: any) {
           errs.push(err.message)
         }
@@ -787,7 +789,7 @@ export class ScimGateway {
           if (!obj.baseEntities.includes(baseEntity)) throw new Error(`baseEntity=${baseEntity} not allowed for passThrough according to passThrough configuration baseEntitites=${obj.baseEntities}`)
         }
       }
-      if (obj.readOnly === true && method !== 'GET') throw new Error('only allowing readOnly for passThrough according to passThrough configuration readOnly=true')
+      if (obj.readOnly === true && method !== 'GET') throw new Error('only allowing readOnly according to passThrough configuration readOnly=true')
       return true
     }
 
@@ -821,6 +823,9 @@ export class ScimGateway {
           }
           ctx.response.headers.set('www-authenticate', `Bearer ${str}`)
         } else ctx.response.headers.set('www-authenticate', 'Basic realm=""')
+        if (err.message?.includes('only allowing readOnly')) {
+          ctx.response.status = 405
+        }
         logger.error(`${gwName} ${err.message}`)
         return false
       }
@@ -2845,7 +2850,7 @@ export class ScimGateway {
         logger.debug(`${gwName} client ip ${ctx.ip} not in ipAllowList`, { baseEntity: ctx?.routeObj?.baseEntity })
         ctx.response.status = 401
       } else if (!await isAuthorized(ctx)) {
-        ctx.response.status = 401
+        if (!ctx.response.status || ctx.response.status < 400) ctx.response.status = 401
       }
       return ctx
     }
