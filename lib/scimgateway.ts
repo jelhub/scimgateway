@@ -1295,9 +1295,14 @@ export class ScimGateway {
           err = new Error(`Not accepting password filtering: ${getObj.rawFilter}`)
           err.name = 'invalidFilter'
         }
-      } else if (getObj.rawFilter && ![' and ', ' or ', ' not '].some(el => getObj.rawFilter.includes(el))) { // advanced filtering
-        // err = new Error(`Invalid filter: ${getObj.rawFilter}`)
-        // err.name = 'invalidFilter'
+      } else if (getObj.rawFilter) {
+        if (getObj.rawFilter.split(' ').length < 3) {
+          err = new Error(`Invalid filter: ${getObj.rawFilter}`)
+          err.name = 'invalidFilter'
+        } else if (![' and ', ' or ', ' not '].some(el => getObj.rawFilter.includes(el))) { // advanced filtering
+          // err = new Error(`Invalid filter: ${getObj.rawFilter}`)
+          // err.name = 'invalidFilter'
+        }
       }
       if (err) {
         if (isScimv2) ctx.response.status = 400
@@ -1876,7 +1881,7 @@ export class ScimGateway {
             if (typeof (this as any)[handle.getMethod] === 'function') {
               res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
             }
-          } catch (e) {}
+          } catch (e) { }
           if (res?.Resources && Array.isArray(res.Resources) && res.Resources[0]?.members && Array.isArray(res.Resources[0].members)) {
             const currentMembers = res.Resources[0].members
             let isOk: boolean = true
