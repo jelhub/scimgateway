@@ -61,8 +61,21 @@ fs.writeFileSync('../../config/docker/docker-compose-debug.yml', fs.readFileSync
 fs.writeFileSync('../../LICENSE', fs.readFileSync('./LICENSE'))
 if (!fsExistsSync('../../index.ts')) fs.writeFileSync('../../index.ts', fs.readFileSync('./index.ts'))
 else {
-  const buf = fs.readFileSync('../../index.ts')
+  const buf = fs.readFileSync('../../index.ts', 'utf-8')
   if (buf.toString().startsWith('console.log')) { // default bun index.ts
     fs.writeFileSync('../../index.ts', fs.readFileSync('./index.ts'))
   }
 }
+
+try {
+  const packageJsonPath = '../../package.json'
+  if (fsExistsSync(packageJsonPath)) {
+    const packageJsonString = fs.readFileSync(packageJsonPath, 'utf-8')
+    const packageJson = JSON.parse(packageJsonString)
+    if (packageJson.type !== 'module') { // "npm init -y" instead of "bun init -y"
+      packageJson.type = 'module'
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n')
+      console.log('Updated package.json with "type": "module" to ensure ES module support for scimgateway.')
+    }
+  }
+} catch (err) {}
