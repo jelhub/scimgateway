@@ -203,8 +203,17 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         getObj.value = dt
       }
       findObj = {}
-      findObj[getObj.attribute] = {}
-      findObj[getObj.attribute][getObj.operator] = getObj.value
+      if (getObj.attribute.startsWith('urn:')) { // extension schema
+        const pos = getObj.attribute.lastIndexOf('.')
+        const schema = getObj.attribute.substring(0, pos)
+        const attr = getObj.attribute.substring(pos + 1)
+        const schemaEncoded = schema.replace(/\./g, '·')
+        findObj[`${schemaEncoded}.${attr}`] = {}
+        findObj[`${schemaEncoded}.${attr}`][getObj.operator] = getObj.value
+      } else {
+        findObj[getObj.attribute] = {}
+        findObj[getObj.attribute][getObj.operator] = getObj.value
+      }
     }
   } else if (getObj.rawFilter) {
     // optional - advanced filtering having and/or/not - use getObj.rawFilter
