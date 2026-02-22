@@ -149,19 +149,25 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       usersArr = users.chain().find(queryObj).data()
     } else {
       // optional - simpel filtering
-      const dt = Date.parse(getObj.value)
-      if (!isNaN(dt)) { // date string to timestamp
-        getObj.value = dt
+      if (typeof getObj.value === 'string' && (getObj.value.includes('-') || getObj.value.includes('/'))) {
+        const dt = Date.parse(getObj.value) // date string to timestamp
+        if (!isNaN(dt)) getObj.value = dt
       }
-
       const queryObj: any = {}
       if (getObj.attribute.startsWith('urn:')) { // extension schema
-        const pos = getObj.attribute.lastIndexOf('.')
-        const schema = getObj.attribute.substring(0, pos)
-        const attr = getObj.attribute.substring(pos + 1)
+        const pos = getObj.attribute.lastIndexOf(':')
+        const arr = getObj.attribute.substring(pos + 1).split('.')
+        const schema = getObj.attribute.substring(0, pos) + ':' + arr[0]
+        const attrs = arr.slice(1)
+
         usersArr = users.chain().where((obj: any) => {
           if (!obj[schema]) return false
-          const val = obj[schema][attr]
+          let val = obj[schema]
+          for (const key of attrs) {
+            if (val === undefined) break
+            val = val[key]
+          }
+
           if (val === undefined) return false
           if (getObj.operator === '$regex') return getObj.value.test(val)
           if (getObj.operator === '$contains') return val.includes(getObj.value)

@@ -198,18 +198,20 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       findObj = { groups: { value: getObj.value } }
     } else {
       // optional - simpel filtering
-      const dt = Date.parse(getObj.value)
-      if (!isNaN(dt)) { // date string to timestamp
-        getObj.value = dt
+      if (typeof getObj.value === 'string' && (getObj.value.includes('-') || getObj.value.includes('/'))) {
+        const dt = Date.parse(getObj.value) // date string to timestamp
+        if (!isNaN(dt)) getObj.value = dt
       }
       findObj = {}
       if (getObj.attribute.startsWith('urn:')) { // extension schema
-        const pos = getObj.attribute.lastIndexOf('.')
-        const schema = getObj.attribute.substring(0, pos)
-        const attr = getObj.attribute.substring(pos + 1)
+        const pos = getObj.attribute.lastIndexOf(':')
+        const arr = getObj.attribute.substring(pos + 1).split('.')
+        const schema = getObj.attribute.substring(0, pos) + ':' + arr[0]
+        const attrs = arr.slice(1)
         const schemaEncoded = schema.replace(/\./g, '·')
-        findObj[`${schemaEncoded}.${attr}`] = {}
-        findObj[`${schemaEncoded}.${attr}`][getObj.operator] = getObj.value
+        const fullPath = [schemaEncoded, ...attrs].join('.')
+        findObj[fullPath] = {}
+        findObj[fullPath][getObj.operator] = getObj.value
       } else {
         findObj[getObj.attribute] = {}
         findObj[getObj.attribute][getObj.operator] = getObj.value
