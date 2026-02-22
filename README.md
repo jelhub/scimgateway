@@ -25,7 +25,7 @@ Latest news:
 - [ETag](https://datatracker.ietf.org/doc/html/rfc7644#section-3.14) is now supported
 - [Bulk Operations](https://datatracker.ietf.org/doc/html/rfc7644#section-3.7) is now supported
 - Remote real-time log subscription for centralized logging and monitoring. Using browser `https://<host>/logger`, curl or custom client API - see configuration notes  
-- By configuring the chainingBaseUrl, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway beave much like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
+- By configuring the chainingBaseUrl, it is now possible to chain multiple gateways in sequence, such as `gateway1->gateway2->gateway3->endpoint`. In this setup, gateway behave like a reverse proxy, validating authorization at each step unless PassThrough mode is enabled. Chaining is also supported in stream subscriber mode
 - Email, onError and sendMail() supports more secure RESTful OAuth for Microsoft Exchange Online (ExO) and Google Workspace Gmail, alongside traditional SMTP Auth for all mail systems. HelperRest supports a wide range of common authentication methods, including basicAuth, bearerAuth, tokenAuth, oauth, oauthSamlBearer, oauthJwtBearer and Auth PassTrough 
 - Major release **v5.0.0** marks a shift from JavaScript to native TypeScript and prioritizes [Bun](https://bun.sh/) over Node.js. This upgrade requires some modifications to existing plugins.  
 - **BREAKING**: [SCIM Stream](https://elshaug.xyz/docs/scim-stream) is the modern way of user provisioning letting clients subscribe to messages instead of traditional IGA top-down provisioning. SCIM Gateway now offers enhanced functionality with support for message subscription and automated provisioning using SCIM Stream
@@ -1303,6 +1303,18 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.6
+
+[Fixed]
+
+- plugin-loki and plugin-mongodb, using extension schema attributes in search returned empty result
+- Auth validation failure because of readOnly protection now returns 405 instead of 401 
+- The post-install step now verifies and updates `package.json` to ensure the mandatory `"type": "module"` setting is applied. Using `npm init -y` instead of the recommended `bun init -y` sets `"type": "commonjs"` by default, which is incorrect.
+
+[Improved]
+
+- Using the endpointMapper configuration (`endpoint.map.user` / `endpoint.map.group`) will now generate a custom schema instead of using the default SCIM schema by `GET /Schemas`. In addition the configuration `endpoint.map` now supports a special `"x-agent-schema": {...}` configuration which is used by the schema generator for updating `description` and including AI MCP tools related instructions. See `plugin-entra-id.json` for examples.
+- Dependencies bump
 
 ### v6.1.5
 
@@ -1311,7 +1323,7 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 - complex filtering (and/or) now handled by scimgateway using plugin's simple filtering logic
 - modify group response now returns http status 204 (No Content) instead of 200 OK (full group object)
 - url `/auth` can now be used for validating external authentication
-- plugin-entra-id, now supports filter `sw` (startsWith) 
+- plugin-entra-id, now supports filter `sw` (startsWith)
 
 
 ### v6.1.4
