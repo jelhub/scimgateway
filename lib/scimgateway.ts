@@ -871,7 +871,6 @@ export class ScimGateway {
           const newAttributes: any[] = []
           const complexAttrs: Record<string, any> = {}
           for (const key in mapSection) {
-            // console.log(key)
             const item = mapSection[key]
             if (!item.mapTo && key === 'x-agent-schema') {
               resource['x-agent-schema'] = JSON.stringify(item) // top level schema update
@@ -879,7 +878,6 @@ export class ScimGateway {
             }
             if (!item.mapTo || item.mapTo === 'id') continue
             const parts = item.mapTo.split('.')
-            // console.log('==>', item.mapTo)
             if (parts.length === 1) {
               const attr: any = {
                 name: item.mapTo,
@@ -927,10 +925,8 @@ export class ScimGateway {
                 }
               } else newAttributes.push(attr)
             } else { // Complex
-              // console.log(parts)
               const parent = parts[0]
               const sub = parts[parts.length - 1]
-              // console.log(parent, sub)
               if (!complexAttrs[parent]) {
                 complexAttrs[parent] = {
                   name: parent,
