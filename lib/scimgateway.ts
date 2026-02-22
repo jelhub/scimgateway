@@ -857,7 +857,149 @@ export class ScimGateway {
     }
 
     const getHandlerSchemas = async (ctx: Context) => {
-      let tx = this.scimDef.Schemas
+      let tx = utils.copyObj(this.scimDef.Schemas)
+      if (this.config.endpoint?.map) {
+        // endpointMapper being used
+        // Schemas returned should instead reflect what is defined in the plugin config file
+        // For AI Agent MCP tools, the 'x-agent-schema' attribute can be used to enhance their functionality or provide additional context when processing SCIM requests - see plugin-entra-id.json for example usage.
+        const map = this.config.endpoint.map
+        const updateSchema = (resourceName: string, mapSection: any) => {
+          if (!mapSection) return
+          const resource = tx.Resources.find((r: any) => r.name === resourceName)
+          if (!resource) return
+          const isV1 = (resource.schema === 'urn:scim:schemas:core:1.0') ? true : false
+          const newAttributes: any[] = []
+          const complexAttrs: Record<string, any> = {}
+          for (const key in mapSection) {
+            // console.log(key)
+            const item = mapSection[key]
+            if (!item.mapTo && key === 'x-agent-schema') {
+              resource['x-agent-schema'] = JSON.stringify(item) // top level schema update
+              continue
+            }
+            if (!item.mapTo || item.mapTo === 'id') continue
+            const parts = item.mapTo.split('.')
+            // console.log('==>', item.mapTo)
+            if (parts.length === 1) {
+              const attr: any = {
+                name: item.mapTo,
+                type: item.type || 'string',
+                multiValued: item.multiValued || false,
+                description: item.description || item.mapTo,
+                required: (item.mapTo === 'userName') ? true : false,
+                caseExact: false,
+                mutability: 'readWrite',
+                returned: 'default',
+                uniqueness: (item.mapTo === 'userName') ? 'server' : 'none',
+              }
+              if (item['x-agent-schema']) {
+                const agentSchema = utils.copyObj(item['x-agent-schema'])
+                if (agentSchema.description) {
+                  attr.description = agentSchema.description
+                  delete agentSchema.description
+                }
+                if (Object.keys(agentSchema).length > 0) attr['x-agent-schema'] = JSON.stringify(agentSchema)
+              }
+              if (isV1) {
+                attr.schema = 'urn:scim:schemas:core:1.0'
+                attr.readOnly = false
+                delete attr.mutability
+                delete attr.returned
+                delete attr.uniqueness
+              }
+              const names = attr.name.split(',') // "mapTo": "userName,externalId" - if userName, description linked to userName
+              if (names.length > 1) {
+                const userNameFound = attr.name.includes('userName')
+                for (let i = 0; i < names.length; i++) {
+                  let attrCopy = utils.copyObj(attr)
+                  const name = names[i].trim()
+                  attrCopy.name = name
+                  if (name === 'id') continue
+                  if (userNameFound && name !== 'userName') {
+                    attrCopy.description = ''
+                    delete attrCopy['x-agent-schema']
+                  }
+                  if (name === 'userName') {
+                    if (!isV1) attrCopy.uniqueness = 'server'
+                    attrCopy.required = true
+                  }
+                  newAttributes.push(attrCopy)
+                }
+              } else newAttributes.push(attr)
+            } else { // Complex
+              // console.log(parts)
+              const parent = parts[0]
+              const sub = parts[parts.length - 1]
+              // console.log(parent, sub)
+              if (!complexAttrs[parent]) {
+                complexAttrs[parent] = {
+                  name: parent,
+                  type: 'complex',
+                  multiValued: item.multiValued || false,
+                  description: parent,
+                  required: false,
+                  subAttributes: [],
+                }
+                if (isV1) complexAttrs[parent]['schema'] = 'urn:scim:schemas:core:1.0'
+                newAttributes.push(complexAttrs[parent])
+              }
+              const existingSub = complexAttrs[parent].subAttributes.find((sa: any) => sa.name === sub)
+              if (!existingSub) {
+                const subAttr: any = {
+                  name: sub,
+                  type: item.type || 'string',
+                  multiValued: false,
+                  description: item.description || sub,
+                  required: false,
+                  caseExact: false,
+                  mutability: 'readWrite',
+                  returned: 'default',
+                  uniqueness: 'none',
+                }
+                if (isV1) {
+                  subAttr.readOnly = false
+                  delete subAttr.mutability
+                  delete subAttr.returned
+                  delete subAttr.uniqueness
+                }
+                if (item['x-agent-schema']) {
+                  const hints = utils.copyObj(item['x-agent-schema'])
+                  if (hints.description) {
+                    subAttr.description = hints.description
+                    delete hints.description
+                  }
+                  if (Object.keys(hints).length > 0) subAttr['x-agent-schema'] = JSON.stringify(hints)
+                }
+                complexAttrs[parent].subAttributes.push(subAttr)
+              }
+            }
+          }
+          if (newAttributes.length > 0) resource.attributes = newAttributes
+
+          // update Schema with the new 'x-agent-schema' that might be in use
+          const schemaDef = tx.Resources.find((r: any) => r.name === 'Schema')
+          if (!schemaDef) return // SCIM v1.1 does not have Schema resource and should normally accept non standard
+          const attr: any = {
+            name: 'x-agent-schema',
+            type: 'string',
+            multiValued: false,
+            description: 'JSON formatted string used by AI Agent MCP tools',
+            required: false,
+            caseExact: false,
+            mutability: 'readOnly',
+            returned: 'default',
+            uniqueness: 'none',
+          }
+
+          if (Array.isArray(schemaDef?.attributes)) {
+            const found = schemaDef.attributes.find((r: any) => r.name === 'x-agent-schema')
+            if (!found) schemaDef.attributes.push(attr)
+          }
+        }
+        updateSchema('User', map.user)
+        updateSchema('Group', map.group)
+      }
+
       tx = utilsScim.addResources(tx, undefined, undefined, undefined)
       tx = utilsScim.addSchemasStripAttr(tx, isScimv2)
       ctx.response.body = JSON.stringify(tx)
@@ -3932,8 +4074,29 @@ Content-Transfer-Encoding: quoted-printable
     const processText = 'process.text.'
     const processTexts = new Map()
     const processFiles = new Map()
-    const dotConfig = dot.dot(this.config)
 
+    // replaceKeySeparator is a workaround
+    // may have dot key e.g., "employeeOrgData.costCenter" => avoid dot.dot() splitting key into object
+    const replaceKeySeparator = (o: any, separator: string, newSeparator: string): any => {
+      if (typeof o !== 'object' || o === null || !separator || !newSeparator) return
+      let v, key
+      for (key of Object.keys(o)) {
+        const parts = key.split(separator)
+        if (parts.length > 1) {
+          const newKey = parts.join(newSeparator)
+          o[newKey] = o[key]
+          delete o[key]
+          continue
+        }
+        v = o[key]
+        if (typeof v === 'object' && v !== null) {
+          replaceKeySeparator(v, separator, newSeparator)
+        }
+      }
+    }
+    replaceKeySeparator(this.config.endpoint, '.', '##')
+
+    const dotConfig = dot.dot(this.config)
     let foundBasic = false
     let foundBearerToken = false
     let foundBearerJwt = false
@@ -4049,6 +4212,7 @@ Content-Transfer-Encoding: quoted-printable
     processTexts.clear()
     processFiles.clear()
     this.config = dot.object(dotConfig) // updated config
+    replaceKeySeparator(this.config.endpoint, '##', '.') // revert workaround
 
     if (!foundBasic) this.config.scimgateway.auth.basic = []
     if (!foundBearerToken) this.config.scimgateway.auth.bearerToken = []
