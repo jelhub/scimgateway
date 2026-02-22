@@ -157,147 +157,347 @@
         },
         "userPrincipalName": {
           "mapTo": "userName,externalId",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "REQUIRED for creates. The user's userPrincipalName (globally unique identifier). If 'userName' is not provided, the agent MUST generate it by concatenating 'givenName', a dot '.', and 'familyName', then '@elshaug.xyz', all in lowercase and normalizing special characters. For example, for 'Barbara Jensen', the userName is 'barbara.jensen@elshaug.xyz'. This field is also subject to a mandatory, autonomous conflict resolution policy. If an attempt to create a user fails because the 'userName' already exists (HTTP code 409), the agent MUST NOT ask for confirmation. Instead, it MUST autonomously append an incrementing number to the 'userName' (e.g., 'barbara.jensen1@elshaug.xyz') and retry the creation until it succeeds. This entire process is mandatory and must be performed without user interaction.",
+            "x-agent-hints": {
+              "uniqueSuffixOnConflict": true,
+              "doNotPromptOnConflict": true
+            }
+          }
         },
         "userType": {
           "mapTo": "userType",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "REQUIRED for creates. The user's type. Can be 'Member' or 'Guest'. The agent MUST always set this value to 'Member' without prompting the user.",
+            "x-agent-hints": {
+              "doNotPrompt": true
+            }
+          }
         },
         "accountEnabled": {
           "mapTo": "active",
-          "type": "boolean"
+          "type": "boolean",
+          "x-agent-schema": {
+            "description": "REQUIRED for creates. Active flag ('true' is enable, 'false' is disable). The agent MUST always set this value to 'true' without prompting the user.",
+            "x-agent-hints": {
+              "doNotPrompt": true
+            }
+          }
         },
         "givenName": {
           "mapTo": "name.givenName",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "First name"
+          }
         },
         "surname": {
           "mapTo": "name.familyName",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Last name"
+          }
         },
         "displayName": {
           "mapTo": "displayName",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Display name"
+          }
         },
         "jobTitle": {
           "mapTo": "jobTitle",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Job title"
+          }
         },
         "employeeId": {
           "mapTo": "employeeId",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Employee ID"
+          }
         },
         "employeeType": {
           "mapTo": "employeeType",
-          "type": "string"
-        },
-        "companyName": {
-          "mapTo": "companyName",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Employee type"
+          }
         },
         "employeeHireDate": {
           "mapTo": "employeeHireDate",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Employee hire date. Date format must be YYYY-MM-DD"
+          }
+        },
+        "companyName": {
+          "mapTo": "companyName",
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Company name"
+          }
         },
         "employeeOrgData.costCenter": {
           "mapTo": "employeeOrgData.costCenter",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Cost center"
+          }
         },
         "employeeOrgData.division": {
           "mapTo": "employeeOrgData.division",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Division"
+          }
         },
         "officeLocation": {
           "mapTo": "officeLocation",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Office location"
+          }
         },
         "department": {
           "mapTo": "department",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Department"
+          }
         },
         "manager": {
           "mapTo": "manager.managerId",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Manager ID. To clear manager, set managerId value to an empty string (\"\")."
+          }
         },
         "mail": {
           "mapTo": "mail",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "REQUIRED for creates. Mail address value MUST be generated by the agent from the 'userName' and must be globally unique and all lowercase. The agent MUST NOT ask the user for this value."
+          }
         },
         "mailNickname": {
           "mapTo": "mailNickname",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "REQUIRED for creates. Mail nickname value MUST be generated by the agent from the 'userName' field (by taking the part before the '@' symbol) and must be globally unique and all lowercase. The agent MUST NOT ask the user for this value."
+          }
         },
         "proxyAddresses": {
           "mapTo": "proxyAddresses.value",
           "type": "array",
           "items": {
             "type": "string"
+          },
+          "x-agent-schema": {
+            "description": "Proxy addresses. IMPORTANT: This field is read-only during user creation. The agent MUST NOT include this field in the initial create user request. To set proxy addresses, first create the user, then use a separate modify user request to add them."
           }
         },
         "mobilePhone": {
           "mapTo": "mobilePhone",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Mobile phone number"
+          }
         },
         "businessPhones": {
           "mapTo": "businessPhones",
           "type": "array",
-          "typeInbound": "string"
+          "typeInbound": "string",
+          "x-agent-schema": {
+            "description": "Business phone number"
+          }
         },
         "faxNumber": {
           "mapTo": "faxNumber",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Fax number"
+          }
         },
         "country": {
           "mapTo": "country",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Country"
+          }
         },
         "city": {
           "mapTo": "city",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "City"
+          }
         },
         "streetAddress": {
           "mapTo": "streetAddress",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Street address"
+          }
         },
         "postalCode": {
           "mapTo": "postalCode",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Postal code"
+          }
         },
         "state": {
           "mapTo": "state",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "State"
+          }
         },
         "passwordPolicies": {
           "mapTo": "passwordPolicies",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Read Only - Password policies"
+          }
         },
         "passwordProfile.forceChangePasswordNextSignIn": {
           "mapTo": "passwordProfile.forceChangePasswordNextSignIn",
-          "type": "string"
+          "type": "boolean",
+          "x-agent-schema": {
+            "description": "REQUIRED for creates. The agent MUST always set this value to 'true' without prompting the user. This ensures the user must change their password on the next sign-in. Default value is true.",
+            "x-agent-hints": {
+              "doNotPrompt": true
+            },
+            "x-agent-parent-schema": {
+              "description": "Password profile for the user. For creates the agent MUST set following: 'password' and 'forceChangePasswordNextSignIn'.",
+              "required": [
+                "password",
+                "forceChangePasswordNextSignIn"
+              ],
+              "x-agent-hints": {
+                "doNotPrompt": true
+              }
+            }
+          }
         },
         "passwordProfile.password": {
           "mapTo": "passwordProfile.password",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "REQUIRED for creates. The agent MUST generate and include a secure random password. Entra ID will reject the create if password is missing or empty. The agent NEVER ask the user for this password.",
+            "x-agent-hints": {
+              "generatePassword": true,
+              "passwordPolicy": {
+                "minLength": 14,
+                "requireUppercase": true,
+                "requireLowercase": true,
+                "requireNumbers": true,
+                "requireSymbols": true
+              }
+            }
+          }
         },
         "servicePlan": {
-          "mapTo": "servicePlans.value",
+          "mapTo": "servicePlan.value",
           "type": "array"
         },
         "usageLocation": {
-          "mapTo": "usageLocation",
-          "type": "string"
+          "mapTo": "Usage location",
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Country as ISO 3166-1 alpha-2 code or a supported country name.",
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{2}$",
+                "description": "ISO 3166-1 alpha-2 code (e.g., NO, US)"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "Norway",
+                  "Sweden",
+                  "Denmark",
+                  "Finland",
+                  "United States",
+                  "United Kingdom",
+                  "Irland",
+                  "Germany",
+                  "France",
+                  "Spain",
+                  "Italy",
+                  "Netherlands",
+                  "Belgium",
+                  "Poland",
+                  "Austria",
+                  "Switzerland",
+                  "Ireland",
+                  "Portugal",
+                  "Canada",
+                  "Australia",
+                  "India",
+                  "Germany",
+                  "Belgium",
+                  "Czechia",
+                  "Estonia",
+                  "Latvia",
+                  "Lithuania"
+                ],
+                "description": "Common country names supported; server maps to the corresponding ISO code"
+              }
+            ]
+          }
         },
         "preferredLanguage": {
           "mapTo": "preferredLanguage",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "Preferred language"
+          }
         },
         "onPremisesSyncEnabled": {
           "mapTo": "onPremisesSyncEnabled",
-          "type": "boolean"
+          "type": "boolean",
+          "x-agent-schema": {
+            "description": "Read Only - Entra ID onPremisesSyncEnabled. When true this account is synchronized from an on-premises Active Directory. DO NOT modify or delete this user via service; all authoritative changes must be made in the on-premises AD and allowed to sync to Entra ID. Agents should call 'list_users' or other read-only tools to discover the user's on-premises status and must not attempt write/delete operations when this flag is true.",
+            "readOnly": true
+          }
         },
         "onPremisesImmutableId": {
           "mapTo": "onPremisesImmutableId",
-          "type": "string"
+          "type": "boolean",
+          "x-agent-schema": {
+            "description": "Read Only - Entra ID onPremisesImmutableId",
+            "readOnly": true
+          }
+        },
+        "x-agent-schema": {
+          "x-agent-hints": {
+            "nameSplit": {
+              "strategy": "all-but-last_vs_last",
+              "notes": "givenName = all tokens except last (joined with spaces), familyName = last token"
+            },
+            "lowercaseRules": {
+              "userName": true,
+              "mail": true,
+              "mailNickname": true
+            },
+            "generateMailNickname": {
+              "create": true,
+              "sourceField": "userName"
+            },
+            "onPremPolicy": "readonly-if-true",
+            "createConstraints": {
+              "allowProxyAddressesOnCreate": false,
+              "mailAndProxyAddressesPolicy": "If proxyAddresses are required, create with mail only and PATCH proxyAddresses afterwards.",
+              "generatePasswordOnConflict": true
+            }
+          }
         }
       },
       "group": {
@@ -307,15 +507,30 @@
         },
         "displayName": {
           "mapTo": "displayName",
-          "type": "string"
+          "type": "string",
+          "x-agent-schema": {
+            "description": "REQUIRED for creates. The group's display name"
+          }
         },
         "securityEnabled": {
           "mapTo": "securityEnabled",
-          "type": "boolean"
+          "type": "boolean",
+          "x-agent-schema": {
+            "description": "REQUIRED for creates. Entra ID security group (securityEnabled is set to 'true'). The agent MUST always set this value to 'true' without prompting the user. IMPORTANT: This field is read-only after the group is created.",
+            "x-agent-hints": {
+              "doNotPrompt": true
+            }
+          }
         },
         "mailEnabled": {
           "mapTo": "mailEnabled",
-          "type": "boolean"
+          "type": "boolean",
+          "x-agent-schema": {
+            "description": "REQUIRED for creates. Entra ID mail enabled group. The agent MUST always set this value to 'false' without prompting the user. IMPORTANT: This field is read-only after the group is created.",
+            "x-agent-hints": {
+              "doNotPrompt": true
+            }
+          }
         }
       }
     }
