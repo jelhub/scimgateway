@@ -548,7 +548,7 @@ export class ScimGateway {
         status: ctx.response.status,
         method: ctx.request.method,
         url: ctx.request.url,
-        requestBody: ctx.request.body,
+        requestBody: JSON.stringify(ctx.request.body),
         responseBody: outbound,
       }
       let msg = utils.statusText(logEvent.status)
