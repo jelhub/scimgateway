@@ -251,17 +251,22 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
     addonObj.manager = userObj.manager
     delete userObj.manager
   }
+  if (userObj.proxyAddresses) {
+    addonObj.proxyAddresses = userObj.proxyAddresses
+    delete userObj.proxyAddresses
+  }
 
   const method = 'POST'
   const path = '/users'
   const [body] = scimgateway.endpointMapper('outbound', userObj, config.map.user)
 
   try {
-    await helper.doRequest(baseEntity, method, path, body, ctx)
+    const res = await helper.doRequest(baseEntity, method, path, body, ctx)
     if (Object.keys(addonObj).length > 0) {
-      await scimgateway.modifyUser(baseEntity, userObj.userName, addonObj, ctx) // manager, servicePlan
-      return null
-    } else return (null)
+      const id = res?.body?.id || userObj.userName
+      await scimgateway.modifyUser(baseEntity, id, addonObj, ctx) // manager, proxyAddresses, servicePlan
+    }
+    return null
   } catch (err: any) {
     const newErr = new Error(`${action} error: ${err.message}`)
     if (err.message.includes('userPrincipalName already exists')) newErr.name += '#409' // customErrCode
