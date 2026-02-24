@@ -297,6 +297,7 @@ export class Logger {
   private async log(level: 'debug' | 'info' | 'warn' | 'error', message: string, obj?: Record<string, any>) {
     const time = new Date().toISOString()
     message = this.maskSecret(message)
+    if (typeof obj === 'object' && !Array.isArray(obj)) obj = JSON.parse(this.maskSecret(JSON.stringify(obj)))
     const msgObj: Record<string, any> = {
       time,
       level,
