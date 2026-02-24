@@ -1303,6 +1303,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.7
+
+[Fixed]
+
+- Incorrect masking of secrets in the final info log message for requests
+- plugin-entra, fixed an issue where creating a user with a manager sometimes failed
+
 ### v6.1.6
 
 [Fixed]
