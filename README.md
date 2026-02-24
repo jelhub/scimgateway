@@ -1303,6 +1303,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.8
+
+[Fixed]
+
+- Incorrect masking of secrets in the final info log message for requests
+
 ### v6.1.7
 
 [Fixed]
