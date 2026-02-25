@@ -170,7 +170,7 @@ export const JSONStringify = function (object: any) {
 }
 
 const objProp = function (obj: Record<string, any>, prop: string, val: any) { // return obj value based on json dot notation formatted prop
-  if (Object.prototype.hasOwnProperty.call(obj, prop)) return obj[prop]
+  if (Object.hasOwn(obj, prop)) return obj[prop]
   const props = prop.split('.') // scimgateway.auth.basic[0].password
   const final = props.pop() as string
   for (let i = 0; i < props.length; i++) {
@@ -210,7 +210,7 @@ const _extendObj = (obj: Record<any, any>, src: Record<any, any>) => {
           for (let i = 0; i < src[key].length; i++) {
             const val = src[key][i]
             if (typeof val === 'object') {
-              if (Object.prototype.hasOwnProperty.call(val, 'type')) {
+              if (Object.hasOwn(val, 'type')) {
                 if (!obj[key]) obj[key] = [val]
                 else {
                   for (let j = 0; j < obj[key].length; j++) {
@@ -223,7 +223,7 @@ const _extendObj = (obj: Record<any, any>, src: Record<any, any>) => {
                   }
                   obj[key].push(val)
                 }
-              } else if (Object.prototype.hasOwnProperty.call(val, 'value')) {
+              } else if (Object.hasOwn(val, 'value')) {
                 if (!obj[key]) obj[key] = [val]
                 else {
                   for (let j = 0; j < obj[key].length; j++) {
@@ -258,7 +258,7 @@ export const extendObjClear = (obj: Record<string, any>, src: Record<string, any
   Object.keys(src).forEach((key) => {
     if (src[key] === null) return
     if (typeof src[key] !== 'object') { // last key
-      if (Object.prototype.hasOwnProperty.call(obj, key)) return
+      if (Object.hasOwn(obj, key)) return
       if (isSoftSync) obj[key] = src[key]
       else {
         switch (typeof src[key]) {
@@ -288,7 +288,7 @@ export const extendObjClear = (obj: Record<string, any>, src: Record<string, any
         if (typeof val !== 'object') {
           if (!obj[key].includes(val)) obj[key].push(val) // e.g. ["value1", "value2"]
         } else {
-          if (Object.prototype.hasOwnProperty.call(val, 'type') && key !== 'members' && key !== 'groups') {
+          if (Object.hasOwn(val, 'type') && key !== 'members' && key !== 'groups') {
             if (obj[key].length < 1) {
               const v: any = copyObj(val)
               if (!isSoftSync) v.operation = 'delete'
@@ -301,7 +301,7 @@ export const extendObjClear = (obj: Record<string, any>, src: Record<string, any
                   found = true
                   for (const kv in val) {
                     if (kv === 'type' || kv === 'value' || isSoftSync) continue // don't clear type/value
-                    if (Object.prototype.hasOwnProperty.call(el, kv)) continue
+                    if (Object.hasOwn(el, kv)) continue
                     switch (typeof val[kv]) {
                       case 'string':
                         el[kv] = ''
@@ -324,7 +324,7 @@ export const extendObjClear = (obj: Record<string, any>, src: Record<string, any
                 obj[key].push(v)
               }
             }
-          } else if (Object.prototype.hasOwnProperty.call(val, 'value')) { // no type
+          } else if (Object.hasOwn(val, 'value')) { // no type
             if (obj[key].length < 1) {
               const v: any = copyObj(val)
               if (!isSoftSync) v.operation = 'delete'
@@ -370,7 +370,7 @@ export const deltaObj = (obj: Record<string, any>, src: Record<string, any>) => 
         const el = arr[i]
         if (el.operation) continue // keep operation
         if (el.type) {
-          if (Object.prototype.hasOwnProperty.call(el, 'value')) {
+          if (Object.hasOwn(el, 'value')) {
             const a = src[key].filter(o => o.type === el.type && o.value === el.value)
             if (a.length === 1) {
               arr.splice(i, 1)
@@ -388,7 +388,7 @@ export const deltaObj = (obj: Record<string, any>, src: Record<string, any>) => 
               i -= 1
             }
           }
-        } else if (Object.prototype.hasOwnProperty.call(el, 'value')) {
+        } else if (Object.hasOwn(el, 'value')) {
           const a = src[key].filter(o => o.value === el.value)
           if (a.length === 1) {
             arr.splice(i, 1)
@@ -441,9 +441,9 @@ export const stripObj = (obj: Record<string, any>, attributes?: string, excluded
       const ret: Record<string, any> = {}
       for (let i = 0; i < arrAttr.length; i++) {
         const attr = arrAttr[i].split('.') // title / name.familyName / emails.value
-        if (Object.prototype.hasOwnProperty.call(obj, attr[0])) {
+        if (Object.hasOwn(obj, attr[0])) {
           if (attr.length === 1) ret[attr[0]] = obj[attr[0]]
-          else if (Object.prototype.hasOwnProperty.call(obj[attr[0]], attr[1])) { // name.familyName
+          else if (Object.hasOwn(obj[attr[0]], attr[1])) { // name.familyName
             if (!ret[attr[0]]) ret[attr[0]] = {}
             ret[attr[0]][attr[1]] = obj[attr[0]][attr[1]]
           } else if (Array.isArray(obj[attr[0]])) { // emails.value / phoneNumbers.type
@@ -452,7 +452,7 @@ export const stripObj = (obj: Record<string, any>, attributes?: string, excluded
             for (let j = 0; j < arr.length; j++) {
               if (typeof arr[j] !== 'object') {
                 ret[attr[0]].push(arr[j])
-              } else if (Object.prototype.hasOwnProperty.call(arr[j], attr[1])) {
+              } else if (Object.hasOwn(arr[j], attr[1])) {
                 if (ret[attr[0]].length !== arr.length) { // initiate
                   for (let i = 0; i < arr.length; i++) ret[attr[0]].push({}) // need arrCheckEmpty
                 }
@@ -481,14 +481,14 @@ export const stripObj = (obj: Record<string, any>, attributes?: string, excluded
       const ret: any = copyObj(obj)
       for (let i = 0; i < arrAttr.length; i++) {
         const attr = arrAttr[i].split('.') // title / name.familyName / emails.value
-        if (Object.prototype.hasOwnProperty.call(ret, attr[0])) {
+        if (Object.hasOwn(ret, attr[0])) {
           if (attr.length === 1) delete ret[attr[0]]
-          else if (Object.prototype.hasOwnProperty.call(ret[attr[0]], attr[1])) delete ret[attr[0]][attr[1]] // name.familyName
+          else if (Object.hasOwn(ret[attr[0]], attr[1])) delete ret[attr[0]][attr[1]] // name.familyName
           else if (Array.isArray(ret[attr[0]])) { // emails.value / phoneNumbers.type
             const arr = ret[attr[0]]
             for (let j = 0; j < arr.length; j++) {
-              if (Object.prototype.hasOwnProperty.call(arr[j], attr[1])) {
-                const index = arr.findIndex((el: Record<string, any>) => ((Object.prototype.hasOwnProperty.call(el, attr[1]))))
+              if (Object.hasOwn(arr[j], attr[1])) {
+                const index = arr.findIndex((el: Record<string, any>) => ((Object.hasOwn(el, attr[1]))))
                 if (index > -1) {
                   delete arr[index][attr[1]]
                   try {
@@ -516,7 +516,7 @@ export const sortByKey = (key: string, order: string = 'ascending') => {
     const val: any = [undefined, undefined]
     const arrIter = [a, b]
     const levels = key.split('.')
-    if (!Object.prototype.hasOwnProperty.call(a, levels[0]) || !Object.prototype.hasOwnProperty.call(b, levels[0])) return 0
+    if (!Object.hasOwn(a, levels[0]) || !Object.hasOwn(b, levels[0])) return 0
     arrIter.forEach((el, index) => {
       let parent = el
       for (let i = 0; i < levels.length; i++) {

@@ -329,7 +329,7 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
                   scimdata.meta.attributes.push(`${key}:${_k}`)
                   delete value[_k]
                 } else if (typeof value[_k] === 'object') { // manager.value
-                  if (Object.prototype.hasOwnProperty.call(value[_k], 'value') && (value[_k].value === undefined || value[_k].value === null)) {
+                  if (Object.hasOwn(value[_k], 'value') && (value[_k].value === undefined || value[_k].value === null)) {
                     scimdata.meta.attributes.push(`${key}:${_k}.value`)
                     delete value[_k].value
                   }
