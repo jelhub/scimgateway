@@ -1707,33 +1707,45 @@ export class ScimGateway {
           }
         }
         logger.debug(`${gwName} calling ${handle.createMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
-        const res = await (this as any)[handle.createMethod](baseEntity, scimdata, ctx.passThrough)
-        for (const key in res) { // merge any result e.g: {'id': 'xxxx'}
-          jsonBody[key] = res[key]
-        }
+        const response = await (this as any)[handle.createMethod](baseEntity, scimdata, ctx.passThrough)
 
-        if (!jsonBody.id) { // retrieve all attributes including id
-          let res: any
-          let obj: any
-          try {
-            if (handle.createMethod === 'createUser') {
-              const attributes: string[] = []
-              if (jsonBody.userName) obj = { attribute: 'userName', operator: 'eq', value: jsonBody.userName }
-              else if (jsonBody.externalId) obj = { attribute: 'externalId', operator: 'eq', value: jsonBody.externalId }
-              res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
-            } else if (handle.createMethod === 'createGroup') {
-              const attributes: string[] = []
-              if (jsonBody.externalId) obj = { attribute: 'externalId', operator: 'eq', value: jsonBody.externalId }
-              else if (jsonBody.displayName) obj = { attribute: 'displayName', operator: 'eq', value: jsonBody.displayName }
+        // lookup user/group created, id should be included in response
+        let res: any
+        let obj: any
+        try {
+          if (handle.createMethod === 'createUser') {
+            const attributes: string[] = []
+            if (response?.id) obj = { attribute: 'id', operator: 'eq', value: response.id }
+            else if (jsonBody.userName) obj = { attribute: 'userName', operator: 'eq', value: jsonBody.userName }
+            else if (jsonBody.externalId) obj = { attribute: 'externalId', operator: 'eq', value: jsonBody.externalId }
+            res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
+          } else if (handle.createMethod === 'createGroup') {
+            const attributes: string[] = []
+            if (response?.id) obj = { attribute: 'id', operator: 'eq', value: response.id }
+            else if (jsonBody.displayName) obj = { attribute: 'displayName', operator: 'eq', value: jsonBody.displayName }
+            else if (jsonBody.externalId) obj = { attribute: 'externalId', operator: 'eq', value: jsonBody.externalId }
+            if (response?.id && response['@odata.context']?.includes('graph.microsoft.com')) {
+              // Entra ID may experience some latency before a newly created group can be looked up
+              let counter = 0
+              const maxCounter = 20
+              while (true) {
+                counter++
+                if (counter > maxCounter) break
+                res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
+                if (res?.Resources && Array.isArray(res.Resources) && res.Resources.length === 1) break
+                await new Promise(resolve => setTimeout(resolve, 1000))
+              }
+            } else {
               res = await (this as any)[handle.getMethod](baseEntity, obj, attributes, ctx.passThrough)
             }
-          } catch (err: any) {
-            logger.warn(`${gwName} ${handle.createMethod} succeeded, but corresponding ${handle.getMethod} ${obj?.value} failed with error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
           }
-          if (res?.Resources && Array.isArray(res.Resources) && res.Resources.length === 1) {
-            if (res.Resources[0]?.id) jsonBody = res.Resources[0] // id found, using returned object
-          }
+        } catch (err: any) {
+          logger.warn(`${gwName} ${handle.createMethod} succeeded, but corresponding ${handle.getMethod} ${obj?.value} failed with error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
         }
+        if (res?.Resources && Array.isArray(res.Resources) && res.Resources.length === 1) {
+          jsonBody = res.Resources[0]
+        }
+        delete jsonBody.password
 
         const eTag = utils.getEtag(jsonBody)
         if (addGrps.length > 0 && handle.createMethod === 'createUser') { // add group membership
@@ -2090,7 +2102,7 @@ export class ScimGateway {
         }
       }
 
-      const activeExists = Object.prototype.hasOwnProperty.call(obj, 'active')
+      const activeExists = Object.hasOwn(obj, 'active')
       let objGroups: any
       if (obj.groups) {
         if (!this.config.scimgateway.scim.groupMemberOfUser) {
