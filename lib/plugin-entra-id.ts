@@ -57,8 +57,6 @@
 // Members                                    members                             members
 // =====================================================================================================================
 
-import querystring from 'querystring'
-
 // start - mandatory plugin initialization
 import { ScimGateway, HelperRest } from 'scimgateway'
 const scimgateway = new ScimGateway()
@@ -143,6 +141,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   let options: Record<string, any> = {}
   let isExpandManager = true
 
+  if (Object.hasOwn(getObj, 'value')) getObj.value = encodeURIComponent(getObj.value)
   if (!Object.hasOwn(getObj, 'count')) getObj.count = 200
   if (getObj.count > 500) getObj.count = 500 // Entra ID max 999
 
@@ -266,7 +265,7 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
       const id = res?.body?.id || userObj.userName
       await scimgateway.modifyUser(baseEntity, id, addonObj, ctx) // manager, proxyAddresses, servicePlan
     }
-    return null
+    return res?.body
   } catch (err: any) {
     const newErr = new Error(`${action} error: ${err.message}`)
     if (err.message.includes('userPrincipalName already exists')) newErr.name += '#409' // customErrCode
@@ -402,6 +401,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     totalResults: null,
   }
 
+  if (Object.hasOwn(getObj, 'value')) getObj.value = encodeURIComponent(getObj.value)
   if (attributes.length === 0) attributes = groupAttributes
   let includeMembers = false
   if (attributes.includes('members.value') || attributes.includes('members')) {
@@ -525,7 +525,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
   const body: any = { displayName: groupObj.displayName }
-  body.mailNickName = groupObj.displayName
+  body.mailNickName = groupObj.displayName?.replace(/[^a-zA-Z0-9]/g, '')
   body.mailEnabled = false
   body.securityEnabled = true
   const method = 'POST'
@@ -536,8 +536,8 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
     if (res && res.Resources && res.Resources.length > 0) {
       throw new Error(`group ${groupObj.displayName} already exist`)
     }
-    await helper.doRequest(baseEntity, method, path, body, ctx)
-    return null
+    const response = await helper.doRequest(baseEntity, method, path, body, ctx)
+    return response?.body
   } catch (err: any) {
     const newErr = new Error(`${action} error: ${err.message}`)
     if (err.message.includes('already exist')) newErr.name += '#409' // customErrCode
@@ -743,7 +743,7 @@ const getUser = async (baseEntity: string, uid: string, attributes: string[], ct
 
     const userPromise = (async () => {
       const method = 'GET'
-      const path = `/users/${querystring.escape(uid)}?$expand=manager($select=userPrincipalName)`
+      const path = `/users/${uid}?$expand=manager($select=userPrincipalName)`
       const body = null
       const response = await helper.doRequest(baseEntity, method, path, body, ctx)
       const userObj = response.body
@@ -761,7 +761,7 @@ const getUser = async (baseEntity: string, uid: string, attributes: string[], ct
     const licensePromise = (async () => {
       if (!attributes.includes('servicePlans.value')) return null // licenses not requested
       const method = 'GET'
-      const path = `/users/${querystring.escape(uid)}/licenseDetails`
+      const path = `/users/${uid}/licenseDetails`
       const body = null
       const retObj: Record<string, any> = { servicePlan: [] }
       try {
