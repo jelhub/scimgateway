@@ -1303,6 +1303,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.9
+
+[Improved]
+
+- Some improvements to createUser/createGroup regarding the response object, which should contain the newly generated ID
+
 ### v6.1.8
 
 [Fixed]
