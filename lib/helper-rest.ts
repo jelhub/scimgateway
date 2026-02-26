@@ -34,8 +34,8 @@ export class HelperRest {
     this.scimgateway = scimgateway
     this.idleTimeout = (scimgateway as any)?.config?.scimgateway.idleTimeout || 120
     this.idleTimeout = this.idleTimeout - 1
-    if (optionalEntities && optionalEntities.entity) this.config_entity = utils.copyObj(optionalEntities.entity) ?? {}
-    else this.config_entity = utils.copyObj(scimgateway.getConfig())?.entity ?? {}
+    if (optionalEntities && optionalEntities.entity) this.config_entity = structuredClone(optionalEntities.entity) ?? {}
+    else this.config_entity = structuredClone(scimgateway.getConfig())?.entity ?? {}
 
     for (const baseEntity in this.config_entity) {
       const connectionObj = this.config_entity[baseEntity]?.connection
@@ -387,7 +387,7 @@ export class HelperRest {
       const method = 'POST'
       let connOpt: any = {}
       if (connectionObj.options && typeof connectionObj.options === 'object') {
-        connOpt = utils.copyObj(connectionObj.options)
+        connOpt = structuredClone(connectionObj.options)
       }
       if (!connOpt.headers) connOpt.headers = {}
       connOpt.headers['Content-Type'] = 'application/x-www-form-urlencoded' // body must be query string formatted (no JSON)
@@ -494,7 +494,7 @@ export class HelperRest {
         let orgConnection: any
         if (opt?.connection) { // allow overriding/extending configuration connection by caller argument opt.connection
           let org = connectionObj
-          orgConnection = utils.copyObj(org)
+          orgConnection = structuredClone(org)
           if (!org) org = {}
           org = utils.extendObj(org, opt.connection)
         }
@@ -533,7 +533,7 @@ export class HelperRest {
         }
 
         if (connectionObj.options) { // http connect options
-          const connOpt: any = utils.copyObj(connectionObj.options)
+          const connOpt: any = structuredClone(connectionObj.options)
           try {
             // using fs.readFileSync().toString() instead of Bun.file().text() for nodejs compability
             if (connOpt?.tls?.key) connOpt.tls.key = fs.readFileSync(connOpt.tls.key).toString()
@@ -565,7 +565,7 @@ export class HelperRest {
       if (ctx?.headers?.get) { // Auth PassThrough using ctx header
         this._serviceClient[baseEntity].options.headers['Authorization'] = ctx.headers.get('authorization')
       }
-      const cli: any = utils.copyObj(this._serviceClient[baseEntity]) // client ready
+      const cli: any = structuredClone(this._serviceClient[baseEntity]) // client ready
 
       // failover support
       path = this._serviceClient[baseEntity].baseUrl + path
@@ -611,7 +611,7 @@ export class HelperRest {
 
     // merge any argument options - basic auth header is supported through {auth:{type:"basic",options:{username:"username",password:"password"}}}
     if (opt) {
-      const o: any = utils.copyObj(opt)
+      const o: any = structuredClone(opt)
       if (o?.auth?.type === 'basic') {
         options.headers['Authorization'] = 'Basic ' + Buffer.from(`${o.auth?.options?.username}:${o.auth?.options?.password}`).toString('base64')
         delete o.auth

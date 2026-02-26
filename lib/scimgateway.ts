@@ -757,7 +757,7 @@ export class ScimGateway {
             }
             if (utils.getEncrypted(authToken, arr[i].clientSecret) === arr[i].clientSecret) {
               arr[i].isTokenRequested = true // flagged as true to not allow repeated resolvements because token will also be cleared when expired
-              const baseEntities = utils.copyObj(arr[i].baseEntities)
+              const baseEntities = structuredClone(arr[i].baseEntities)
               let expires
               let readOnly = false
               if (arr[i].readOnly && arr[i].readOnly === true) readOnly = true
@@ -857,7 +857,7 @@ export class ScimGateway {
     }
 
     const getHandlerSchemas = async (ctx: Context) => {
-      let tx = utils.copyObj(this.scimDef.Schemas)
+      let tx = structuredClone(this.scimDef.Schemas)
       if (this.config.endpoint?.map) {
         // endpointMapper being used
         // Schemas returned should instead reflect what is defined in the plugin config file
@@ -891,7 +891,7 @@ export class ScimGateway {
                 uniqueness: (item.mapTo === 'userName') ? 'server' : 'none',
               }
               if (item['x-agent-schema']) {
-                const agentSchema = utils.copyObj(item['x-agent-schema'])
+                const agentSchema = structuredClone(item['x-agent-schema'])
                 if (agentSchema.description) {
                   attr.description = agentSchema.description
                   delete agentSchema.description
@@ -909,7 +909,7 @@ export class ScimGateway {
               if (names.length > 1) {
                 const userNameFound = attr.name.includes('userName')
                 for (let i = 0; i < names.length; i++) {
-                  let attrCopy = utils.copyObj(attr)
+                  let attrCopy = structuredClone(attr)
                   const name = names[i].trim()
                   attrCopy.name = name
                   if (name === 'id') continue
@@ -959,7 +959,7 @@ export class ScimGateway {
                   delete subAttr.uniqueness
                 }
                 if (item['x-agent-schema']) {
-                  const hints = utils.copyObj(item['x-agent-schema'])
+                  const hints = structuredClone(item['x-agent-schema'])
                   if (hints.description) {
                     subAttr.description = hints.description
                     delete hints.description
@@ -1147,7 +1147,7 @@ export class ScimGateway {
           ctx.request.body = body // now json - ensure final info log will be masked
           jsonBody = body
         }
-        jsonBody = utils.copyObj(jsonBody) // no changes to original
+        jsonBody = structuredClone(jsonBody) // no changes to original
       } catch (err: any) {
         logger.error(`${gwName} [oauth] token request error: ${err.message}`)
         ctx.response.status = 401
@@ -1184,7 +1184,7 @@ export class ScimGateway {
               if (!arr[i].baseEntities.includes(baseEntity)) continue
             }
             token = utils.getEncrypted(jsonBody.client_secret, jsonBody.client_secret)
-            baseEntities = utils.copyObj(arr[i].baseEntities)
+            baseEntities = structuredClone(arr[i].baseEntities)
             if (arr[i].readOnly && arr[i].readOnly === true) readOnly = true
             if (arr[i].expires_in && !isNaN(arr[i].expires_in)) expires = arr[i].expires_in
             else expires = oAuthTokenExpire
@@ -1291,7 +1291,7 @@ export class ScimGateway {
       logger.debug(`${gwName} [Get ${handle.description}] ${getObj.attribute}=${getObj.value}`, { baseEntity: ctx?.routeObj?.baseEntity })
 
       try {
-        const ob = utils.copyObj(getObj)
+        const ob = structuredClone(getObj)
         const attributes: string[] = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
         if (attributes.length > 0 && !attributes.includes('id')) attributes.push('id')
         logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
@@ -1523,7 +1523,7 @@ export class ScimGateway {
         getObj.count = ctx.query.count ? parseInt(ctx.query.count, 10) : 200 // defaults to 200 (plugin may override)
 
         let res: any
-        const obj: any = utils.copyObj(getObj)
+        const obj: any = structuredClone(getObj)
         const attributes: string[] = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
         if (attributes.length > 0 && !attributes.includes('id')) attributes.push('id') // id is mandatory
 
@@ -1659,7 +1659,7 @@ export class ScimGateway {
       try {
         if (!jsonBody) throw new Error('missing body')
         if (typeof jsonBody !== 'object' || jsonBody === null) throw new Error('body is not JSON')
-        jsonBody = utils.copyObj(jsonBody) // no changes to original
+        jsonBody = structuredClone(jsonBody) // no changes to original
       } catch (err: any) {
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
         ctx.response.status = statusCode
@@ -1978,7 +1978,7 @@ export class ScimGateway {
         if (!this.config.scimgateway.scim.groupMemberOfUser) {
           for (let i = 0; i < scimdata.groups.length; i++) {
             if (!scimdata.groups[i].value) continue
-            const obj: any = utils.copyObj(scimdata.groups[i])
+            const obj: any = structuredClone(scimdata.groups[i])
             obj.value = decodeURIComponent(obj.value)
             groups.push(obj)
           }
@@ -1991,7 +1991,7 @@ export class ScimGateway {
           res = await replaceUsrGrp(ctx.routeObj.handle, baseEntity, id, scimdata, this.config.scimgateway.scim.usePutSoftSync, ctx.passThrough, undefined)
         } else {
           logger.debug(`${gwName} calling ${handle.modifyMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
-          finalScimdata = utils.copyObj(scimdata)
+          finalScimdata = structuredClone(scimdata)
           res = await (this as any)[handle.modifyMethod](baseEntity, id, scimdata, ctx.passThrough)
         }
 
@@ -2106,7 +2106,7 @@ export class ScimGateway {
       let objGroups: any
       if (obj.groups) {
         if (!this.config.scimgateway.scim.groupMemberOfUser) {
-          objGroups = utils.copyObj(obj.groups)
+          objGroups = structuredClone(obj.groups)
           delete obj.groups
         }
       }
@@ -2282,7 +2282,7 @@ export class ScimGateway {
     const postBulkHandler = async (ctx: Context) => {
       const baseEntity = ctx.routeObj.baseEntity
       logger.debug(`${gwName} [Bulk Operations]`, { baseEntity: ctx?.routeObj?.baseEntity })
-      const bulkBody: SCIMBulkRequest = utils.copyObj(ctx.request.body)
+      const bulkBody: SCIMBulkRequest = structuredClone(ctx.request.body)
       try {
         if (!bulkBody) throw new Error('missing body')
         if (typeof bulkBody !== 'object') throw new Error('body is not JSON')
@@ -3629,7 +3629,7 @@ export class ScimGateway {
       logger.info(`${gwName} starting SCIM Stream subscribers...`)
       const sub: any = new stream.Subscriber(this, funcHandler)
       for (const baseEntity in this.config.scimgateway.stream.subscriber.entity) {
-        const cfgSub: any = utils.copyObj(this.config.scimgateway.stream.subscriber.entity[baseEntity])
+        const cfgSub: any = structuredClone(this.config.scimgateway.stream.subscriber.entity[baseEntity])
         cfgSub.baseUrls = this.config.scimgateway.stream.baseUrls
         cfgSub.certificate = this.config.scimgateway.stream.certificate
         cfgSub.usePutSoftSync = this.config.scimgateway.scim.usePutSoftSync
@@ -3643,7 +3643,7 @@ export class ScimGateway {
       logger.info(`${gwName} starting SCIM Stream publishers...`)
       const pub: any = new stream.Publisher(this)
       for (const baseEntity in this.config.scimgateway.stream.publisher.entity) {
-        const cfgPub: any = utils.copyObj(this.config.scimgateway.stream.publisher.entity[baseEntity])
+        const cfgPub: any = structuredClone(this.config.scimgateway.stream.publisher.entity[baseEntity])
         cfgPub.baseUrls = this.config.scimgateway.stream.baseUrls
         cfgPub.certificate = this.config.scimgateway.stream.certificate
         pub.add(baseEntity, cfgPub)
@@ -3795,6 +3795,7 @@ export class ScimGateway {
 
   /**
   * copyObj returns a copy of the object
+  * Note: prefer using structuredClone(obj)
   * @param obj object to be copied
   * @returns copy of object
   **/

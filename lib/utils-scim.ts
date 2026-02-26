@@ -26,7 +26,7 @@ type SCIMBulkOperation = {
 */
 export function convertedScim(obj: any, multiValueTypes: string[]): any {
   let err: any = null
-  const scimdata: any = utils.copyObj(obj)
+  const scimdata: any = structuredClone(obj)
   if (scimdata.schemas) delete scimdata.schemas
   const newMulti: Record<string, any> = {}
   if (!multiValueTypes) multiValueTypes = []
@@ -156,7 +156,7 @@ export function convertedScim(obj: any, multiValueTypes: string[]): any {
 export function convertedScim20(obj: any, multiValueTypes: string[]): any {
   if (!obj.Operations || !Array.isArray(obj.Operations)) return {}
   let scimdata: { [key: string]: any } = { meta: { attributes: [] } } // meta is used for deleted attributes
-  const o: any = utils.copyObj(obj)
+  const o: any = structuredClone(obj)
   const arrPrimaryDone: any = []
   const primaryOrgType: any = {}
 
@@ -199,7 +199,7 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
             typeElement = arrMatches[3] // streetAddress
 
             if (type === 'primary' && !arrPrimaryDone.includes(arrMatches[1])) { // make sure primary is included
-              const pObj: any = utils.copyObj(element)
+              const pObj: any = structuredClone(element)
               pObj.path = pObj.path.substring(0, pObj.path.lastIndexOf('.')) + '.primary'
               pObj.value = primaryValue
               o.Operations.push(pObj)
