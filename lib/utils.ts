@@ -192,7 +192,8 @@ export const copyObj = (o: any): any => { // deep copy/clone faster than JSON.pa
     if (typeof v === 'object' && v !== null) {
       const objProp = Object.getPrototypeOf(v) // e.g. HttpsProxyAgent {}
       if (objProp !== null && objProp !== Object.getPrototypeOf({}) && objProp !== Object.getPrototypeOf([])) {
-        output[key] = Object.assign(Object.create(v), v) // e.g. { HttpsProxyAgent {...} }
+        const proto = Object.getPrototypeOf(v)
+        output[key] = Object.assign(Object.create(proto), v) // e.g. { HttpsProxyAgent {...} }
       } else output[key] = copyObj(v)
     } else output[key] = v
   }
