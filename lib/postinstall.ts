@@ -53,10 +53,12 @@ if (!fsExistsSync('../../config/wsdls/UserService.wsdl')) {
   fs.writeFileSync('../../config/wsdls/UserService.wsdl', fs.readFileSync('./config/wsdls/UserService.wsdl'))
 }
 
-fs.writeFileSync('../../config/docker/docker-compose.yml', fs.readFileSync('./config/docker/docker-compose.yml'))
-fs.writeFileSync('../../config/docker/Dockerfile', fs.readFileSync('./config/docker/Dockerfile'))
+fs.writeFileSync('../../config/docker/.dockerignore', fs.readFileSync('./config/docker/.dockerignore'))
 fs.writeFileSync('../../config/docker/DataDockerfile', fs.readFileSync('./config/docker/DataDockerfile'))
 fs.writeFileSync('../../config/docker/docker-compose-debug.yml', fs.readFileSync('./config/docker/docker-compose-debug.yml'))
+fs.writeFileSync('../../config/docker/docker-compose-mssql.yml', fs.readFileSync('./config/docker/docker-compose-mssql.yml'))
+fs.writeFileSync('../../config/docker/docker-compose.yml', fs.readFileSync('./config/docker/docker-compose.yml'))
+fs.writeFileSync('../../config/docker/Dockerfile', fs.readFileSync('./config/docker/Dockerfile'))
 
 fs.writeFileSync('../../LICENSE', fs.readFileSync('./LICENSE'))
 if (!fsExistsSync('../../index.ts')) fs.writeFileSync('../../index.ts', fs.readFileSync('./index.ts'))
