@@ -2758,9 +2758,11 @@ export class ScimGateway {
               if (!res.Resources[i].id) continue
               const el: any = {}
               el.value = res.Resources[i].id
+              const type = (Array.isArray(res.Resources[i].members) && res.Resources[i].members[0]?.type === 'indirect') ? 'indirect' : 'direct'
+              el.type = { value: type }
               if (res.Resources[i].displayName) el.display = res.Resources[i].displayName
-              if (isScimv2) el.type = 'direct'
-              else el.type = { value: 'direct' }
+              if (isScimv2) el.type = type
+              else el.type = { value: type }
               groups.push(el) // { "value": "Admins", "display": "Admins", "type": "direct"}
             }
             nextStartIndex = utilsScim.getNextStartIndex(res.totalResults, startIndex, res.Resources.length)
@@ -3811,6 +3813,17 @@ export class ScimGateway {
   **/
   extendObj(obj: any, src: any) {
     return utils.extendObj(obj, src)
+  }
+
+  /**
+  * getNextStartIndex returns the next SCIM pagination startIndex based on current result set
+  * @param totalResults current totalResults
+  * @param startIndex: current startIndex
+  * @param count: current count
+  * @returns next startIndex
+  **/
+  getNextStartIndex(totalResults: number, startIndex: number, itemsPerPage: number): number {
+    return utilsScim.getNextStartIndex(totalResults, startIndex, itemsPerPage)
   }
 
   /**
