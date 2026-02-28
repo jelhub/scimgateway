@@ -65,6 +65,8 @@ const config = scimgateway.getConfig()
 scimgateway.authPassThroughAllowed = false
 // end - mandatory plugin initialization
 
+const newHelper = new HelperRest(scimgateway)
+
 if (config.map) { // having licensDetails map here instead of config file
   config.map.licenseDetails = {
     servicePlanId: {
@@ -413,6 +415,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   const body = null
   let path
   let options: Record<string, any> = {}
+  let isUserMemberOf = getObj?.operator === 'eq' && getObj?.attribute === 'members.value'
 
   if (!Object.hasOwn(getObj, 'count')) getObj.count = 500
   if (getObj.count > 500) getObj.count = 500 // Entra ID max 999
@@ -428,10 +431,10 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
         if (includeMembers) path = `/groups?$filter=${getObj.attribute} eq '${getObj.value}'&$select=${attrs.join()}&$expand=members($select=id,displayName)`
         else path = `/groups?$filter=${getObj.attribute} eq '${getObj.value}'&$select=${attrs.join()}`
       }
-    } else if (getObj.operator === 'eq' && getObj.attribute === 'members.value') {
+    } else if (isUserMemberOf) {
       // mandatory - return all groups the user 'id' (getObj.value) is member of - correspond to getGroupMembers() in versions < 4.x.x
       // Resources = [{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }]
-      path = `/users/${getObj.value}/memberOf/microsoft.graph.group?$top=${getObj.count}&$count=true&select=id,displayName`
+      path = `/users/${getObj.value}/transitiveMemberOf/microsoft.graph.group?$top=${getObj.count}&$count=true&select=id,displayName`
     } else {
       // optional - simpel filtering
       if (getObj.attribute) {
@@ -471,8 +474,69 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   if (!ctx) ctx = { paging }
   else ctx.paging = paging
 
+  const newCtx = { ...ctx }
+  newCtx.paging = { startIndex: 1 }
+
   try {
-    let response = await helper.doRequest(baseEntity, method, path, body, ctx, options)
+    let response: any
+    let responseMemberOf: any
+    if (!isUserMemberOf) response = await helper.doRequest(baseEntity, method, path, body, ctx, options)
+    else {
+      // request both the default transitiveMemberOf (includes nested groups) and memberOf because we want to distinguish SCIM type=direct/indirect
+      const pathMemberOf = `/users/${getObj.value}/memberOf/microsoft.graph.group?$top=${getObj.count}&$count=true&select=id,displayName`
+      const allErrors: string[] = []
+      const results = await Promise.allSettled([
+        helper.doRequest(baseEntity, method, path, body, ctx, options),
+        newHelper.doRequest(baseEntity, method, pathMemberOf, body, newCtx, options), // using newHelper to avoid shared internal helperRest paging 
+      ])
+      const errors = results
+        .filter(r => r.status === 'rejected')
+        .map(r => (r as PromiseRejectedResult).reason.message)
+        .filter(msg => !msg.includes('already exist'))
+      allErrors.push(...errors)
+
+      if (allErrors.length > 0) {
+        throw new Error(allErrors.join(', '))
+      }
+
+      response = (results[0] as PromiseFulfilledResult<any>).value // includes all groups (also nested)
+      responseMemberOf = (results[1] as PromiseFulfilledResult<any>).value // do not include nested groups
+
+      let nextStartIndex = scimgateway.getNextStartIndex(responseMemberOf.body.value.length * 2, newCtx.paging.startIndex, responseMemberOf.body.value.length)
+      if (nextStartIndex > newCtx.paging.startIndex && responseMemberOf && responseMemberOf.body.value && Array.isArray(responseMemberOf.body.value)) {
+        // use paging to ensure responseMemberOf is complete 
+        let totalResults = responseMemberOf.body.value.length
+        let startIndex = 1
+        let res: any
+        do {
+          try {
+            startIndex = nextStartIndex
+            newCtx.paging.startIndex = startIndex
+            res = await newHelper.doRequest(baseEntity, method, pathMemberOf, body, newCtx, options)
+          } catch (err) { void 0 }
+          if (res?.body && res.body.value && Array.isArray(res.body.value) && res.body.value.length > 0) {
+            const count = res.body.value.length
+            totalResults += count
+            nextStartIndex = scimgateway.getNextStartIndex(totalResults + count, startIndex, count)
+            for (let i = 0; i < res.body.value.length; i++) {
+              if (!res.body.value[i].id) continue
+              responseMemberOf.body.value.push(res.body.value[i])
+            }
+          }
+        } while (nextStartIndex > startIndex)
+      }
+
+      if (response.body && response.body.value && Array.isArray(response.body.value)) {
+        const directIds = new Set()
+        if (responseMemberOf.body && responseMemberOf.body.value && Array.isArray(responseMemberOf.body.value)) {
+          responseMemberOf.body.value.forEach((el: any) => directIds.add(el.id))
+        }
+        response.body.value.forEach((el: any) => {
+          if (directIds.has(el.id)) el.type = 'direct'
+          else el.type = 'indirect'
+        })
+      }
+    }
     if (!response.body) {
       throw new Error(`invalid response: ${JSON.stringify(response)}`)
     }
@@ -494,6 +558,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       } else if (getObj.operator === 'eq' && getObj.attribute === 'members.value') { // Not using expand-members. Only includes current user as member, but should have requested all...
         members = [{
           value: getObj.value,
+          type: response.body.value[i].type || 'direct',
         }]
       }
 
