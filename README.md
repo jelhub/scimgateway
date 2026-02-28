@@ -1303,6 +1303,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.10
+
+[Fixed]
+
+- plugin-entra-id: user group membership now includes nested (transitive) groups (`direct` and `indirect`)
+- Docker example files `config/docker/.dockerignore` and `docker-compose-mssql.yml` were missing
+
 ### v6.1.9
 
 [Improved]
