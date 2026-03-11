@@ -44,7 +44,7 @@
     "@types/tedious": "^18.0.0",
     "dot-object": "^2.1.5",
     "fold-to-ascii": "^5.0.1",
-    "https-proxy-agent": "^7.0.6",
+    "https-proxy-agent": "^8.0.0",
     "hyco-https": "^1.4.5",
     "is-in-subnet": "^4.0.1",
     "jose": "^6.1.3",
