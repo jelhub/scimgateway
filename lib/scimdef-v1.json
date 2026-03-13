@@ -860,82 +860,75 @@
       "id": "urn:scim:schemas:core:1.0:Group",
       "meta": { "location": "/Schemas/urn:scim:schemas:core:1.0:Group" }
     },
-
     {
-      "name": "servicePlan",
-      "description": "SCIM core resource for representing AAD ServicePlan",
-      "schema": "urn:scim:schemas:core:1.0",
-      "endpoint": "servicePlans",
+      "name": "Entitlement",
+      "description": "Entitlement",
+      "schema": "urn:scim:schemas:custom:1.0:Entitlement",
+      "endpoint": "Entitlements",
       "attributes": [
         {
           "name": "id",
           "type": "string",
           "multiValued": false,
           "description": "Unique identifier for the SCIM Resource as defined by the Service Provider",
-          "schema": "urn:scim:schemas:core:1.0",
+          "schema": "urn:scim:schemas:custom:1.0:Entitlement",
           "readOnly": true,
           "required": true,
           "caseExact": false
         },
         {
-          "name": "skuId",
+          "name": "displayName",
           "type": "string",
           "multiValued": false,
-          "description": "A human readable name for the ServicePlan",
-          "schema": "urn:scim:schemas:core:1.0",
-          "readOnly": false,
-          "required": true,
+          "description": "A human-readable name for the entitlement.",
+          "schema": "urn:scim:schemas:custom:1.0:Entitlement",
+          "readOnly": true,
+          "required": false,
           "caseExact": false
         },
         {
-          "name": "skuPartNumber",
+          "name": "type",
           "type": "string",
           "multiValued": false,
-          "description": "A human readable name for the ServicePlan",
-          "schema": "urn:scim:schemas:core:1.0",
-          "readOnly": false,
-          "required": true,
+          "description": "A label indicating the entitlement's function or service plan.",
+          "schema": "urn:scim:schemas:custom:1.0:Entitlement",
+          "readOnly": true,
+          "required": false,
           "caseExact": false
         },
         {
-          "name": "members",
+          "name": "usage",
           "type": "complex",
-          "multiValued": true,
-          "multiValuedAttributeChildName": "member",
-          "description": "A list of members of the ServicePlan",
-          "schema": "urn:scim:schemas:core:1.0",
-          "readOnly": false,
+          "multiValued": false,
+          "description": "Usage statistics for the entitlement.",
+          "schema": "urn:scim:schemas:custom:1.0:Entitlement",
+          "readOnly": true,
           "required": false,
           "caseExact": false,
           "subAttributes": [
             {
-              "name": "value",
-              "type": "string",
+              "name": "used",
+              "type": "integer",
               "multiValued": false,
-              "description": "The attribute's significant value",
-              "readOnly": false,
-              "required": true,
+              "description": "Number of units consumed.",
+              "readOnly": true,
+              "required": false,
               "caseExact": false
             },
             {
-              "name": "type",
-              "type": "string",
+              "name": "available",
+              "type": "integer",
               "multiValued": false,
-              "description": "A label indicating the attribute's function; e.g., \"work\" or \"home\"",
-              "readOnly": false,
+              "description": "Number of units available.",
+              "readOnly": true,
               "required": false,
-              "caseExact": false,
-              "canonicalValues": [
-                { "value": "User" },
-                { "value": "ServicePlan" }
-              ]
+              "caseExact": false
             }
           ]
         }
-        
       ],
-      "id": "urn:scim:schemas:core:1.0:ServicePlan",
-      "meta": { "location": "/Schemas/urn:scim:schemas:core:1.0:ServicePlan" }
+      "id": "urn:scim:schemas:custom:1.0:Entitlement",
+      "meta": { "location": "/Schemas/urn:scim:schemas:custom:1.0:Entitlement" }
     }
 
   ]

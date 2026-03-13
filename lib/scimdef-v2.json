@@ -51,8 +51,8 @@
 },
 
 "ResourceType": {
-  "totalResults": 2,
-  "itemsPerPage": 2,
+  "totalResults": 3,
+  "itemsPerPage": 3,
   "startIndex": 1,
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
   "Resources": [{
@@ -84,6 +84,19 @@
       "resourceType": "Schema",
       "location":
         "/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group"
+    }
+  },
+  {
+    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
+    "id": "urn:ietf:params:scim:schemas:custom:2.0:Entitlement",
+    "name": "Entitlement",
+    "endpoint": "/Entitlements",
+    "description": "Entitlement",
+    "schema": "urn:ietf:params:scim:schemas:custom:2.0:Entitlement",
+    "meta": {
+      "resourceType": "Schema",
+      "location":
+        "/Schemas/urn:ietf:params:scim:schemas:custom:2.0:Entitlement"
     }
   }]
 },
@@ -858,6 +871,82 @@
           "resourceType": "Schema",
           "location":
             "/Schemas/urn:ietf:params:scim:schemas:core:2.0:User"
+        }
+      },
+      {
+        "id": "urn:ietf:params:scim:schemas:custom:2.0:Entitlement",
+        "name": "Entitlement",
+        "description": "Entitlement",
+        "attributes": [
+          {
+            "name": "id",
+            "type": "string",
+            "multiValued": false,
+            "description": "The unique identifier for an entitlement.",
+            "required": true,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "server"
+          },
+          {
+            "name": "displayName",
+            "type": "string",
+            "multiValued": false,
+            "description": "A human-readable name for the entitlement.",
+            "required": false,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "none"
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "multiValued": false,
+            "description": "A label indicating the entitlement's function or service plan.",
+            "required": false,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "none"
+          },
+          {
+            "name": "usage",
+            "type": "complex",
+            "multiValued": false,
+            "description": "Usage statistics for the entitlement.",
+            "required": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "none",
+            "subAttributes": [
+              {
+                "name": "used",
+                "type": "integer",
+                "multiValued": false,
+                "description": "Number of units consumed.",
+                "required": false,
+                "mutability": "readOnly",
+                "returned": "default",
+                "uniqueness": "none"
+              },
+              {
+                "name": "available",
+                "type": "integer",
+                "multiValued": false,
+                "description": "Number of units available.",
+                "required": false,
+                "mutability": "readOnly",
+                "returned": "default",
+                "uniqueness": "none"
+              }
+            ]
+          }
+        ],
+        "meta": {
+          "resourceType": "Schema",
+          "location": "/Schemas/urn:ietf:params:scim:schemas:custom:2.0:Entitlement"
         }
       },
       {
