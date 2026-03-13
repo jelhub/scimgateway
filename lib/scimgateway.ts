@@ -7,11 +7,11 @@
 //          Listens and replies on incoming SCIM requests
 //          Optional SCIM Stream subscriber/publisher
 // =================================================================================
-
 import { createServer as httpCreateServer } from 'node:http'
 import { createServer as httpsCreateServer } from 'node:https'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import { createPublicKey } from 'node:crypto'
+
 import { createChecker } from 'is-in-subnet'
 import { fileURLToPath } from 'node:url'
 import { Logger } from './logger.ts'
@@ -40,6 +40,10 @@ export class ScimGateway {
   private pub: any
   // @ts-expect-error: has no initializer
   private helperRest: HelperRest
+  /** scimgateway lib directory */
+  readonly gwDir: string
+  /** plugin lib directory */
+  readonly pluginDir: string
   /** pluginName is the name of plugin e.g., plugin-loki */
   readonly pluginName: string
   /** configDir is full path to plugin ./config directory */
@@ -351,6 +355,8 @@ export class ScimGateway {
     this.config = {}
     // exposed outside class
     this.gwName = gwName
+    this.gwDir = path.dirname(fileURLToPath(import.meta.url))
+    this.pluginDir = pluginDir
     this.pluginName = pluginName
     this.configDir = configDir
     this.configFile = configFile
@@ -479,11 +485,11 @@ export class ScimGateway {
       deleteMethod: 'deleteGroup',
     }
     handler.Entitlements = handler.entitlements = {
-      description: 'Entitlements',
+      description: 'Entitlement',
       getMethod: 'getEntitlements',
     }
     handler.AppRoles = handler.approles = { // scim-stream
-      description: 'AppRoles',
+      description: 'AppRole',
       getMethod: 'getAppRoles',
     }
     /** handlers supported url paths */
