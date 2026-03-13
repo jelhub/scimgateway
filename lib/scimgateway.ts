@@ -243,8 +243,8 @@ export class ScimGateway {
   */
   modifyGroup!: (baseEntity: string, id: string, attrObj: Record<string, any>, ctx?: undefined | Record<string, any>) => any
 
-  /** getServicePlans is used by plugin-entra for retrieving Entra ID license plans */
-  getServicePlans!: (baseEntity: string, getObj: Record<string, any>, attributes: Array<string>, ctx?: undefined | Record<string, any>) => any
+  /** getEntitlements returns endpoint supported entitlements - e.g., plugin-entra-id returns available Entra tenant licenses as entitlements */
+  getEntitlements!: (baseEntity: string, getObj: Record<string, any>, attributes: Array<string>, ctx?: undefined | Record<string, any>) => any
 
   /**
   * postApi method is defined at the plugin and should handle incoming `"POST /api"` for creating an object and should be used according to your needs  
@@ -478,16 +478,16 @@ export class ScimGateway {
       createMethod: 'createGroup',
       deleteMethod: 'deleteGroup',
     }
-    handler.servicePlans = handler.serviceplans = { // plugin-entra
-      description: 'ServicePlan',
-      getMethod: 'getServicePlans',
+    handler.Entitlements = handler.entitlements = {
+      description: 'Entitlements',
+      getMethod: 'getEntitlements',
     }
     handler.AppRoles = handler.approles = { // scim-stream
       description: 'AppRoles',
       getMethod: 'getAppRoles',
     }
     /** handlers supported url paths */
-    const handlers = ['users', 'groups', 'bulk', 'serviceplans', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'oauth', '.well-known', 'logger']
+    const handlers = ['users', 'groups', 'bulk', 'entitlements', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'oauth', '.well-known', 'logger']
 
     try {
       if (!fs.existsSync(configDir + '/wsdls')) fs.mkdirSync(configDir + '/wsdls')
@@ -866,10 +866,12 @@ export class ScimGateway {
         const updateSchema = (resourceName: string, mapSection: any) => {
           if (!mapSection) return
           const resource = tx.Resources.find((r: any) => r.name === resourceName)
+          const scimResource = this.scimDef.Schemas.Resources.find((r: any) => r.name === resourceName)
           if (!resource) return
           const isV1 = (resource.schema === 'urn:scim:schemas:core:1.0') ? true : false
           const newAttributes: any[] = []
           const complexAttrs: Record<string, any> = {}
+          const typeDone: Record<string, string> = {}
           for (const key in mapSection) {
             const item = mapSection[key]
             if (!item.mapTo && key === 'x-agent-schema') {
@@ -879,16 +881,21 @@ export class ScimGateway {
             if (!item.mapTo || item.mapTo === 'id') continue
             const parts = item.mapTo.split('.')
             if (parts.length === 1) {
-              const attr: any = {
-                name: item.mapTo,
-                type: item.type || 'string',
-                multiValued: item.multiValued || false,
-                description: item.description || item.mapTo,
-                required: (item.mapTo === 'userName') ? true : false,
-                caseExact: false,
-                mutability: 'readWrite',
-                returned: 'default',
-                uniqueness: (item.mapTo === 'userName') ? 'server' : 'none',
+              const org = scimResource.attributes.find((r: any) => r.name === item.mapTo)
+              let attr: any
+              if (org) attr = structuredClone(org) // reusing original SCIM definition
+              else {
+                attr = {
+                  name: item.mapTo,
+                  type: (item.type === 'boolean') ? item.type : 'string',
+                  multiValued: false,
+                  description: item.description ?? '',
+                  required: (item.mapTo === 'userName') ? true : false,
+                  caseExact: false,
+                  mutability: 'readWrite',
+                  returned: 'default',
+                  uniqueness: (item.mapTo === 'userName') ? 'server' : 'none',
+                }
               }
               if (item['x-agent-schema']) {
                 const agentSchema = structuredClone(item['x-agent-schema'])
@@ -927,37 +934,85 @@ export class ScimGateway {
             } else { // Complex
               const parent = parts[0]
               const sub = parts[parts.length - 1]
+              let orgParent
               if (!complexAttrs[parent]) {
-                complexAttrs[parent] = {
-                  name: parent,
-                  type: 'complex',
-                  multiValued: item.multiValued || false,
-                  description: parent,
-                  required: false,
-                  subAttributes: [],
+                orgParent = scimResource.attributes.find((r: any) => r.name === parent)
+                if (orgParent) {
+                  complexAttrs[parent] = structuredClone(orgParent) // reusing original SCIM definition
+                  delete complexAttrs[parent].subAttributes
+                  complexAttrs[parent].subAttributes = []
+                } else {
+                  complexAttrs[parent] = {
+                    name: parent,
+                    type: 'complex',
+                    multiValued: (parts.length === 3 || item.type === 'array' || item.type === 'complex') ? true : false,
+                    description: `A list of ${parent} for the ${resourceName}`,
+                    required: false,
+                    subAttributes: [],
+                  }
                 }
                 if (isV1) complexAttrs[parent]['schema'] = 'urn:scim:schemas:core:1.0'
                 newAttributes.push(complexAttrs[parent])
               }
               const existingSub = complexAttrs[parent].subAttributes.find((sa: any) => sa.name === sub)
               if (!existingSub) {
-                const subAttr: any = {
-                  name: sub,
-                  type: item.type || 'string',
-                  multiValued: false,
-                  description: item.description || sub,
-                  required: false,
-                  caseExact: false,
-                  mutability: 'readWrite',
-                  returned: 'default',
-                  uniqueness: 'none',
+                let subAttr: any
+                let org
+                if (orgParent) org = orgParent.subAttributes.find((r: any) => r.name === sub)
+                if (org) {
+                  subAttr = structuredClone(org) // reusing original SCIM definition
+                } else {
+                  subAttr = {
+                    name: sub,
+                    type: (item.type === 'boolean') ? item.type : 'string',
+                    multiValued: false,
+                    description: item.description ?? '',
+                    required: false,
+                    caseExact: false,
+                    mutability: 'readWrite',
+                    returned: 'default',
+                    uniqueness: 'none',
+                  }
+                  if (isV1) {
+                    subAttr.readOnly = false
+                    delete subAttr.mutability
+                    delete subAttr.returned
+                    delete subAttr.uniqueness
+                  }
                 }
-                if (isV1) {
-                  subAttr.readOnly = false
-                  delete subAttr.mutability
-                  delete subAttr.returned
-                  delete subAttr.uniqueness
+
+                // check for type object and canonicalValues - include if needed
+                if (!typeDone[parent]) {
+                  let type
+                  if (sub === 'type') {
+                    subAttr.canonicalValues = []
+                    typeDone[parent] = 'type'
+                  } else {
+                    if (orgParent) org = orgParent.subAttributes.find((r: any) => r.name === 'type')
+                    if (org) {
+                      type = structuredClone(org)
+                      if (parts.length === 3) type.canonicalValues = [parts[1]]
+                    } else if (parts.length === 3) {
+                      type = {
+                        name: 'type',
+                        type: 'string',
+                        multiValued: false,
+                        description: 'A label indicating the attribute\'s function.',
+                        required: false,
+                        caseExact: false,
+                        canonicalValues: [parts[1]],
+                        mutability: 'readWrite',
+                        returned: 'default',
+                        uniqueness: 'none',
+                      }
+                    }
+                    if (type) {
+                      complexAttrs[parent].subAttributes.push(type)
+                      typeDone[parent] = 'type'
+                    }
+                  }
                 }
+
                 if (item['x-agent-schema']) {
                   const hints = structuredClone(item['x-agent-schema'])
                   if (hints.description) {
@@ -967,6 +1022,11 @@ export class ScimGateway {
                   if (Object.keys(hints).length > 0) subAttr['x-agent-schema'] = JSON.stringify(hints)
                 }
                 complexAttrs[parent].subAttributes.push(subAttr)
+              } else if (parts.length === 3) { // phoneNumbers.work.value
+                const typeAttr = complexAttrs[parent].subAttributes.find((sa: any) => sa.name === 'type')
+                if (typeAttr && Array.isArray(typeAttr.canonicalValues) && !typeAttr.canonicalValues.includes(parts[1])) {
+                  typeAttr.canonicalValues.push(parts[1])
+                }
               }
             }
           }
@@ -1272,8 +1332,10 @@ export class ScimGateway {
       const baseEntity = ctx.routeObj.baseEntity
       const id = decodeURIComponent(path.basename(ctx.routeObj.id ?? '', '.json')) // supports <id>.json
 
-      if (!id) {
-        const err = new Error('missing id')
+      if (!id || handle.getMethod === 'getEntitlements') {
+        let err: Error
+        if (!id) err = new Error('missing id')
+        else err = new Error(`GET /${handle.description}/${id} is not supported. Instead use filter query on users e.g., /users?filter=entitlements[value eq "xxx"]`)
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
         ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
@@ -1375,6 +1437,7 @@ export class ScimGateway {
     // ==========================================
     //           getUsers
     //           getGroups
+    //           getEntitlements
     // ==========================================
     const getHandler = async (ctx: Context) => {
       const handle = handler[ctx.routeObj.handle]
@@ -1393,27 +1456,27 @@ export class ScimGateway {
       let isAndFilter = false
       let isOrFilter = false
       if (getObj.rawFilter) {
+        getObj.rawFilter = decodeURIComponent(getObj.rawFilter.trim())
         if (getObj.rawFilter.includes(' and ')) isAndFilter = true
         if (getObj.rawFilter.includes(' or ')) isOrFilter = true
       }
+      if (ctx.query.filter) decodeURIComponent(ctx.query.filter.trim())
+      else ctx.query.filter = ''
 
       if (getObj.rawFilter && !isAndFilter && !isOrFilter) {
-        ctx.query.filter = ctx.query.filter.trim()
         const arrFilter = ctx.query.filter.split(' ')
-        if (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"')) {
+        if (arrFilter.length > 2 && arrFilter[2].startsWith('"') && (arrFilter[arrFilter.length - 1].endsWith('"') || arrFilter[arrFilter.length - 1].endsWith('"]'))) {
           getObj.attribute = arrFilter[0] // userName
           getObj.operator = arrFilter[1].toLowerCase() // eq
           const value = arrFilter.slice(2).join(' ').replace(/"/g, '')
-          try {
-            getObj.value = decodeURIComponent(value) // bjensen
-          } catch (err) { // e.g., character '%' in string - 'name%test' 
-            getObj.value = value
-          }
+          getObj.value = value
         }
       }
 
       let err
-      if (getObj.attribute) {
+      if (handle.getMethod === 'getEntitlements') {
+        if (typeof (this as any)[handle.getMethod] !== 'function') err = new Error(`plugin method ${handle.getMethod}() not implemented`)
+      } else if (getObj.attribute) {
         if (this.multiValueTypes.includes(getObj.attribute) || getObj.attribute === 'roles') {
           getObj.attribute = `${getObj.attribute}.value` // emails => emails.value
         } else if (getObj.attribute.includes('[')) { // e.g. rawFilter = emails[type eq "work"]
@@ -1533,14 +1596,30 @@ export class ScimGateway {
         } else {
           // advanced filtering "light", using and / or (not combined)
           // e.g.: (id eq "bjensen") or (id eq "jsmith") - (id eq "bjensen") and (name.givenName eq "Barbara") and (name.familyName eq "Jensen")
+          // e.g.: entitlements.type eq "License" and entitlements.value eq "123"
+          // e.g.: entitlements[type eq "License" and value eq "123"]
           // handled by scimgateway instead of plugins if supported operator being used
           const splitBy = isAndFilter ? ' and ' : ' or '
           const arr = obj.rawFilter.split(splitBy)
           const originalGetObjArrLength = arr.length
           let getObjArr: object[] = []
+          let complexAttr = ''
           for (let i = 0; i < arr.length; i++) {
             arr[i] = arr[i].replace(/\(/g, '').replace(/\)/g, '').trim()
             const arrFilter = arr[i].split(' ')
+            // convert any complex multivalue to dot notation
+            // e.g., entitlements[type eq "License" and value eq "123"] => entitlements.type eq "License" and entitlements.value eq "123"
+            if (complexAttr && arrFilter.length > 2) {
+              if (arrFilter[2].endsWith('"]')) arrFilter[2] = arrFilter[2].slice(0, -1)
+              arrFilter[0] = `${complexAttr}.${arrFilter[0]}`
+            } else {
+              const pos = arrFilter[0].indexOf('[')
+              if (pos > 1) {
+                complexAttr = arrFilter[0].substring(0, pos)
+                arrFilter[0] = `${complexAttr}.${arrFilter[0].substring(pos + 1)}`
+              }
+            }
+            // create filter
             if (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"')) {
               const o: any = {}
               o.attribute = arrFilter[0] // id
@@ -3328,7 +3407,7 @@ export class ScimGateway {
         switch (apiEndpoint) {
           case 'GET users':
           case 'GET groups':
-          case 'GET serviceplans':
+          case 'GET entitlements':
             if (ctx.routeObj.id) await getHandlerId(ctx)
             else await getHandler(ctx)
             return await onAfterHandle(ctx)
