@@ -486,6 +486,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
   switch (direction) {
     case 'outbound':
       if (isObj) { // body (patch/put)
+        let foundComplex: string[] = []
         for (let key in dotParse) {
           let found = false
           let arrIndex = 0
@@ -510,12 +511,21 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
           }
           for (const key2 in dotMap) {
             if (!key2.endsWith('.mapTo')) continue
-            if (dotMap[key2].split(',').map((item: string) => item.trim().toLowerCase()).includes(key.toLowerCase())) {
+            const key2Root = key2.split('.').slice(0, -1).join('.') // xx.yy.mapTo => xx.yy
+            if (dotMap[`${key2Root}.type`] === 'complex') {
+              const tmpKey = key.split('.')[0].split('[')[0]
+              if (dotMap[key2] === tmpKey) {
+                found = true
+                if (foundComplex.includes(tmpKey)) break
+                dot.str(key2Root, parseObj[tmpKey], dotNewObj) // copy from original - supports both array and type converted
+                foundComplex.push(tmpKey)
+                break
+              }
+            } else if (dotMap[key2].split(',').map((item: string) => item.trim().toLowerCase()).includes(key.toLowerCase())) {
               found = true
-              const keyRoot = key2.split('.').slice(0, -1).join('.') // xx.yy.mapTo => xx.yy
-              if (dotMap[`${keyRoot}.type`] === 'array' && arrIndex >= 0) {
-                dotNewObj[`${keyRoot}.${arrIndex}`] = dotParse[keyOrg] // servicePlan.0.value => servicePlan.0 and groups[0].value => memberOf.0
-              } else dotNewObj[keyRoot] = dotParse[key] // {"accountEnabled": {"mapTo": "active"} => str.replace("accountEnabled", "active")
+              if (dotMap[`${key2Root}.type`] === 'array' && arrIndex >= 0) {
+                dotNewObj[`${key2Root}.${arrIndex}`] = dotParse[keyOrg] // servicePlan.0.value => servicePlan.0 and groups[0].value => memberOf.0
+              } else dotNewObj[key2Root] = dotParse[key] // {"accountEnabled": {"mapTo": "active"} => str.replace("accountEnabled", "active")
               break
             }
           }
@@ -538,6 +548,10 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
             if (dotMap[key].split(',').map((item: string) => item.trim()).includes(attr)) { // supports { "mapTo": "userName,id" }
               found = true
               if (!resArr.includes(keyNotDot)) resArr.push(keyNotDot)
+              break
+            } else if (dotMap[key] === attr.split('.')[0] && mapObj[attr.split('.')[0]]?.type === 'complex') {
+              found = true
+              resArr.push(keyNotDot)
               break
             } else if (attr === 'roles' && dotMap[key] === 'roles.value') { // allow get using attribute roles - convert to correct roles.value
               found = true
@@ -563,6 +577,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
       break
 
     case 'inbound':
+      let foundComplex: string[] = []
       for (let key in dotParse) {
         if (Array.isArray(dotParse[key]) && dotParse[key].length < 1) continue // avoid including 'value' in empty array if mapTo xx.value
         if (key.startsWith('lastLogon') && !isNaN(dotParse[key])) { // Active Directory date convert e.g. 132340394347050132 => "2020-05-15 20:03:54"
@@ -622,17 +637,23 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
               if (!inboundArrCheck.includes(newStr)) inboundArrCheck.push(newStr) // will be checked
             }
           }
-        } else { // none array
+        } else if (dotMap[`${key}.type`] === 'complex') { // mapping complex one to one
+          if (foundComplex.includes(key)) continue
+          dot.str(mapTo, parseObj[key], dotNewObj) // copy from original - supports both array and type converted
+          foundComplex.push(key)
+        } else { // none array/complex
           const arrMapTo = mapTo.split(',').map((item: string) => item.trim()) // supports {"mapTo": "id,userName"}
           for (let i = 0; i < arrMapTo.length; i++) {
             dotNewObj[arrMapTo[i]] = dotParse[key] // {"active": {"mapTo": "accountEnabled"} => str.replace("accountEnabled", "active")
           }
         }
-        const mapTos = mapTo.split(',').map((item: string) => item.trim()) // 'displayName,addresses.work.postalCode'
-        for (let i = 0; i < mapTos.length; i++) {
-          const arr = mapTos[i].split('.') // addresses.work.postalCode
-          if (arr.length > 2 && complexObj[arr[0]]) {
-            complexArr.push(arr[0]) // addresses
+        if (dotMap[`${key}.type`] !== 'complex') {
+          const mapTos = mapTo.split(',').map((item: string) => item.trim()) // 'displayName,addresses.work.postalCode'
+          for (let i = 0; i < mapTos.length; i++) {
+            const arr = mapTos[i].split('.') // addresses.work.postalCode
+            if (arr.length > 2 && complexObj[arr[0]]) {
+              complexArr.push(arr[0]) // addresses
+            }
           }
         }
       }
@@ -670,6 +691,7 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
       }
       newObj = tmpObj
     }
+
     if (arrUnsupported.length > 0) { // delete from newObj when not included in map
       for (const i in arrUnsupported) {
         const arr = arrUnsupported[i].split('.') // emails.work.type
@@ -822,7 +844,13 @@ export function addSchemasStripAttr(data: Record<string, any>, isScimv2: boolean
           if (!data.Resources[i].schemas) data.Resources[i].schemas = [val]
           else if (!data.Resources[i].schemas.includes(val)) data.Resources[i].schemas.push(val)
           if (!data.Resources[i].meta) data.Resources[i].meta = {}
-          data.Resources[i].meta.resourceType = 'Group'
+          data.Resources[i].meta.resourceType = type
+        } else if (type === 'Entitlement') {
+          const val = 'urn:ietf:params:scim:schemas:custom:2.0:Entitlement'
+          if (!data.Resources[i].schemas) data.Resources[i].schemas = [val]
+          else if (!data.Resources[i].schemas.includes(val)) data.Resources[i].schemas.push(val)
+          if (!data.Resources[i].meta) data.Resources[i].meta = {}
+          data.Resources[i].meta.resourceType = type
         }
       }
       if (location && data.Resources[i].id) {
@@ -870,6 +898,12 @@ export function addSchemasStripAttr(data: Record<string, any>, isScimv2: boolean
         data.meta.resourceType = type
       } else if (type === 'Group') {
         const val = 'urn:ietf:params:scim:schemas:core:2.0:Group'
+        if (!data.schemas) data.schemas = [val]
+        else if (!data.schemas.includes(val)) data.schemas.push(val)
+        if (!data.meta) data.meta = {}
+        data.meta.resourceType = type
+      } else if (type === 'Entitlement') {
+        const val = 'urn:ietf:params:scim:schemas:custom:2.0:Entitlement'
         if (!data.schemas) data.schemas = [val]
         else if (!data.schemas.includes(val)) data.schemas.push(val)
         if (!data.meta) data.meta = {}
