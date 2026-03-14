@@ -7,11 +7,11 @@
 //          Listens and replies on incoming SCIM requests
 //          Optional SCIM Stream subscriber/publisher
 // =================================================================================
+
 import { createServer as httpCreateServer } from 'node:http'
 import { createServer as httpsCreateServer } from 'node:https'
 import { type IncomingMessage, type ServerResponse } from 'node:http'
 import { createPublicKey } from 'node:crypto'
-
 import { createChecker } from 'is-in-subnet'
 import { fileURLToPath } from 'node:url'
 import { Logger } from './logger.ts'
@@ -1482,7 +1482,8 @@ export class ScimGateway {
       let err
       if (handle.getMethod === 'getEntitlements') {
         if (typeof (this as any)[handle.getMethod] !== 'function') err = new Error(`plugin method ${handle.getMethod}() not implemented`)
-      } else if (getObj.attribute) {
+      }
+      if (!err && getObj.attribute) {
         if (this.multiValueTypes.includes(getObj.attribute) || getObj.attribute === 'roles') {
           getObj.attribute = `${getObj.attribute}.value` // emails => emails.value
         } else if (getObj.attribute.includes('[')) { // e.g. rawFilter = emails[type eq "work"]
