@@ -512,7 +512,10 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
           for (const key2 in dotMap) {
             if (!key2.endsWith('.mapTo')) continue
             const key2Root = key2.split('.').slice(0, -1).join('.') // xx.yy.mapTo => xx.yy
-            if (dotMap[`${key2Root}.type`] === 'complex') {
+            const isArr = dotMap[`${key2Root}.type`] === 'array'
+            const isMulti = key.split('.').length > 1
+            const typeInbound = dotMap[`${key2Root}.typeInbound"`]
+            if (['complexArray', 'complexObject'].includes(dotMap[`${key2Root}.type`]) || (isArr && !isMulti && !typeInbound)) {
               const tmpKey = key.split('.')[0].split('[')[0]
               if (dotMap[key2] === tmpKey) {
                 found = true
@@ -542,26 +545,26 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
         for (let i = 0; i < strArr.length; i++) {
           const attr = strArr[i]
           let found = false
-          for (const key in dotMap) {
-            if (!key.endsWith('.mapTo')) continue
-            const keyNotDot: string = key.substring(0, key.indexOf('.mapTo'))
-            if (dotMap[key].split(',').map((item: string) => item.trim()).includes(attr)) { // supports { "mapTo": "userName,id" }
+          for (const key in mapObj) {
+            if (!mapObj[key].mapTo) continue
+            const val = mapObj[key].mapTo
+            if (val.split(',').map((item: string) => item.trim()).includes(attr)) { // supports { "mapTo": "userName,id" }
               found = true
-              if (!resArr.includes(keyNotDot)) resArr.push(keyNotDot)
+              if (!resArr.includes(key)) resArr.push(key)
               break
-            } else if (dotMap[key] === attr.split('.')[0] && mapObj[attr.split('.')[0]]?.type === 'complex') {
+            } else if (val === attr.split('.')[0] && ['complexArray', 'complexObject'].includes(mapObj[key].type)) {
               found = true
-              resArr.push(keyNotDot)
+              if (!resArr.includes(key)) resArr.push(key)
               break
-            } else if (attr === 'roles' && dotMap[key] === 'roles.value') { // allow get using attribute roles - convert to correct roles.value
+            } else if (val.split('.')[0] === attr) { // roles.value, manager.managerId
               found = true
-              resArr.push(keyNotDot)
+              if (!resArr.includes(key)) resArr.push(key)
               break
             } else {
-              if (dotMap[key].startsWith(attr + '.')) { // e.g. emails - complex definition
+              if (val.startsWith(attr + '.')) { // e.g. emails - complex definition
                 if (complexObj[attr]) {
                   found = true
-                  resArr.push(keyNotDot)
+                  if (!resArr.includes(key)) resArr.push(key)
                   // don't break - check for multiple complex definitions
                 }
               }
@@ -577,85 +580,127 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
       break
 
     case 'inbound':
-      let foundComplex: string[] = []
-      for (let key in dotParse) {
-        if (Array.isArray(dotParse[key]) && dotParse[key].length < 1) continue // avoid including 'value' in empty array if mapTo xx.value
-        if (key.startsWith('lastLogon') && !isNaN(dotParse[key])) { // Active Directory date convert e.g. 132340394347050132 => "2020-05-15 20:03:54"
-          const ll = new Date(parseInt(dotParse[key], 10) / 10000 - 11644473600000)
-          dotParse[key] = ll.getFullYear() + '-'
-            + ('00' + (ll.getMonth() + 1)).slice(-2) + '-'
-            + ('00' + ll.getDate()).slice(-2) + ' '
-            + ('00' + (ll.getHours())).slice(-2) + ':'
-            + ('00' + ll.getMinutes()).slice(-2) + ':'
-            + ('00' + ll.getSeconds()).slice(-2)
-        }
-
-        // first element array gives xxx[0] instead of xxx.0
-        let keyArr: any = key.split('.')
-        if (keyArr[0].slice(-1) === ']') { // last character=]
-          let newStr = keyArr[0]
-          newStr = newStr.replace('[', '.')
-          newStr = newStr.replace(']', '') // member[0] => member.0
-          dotParse[newStr] = dotParse[key]
-          key = newStr // will be handled below
-        }
-
-        let dotArrIndex = null
-        keyArr = key.split('.')
-        if (keyArr.length > 1 && !isNaN(keyArr[1])) { // array
-          key = keyArr[0] // "proxyAddresses.0" => "proxyAddresses"
-          dotArrIndex = keyArr[1]
-        }
-
-        let mapTo = dotMap[`${key}.mapTo`]
-        if (!mapTo) continue
-        if (mapTo.startsWith('urn:')) { // dot workaround for none core (e.g. enterprise and custom schema attributes) having dot in key e.g "2.0": urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.department
-          mapTo = mapTo.replace('.', '##') // only first occurence
-          noneCore = true
-        }
-
-        if (dotMap[`${key}.type`] === 'array') {
-          let newStr = mapTo
-          if (newStr === 'roles') { // {"mapTo": "roles"} should be {"mapTo": "roles.value"}
-            arrUnsupported.push('roles.value')
+      if (isObj) {
+        let foundComplex: string[] = []
+        for (let key in dotParse) {
+          if (Array.isArray(dotParse[key]) && dotParse[key].length < 1) continue // avoid including 'value' in empty array if mapTo xx.value
+          if (key.startsWith('lastLogon') && !isNaN(dotParse[key])) { // Active Directory date convert e.g. 132340394347050132 => "2020-05-15 20:03:54"
+            const ll = new Date(parseInt(dotParse[key], 10) / 10000 - 11644473600000)
+            dotParse[key] = ll.getFullYear() + '-'
+              + ('00' + (ll.getMonth() + 1)).slice(-2) + '-'
+              + ('00' + ll.getDate()).slice(-2) + ' '
+              + ('00' + (ll.getHours())).slice(-2) + ':'
+              + ('00' + ll.getMinutes()).slice(-2) + ':'
+              + ('00' + ll.getSeconds()).slice(-2)
           }
-          let multiValue = true
-          if (newStr.indexOf('.value') > 0) newStr = newStr.substring(0, newStr.indexOf('.value')) // multivalue back to ScimGateway - remove .value if defined
-          else multiValue = false
-          if (dotArrIndex !== null) { // array e.g proxyAddresses.value mapTo proxyAddresses converts proxyAddresses.0 => proxyAddresses.0.value
-            if (multiValue) dotNewObj[`${newStr}.${dotArrIndex}.value`] = dotParse[`${key}.${dotArrIndex}`]
-            else {
-              if (dotMap[`${key}.typeInbound`] && dotMap[`${key}.typeInbound`] === 'string') {
-                if (!dotNewObj[newStr]) dotNewObj[newStr] = dotParse[`${key}.${dotArrIndex}`]
-                else dotNewObj[newStr] = `${dotParse[`${key}.${dotArrIndex}`]},${dotNewObj[newStr]}`
-              } else dotNewObj[`${newStr}.${dotArrIndex}`] = dotParse[`${key}.${dotArrIndex}`]
+
+          // first element array gives xxx[0] instead of xxx.0
+          let keyArr: any = key.split('.')
+          if (keyArr[0].slice(-1) === ']') { // last character=]
+            let newStr = keyArr[0]
+            newStr = newStr.replace('[', '.')
+            newStr = newStr.replace(']', '') // member[0] => member.0
+            dotParse[newStr] = dotParse[key]
+            key = newStr // will be handled below
+          }
+
+          let dotArrIndex = null
+          let keyRoot = ''
+          keyArr = key.split('.')
+          if (keyArr.length > 1) {
+            if (!isNaN(keyArr[1])) { // array
+              key = keyArr[0] // "proxyAddresses.0" => "proxyAddresses"
+              dotArrIndex = keyArr[1]
+            } else keyRoot = keyArr[0]
+          }
+
+          let mapTo = dotMap[`${key}.mapTo`]
+          if (!mapTo) {
+            if (keyRoot && dotMap[`${keyRoot}.mapTo`]) { // e.g., type=complex and dotMap is object
+              key = keyRoot
+              mapTo = dotMap[`${key}.mapTo`]
+            } else continue
+          }
+          if (mapTo.startsWith('urn:')) { // dot workaround for none core (e.g. enterprise and custom schema attributes) having dot in key e.g "2.0": urn:ietf:params:scim:schemas:extension:enterprise:2.0:User.department
+            mapTo = mapTo.replace('.', '##') // only first occurence
+            noneCore = true
+          }
+
+          if (dotMap[`${key}.type`] === 'array') {
+            let newStr = mapTo
+            if (newStr === 'roles') { // {"mapTo": "roles"} should be {"mapTo": "roles.value"}
+              arrUnsupported.push('roles.value')
             }
-          } else { // type=array but element is not array
-            if (multiValue) dotNewObj[`${newStr}.0.value`] = dotParse[key]
-            else dotNewObj[newStr] = dotParse[key]
-            if (!dotMap[`${key}.typeInbound`] || dotMap[`${key}.typeInbound`] !== 'string') {
-              if (!inboundArrCheck.includes(newStr)) inboundArrCheck.push(newStr) // will be checked
+            let multiValue = true
+            if (newStr.indexOf('.value') > 0) newStr = newStr.substring(0, newStr.indexOf('.value')) // multivalue back to ScimGateway - remove .value if defined
+            else multiValue = false
+            if (dotArrIndex !== null) { // array e.g proxyAddresses.value mapTo proxyAddresses converts proxyAddresses.0 => proxyAddresses.0.value
+              if (multiValue) dotNewObj[`${newStr}.${dotArrIndex}.value`] = dotParse[`${key}.${dotArrIndex}`]
+              else {
+                if (dotMap[`${key}.typeInbound`] && dotMap[`${key}.typeInbound`] === 'string') {
+                  if (!dotNewObj[newStr]) dotNewObj[newStr] = dotParse[`${key}.${dotArrIndex}`]
+                  else {
+                    if (dotMap[`${key}.typeOutboundReverse`]) { // e.g., ldap server not OpenLdap - Active Directory
+                      dotNewObj[newStr] = `${dotParse[`${key}.${dotArrIndex}`]},${dotNewObj[newStr]}`
+                    } else {
+                      dotNewObj[newStr] = `${dotNewObj[newStr]},${dotParse[`${key}.${dotArrIndex}`]}` // OpenLdap - { "isOpenLdap": true }
+                    }
+                  }
+                } else dotNewObj[`${newStr}.${dotArrIndex}`] = dotParse[`${key}.${dotArrIndex}`]
+              }
+            } else { // type=array but element is not array
+              if (multiValue) dotNewObj[`${newStr}.0.value`] = dotParse[key]
+              else dotNewObj[newStr] = dotParse[key]
+              if (!dotMap[`${key}.typeInbound`] || dotMap[`${key}.typeInbound`] !== 'string') {
+                if (!inboundArrCheck.includes(newStr)) inboundArrCheck.push(newStr) // will be checked
+              }
+            }
+          } else if (['complexArray', 'complexObject'].includes(dotMap[`${key}.type`])) { // mapping complex one to one
+            if (foundComplex.includes(key)) continue
+            dot.str(mapTo, parseObj[key], dotNewObj) // copy from original - supports both array and type converted
+            foundComplex.push(key)
+          } else { // none array/complex
+            const arrMapTo = mapTo.split(',').map((item: string) => item.trim()) // supports {"mapTo": "id,userName"}
+            for (let i = 0; i < arrMapTo.length; i++) {
+              dotNewObj[arrMapTo[i]] = dotParse[key] // {"active": {"mapTo": "accountEnabled"} => str.replace("accountEnabled", "active")
             }
           }
-        } else if (dotMap[`${key}.type`] === 'complex') { // mapping complex one to one
-          if (foundComplex.includes(key)) continue
-          dot.str(mapTo, parseObj[key], dotNewObj) // copy from original - supports both array and type converted
-          foundComplex.push(key)
-        } else { // none array/complex
-          const arrMapTo = mapTo.split(',').map((item: string) => item.trim()) // supports {"mapTo": "id,userName"}
-          for (let i = 0; i < arrMapTo.length; i++) {
-            dotNewObj[arrMapTo[i]] = dotParse[key] // {"active": {"mapTo": "accountEnabled"} => str.replace("accountEnabled", "active")
-          }
-        }
-        if (dotMap[`${key}.type`] !== 'complex') {
-          const mapTos = mapTo.split(',').map((item: string) => item.trim()) // 'displayName,addresses.work.postalCode'
-          for (let i = 0; i < mapTos.length; i++) {
-            const arr = mapTos[i].split('.') // addresses.work.postalCode
-            if (arr.length > 2 && complexObj[arr[0]]) {
-              complexArr.push(arr[0]) // addresses
+          if (!['complexArray', 'complexObject'].includes(dotMap[`${key}.type`])) {
+            const mapTos = mapTo.split(',').map((item: string) => item.trim()) // 'displayName,addresses.work.postalCode'
+            for (let i = 0; i < mapTos.length; i++) {
+              const arr = mapTos[i].split('.') // addresses.work.postalCode
+              if (arr.length > 2 && complexObj[arr[0]]) {
+                complexArr.push(arr[0]) // addresses
+              }
             }
           }
         }
+      } else { // string
+        let newStr = ''
+        let strArr: any = []
+        if (Array.isArray(str)) {
+          for (let i = 0; i < str.length; i++) {
+            strArr = strArr.concat(str[i].split(',').map((item: string) => item.trim())) // supports "id,userName" e.g. {"mapTo": "id,userName"}
+          }
+        } else strArr = str.split(',').map((item: string) => item.trim())
+        for (let i = 0; i < strArr.length; i++) {
+          const attr = strArr[i]
+          let found = false
+          if (mapObj[attr]) {
+            if (mapObj[attr].mapTo) {
+              found = true
+              const mapTos = mapObj[attr].mapTo.split(',')
+              for (let mapTo of mapTos) {
+                if (!newStr) newStr = mapTo
+                else newStr += `,${mapTo}`
+              }
+            }
+          }
+          if (!found) {
+            arrUnsupported.push(attr)
+          }
+        }
+        str = newStr
       }
       break
 
