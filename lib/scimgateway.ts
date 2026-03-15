@@ -894,13 +894,18 @@ export class ScimGateway {
                 attr = {
                   name: item.mapTo,
                   type: (item.type === 'boolean') ? item.type : 'string',
-                  multiValued: false,
+                  multiValued: item.type === 'array' ? true : false,
                   description: item.description ?? '',
                   required: (item.mapTo === 'userName') ? true : false,
                   caseExact: false,
                   mutability: 'readWrite',
                   returned: 'default',
                   uniqueness: (item.mapTo === 'userName') ? 'server' : 'none',
+                }
+                if (item.type === 'complexObject') {
+                  attr.type = 'complex'
+                  attr.multiValued = false
+                  attr.subAttributes = []
                 }
               }
               if (item['x-agent-schema']) {
@@ -951,7 +956,7 @@ export class ScimGateway {
                   complexAttrs[parent] = {
                     name: parent,
                     type: 'complex',
-                    multiValued: (parts.length === 3 || item.type === 'array' || item.type === 'complex') ? true : false,
+                    multiValued: (parts.length === 3 || item.type === 'array' || item.type === 'complexArray') ? true : false,
                     description: `A list of ${parent} for the ${resourceName}`,
                     required: false,
                     subAttributes: [],
