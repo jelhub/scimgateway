@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "6.1.10",
+  "version": "6.1.11",
   "type": "module",
   "description": "Using SCIM protocol as a gateway for user provisioning to other endpoints",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
@@ -44,7 +44,7 @@
     "@types/tedious": "^18.0.0",
     "dot-object": "^2.1.5",
     "fold-to-ascii": "^5.0.1",
-    "https-proxy-agent": "^7.0.6",
+    "https-proxy-agent": "^8.0.0",
     "hyco-https": "^1.4.5",
     "is-in-subnet": "^4.0.1",
     "jose": "^6.1.3",
