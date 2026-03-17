@@ -1481,6 +1481,9 @@ export class ScimGateway {
           getObj.operator = arrFilter[1].toLowerCase() // eq
           const value = arrFilter.slice(2).join(' ').replace(/"/g, '')
           getObj.value = value
+        } else if (arrFilter.length === 2 && arrFilter[1] === 'pr') {
+          getObj.attribute = arrFilter[0]
+          getObj.operator = arrFilter[1] // pr - presence of (only return objects having getObj.attribute)
         }
       }
 
@@ -1490,7 +1493,9 @@ export class ScimGateway {
       }
       if (!err && getObj.attribute) {
         if (this.multiValueTypes.includes(getObj.attribute) || getObj.attribute === 'roles') {
-          getObj.attribute = `${getObj.attribute}.value` // emails => emails.value
+          if (getObj.operator !== 'pr') {
+            getObj.attribute = `${getObj.attribute}.value` // emails => emails.value
+          }
         } else if (getObj.attribute.includes('[')) { // e.g. rawFilter = emails[type eq "work"]
           const rePattern = /^(.*)\[(.*) (.*) (.*)\]$/
           const arrMatches = ctx.query?.filter?.match(rePattern)
