@@ -181,9 +181,13 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     } else {
       // optional - simpel filtering
       if (getObj.attribute) {
-        const [endpointAttr] = scimgateway.endpointMapper('outbound', getObj.attribute, config.map.user)
+        let [endpointAttr] = scimgateway.endpointMapper('outbound', getObj.attribute, config.map.user)
         if (!endpointAttr) throw new Error(`${action} filter error: not supporting ${getObj.rawFilter} because there are no map.user configuration of SCIM attribute '${getObj.attribute}'`)
         if (!operatorMap[getObj.operator]) throw new Error(`${action} error: operator '${getObj.operator}' is not supported in filter: ${getObj.rawFilter}`)
+        const eArr = endpointAttr.split('.')
+        if (eArr[0] == 'signInActivity' && eArr.length === 2) {
+          endpointAttr = eArr.join('/') // signInActivity/lastSuccessfulSignInDateTime - filter=signInActivity.lastSuccessfulSignInDateTime lt "2025-12-04T00:00:00Z"
+        }
         let odataFilter = operatorMap[getObj.operator](endpointAttr, getObj.value)
         if (!odataFilter) {
           const [supported] = scimgateway.endpointMapper('inbound', 'displayName,userPrincipalName,mail,proxyAddresses', config.map.user)
