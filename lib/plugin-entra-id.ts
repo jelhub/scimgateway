@@ -176,6 +176,8 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     } else if (getObj.operator === 'eq' && getObj.attribute === 'group.value') {
       // optional - only used when groups are member of users, not default behavior - correspond to getGroupUsers() in versions < 4.x.x
       throw new Error(`${action} error: not supporting groups member of user filtering: ${getObj.rawFilter}`)
+    } else if (getObj.operator === 'pr' && getObj.attribute === 'entitlements') { // pr - presence of (only return objects having getObj.attribute)
+      path = `/users?$top=${getObj.count}&$count=true&filter=assignedLicenses/$count ne 0& &$select=${selectAttributes.join(',')}`
     } else {
       // optional - simpel filtering
       if (getObj.attribute) {
@@ -190,7 +192,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 
         const arr = getObj.attribute.split('.')
         if (arr.length === 2) {
-          if (config.map.user[arr[0]] && config.map.user[arr[0]]?.type === 'complex') {
+          if (config.map.user[arr[0]] && ['complexArray', 'complexObject'].includes(config.map.user[arr[0]]?.type)) {
             if (arr[0] === 'entitlements') { // using entitlements for license
               const skuIdDefs = await getSkuIdDefs(baseEntity, {}, [], ctx)
               const skuIdArr = searchSkuIdDefs(skuIdDefs, getObj)
@@ -276,6 +278,8 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
           if (response.body.value[i].assignedLicenses && Array.isArray(response.body.value[i].assignedLicenses)) {
             if (!response.body.value[i][entitlementsAttr]) response.body.value[i][entitlementsAttr] = []
             for (const lic of response.body.value[i].assignedLicenses) {
+              const entitlement = skuIdDefs[lic.skuId]
+              delete entitlement.licenseInfo
               if (lic.skuId && skuIdDefs[lic.skuId]) response.body.value[i][entitlementsAttr].push(skuIdDefs[lic.skuId])
             }
           }
@@ -825,13 +829,22 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
     if (!response.body.value) {
       throw new Error('got empty response on REST request')
     }
-
     for (let i = 0; i < response.body.value.length; i++) {
       const skuPartNumber = response.body.value[i].skuPartNumber
       const displayName = licenseMapping[skuPartNumber] ? licenseMapping[skuPartNumber].displayName : skuPartNumber
       const used = response.body.value[i].consumedUnits
       const available = response.body.value[i].prepaidUnits?.enabled
-      ret.Resources.push({ type: skuPartNumber, value: response.body.value[i].skuId, display: displayName, usage: { used, available } })
+
+      const licenseInfo: Record<string, any> = {}
+      licenseInfo.usage = { used, available }
+      if (licenseMapping[skuPartNumber]) {
+        licenseInfo.licenseCategory = licenseMapping[skuPartNumber].licenseCategory
+        licenseInfo.isBillable = licenseMapping[skuPartNumber].isBillable
+        licenseInfo.priceUSD = licenseMapping[skuPartNumber].priceUSD
+        licenseInfo.includes = licenseMapping[skuPartNumber].includes
+      }
+      ret.Resources.push({
+        type: skuPartNumber, value: response.body.value[i].skuId, display: displayName, licenseInfo })
     }
 
     if (searchAttr && ret.Resources.length > 0) {
