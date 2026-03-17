@@ -554,7 +554,14 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
               break
             } else if (val === attr.split('.')[0] && ['complexArray', 'complexObject'].includes(mapObj[key].type)) {
               found = true
-              if (!resArr.includes(key)) resArr.push(key)
+              const a = attr.split('.') // entitlements.value
+              if (a.length > 0) {
+                let tmp = key
+                for (let pos = 1; pos < a.length; pos++) {
+                  tmp += `.${a[pos]}`
+                }
+                if (!resArr.includes(tmp)) resArr.push(tmp)
+              } else if (!resArr.includes(key)) resArr.push(key)
               break
             } else if (val.split('.')[0] === attr) { // roles.value, manager.managerId
               found = true
