@@ -1304,6 +1304,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.12
+
+[Improved]
+
+- filter operator `pr` (precense) now sent to plugin (previoulsy rejected)
+- plugin-entra-id: now handles the pr filter operator for entitlements
+
 ### v6.1.11
 
 [Fixed]
