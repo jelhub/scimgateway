@@ -1304,6 +1304,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.13
+
+[Improved]
+
+- plugin-entra-id: `signInActivity` attributes are filterable
+
+
 ### v6.1.12
 
 [Improved]
