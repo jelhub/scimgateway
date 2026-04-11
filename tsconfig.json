@@ -24,8 +24,8 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
 
+    "types": ["bun"],
     // scimgateway settings
-    "baseUrl": ".", 
     "paths": {
       "scimgateway": ["./lib/scimgateway"],
     }
