@@ -177,7 +177,8 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       // optional - only used when groups are member of users, not default behavior - correspond to getGroupUsers() in versions < 4.x.x
       throw new Error(`${action} error: not supporting groups member of user filtering: ${getObj.rawFilter}`)
     } else if (getObj.operator === 'pr' && getObj.attribute === 'entitlements') { // pr - presence of (only return objects having getObj.attribute)
-      path = `/users?$top=${getObj.count}&$count=true&filter=assignedLicenses/$count ne 0& &$select=${selectAttributes.join(',')}`
+      path = `/users?$top=${getObj.count}&$count=true&$filter=assignedLicenses/$count ne 0&$select=${selectAttributes.join(',')}`
+      isExpandManager = false
     } else {
       // optional - simpel filtering
       if (getObj.attribute) {
