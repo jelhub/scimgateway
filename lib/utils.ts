@@ -703,7 +703,10 @@ export const getEtag = function (obj: Record<string, any>): string {
   let o = obj
   if (obj.groups) { // exclude user groups
     const newObj = copyObj(obj)
-    delete newObj.groups
+    if (newObj.groups) delete newObj.groups
+    if (newObj.signInActivity) delete newObj.signInActivity
+    if (newObj.passwordPolicies) delete newObj.passwordPolicies
+    if (newObj.passwordProfile) delete newObj.passwordProfile
     o = newObj
   }
 
