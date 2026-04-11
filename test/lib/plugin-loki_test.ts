@@ -51,7 +51,6 @@ describe('plugin-loki', async () => {
   test('ResourceTypes test', async () => {
     const response: any = await fetchSCIM('GET', '/ResourceTypes', undefined, options.std.headers)
     expect(response.status).toBe(200)
-    console.log(response.body.Resources)
     expect(Array.isArray(response.body.Resources)).toBe(true)
     expect(response.body.Resources.length).toEqual(3)
     expect(response.body.Resources[0].schemas).toContain('urn:ietf:params:scim:schemas:core:2.0:ResourceType')
