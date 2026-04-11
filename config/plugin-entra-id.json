@@ -291,7 +291,7 @@
           "mapTo": "manager.managerId",
           "type": "string",
           "x-agent-schema": {
-            "description": "Manager ID. To clear manager, set managerId value to an empty string (\"\")."
+            "description": "manager.managerId is the userPrincipalName of the manager. To clear manager, set managerId value to an empty string (\"\")."
           }
         },
         "mail": {
@@ -417,7 +417,7 @@
           }
         },
         "usageLocation": {
-          "mapTo": "Usage location",
+          "mapTo": "usageLocation",
           "type": "string",
           "x-agent-schema": {
             "description": "Country as ISO 3166-1 alpha-2 code or a supported country name.",
@@ -527,6 +527,13 @@
           "type": "string",
           "x-agent-schema": {
             "description": "A human-readable description of the group."
+          }
+        },
+        "members": {
+          "mapTo": "members",
+          "type": "complexArray",
+          "x-agent-schema": {
+            "description": "A list of members of the group. The members.value represents the unique identifier (ID) of each member in the group."
           }
         },
         "securityEnabled": {
