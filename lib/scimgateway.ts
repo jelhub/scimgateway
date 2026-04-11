@@ -1476,11 +1476,16 @@ export class ScimGateway {
 
       if (getObj.rawFilter && !isAndFilter && !isOrFilter) {
         const arrFilter = ctx.query.filter.split(' ')
-        if (arrFilter.length > 2 && arrFilter[2].startsWith('"') && (arrFilter[arrFilter.length - 1].endsWith('"') || arrFilter[arrFilter.length - 1].endsWith('"]'))) {
-          getObj.attribute = arrFilter[0] // userName
-          getObj.operator = arrFilter[1].toLowerCase() // eq
-          const value = arrFilter.slice(2).join(' ').replace(/"/g, '')
-          getObj.value = value
+        if (arrFilter.length > 2) {
+          if (arrFilter[2].startsWith('"') && (arrFilter[arrFilter.length - 1].endsWith('"') || arrFilter[arrFilter.length - 1].endsWith('"]'))) {
+            getObj.attribute = arrFilter[0] // userName
+            getObj.operator = arrFilter[1].toLowerCase() // eq
+            const value = arrFilter.slice(2).join(' ').replace(/"/g, '')
+            getObj.value = value
+          } else if (arrFilter[1] === 'not' && arrFilter[2] === 'pr') {
+            getObj.attribute = arrFilter[0]
+            getObj.operator = 'not pr' // custom not presence of
+          }
         } else if (arrFilter.length === 2 && arrFilter[1] === 'pr') {
           getObj.attribute = arrFilter[0]
           getObj.operator = arrFilter[1] // pr - presence of (only return objects having getObj.attribute)
