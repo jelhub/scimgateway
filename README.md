@@ -1304,6 +1304,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.15
+
+[Fixed]
+
+- plugin-entra-id: fixed `filter=entitlements pr`
+
 ### v6.1.14
 
 [Improved]
