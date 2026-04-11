@@ -218,6 +218,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
           path = `/users?$top=${getObj.count}&$count=true&$filter=${odataFilter}&$select=${selectAttributes.join(',')}`
         }
       }
+      if (getObj.operator === 'pr' || getObj.operator === 'not pr') isExpandManager = false
     }
   } else if (getObj.rawFilter) {
     // optional - advanced filtering having and/or/not - use getObj.rawFilter
@@ -477,8 +478,15 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   if (Object.hasOwn(getObj, 'value')) getObj.value = encodeURIComponent(getObj.value)
   if (attributes.length === 0) attributes = groupAttributes
   let includeMembers = false
-  if (attributes.includes('members.value') || attributes.includes('members')) {
-    includeMembers = true
+
+  if (attributes.length === 0) includeMembers = true
+  else {
+    for (const attr of attributes) {
+      if (attr.startsWith('members')) {
+        includeMembers = true
+        break
+      }
+    }
   }
 
   const [attrs] = scimgateway.endpointMapper('outbound', attributes, config.map.group)
@@ -508,22 +516,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       path = `/users/${getObj.value}/transitiveMemberOf/microsoft.graph.group?$top=${getObj.count}&$count=true&select=id,displayName`
     } else {
       // optional - simpel filtering
-      if (getObj.attribute) {
-        const [endpointAttr] = scimgateway.endpointMapper('outbound', getObj.attribute, config.map.group)
-        if (!endpointAttr) throw new Error(`${action} filter error: not supporting ${getObj.rawFilter} because there are no map.group configuration of SCIM attribute '${getObj.attribute}'`)
-        if (!operatorMap[getObj.operator]) throw new Error(`${action} error: operator '${getObj.operator}' is not supported in filter: ${getObj.rawFilter}`)
-
-        const odataFilter = operatorMap[getObj.operator](endpointAttr, getObj.value)
-        // advanced queries like 'contains', '$search', and '$count' require the ConsistencyLevel header.
-        if (!options.headers) options.headers = {}
-        options.headers.ConsistencyLevel = 'eventual'
-
-        if (odataFilter.startsWith('$search=')) {
-          path = `/groups?$top=${getObj.count}&$count=true&${odataFilter}`
-        } else {
-          path = `/groups?$top=${getObj.count}&$count=true&$filter=${odataFilter}`
-        } // all attributes, not using: path += `&$select=${attrs}`
-      }
+      throw new Error(`${action} error: Entra ID only supports group filter operator 'eq' for a limited set of attributes ('id', 'displayName' and 'members.value') and therefore not supporting filter: ${getObj.rawFilter}`)
     }
   } else if (getObj.rawFilter) {
     // optional - advanced filtering having and/or/not - use getObj.rawFilter
@@ -836,11 +829,17 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
     for (let i = 0; i < response.body.value.length; i++) {
       const skuPartNumber = response.body.value[i].skuPartNumber
       const displayName = licenseMapping[skuPartNumber] ? licenseMapping[skuPartNumber].displayName : skuPartNumber
-      const used = response.body.value[i].consumedUnits
-      const available = response.body.value[i].prepaidUnits?.enabled
+      const usedSeats = response.body.value[i].consumedUnits
+      const warning = response.body.value[i].prepaidUnits?.warning
+      const lockedOut = response.body.value[i].prepaidUnits?.lockedOut
+      let suspendedSeats = response.body.value[i].prepaidUnits?.suspended
+      let totalSeats = response.body.value[i].prepaidUnits?.enabled
+      if (!isNaN(lockedOut) && !isNaN(suspendedSeats)) suspendedSeats += lockedOut
+      if (!isNaN(warning) && !isNaN(totalSeats)) totalSeats += warning
+      if (!isNaN(suspendedSeats) && !isNaN(totalSeats)) totalSeats += suspendedSeats
 
       const licenseInfo: Record<string, any> = {}
-      licenseInfo.usage = { used, available }
+      licenseInfo.seats = { totalSeats, usedSeats, suspendedSeats }
       if (licenseMapping[skuPartNumber]) {
         licenseInfo.licenseCategory = licenseMapping[skuPartNumber].licenseCategory
         licenseInfo.isBillable = licenseMapping[skuPartNumber].isBillable
@@ -874,23 +873,24 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
 //
 type ScimOpFn = (attribute: string, value?: string) => string
 const operatorMap: Record<string, ScimOpFn> = {
-  eq: (a, v) => `${a} eq ${['true', 'false'].includes(v as string) ? v : `'${v}'`}`,
-  ne: (a, v) => `${a} ne ${['true', 'false'].includes(v as string) ? v : `'${v}'`}`,
+  'eq': (a, v) => `${a} eq ${['true', 'false'].includes(v as string) ? v : `'${v}'`}`,
+  'ne': (a, v) => `${a} ne ${['true', 'false'].includes(v as string) ? v : `'${v}'`}`,
   // co: (a, v) => `contains(${a}, '${v}')`, // not supported by Entra ID
   // co: (a, v) => `$search="${a}:${v}"`, // comment out - Entra ID do not support true “contains”
-  co: (a, v) => { // Entra ID supports "contains" only for a limted set of indexed attributes
+  'co': (a, v) => { // Entra ID supports "contains" only for a limted set of indexed attributes
     if (['displayName', 'userPrincipalName', 'mail', 'proxyAddresses'].includes(a)) {
       return `$search="${a}:${v}"`
     }
     return ''
   },
-  sw: (a, v) => `startswith(${a}, '${v}')`,
-  // ew: (a, v) => `endswith(${a}, '${v}')`, // not supported by Entra ID
-  pr: a => `${a} ne null`,
-  gt: (a, v) => `${a} gt ${v}`,
-  ge: (a, v) => `${a} ge ${v}`,
-  lt: (a, v) => `${a} lt ${v}`,
-  le: (a, v) => `${a} le ${v}`,
+  'sw': (a, v) => `startswith(${a}, '${v}')`,
+  // 'ew': (a, v) => `endswith(${a}, '${v}')`, // not supported by Entra ID
+  'pr': a => `${a} ne null`,
+  'not pr': a => `${a} eq null`,
+  'gt': (a, v) => `${a} gt ${v}`,
+  'ge': (a, v) => `${a} ge ${v}`,
+  'lt': (a, v) => `${a} lt ${v}`,
+  'le': (a, v) => `${a} le ${v}`,
 }
 
 //
