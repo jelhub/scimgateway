@@ -139,7 +139,7 @@ For Node.js (and also Bun), we might set the property `scimgateway_postinstall_s
 
 ## Configuration  
 
-The `index.ts` file defines the plugins to be started.
+The `index.ts` file spesifies one or more plugins to be started.
 
 	// start one or more plugins:
 	import './lib/plugin-entra-id.ts'
@@ -1303,6 +1303,13 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 
 ## Change log
+
+### v6.1.14
+
+[Improved]
+
+- Some cosmetics like supporting filter `attribute not pr`
+- Dependencies bump
 
 ### v6.1.13
 
