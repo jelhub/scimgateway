@@ -879,7 +879,7 @@
         "description": "Entitlement",
         "attributes": [
           {
-            "name": "id",
+            "name": "value",
             "type": "string",
             "multiValued": false,
             "description": "The unique identifier for an entitlement.",
@@ -912,7 +912,7 @@
             "uniqueness": "none"
           },
           {
-            "name": "usage",
+            "name": "seats",
             "type": "complex",
             "multiValued": false,
             "description": "Usage statistics for the entitlement.",
@@ -922,20 +922,30 @@
             "uniqueness": "none",
             "subAttributes": [
               {
-                "name": "used",
+                "name": "totalSeats",
                 "type": "integer",
                 "multiValued": false,
-                "description": "Number of units consumed.",
+                "description": "Number of of total seats in the pool.",
                 "required": false,
                 "mutability": "readOnly",
                 "returned": "default",
                 "uniqueness": "none"
               },
               {
-                "name": "available",
+                "name": "usedSeats",
                 "type": "integer",
                 "multiValued": false,
-                "description": "Number of units available.",
+                "description": "Number of seats consumed of the pool.",
+                "required": false,
+                "mutability": "readOnly",
+                "returned": "default",
+                "uniqueness": "none"
+              },
+              {
+                "name": "suspendedSeats",
+                "type": "integer",
+                "multiValued": false,
+                "description": "Number of suspended/lockedOut seats of the pool. Billing/entitlement problem; services are in grace or partially/temporarily disabled.",
                 "required": false,
                 "mutability": "readOnly",
                 "returned": "default",

@@ -867,10 +867,10 @@
       "endpoint": "Entitlements",
       "attributes": [
         {
-          "name": "id",
+          "name": "value",
           "type": "string",
           "multiValued": false,
-          "description": "Unique identifier for the SCIM Resource as defined by the Service Provider",
+          "description": "The unique identifier for an entitlement.",
           "schema": "urn:scim:schemas:custom:1.0:Entitlement",
           "readOnly": true,
           "required": true,
@@ -897,7 +897,7 @@
           "caseExact": false
         },
         {
-          "name": "usage",
+          "name": "seats",
           "type": "complex",
           "multiValued": false,
           "description": "Usage statistics for the entitlement.",
@@ -907,19 +907,28 @@
           "caseExact": false,
           "subAttributes": [
             {
-              "name": "used",
+              "name": "totalSeats",
               "type": "integer",
               "multiValued": false,
-              "description": "Number of units consumed.",
+              "description": "Number of of total seats in the pool.",
               "readOnly": true,
               "required": false,
               "caseExact": false
             },
             {
-              "name": "available",
+              "name": "usedSeats",
               "type": "integer",
               "multiValued": false,
-              "description": "Number of units available.",
+              "description": "Number of seats consumed of the pool.",
+              "readOnly": true,
+              "required": false,
+              "caseExact": false
+            },
+            {
+              "name": "suspendedSeats",
+              "type": "integer",
+              "multiValued": false,
+              "description": "Number of suspended/lockedOut seats of the pool. Billing/entitlement problem; services are in grace or partially/temporarily disabled.",
               "readOnly": true,
               "required": false,
               "caseExact": false
