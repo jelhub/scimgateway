@@ -845,7 +845,7 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
         licenseInfo.licenseCategory = licenseMapping[skuPartNumber].licenseCategory
         licenseInfo.isBillable = licenseMapping[skuPartNumber].isBillable
         licenseInfo.priceUSD = licenseMapping[skuPartNumber].priceUSD
-        licenseInfo.includes = licenseMapping[skuPartNumber].includes
+        licenseInfo.derivedIncludes = licenseMapping[skuPartNumber].derivedIncludes
       }
       ret.Resources.push({
         type: skuPartNumber, value: response.body.value[i].skuId, display: displayName, licenseInfo })
