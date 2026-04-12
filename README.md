@@ -1301,6 +1301,11 @@ In code editor (e.g., Visual Studio Code), method details and documentation are 
  
 MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
+### v6.1.16
+
+[Improved]
+
+- plugin-entra-id: `GET /Entitlements` using derivedIncludes, fully flattened (recursive expansion of previous includes).
 
 ## Change log
 
