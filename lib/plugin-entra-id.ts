@@ -158,6 +158,13 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     }
   } else selectAttributes = userSelectAttributes
 
+  if (config.entity[baseEntity]?.skipSignInActivity === true) { // remove signInActivity that requires Entra ID Premium license
+    const index = selectAttributes.indexOf('signInActivity')
+    if (index > -1) {
+      selectAttributes.splice(index, 1)
+    }
+  }
+
   const method = 'GET'
   const body = null
   let path
@@ -170,7 +177,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 
   // mandatory if-else logic - start
   if (getObj.operator) {
-    if (getObj.operator === 'eq' && ['id', 'userName', 'externalId'].includes(getObj.attribute)) {
+    if (getObj.operator === 'eq' && ['id'].includes(getObj.attribute)) { // userName/externalId using simpel filtering because direct lookup by upn do not allow select attribute signInActivity
       // mandatory - unique filtering - single unique user to be returned - correspond to getUser() in versions < 4.x.x
       path = `/users/${getObj.value}?$select=${selectAttributes.join(',')}`
     } else if (getObj.operator === 'eq' && getObj.attribute === 'group.value') {
@@ -848,7 +855,8 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
         licenseInfo.derivedIncludes = licenseMapping[skuPartNumber].derivedIncludes
       }
       ret.Resources.push({
-        type: skuPartNumber, value: response.body.value[i].skuId, display: displayName, licenseInfo })
+        type: skuPartNumber, value: response.body.value[i].skuId, display: displayName, licenseInfo,
+      })
     }
 
     if (searchAttr && ret.Resources.length > 0) {
