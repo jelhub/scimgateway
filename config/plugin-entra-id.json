@@ -131,6 +131,7 @@
   "endpoint": {
     "entity": {
       "undefined": {
+        "skipSignInActivity": false,
         "connection": {
           "baseUrls": [],
           "auth": {
