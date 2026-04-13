@@ -1051,7 +1051,7 @@ For testing purposes we could get an Azure free account
 Note: Entra ID has a role hierarchy, and running SCIM Gateway as a `User Administrator` has some limitations when administering users who have administrative roles. For full administrative access to all users, SCIM Gateway must have the `Global Administrator` role (`62e90394-69f5-4237-9190-012177145e10`). 
 
 Also note: The `plugin-entra-id.json` configuration file includes `map.user.signInActivity`. Using the `signInActivity` attribute requires an Entra ID Premium license and the API permission `AuditLog.Read.All`.
-**Remove this mapping configuration if these conditions are not met**, otherwise provisioning will fail and errors such as `Authentication_RequestFromNonPremiumTenantOrB2CTenant` may occur.
+**Remove this mapping configuration if these conditions are not met or override by configuring endpoint.entity.[baseEntity].skipSignInActivity = true**, otherwise provisioning will fail and errors such as `Authentication_RequestFromNonPremiumTenantOrB2CTenant` may occur.
 
 ### SCIM Gateway configuration  
 
@@ -1301,13 +1301,22 @@ In code editor (e.g., Visual Studio Code), method details and documentation are 
  
 MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
+## Change log
+
+### v6.1.17
+
+[Fixed]
+
+- plugin-entra-id:
+
+  - Fixed an issue where `filter=userName eq "user_upn"` was broken in v6.1.11 when using the updated configuration file that includes `map.user.signInActivity`.
+  - Added new configuration option `endpoint.entity.[baseEntity].skipSignInActivity = true` to exclude the `signInActivity` attribute. This attribute requires a Microsoft Entra ID Premium license and the `AuditLog.Read.All` API permission.
+
 ### v6.1.16
 
 [Improved]
 
 - plugin-entra-id: `GET /Entitlements` using derivedIncludes, fully flattened (recursive expansion of previous includes).
-
-## Change log
 
 ### v6.1.15
 
