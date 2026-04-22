@@ -822,7 +822,7 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
     throw new Error(`${action} error: advanced filtering not supported: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering
-    path = `/subscribedSkus`
+    path = '/subscribedSkus'
   }
 
   if (!path) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
