@@ -250,6 +250,9 @@ export class ScimGateway {
   /** getEntitlements returns endpoint supported entitlements - e.g., plugin-entra-id returns available Entra tenant licenses as entitlements */
   getEntitlements!: (baseEntity: string, getObj: Record<string, any>, attributes: Array<string>, ctx?: undefined | Record<string, any>) => any
 
+  /** getRoles returns endpoint supported roles - e.g., plugin-entra-id returns Entra permanent and eligible roles */
+  getRoles!: (baseEntity: string, getObj: Record<string, any>, attributes: Array<string>, ctx?: undefined | Record<string, any>) => any
+
   /**
   * postApi method is defined at the plugin and should handle incoming `"POST /api"` for creating an object and should be used according to your needs  
   * @param baseEntity used for multi tenant or multi endpoint support, either "undefined" or set by request url e.g., http://localhost:8880/loki2/Users gives baseEntity=loki2
@@ -488,12 +491,16 @@ export class ScimGateway {
       description: 'Entitlement',
       getMethod: 'getEntitlements',
     }
+    handler.Roles = handler.roles = {
+      description: 'Role',
+      getMethod: 'getRoles',
+    }
     handler.AppRoles = handler.approles = { // scim-stream
       description: 'AppRole',
       getMethod: 'getAppRoles',
     }
     /** handlers supported url paths */
-    const handlers = ['users', 'groups', 'bulk', 'entitlements', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'oauth', '.well-known', 'logger']
+    const handlers = ['users', 'groups', 'bulk', 'entitlements', 'roles', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'oauth', '.well-known', 'logger']
 
     try {
       if (!fs.existsSync(configDir + '/wsdls')) fs.mkdirSync(configDir + '/wsdls')
@@ -889,12 +896,45 @@ export class ScimGateway {
             if (parts.length === 1) {
               const org = scimResource.attributes.find((r: any) => r.name === item.mapTo)
               let attr: any
-              if (org) attr = structuredClone(org) // reusing original SCIM definition
-              else {
+              if (org) { // reusing original SCIM definition
+                attr = structuredClone(org)
+                if (item.subAttributes && Array.isArray(item.subAttributes) && attr?.subAttributes && Array.isArray(attr.subAttributes)) {
+                  // any configuration subAttributes takes precidence
+                  for (const el of item.subAttributes) {
+                    if (typeof el !== 'object' || !el.name) continue
+                    const existingSub = attr.subAttributes.find((sa: any) => sa.name === el.name)
+                    if (existingSub) {
+                      if (el.description) existingSub.description = el.description
+                      if (el.mutability) existingSub.mutability = el.mutability
+                      if (el.canonicalValues) existingSub.canonicalValues = el.canonicalValues
+                    } else {
+                      const newSub: Record<string, any> = {
+                        name: el.name,
+                        type: el.type ?? 'string',
+                        multiValued: el.mulitvalue ?? false,
+                        description: el.description ?? '',
+                        required: false,
+                        caseExact: false,
+                        mutability: el.mutability ?? 'readWrite',
+                        returned: 'default',
+                        uniqueness: 'none',
+                      }
+                      if (el.canonicalValues) newSub.canonicalValues = el.canonicalValues
+                      if (isV1) {
+                        newSub.readOnly = newSub.mutability === 'readOnly'
+                        delete newSub.mutability
+                        delete newSub.returned
+                        delete newSub.uniqueness
+                      }
+                      attr.subAttributes.push(newSub)
+                    }
+                  }
+                }
+              } else {
                 attr = {
                   name: item.mapTo,
                   type: (item.type === 'boolean') ? item.type : 'string',
-                  multiValued: item.type === 'array' ? true : false,
+                  multiValued: (item.type === 'array' || item.type === 'complexArray') ? true : false,
                   description: item.description ?? '',
                   required: (item.mapTo === 'userName') ? true : false,
                   caseExact: false,
@@ -902,10 +942,33 @@ export class ScimGateway {
                   returned: 'default',
                   uniqueness: (item.mapTo === 'userName') ? 'server' : 'none',
                 }
-                if (item.type === 'complexObject') {
+                if (item.type === 'complexObject' || item.type === 'complexArray') {
                   attr.type = 'complex'
                   attr.multiValued = false
                   attr.subAttributes = []
+                  if (item.subAttributes && Array.isArray(item.subAttributes)) {
+                    for (const el of item.subAttributes) {
+                      if (typeof el !== 'object' || el === null || !el.name) continue
+                      const obj: Record<string, any> = {
+                        name: el.name,
+                        type: el.type ?? 'string',
+                        multiValued: el.mulitvalue ?? false,
+                        description: el.description ?? '',
+                        required: false,
+                        caseExact: false,
+                        mutability: el.mutability ?? 'readWrite',
+                        returned: 'default',
+                        uniqueness: 'none',
+                      }
+                      if (isV1) {
+                        obj.readOnly = false
+                        delete obj.mutability
+                        delete obj.returned
+                        delete obj.uniqueness
+                      }
+                      attr.subAttributes.push(obj)
+                    }
+                  }
                 }
               }
               if (item['x-agent-schema']) {
@@ -1343,10 +1406,10 @@ export class ScimGateway {
       const baseEntity = ctx.routeObj.baseEntity
       const id = decodeURIComponent(path.basename(ctx.routeObj.id ?? '', '.json')) // supports <id>.json
 
-      if (!id || handle.getMethod === 'getEntitlements') {
+      if (!id || handle.getMethod === 'getEntitlements' || handle.getMethod === 'getRoles') {
         let err: Error
         if (!id) err = new Error('missing id')
-        else err = new Error(`GET /${handle.description}/${id} is not supported. Instead use filter query on users e.g., /users?filter=entitlements[value eq "xxx"]`)
+        else err = new Error(`GET /${handle.description}/${id} is not supported. Instead use filter query on users e.g., /users?filter=entitlements[value eq "xxx"] or /users?filter=roles[value eq "xxx"]`)
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
         ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
@@ -1449,6 +1512,7 @@ export class ScimGateway {
     //           getUsers
     //           getGroups
     //           getEntitlements
+    //           getRoles
     // ==========================================
     const getHandler = async (ctx: Context) => {
       const handle = handler[ctx.routeObj.handle]
@@ -1493,7 +1557,7 @@ export class ScimGateway {
       }
 
       let err
-      if (handle.getMethod === 'getEntitlements') {
+      if (handle.getMethod === 'getEntitlements' || handle.getMethod === 'getRoles') {
         if (typeof (this as any)[handle.getMethod] !== 'function') err = new Error(`plugin method ${handle.getMethod}() not implemented`)
       }
       if (!err && getObj.attribute) {
@@ -1844,6 +1908,7 @@ export class ScimGateway {
           logger.warn(`${gwName} ${handle.createMethod} succeeded, but corresponding ${handle.getMethod} ${obj?.value} failed with error: ${err.message}`, { baseEntity: ctx?.routeObj?.baseEntity })
         }
         if (res?.Resources && Array.isArray(res.Resources) && res.Resources.length === 1) {
+          utils.extendObj(res.Resources[0], jsonBody) // we might have endpoint like Entra ID that hasn’t caught up yet due to internal sync - ensure returned object reflects changes by doing a merge with patch payload (convertedScim) 
           jsonBody = res.Resources[0]
         }
         delete jsonBody.password
@@ -2119,7 +2184,15 @@ export class ScimGateway {
           const ob = { attribute: 'id', operator: 'eq', value: id }
           logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
           res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
+
+          if (res?.Resources && Array.isArray(res.Resources) && res.Resources.length === 1) {
+            // we might have endpoint like Entra ID that hasn’t caught up yet due to internal sync
+            // ensure returned object reflects changes by doing a merge with patch payload (convertedScim) 
+            res.Resources[0] = this.patchObj(res.Resources[0], finalScimdata) // merge
+            if (res.Resources[0].password) delete res.Resources[0].password
+          }
         }
+
         return response(res)
       } catch (err: any) {
         // check if error caused by: add existing member or remove none existing member => should not be an error
@@ -3430,6 +3503,7 @@ export class ScimGateway {
           case 'GET users':
           case 'GET groups':
           case 'GET entitlements':
+          case 'GET roles':
             if (ctx.routeObj.id) await getHandlerId(ctx)
             else await getHandler(ctx)
             return await onAfterHandle(ctx)
@@ -3950,6 +4024,17 @@ export class ScimGateway {
       })
     }
     return null
+  }
+
+  /**
+  * patchObj returns object updated with the modify user PATCH convertedScim which is sent to plugin
+  * @param userObj "user object"
+  * @param attrObj "the attrObj (convertedSCIM PATCH payload) sent to plugin"
+  * @returns "user object updated according to PATCH payload -  attrObj"
+  **/
+  patchObj(userObj: Record<string, any>, attrObj: Record<string, any>): any {
+    const isMultiValueTypes = (attr: string) => this.isMultiValueTypes(attr)
+    return utilsScim.patchObj(userObj, attrObj, isMultiValueTypes)
   }
 
   /**
