@@ -801,6 +801,7 @@ There are two options: run SCIM Gateway in a single image, or use Docker Compose
 	bun install scimgateway  
 	bun pm trust scimgateway  
 	cp ./config/docker/* .  
+	cp ./config/docker/.dockerignore . 
 	```
 
 	**Dockerfile**   <== Main dockerfile  
@@ -1302,6 +1303,12 @@ In code editor (e.g., Visual Studio Code), method details and documentation are 
 MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
+
+### v6.1.18
+
+[Fixed]
+
+- createUser and modifyUser returns full user object. Some endpoints like Entra ID hasn’t caught up yet due to internal sync and changes are not reflected. This update ensure returned user object contains what have been modified.
 
 ### v6.1.17
 
