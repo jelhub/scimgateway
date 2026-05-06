@@ -355,6 +355,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         delete response.body.value[i].signInActivity.lastNonInteractiveSignInRequestId
         delete response.body.value[i].signInActivity.lastSuccessfulSignInRequestId
       }
+
       if ((attributes.includes('roles') || attributes.length === 0) && mapAttributesTo.includes('roles')) {
         response.body.value[i].roles = await getUserRoles(baseEntity, response.body.value[i].id, response.body.value[i].groups, ctx?.headers ? { headers: ctx?.headers } : undefined)
       }
@@ -1396,7 +1397,7 @@ const fnCunckExecute = async (fnArr: { index?: number, fn: () => Promise<any> }[
         if (statusCode !== 404) throw new Error(errMsg)
       }
       results.forEach((result, idx) => {
-        if (result.status === 'fulfilled' && arrChunk[idx].index && responseValue && key) {
+        if (result.status === 'fulfilled' && typeof arrChunk[idx].index === 'number' && responseValue && key) {
           if (result.value) responseValue[arrChunk[idx].index][key] = result.value
           else responseValue[arrChunk[idx].index][key] = result
         }
