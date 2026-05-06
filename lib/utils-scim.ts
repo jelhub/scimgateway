@@ -164,7 +164,6 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
     const element = o.Operations[i]
     let type: any = null
     let typeElement: any = null
-    let path: any = null
     let pathRoot: any = null
     let rePattern: any = /^.*\[(.*) eq (.*)\].*$/
     let arrMatches: any = null
@@ -190,12 +189,9 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
       arrMatches = element.path.match(rePattern)
       if (Array.isArray(arrMatches)) {
         if (arrMatches.length === 2) {
-          if (type) path = `${arrMatches[1]}.${type}`
-          else path = arrMatches[1]
           pathRoot = arrMatches[1]
         } else if (arrMatches.length === 4) {
           if (type) {
-            path = `${arrMatches[1]}.${type}.${arrMatches[3]}`
             typeElement = arrMatches[3] // streetAddress
 
             if (type === 'primary' && !arrPrimaryDone.includes(arrMatches[1])) { // make sure primary is included
@@ -206,28 +202,56 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
               arrPrimaryDone.push(arrMatches[1])
               primaryOrgType[arrMatches[1]] = 'primary'
             }
-          } else path = `${arrMatches[1]}.${arrMatches[3]}` // NA
+          }
           pathRoot = arrMatches[1]
         }
       } else {
         rePattern = /^(.*)\[type eq .*\]$/ // "path":"addresses[type eq \"work\"]"
         arrMatches = element.path.match(rePattern)
         if (Array.isArray(arrMatches) && arrMatches.length === 2) {
-          if (type) path = `${arrMatches[1]}.${type}`
-          else path = arrMatches[1]
           pathRoot = arrMatches[1]
         }
       }
 
-      rePattern = /^(.*)\[value eq (.*)\]$/ // "path":"members[value eq \"bjensen\"]"
+      rePattern = /^(.*)\[(.*)\](.*)$/
       arrMatches = element.path.match(rePattern)
-      if (Array.isArray(arrMatches) && arrMatches.length === 3) {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        path = arrMatches[1]
+      if (Array.isArray(arrMatches) && arrMatches.length === 4) {
         pathRoot = arrMatches[1]
-        const val = arrMatches[2].replace(/"/g, '') // "bjensen" => bjensen
-        element.value = val
-        typeElement = 'value'
+        if (arrMatches[3] === '') {
+          const a = arrMatches[2].trim().split(' and ') // roles[value eq \"Admins\" and type eq \"Permanent\"]"
+          if (a.length > 1) {
+            const val: Record<string, any> = {}
+            a.forEach(function (el: any) {
+              const b = el.split(' eq ')
+              if (b.length === 2) {
+                val[b[0]] = b[1].replace(/"/g, '')
+              }
+            })
+            if (Object.keys(val).length > 0) {
+              element.value = val // {"value":"Admins,"type":"Permanent"}
+            }
+          } else { // "path":"members[value eq \"bjensen\"]"
+            const str = 'value eq'
+            if (a[0].startsWith(str)) {
+              let val = a[0].substring(str.length + 1).trim()
+              val = val.replace(/"/g, '') // "bjensen" =@> bjensen
+              element.value = val
+              typeElement = 'value'
+            }
+          }
+        } else if (arrMatches[3] === '.value') { // {"path": "emails[type eq \"work\"].value", "value": "new_email@testing.org"}        
+          /*
+          const arr = arrMatches[2].split(' eq ')
+          if (arr.length === 2) {
+            if (typeof element.value === 'object' && element.value !== null) {
+              element.value[arr[0]] = arr[1].replace(/"/g, '')
+            } else {
+              type = arr[1].replace(/"/g, '')
+              typeElement = 'value'
+            }
+          }
+          */
+        }
       }
 
       if (element.value && Array.isArray(element.value)) {
@@ -244,20 +268,15 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
         })
       }
 
-      if (element.value && element.value.value && typeof element.value.value === 'string') { // "value": { "value": "new_email@testing.org" }
-        const el: { [key: string]: any } = {}
-        el.value = element.value.value
-        if (element.op && element.op === 'remove') el.operation = 'delete'
-        element.value = []
-        element.value.push(el)
-      }
-
       if (pathRoot) { // pathRoot = emails and path = emails.work.value (we may also have path = pathRoot)
         if (!scimdata[pathRoot]) scimdata[pathRoot] = []
         const index = scimdata[pathRoot].findIndex((el: Record<string, any>) => el.type === type)
         if (index < 0) {
-          if (typeof element.value === 'object') { // e.g. addresses with no typeElement - value includes object having all attributes
-            if (element.op && element.op === 'remove') element.value.operation = 'delete'
+          if (typeof element.value === 'object' && element.value !== null) { // e.g. addresses with no typeElement - value includes object having all attributes
+            if (!Array.isArray(element.value)) {
+              if (element.op && element.op === 'remove') element.value.operation = 'delete'
+              if (!element.value.type && type) element.value.type = type
+            }
             scimdata[pathRoot].push(element.value)
           } else {
             const el: { [key: string]: any } = {}
@@ -277,7 +296,9 @@ export function convertedScim20(obj: any, multiValueTypes: string[]): any {
             if (type === 'primary' && typeElement === 'type') { // type=primary, don't change but store and correct to original type later
               primaryOrgType[pathRoot] = element.value
             } else scimdata[pathRoot][index][typeElement] = element.value
-            if (element.op && element.op === 'remove') scimdata[pathRoot][index].operation = 'delete'
+            if (element.op && element.op === 'remove') {
+              scimdata[pathRoot][index].operation = 'delete'
+            }
           }
         }
       } else { // use element.path e.g name.familyName and members
