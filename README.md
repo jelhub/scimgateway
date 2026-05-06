@@ -17,6 +17,7 @@
 
 Latest news:  
 
+- Now supports `GET /Roles` and `GET /Entitlements` endpoint requests, with corresponding user management via the standard SCIM `roles` and `entitlements` attributes. The Entra ID plugin uses `entitlements` for Entra ID licenses (read-only) and `roles` for Entra ID Permanent and Eligible roles (full management).
 - Bun binary build is now supported, allowing SCIM Gateway to be compiled into a single executable binary for simplified deployment and execution. SCIM Gateway can now run as an ES module (TypeScript) in Node.js.
 - Major release **v6.0.0** introduces changes to API method responses (not SCIM-related) and a new method `publicApi()` for handling public path `/pub/api` requests with no authentication required. In addition, the configuration option `bearerJwtAzure.tenantIdGUID` has been replaced by `bearerJwt.azureTenantId`. See the version history for details.
 - Support for Entra ID [Federated Identity Credentials](https://learn.microsoft.com/en-us/graph/api/resources/federatedidentitycredentials-overview?view=graph-rest-1.0) has been added through internal JWKS (JSON Web Key Set), allowing SCIM Gateway to access Microsoft Entra–protected resources without the need to manage secrets
@@ -1028,7 +1029,9 @@ For testing purposes we could get an Azure free account
 		- Application permissions
 		- Directory - Directory.ReadWriteAll
 		- Organization - Organization.ReadWrite.All
-		- AuditLog - AuditLog.Read.All (only required if using plugin configuration `map.user.signInActivity`)
+		- AuditLog - AuditLog.Read.All (required if using plugin configuration `map.user.signInActivity`)
+		- RoleEligibilitySchedule - RoleEligibilitySchedule.Read.Directory (PIM Eligible roles; required if using plugin configuration `map.user.roles`)
+		- RoleManagement - RoleManagement.ReadWrite.Directory' (PIM Permanent roles; required if using plugin configuration `map.user.roles`)
 		- Click "Add permissions"
 	- API permissions: - Grant Admin consent  
 		 Or we could go to Enterprise application to grant these consents:  
@@ -1049,10 +1052,7 @@ For testing purposes we could get an Azure free account
 	- Click Next
 	- Assignment type=Active and enable "Permanent assigned", add some justification text and click "Assign"
 
-Note: Entra ID has a role hierarchy, and running SCIM Gateway as a `User Administrator` has some limitations when administering users who have administrative roles. For full administrative access to all users, SCIM Gateway must have the `Global Administrator` role (`62e90394-69f5-4237-9190-012177145e10`). 
-
-Also note: The `plugin-entra-id.json` configuration file includes `map.user.signInActivity`. Using the `signInActivity` attribute requires an Entra ID Premium license and the API permission `AuditLog.Read.All`.
-**Remove this mapping configuration if these conditions are not met or override by configuring endpoint.entity.[baseEntity].skipSignInActivity = true**, otherwise provisioning will fail and errors such as `Authentication_RequestFromNonPremiumTenantOrB2CTenant` may occur.
+Note: Entra ID has a role hierarchy, and running SCIM Gateway as a `User Administrator` has some limitations when administering users who have administrative roles. For full administrative access to all users, SCIM Gateway must have the `Global Administrator` role (`62e90394-69f5-4237-9190-012177145e10`).
 
 ### SCIM Gateway configuration  
 
@@ -1303,6 +1303,21 @@ In code editor (e.g., Visual Studio Code), method details and documentation are 
 MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
+
+### v6.1.19
+
+[Fixed]
+
+- SCIM v2.0 ResourceType endpoint schemas using incorrect id.
+
+[Improved]
+
+- SCIM Gateway now supports `GET /Roles` and `GET /Entitlements` endpoint requests, with corresponding user management via the standard SCIM `roles` and `entitlements` attributes.
+- plugin-entra-id: Uses `entitlements` for Entra ID licenses (read-only) and `roles` for Entra ID Permanent and Eligible roles (full management).
+  - PIM Eligible roles requires API permissions `RoleEligiblitySchedule.ReadWrite.All`
+  - PIM Permanent roles requires API permissions `RoleManagement.ReadWrite.Directory`
+  - Remove mapping configuration `map.user.roles` if conditions not met (or use only the Eligible permissions set to Read if user role management is not needed).
+  - The `skipSignInActivity` option, introduced in v6.1.17, is no longer used. Instead, permissions for both `signInActivity` and PIM roles are validated at startup.
 
 ### v6.1.18
 
