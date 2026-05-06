@@ -52,11 +52,12 @@ describe('plugin-loki', async () => {
     const response: any = await fetchSCIM('GET', '/ResourceTypes', undefined, options.std.headers)
     expect(response.status).toBe(200)
     expect(Array.isArray(response.body.Resources)).toBe(true)
-    expect(response.body.Resources.length).toEqual(3)
+    expect(response.body.Resources.length).toEqual(4)
     expect(response.body.Resources[0].schemas).toContain('urn:ietf:params:scim:schemas:core:2.0:ResourceType')
-    expect(response.body.Resources[0].id).toBe('urn:ietf:params:scim:schemas:core:2.0:User')
-    expect(response.body.Resources[1].id).toBe('urn:ietf:params:scim:schemas:core:2.0:Group')
-    expect(response.body.Resources[2].id).toBe('urn:ietf:params:scim:schemas:custom:2.0:Entitlement')
+    expect(response.body.Resources[0].id).toBe('User')
+    expect(response.body.Resources[1].id).toBe('Group')
+    expect(response.body.Resources[2].id).toBe('Role')
+    expect(response.body.Resources[3].id).toBe('Entitlement')
   })
 
   test('getUsers all test (1)', async () => {
