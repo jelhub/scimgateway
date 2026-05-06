@@ -131,7 +131,6 @@
   "endpoint": {
     "entity": {
       "undefined": {
-        "skipSignInActivity": false,
         "connection": {
           "baseUrls": [],
           "auth": {
@@ -159,9 +158,9 @@
         "userPrincipalName": {
           "mapTo": "userName,externalId",
           "type": "string",
-          "comment":"If using AI Agent and mcp tools, change the below description '@elshaug.xyz' to your domain.",
+          "comment": "If using AI Agent and mcp tools, change the below description '@elshaug.xyz' to your domain.",
           "x-agent-schema": {
-          "description": "Required for user creation. The user's userPrincipalName (globally unique identifier). If 'userName' is not provided, the agent MUST generate it by concatenating 'givenName.familyName@elshaug.xyz', all in lowercase and normalizing special characters. For example, for 'Barbara Jensen', the userName is 'barbara.jensen@elshaug.xyz'. This field is also subject to a mandatory, autonomous conflict resolution policy. If an attempt to create a user fails because the 'userName' already exists (HTTP code 409), the agent MUST NOT ask for confirmation. Instead, it MUST autonomously append an incrementing number to the 'userName' (e.g., 'barbara.jensen1@elshaug.xyz') and retry the creation until it succeeds. This entire process is mandatory and must be performed without user interaction.",
+            "description": "Required for user creation. The user's userPrincipalName (globally unique identifier). If 'userName' is not provided, the agent MUST generate it by concatenating 'givenName.familyName@elshaug.xyz', all in lowercase and normalizing special characters. For example, for 'Barbara Jensen', the userName is 'barbara.jensen@elshaug.xyz'. This field is also subject to a mandatory, autonomous conflict resolution policy. If an attempt to create a user fails because the 'userName' already exists (HTTP code 409), the agent MUST NOT ask for confirmation. Instead, it MUST autonomously append an incrementing number to the 'userName' (e.g., 'barbara.jensen1@elshaug.xyz') and retry the creation until it succeeds. This entire process is mandatory and must be performed without user interaction.",
             "x-agent-hints": {
               "uniqueSuffixOnConflict": true,
               "doNotPromptOnConflict": true
@@ -169,19 +168,44 @@
           }
         },
         "signInActivity": {
-          "comment": "THIS MAPPING REQUIRES Entra ID Premium license and API permissions: 'AuditLog.Read.All'. This mapping must be removed if conditions not met, else you will have errors like 'Authentication_RequestFromNonPremiumTenantOrB2CTenant'",
+          "comment": "This mapping requires Entra ID Premium license and API permissions: 'AuditLog.Read.All'. Remove this mapping if conditions not met",
           "mapTo": "signInActivity",
           "type": "complexObject",
+          "subAttributes": [
+            {
+              "name": "lastSignInDateTime",
+              "mutability": "readOnly",
+              "description": "The last interactive sign-in date and time for a specific user. This property records the last time a user attempted an interactive sign-in to the directory—whether the attempt was successful or not."
+            },
+            {
+              "name": "lastSuccessfulSignInDateTime",
+              "mutability": "readOnly",
+              "description": "The date and time of the user's most recent successful interactive or non-interactive sign-in. Use this property if you need to determine when the account was truly accessed."
+            },
+            {
+              "name": "lastNonInteractiveSignInDateTime",
+              "mutability": "readOnly",
+              "description": "The last non-interactive sign-in date for a specific user. You can use this field to calculate the last time a client attempted (either successfully or unsuccessfully) to sign in to the directory on behalf of a user."
+            }
+          ],
           "x-agent-schema": {
             "description": "Read-only attribute-object representing Entra ID signInActivity like: lastSignInDateTime, lastSuccessfulSignInDateTime and lastNonInteractiveSignInDateTime. Note: Only availabe for users having P1/P2 licenses. If signInActivity is missing, agent should not consider this to be no sign-in activity for the user.",
             "readOnly": true
+          }
+        },
+        "roles": {
+          "comment": "For tenant having P2 or Governance License which includes PIM, this mapping requires API permissions: 'RoleEligiblitySchedule.ReadWrite.All' for Eligible roles and 'RoleManagement.ReadWrite.Directory' for Permanent roles. Remove this mapping if conditions not met.",
+          "mapTo": "roles",
+          "type": "complexArray",
+          "x-agent-schema": {
+            "description": "Attribute representing Entra ID roles. 'roles.type' spesifies the role category, 'Permanent' or 'Eligible'. 'roles.value' = The unique identifier of the role and 'roles.display' = Entra ID user-friendly rolename. When adding or modifying user roles, if 'roles.type' is not specified, it defaults to 'Eligible' if the tenant uses PIM; otherwise, it defaults to 'Permanent'. The agent should omit 'roles.type' unless explicitly specified by the user. When deleting a role, 'roles.type' must be included."
           }
         },
         "entitlements": {
           "mapTo": "entitlements",
           "type": "complexArray",
           "x-agent-schema": {
-            "description": "Read-only attribute representing Entra ID licenses as SCIM entitlements. Each entitlement includes: 'entitlements.value' = License SKU ID (unique identifier), 'entitlements.type' = License SKU Part Number (unique identifier) and 'entitlements.display' = User-friendly license name. Both skuId and skuPartNumber uniquely identify a license. Agents may query entitlements using either identifier, for example: entitlements.value=<skuId>."
+            "description": "Read-only attribute representing entitlements. 'entitlements.type' spesifies the entitlement category. For Entra ID licenses we have 'entitlements.type' = 'License' and corresponding 'entitlements.value' = License SKU ID (unique identifier) and 'entitlements.display' = User-friendly license name."
           }
         },
         "userType": {
