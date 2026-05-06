@@ -1304,6 +1304,12 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.1.20
+
+[Fixed]
+
+- plugin-entra-id: Roles introduced in v6.1.19 were missing when retrieving a single user.
+
 ### v6.1.19
 
 [Fixed]
