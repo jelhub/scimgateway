@@ -861,16 +861,56 @@
       "meta": { "location": "/Schemas/urn:scim:schemas:core:1.0:Group" }
     },
     {
-      "name": "Entitlement",
-      "description": "Entitlement",
-      "schema": "urn:scim:schemas:custom:1.0:Entitlement",
-      "endpoint": "Entitlements",
+      "name": "Role",
+      "description": "Roles supported by the endpoint. These are used as a lookup catalog for managing the user roles attribute.",
+      "schema": "urn:scim:schemas:custom:1.0:Role",
+      "endpoint": "Roles",
       "attributes": [
         {
           "name": "value",
           "type": "string",
           "multiValued": false,
-          "description": "The unique identifier for an entitlement.",
+          "description": "The unique identifier for the role.",
+          "schema": "urn:scim:schemas:custom:1.0:Role",
+          "readOnly": true,
+          "required": true,
+          "caseExact": false
+        },
+        {
+          "name": "displayName",
+          "type": "string",
+          "multiValued": false,
+          "description": "A human-readable name for the role.",
+          "schema": "urn:scim:schemas:custom:1.0:Role",
+          "readOnly": true,
+          "required": false,
+          "caseExact": false
+        },
+        {
+          "name": "type",
+          "type": "string",
+          "multiValued": false,
+          "description": "A label indicating the roles's function.",
+          "schema": "urn:scim:schemas:custom:1.0:Role",
+          "readOnly": true,
+          "required": false,
+          "caseExact": false
+        }
+      ],
+      "id": "urn:scim:schemas:custom:1.0:Role",
+      "meta": { "location": "/Schemas/urn:scim:schemas:custom:1.0:Role" }
+    },
+    {
+      "name": "Entitlement",
+      "description": "Entitlements supported by the endpoint. These are used as a lookup catalog for managing the user entitlements attribute.",
+      "schema": "urn:scim:schemas:custom:1.0:Entitlement",
+      "endpoint": "Entitlements",
+      "attributes": [
+        {
+          "name": "id",
+          "type": "string",
+          "multiValued": false,
+          "description": "The unique identifier for the entitlement.",
           "schema": "urn:scim:schemas:custom:1.0:Entitlement",
           "readOnly": true,
           "required": true,
@@ -890,56 +930,16 @@
           "name": "type",
           "type": "string",
           "multiValued": false,
-          "description": "A label indicating the entitlement's function or service plan.",
+          "description": "A label indicating the entitlement's.",
           "schema": "urn:scim:schemas:custom:1.0:Entitlement",
           "readOnly": true,
           "required": false,
           "caseExact": false
-        },
-        {
-          "name": "seats",
-          "type": "complex",
-          "multiValued": false,
-          "description": "Usage statistics for the entitlement.",
-          "schema": "urn:scim:schemas:custom:1.0:Entitlement",
-          "readOnly": true,
-          "required": false,
-          "caseExact": false,
-          "subAttributes": [
-            {
-              "name": "totalSeats",
-              "type": "integer",
-              "multiValued": false,
-              "description": "Number of of total seats in the pool.",
-              "readOnly": true,
-              "required": false,
-              "caseExact": false
-            },
-            {
-              "name": "usedSeats",
-              "type": "integer",
-              "multiValued": false,
-              "description": "Number of seats consumed of the pool.",
-              "readOnly": true,
-              "required": false,
-              "caseExact": false
-            },
-            {
-              "name": "suspendedSeats",
-              "type": "integer",
-              "multiValued": false,
-              "description": "Number of suspended/lockedOut seats of the pool. Billing/entitlement problem; services are in grace or partially/temporarily disabled.",
-              "readOnly": true,
-              "required": false,
-              "caseExact": false
-            }
-          ]
         }
       ],
       "id": "urn:scim:schemas:custom:1.0:Entitlement",
       "meta": { "location": "/Schemas/urn:scim:schemas:custom:1.0:Entitlement" }
     }
-
   ]
 },
 
