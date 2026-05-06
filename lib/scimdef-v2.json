@@ -51,13 +51,9 @@
 },
 
 "ResourceType": {
-  "totalResults": 3,
-  "itemsPerPage": 3,
-  "startIndex": 1,
-  "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
   "Resources": [{
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
-    "id": "urn:ietf:params:scim:schemas:core:2.0:User",
+    "id": "User",
     "name": "User",
     "endpoint": "/Users",
     "description": "User Account",
@@ -75,7 +71,7 @@
   },
   {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
-    "id": "urn:ietf:params:scim:schemas:core:2.0:Group",
+    "id": "Group",
     "name": "Group",
     "endpoint": "/Groups",
     "description": "Group",
@@ -88,10 +84,23 @@
   },
   {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
-    "id": "urn:ietf:params:scim:schemas:custom:2.0:Entitlement",
+    "id": "Role",
+    "name": "Role",
+    "endpoint": "/Roles",
+    "description": "Roles supported by the endpoint. These are used as a lookup catalog for managing the user roles attribute.",
+    "schema": "urn:ietf:params:scim:schemas:custom:2.0:Role",
+    "meta": {
+      "resourceType": "Schema",
+      "location":
+        "/Schemas/urn:ietf:params:scim:schemas:custom:2.0:Role"
+    }
+  },
+  {
+    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
+    "id": "Entitlement",
     "name": "Entitlement",
     "endpoint": "/Entitlements",
-    "description": "Entitlement",
+    "description": "Entitlements supported by the endpoint. These are used as a lookup catalog for managing the user entitlements attribute.",
     "schema": "urn:ietf:params:scim:schemas:custom:2.0:Entitlement",
     "meta": {
       "resourceType": "Schema",
@@ -874,92 +883,6 @@
         }
       },
       {
-        "id": "urn:ietf:params:scim:schemas:custom:2.0:Entitlement",
-        "name": "Entitlement",
-        "description": "Entitlement",
-        "attributes": [
-          {
-            "name": "value",
-            "type": "string",
-            "multiValued": false,
-            "description": "The unique identifier for an entitlement.",
-            "required": true,
-            "caseExact": false,
-            "mutability": "readOnly",
-            "returned": "default",
-            "uniqueness": "server"
-          },
-          {
-            "name": "displayName",
-            "type": "string",
-            "multiValued": false,
-            "description": "A human-readable name for the entitlement.",
-            "required": false,
-            "caseExact": false,
-            "mutability": "readOnly",
-            "returned": "default",
-            "uniqueness": "none"
-          },
-          {
-            "name": "type",
-            "type": "string",
-            "multiValued": false,
-            "description": "A label indicating the entitlement's function or service plan.",
-            "required": false,
-            "caseExact": false,
-            "mutability": "readOnly",
-            "returned": "default",
-            "uniqueness": "none"
-          },
-          {
-            "name": "seats",
-            "type": "complex",
-            "multiValued": false,
-            "description": "Usage statistics for the entitlement.",
-            "required": false,
-            "mutability": "readOnly",
-            "returned": "default",
-            "uniqueness": "none",
-            "subAttributes": [
-              {
-                "name": "totalSeats",
-                "type": "integer",
-                "multiValued": false,
-                "description": "Number of of total seats in the pool.",
-                "required": false,
-                "mutability": "readOnly",
-                "returned": "default",
-                "uniqueness": "none"
-              },
-              {
-                "name": "usedSeats",
-                "type": "integer",
-                "multiValued": false,
-                "description": "Number of seats consumed of the pool.",
-                "required": false,
-                "mutability": "readOnly",
-                "returned": "default",
-                "uniqueness": "none"
-              },
-              {
-                "name": "suspendedSeats",
-                "type": "integer",
-                "multiValued": false,
-                "description": "Number of suspended/lockedOut seats of the pool. Billing/entitlement problem; services are in grace or partially/temporarily disabled.",
-                "required": false,
-                "mutability": "readOnly",
-                "returned": "default",
-                "uniqueness": "none"
-              }
-            ]
-          }
-        ],
-        "meta": {
-          "resourceType": "Schema",
-          "location": "/Schemas/urn:ietf:params:scim:schemas:custom:2.0:Entitlement"
-        }
-      },
-      {
         "id": "urn:ietf:params:scim:schemas:core:2.0:Group",
         "name": "Group",
         "description": "Group",
@@ -1146,6 +1069,108 @@
           "resourceType": "Schema",
           "location":
             "/v2/Schemas/urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+        }
+      },
+      {
+        "id": "urn:ietf:params:scim:schemas:custom:2.0:Role",
+        "name": "Role",
+        "description": "Endpoint role used for the user roles attribute",
+        "attributes": [
+          {
+            "name": "id",
+            "type": "string",
+            "multiValued": false,
+            "description": "The unique identifier for the role.",
+            "required": true,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "server"
+          },
+          {
+            "name": "displayName",
+            "type": "string",
+            "multiValued": false,
+            "description": "A human-readable name for the role.",
+            "required": false,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "none"
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "multiValued": false,
+            "description": "A label indicating the roles's function.",
+            "required": false,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "none"
+          }
+        ],
+        "meta": {
+          "resourceType": "Schema",
+          "location": "/Schemas/urn:ietf:params:scim:schemas:custom:2.0:Role"
+        }
+      },
+      {
+        "id": "urn:ietf:params:scim:schemas:custom:2.0:Entitlement",
+        "name": "Entitlement",
+        "description": "Endpoint entitlement used for the user entitlements attribute",
+        "attributes": [
+          {
+            "name": "id",
+            "type": "string",
+            "multiValued": false,
+            "description": "The unique identifier for the entitlement.",
+            "required": true,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "server"
+          },
+          {
+            "name": "displayName",
+            "type": "string",
+            "multiValued": false,
+            "description": "A human-readable name for the entitlement.",
+            "required": false,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "none"
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "multiValued": false,
+            "description": "A label indicating the entitlement's function.",
+            "required": false,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "none"
+          },
+
+          {
+            "name": "typeInfo",
+            "type": "complex",
+            "multiValued": false,
+            "description": "Specifies additional information about the spesific type of the entitlement. subAttributes may vary depending on the type of the entitlement.",
+            "required": false,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "none",
+            "subAttributes": [
+            ]
+          }
+        ],
+        "meta": {
+          "resourceType": "Schema",
+          "location": "/Schemas/urn:ietf:params:scim:schemas:custom:2.0:Entitlement"
         }
       },
       {
