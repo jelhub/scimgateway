@@ -298,7 +298,7 @@ export class HelperRest {
             if (!gkey) {
               gkey = await (async () => {
                 try {
-                  const jsonObject = await import(serviceAccountKeyFile, { assert: { type: 'json' } })
+                  const jsonObject = await import(serviceAccountKeyFile, { with: { type: 'json' } })
                   return jsonObject.default // access the object via the `default` property
                 } catch (err: any) {
                   throw new Error(`auth type '${connectionObj.auth?.type}' - serviceAccountKeyFile error: ${err.message}`)
@@ -511,7 +511,7 @@ export class HelperRest {
           }
         }
 
-        param.accessToken = await this.getAccessToken(baseEntity, connectionObj)
+        if (!ctx?.headers) param.accessToken = await this.getAccessToken(baseEntity, connectionObj)
         if (param.accessToken?.access_token && param.accessToken?.token_type) {
           param.options.headers['Authorization'] = `${param.accessToken.token_type} ${param.accessToken.access_token}`
         } else { // no auth or PassTrough
