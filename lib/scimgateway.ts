@@ -1139,12 +1139,18 @@ export class ScimGateway {
     // scimv2 GET /ResourceTypes, scimv1 not used
     const getHandlerResourceTypes = async (ctx: Context) => {
       const tx = this.scimDef.ResourceType
-      if (!this.config.scimgateway.scim.skipMetaLocation) {
-        const location = ctx.origin + ctx.path
-        if (tx.meta) tx.meta.location = location
-        else {
-          tx.meta = {}
-          tx.meta.location = location
+      if (Array.isArray(tx.Resources)) {
+        tx.totalResults = tx.Resources.length
+        tx.itemsPerPage = tx.Resources.length
+        tx.startIndex = 1
+        tx.schemas = ['urn:ietf:params:scim:api:messages:2.0:ListResponse']
+        if (!this.config.scimgateway.scim.skipMetaLocation) {
+          const location = ctx.origin + ctx.path
+          if (tx.meta) tx.meta.location = location
+          else {
+            tx.meta = {}
+            tx.meta.location = location
+          }
         }
       }
       ctx.response.body = JSON.stringify(tx)
@@ -1400,16 +1406,16 @@ export class ScimGateway {
     // ==========================================
     //           getUser by id
     //           getGroup by id
+    //           getEntitlements by id
+    //           getRoles by id
     // ==========================================
     const getHandlerId = async (ctx: Context) => {
       const handle = handler[ctx.routeObj.handle]
       const baseEntity = ctx.routeObj.baseEntity
       const id = decodeURIComponent(path.basename(ctx.routeObj.id ?? '', '.json')) // supports <id>.json
 
-      if (!id || handle.getMethod === 'getEntitlements' || handle.getMethod === 'getRoles') {
-        let err: Error
-        if (!id) err = new Error('missing id')
-        else err = new Error(`GET /${handle.description}/${id} is not supported. Instead use filter query on users e.g., /users?filter=entitlements[value eq "xxx"] or /users?filter=roles[value eq "xxx"]`)
+      if (!id) {
+        const err = new Error('missing id')
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
         ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
@@ -1535,17 +1541,29 @@ export class ScimGateway {
         if (getObj.rawFilter.includes(' and ')) isAndFilter = true
         if (getObj.rawFilter.includes(' or ')) isOrFilter = true
       }
-      if (ctx.query.filter) decodeURIComponent(ctx.query.filter.trim())
+      if (ctx.query.filter) ctx.query.filter = decodeURIComponent(ctx.query.filter.trim())
       else ctx.query.filter = ''
 
       if (getObj.rawFilter && !isAndFilter && !isOrFilter) {
         const arrFilter = ctx.query.filter.split(' ')
         if (arrFilter.length > 2) {
-          if (arrFilter[2].startsWith('"') && (arrFilter[arrFilter.length - 1].endsWith('"') || arrFilter[arrFilter.length - 1].endsWith('"]'))) {
+          if (arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"')) {
             getObj.attribute = arrFilter[0] // userName
             getObj.operator = arrFilter[1].toLowerCase() // eq
             const value = arrFilter.slice(2).join(' ').replace(/"/g, '')
             getObj.value = value
+          } else if (arrFilter[arrFilter.length - 1].endsWith(']')) { // emails[type eq "work"]
+            const rePattern = /^(.*)\[(.*) (.*) (.*)\]$/
+            const arrMatches = ctx.query.filter.match(rePattern)
+            if (Array.isArray(arrMatches) && arrMatches.length === 5) {
+              getObj.attribute = `${arrMatches[1]}.${arrMatches[2]}` // emails.type
+              getObj.operator = arrMatches[3]
+              getObj.value = arrMatches[4].replace(/"/g, '')
+            } else {
+              getObj.attribute = undefined
+              getObj.operator = undefined
+              getObj.value = undefined
+            }
           } else if (arrFilter[1] === 'not' && arrFilter[2] === 'pr') {
             getObj.attribute = arrFilter[0]
             getObj.operator = 'not pr' // custom not presence of
@@ -1564,18 +1582,6 @@ export class ScimGateway {
         if (this.multiValueTypes.includes(getObj.attribute) || getObj.attribute === 'roles') {
           if (getObj.operator !== 'pr') {
             getObj.attribute = `${getObj.attribute}.value` // emails => emails.value
-          }
-        } else if (getObj.attribute.includes('[')) { // e.g. rawFilter = emails[type eq "work"]
-          const rePattern = /^(.*)\[(.*) (.*) (.*)\]$/
-          const arrMatches = ctx.query?.filter?.match(rePattern)
-          if (Array.isArray(arrMatches) && arrMatches.length === 5) {
-            getObj.attribute = `${arrMatches[1]}.${arrMatches[2]}` // emails.type
-            getObj.operator = arrMatches[3]
-            getObj.value = arrMatches[4].replace(/"/g, '')
-          } else {
-            getObj.attribute = undefined
-            getObj.operator = undefined
-            getObj.value = undefined
           }
         }
         if (getObj.attribute === 'password') {
@@ -1692,7 +1698,25 @@ export class ScimGateway {
           let complexAttr = ''
           for (let i = 0; i < arr.length; i++) {
             arr[i] = arr[i].replace(/\(/g, '').replace(/\)/g, '').trim()
-            const arrFilter = arr[i].split(' ')
+            const a = arr[i].split(' ')
+            const arrFilter = []
+            let found = ''
+            for (let j = 0; j < a.length; j++) { // entitlements[type eq "Some space" and display eq "Some more space"]
+              if (a[j] === '') continue
+              if (a[j].startsWith('"') && !a[j].endsWith('"') && !a[j].endsWith(']')) {
+                found = a[j]
+                continue
+              }
+              if (found) {
+                found += ` ${a[j]}`
+                if (a[j].endsWith('"') || a[j].endsWith(']')) {
+                  arrFilter.push(found)
+                  found = ''
+                }
+                continue
+              }
+              arrFilter.push(a[j])
+            }
             // convert any complex multivalue to dot notation
             // e.g., entitlements[type eq "License" and value eq "123"] => entitlements.type eq "License" and entitlements.value eq "123"
             if (complexAttr && arrFilter.length > 2) {
@@ -1724,7 +1748,7 @@ export class ScimGateway {
             }
             const chunk = 5
             const chunkRes: Record<string, any>[] = []
-            logger.debug(`${gwName} calling ${handle.getMethod} chunks`, { baseEntity: ctx?.routeObj?.baseEntity })
+            logger.debug(`${gwName} calling ${handle.getMethod} in chunks of ${chunk}`, { baseEntity: ctx?.routeObj?.baseEntity })
             do {
               const arrChunk = getObjArr.splice(0, chunk)
               const results = await Promise.allSettled(arrChunk.map(o => getObj(o))) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
@@ -1761,17 +1785,39 @@ export class ScimGateway {
         }
 
         // check for user attribute groups and include if needed
+        const fnArr: { index: number, fn: () => Promise<any> }[] = []
         if (Array.isArray(res?.Resources)) {
           if (handle.getMethod === handler.users.getMethod) {
             if (attributes.length === 0 || attributes.includes('groups')) { // include groups
               for (let i = 0; i < res.Resources.length; i++) {
                 const userObj = res.Resources[i]
                 if (!userObj.id) break
-                if (userObj.groups) break
-                userObj.groups = await getMemberOf(baseEntity, userObj.id, handler.groups.getMethod, ctx.passThrough)
+                if (userObj.groups) {
+                  break
+                }
+                const fn = () => getMemberOf(baseEntity, userObj.id, handler.groups.getMethod, ctx.passThrough)
+                fnArr.push({ index: i, fn })
               }
             }
           }
+        }
+        if (fnArr.length > 0) {
+          const chunk = 5
+          logger.debug(`${gwName} calling ${handler.groups.getMethod} in chunks of ${chunk}`, { baseEntity: ctx?.routeObj?.baseEntity })
+          do {
+            const arrChunk = fnArr.splice(0, chunk)
+            const results = await Promise.allSettled(arrChunk.map(o => o.fn())) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
+            const errors = results.filter(result => result.status === 'rejected').map(result => result.reason.message)
+            if (errors.length > 0) {
+              const errMsg = `${handler.groups.getMethod} chunks error: ${errors.join(', ')}`
+              throw new Error(errMsg)
+            }
+            results.forEach((result, idx) => {
+              if (result.status === 'fulfilled') {
+                res.Resources[arrChunk[idx].index].groups = result.value
+              }
+            })
+          } while (fnArr.length > 0)
         }
 
         let location: string | undefined = ctx.origin + ctx.path
@@ -3930,7 +3976,7 @@ export class ScimGateway {
 
   /**
   * isMultiValueTypes returns true if attr is mulitvalue else false
-  * @attr scim attribute to check e.g., emails
+  * @param attr the scim attribute to check e.g., emails
   * @returns true or false based on attr is multivalue - e.g., emails returns true
   **/
   isMultiValueTypes(attr: string): boolean { // emails
@@ -3968,6 +4014,17 @@ export class ScimGateway {
       testmodegroups = this.scimDef.TestmodeGroups.Resources
     }
     return testmodegroups
+  }
+
+  /**
+  * getUserGroups returns array containint users groups
+  * @param baseEntity the baseEntity
+  * @param id userID
+  * @param ctx userID
+  * @returns clear text secret and updates configuration file if needed with encrypted secret
+  **/
+  getUserGroups(baseEntity: string, id: string, ctx: any): Promise<any> {
+    return this.getMemberOf(baseEntity, id, 'getGroups', ctx)
   }
 
   /**
