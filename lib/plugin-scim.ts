@@ -299,8 +299,10 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   if (getObj.operator) {
     if (getObj.operator === 'eq' && ['id', 'displayName', 'externalId'].includes(getObj.attribute)) {
       // mandatory - unique filtering - single unique user to be returned - correspond to getUser() in versions < 4.x.x
-      if (getObj.attribute === 'id') path = `/Groups/${getObj.value}?attributes=${attributes.join()}` // GET /Users/bjensen?attributes=
-      else path = `/Groups?filter=${getObj.attribute} eq "${getObj.value}"${(attributes.length > 0) ? '&attributes=' + attributes.join() : ''}` // GET /Users?filter=userName eq "bjensen"&attributes=userName,active,name.givenName,name.familyName,name.formatted,title,emails,phoneNumbers,entitlements
+      const filterValue = getObj.attribute === 'displayName' ? mapGroupNameOutbound(baseEntity, getObj.value) : getObj.value
+      if (filterValue === null) return { Resources: [], totalResults: 0 }
+      if (getObj.attribute === 'id') path = `/Groups/${filterValue}?attributes=${attributes.join()}` // GET /Users/bjensen?attributes=
+      else path = `/Groups?filter=${getObj.attribute} eq "${filterValue}"${(attributes.length > 0) ? '&attributes=' + attributes.join() : ''}` // GET /Users?filter=userName eq "bjensen"&attributes=userName,active,name.givenName,name.familyName,name.formatted,title,emails,phoneNumbers,entitlements
     } else if (getObj.operator === 'eq' && getObj.attribute === 'members.value') {
       // mandatory - return all groups the user 'id' (getObj.value) is member of - correspond to getGroupMembers() in versions < 4.x.x
       // Resources = [{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }]
@@ -349,9 +351,11 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       const groupObj = responseArr[i]
       if (!groupObj || Object.keys(groupObj).length < 1) continue
 
+      const mappedDisplayName = groupObj.displayName ? mapGroupNameInbound(baseEntity, groupObj.displayName) : undefined
+      if (mappedDisplayName === null) continue // group not in map - exclude from results
       const retObj = { // scimgateway strips attributes according to attributes list
         id: groupObj.id ? groupObj.id : undefined, // id and displayName is mandatory and most often set to the same value
-        displayName: groupObj.displayName ? groupObj.displayName : undefined,
+        displayName: mappedDisplayName,
         members: Array.isArray(groupObj.members) ? groupObj.members : undefined,
       }
       ret.Resources.push(retObj)
@@ -371,9 +375,12 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   const action = 'createGroup'
   scimgateway.logDebug(baseEntity, `handling ${action} groupObj=${JSON.stringify(groupObj)} passThrough=${ctx ? 'true' : 'false'}`)
 
+  const mappedDisplayName = mapGroupNameOutbound(baseEntity, groupObj.displayName)
+  if (mappedDisplayName === null) throw new Error(`${action} error: group "${groupObj.displayName}" is not in groupNameMap for entity "${baseEntity}"`)
+
   const method = 'POST'
   const path = '/Groups'
-  const body = { displayName: groupObj.displayName }
+  const body = { displayName: mappedDisplayName }
 
   try {
     const response = await helper.doRequest(baseEntity, method, path, body, ctx)
@@ -483,6 +490,24 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
 // =================================================
 // helpers
 // =================================================
+
+// Map a displayName received from the downstream endpoint back to the name the SCIM client (e.g. Entra ID) expects.
+// groupNameMap keys are local/client names, values are downstream names.
+// Returns null when the map is non-empty and the name has no entry (caller should drop the group).
+function mapGroupNameInbound(baseEntity: string, downstreamName: string): string | null {
+  const map: Record<string, string> | undefined = config.entity[baseEntity]?.groupNameMap
+  if (!map || Object.keys(map).length === 0) return downstreamName
+  const entry = Object.entries(map).find(([, v]) => v === downstreamName)
+  return entry ? entry[0] : null
+}
+
+// Map a displayName coming from the SCIM client to the name the downstream endpoint uses.
+// Returns null when the map is non-empty and the name has no entry (caller should abort the operation).
+function mapGroupNameOutbound(baseEntity: string, localName: string): string | null {
+  const map: Record<string, string> | undefined = config.entity[baseEntity]?.groupNameMap
+  if (!map || Object.keys(map).length === 0) return localName
+  return map[localName] ?? null
+}
 
 //
 // Cleanup on exit

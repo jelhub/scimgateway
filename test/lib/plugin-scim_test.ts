@@ -404,3 +404,64 @@ describe('plugin-scim', async () => {
     expect(res.status).toBe(204)
   })
 })
+
+// groupNameMap sits on entity "with-map": { "Administrators": "TestGroupA" }
+// "with-map" proxies to plugin-loki (port 8880), so we set up TestGroupA there first.
+const baseUrlWithMap = 'http://localhost:8886/with-map'
+
+async function fetchSCIMWithMap(method: string, endpoint: string, body?: any, headers?: any) {
+  const response = await fetch(`${baseUrlWithMap}${endpoint}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const data = response.status !== 204 ? await response.json() : null
+  return { status: response.status, body: data }
+}
+
+describe('plugin-scim groupNameMap', async () => {
+  test('setup: create downstream group TestGroupA via default entity', async () => {
+    const res = await fetchSCIM('POST', '/Groups', { displayName: 'TestGroupA' }, options.content.headers)
+    expect([201, 409]).toContain(res.status)
+  })
+
+  test('getGroups all: only mapped groups are returned', async () => {
+    // Loki has Admins, Employees, TestGroupA — only TestGroupA maps to "Administrators"
+    const res = await fetchSCIMWithMap('GET', '/Groups', undefined, options.std.headers)
+    expect(res.status).toBe(200)
+    const names = res.body.Resources.map((g: any) => g.displayName)
+    expect(names).toContain('Administrators')
+    expect(names).not.toContain('Admins')
+    expect(names).not.toContain('Employees')
+    expect(names).not.toContain('TestGroupA')
+  })
+
+  test('getGroups filter by mapped displayName: returns translated result', async () => {
+    const res = await fetchSCIMWithMap('GET', '/Groups?filter=displayName eq "Administrators"', undefined, options.std.headers)
+    expect(res.status).toBe(200)
+    expect(res.body.Resources.length).toBe(1)
+    expect(res.body.Resources[0].displayName).toBe('Administrators')
+  })
+
+  test('getGroups filter by unmapped displayName: returns empty', async () => {
+    const res = await fetchSCIMWithMap('GET', '/Groups?filter=displayName eq "Admins"', undefined, options.std.headers)
+    expect(res.status).toBe(200)
+    expect(res.body.Resources.length).toBe(0)
+  })
+
+  test('createGroup with mapped name: creates downstream group with translated name', async () => {
+    const res = await fetchSCIMWithMap('POST', '/Groups', { displayName: 'Administrators' }, options.content.headers)
+    // 409 is acceptable: setup test already created TestGroupA downstream
+    expect([201, 409]).toContain(res.status)
+  })
+
+  test('createGroup with unmapped name: returns error', async () => {
+    const res = await fetchSCIMWithMap('POST', '/Groups', { displayName: 'UnknownGroup' }, options.content.headers)
+    expect(res.status).toBe(400)
+  })
+
+  test('cleanup: delete downstream group TestGroupA via default entity', async () => {
+    const res = await fetchSCIM('DELETE', '/Groups/TestGroupA', undefined, options.std.headers)
+    expect([204, 404]).toContain(res.status)
+  })
+})
