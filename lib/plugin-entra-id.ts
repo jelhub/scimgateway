@@ -294,6 +294,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   if (!path) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
 
   if (path.includes('$count=true')) { // $count=true requires ConsistencyLevel
+    // note: when using $expand, the $count=true might be ignored by target endpoint and the ctx.paging.totalResults updated by doReqest() will be incremental
     if (!options.headers) options.headers = {}
     options.headers.ConsistencyLevel = 'eventual'
   }
@@ -730,6 +731,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   if (!path) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
 
   if (path.includes('$count=true')) { // $count=true requires ConsistencyLevel
+    // note: when using $expand, the $count=true might be ignored by target endpoint and the ctx.paging.totalResults updated by doReqest() will be incremental
     if (!options.headers) options.headers = {}
     options.headers.ConsistencyLevel = 'eventual'
   }
