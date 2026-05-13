@@ -1676,7 +1676,16 @@ export class ScimGateway {
       try {
         getObj.startIndex = ctx.query.startIndex ? parseInt(ctx.query.startIndex, 10) : 1
         getObj.count = ctx.query.count ? parseInt(ctx.query.count, 10) : 200 // defaults to 200 (plugin may override)
-
+        if (getObj.startIndex < 1) {
+          const err = new Error(`${handle.getMethod} error: startIndex must be a positive integer starting at 1`)
+          err.name = 'invalidValue'
+          throw err
+        }
+        if (getObj.count < 0) {
+          const err = new Error(`${handle.getMethod} error: count cannot be a negative integer`)
+          err.name = 'invalidValue'
+          throw err
+        }
         let res: any
         const obj: any = structuredClone(getObj)
         const attributes: string[] = ctx.query.attributes ? ctx.query.attributes.split(',').map((item: string) => item.trim()) : []
