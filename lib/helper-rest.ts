@@ -702,6 +702,11 @@ export class HelperRest {
           }
         }
 
+        // Bun v1.3.14 became stricter and more aligned with standards.
+        delete options.host
+        delete options.port
+        delete options.protocol
+
         // execute request
         const f = await fetch(url, options)
         if (!f.status) throw new Error('Response missing status code')
