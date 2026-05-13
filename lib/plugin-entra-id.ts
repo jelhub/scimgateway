@@ -1359,7 +1359,6 @@ const getUserRoles = async (baseEntity: string, userId: string, groups: Record<s
   })
 
   const permanentRoles = rolesAssignments.permanent.filter((role: any) => Ids.includes(role.principalId)).map((role: any) => {
-    if (eligibleRoles.filter((r: any) => r.value === role.roleDefinitionId).length > 0) return null // eligible role activated becomes listed as permanent, skip those...
     const roleDef = roleDefs[role.roleDefinitionId]
     if (roleDef) {
       if (includeAssignmentId === true) return { type: 'Permanent', value: roleDef.id, display: roleDef.displayName, assignmentId: role.id }
