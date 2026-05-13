@@ -254,7 +254,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const path = `/Users/${id}`
   let body = targetObj
 
-  if (!config.entity[baseEntity].scimVersion || config.entity[baseEntity].scimVersion !== '1.1') { // scim 2.0 endpoint
+  if (config.entity[baseEntity].scimVersion && config.entity[baseEntity].scimVersion !== '1.1') { // scim 2.0 endpoint
     body = {
       Operations: [
         {
