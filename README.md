@@ -17,6 +17,7 @@
 
 Latest news:  
 
+- New `plugin-generic` replacing previous `plugin-scim`. This new plugin use the endpointMapper for flexible attribute mapping and also supports the new mapper option `valueMap` (e.g., group filtering and mapping).
 - Now supports `GET /Roles` and `GET /Entitlements` endpoint requests, with corresponding user management via the standard SCIM `roles` and `entitlements` attributes. The Entra ID plugin uses `entitlements` for Entra ID licenses (read-only) and `roles` for Entra ID Permanent and Eligible roles (full management).
 - Bun binary build is now supported, allowing SCIM Gateway to be compiled into a single executable binary for simplified deployment and execution. SCIM Gateway can now run as an ES module (TypeScript) in Node.js.
 - Major release **v6.0.0** introduces changes to API method responses (not SCIM-related) and a new method `publicApi()` for handling public path `/pub/api` requests with no authentication required. In addition, the configuration option `bearerJwtAzure.tenantIdGUID` has been replaced by `bearerJwt.azureTenantId`. See the version history for details.
@@ -61,7 +62,7 @@ The following fully functional plugins are included for demonstration and produc
 | **Loki** | NoSQL Database | Transforms the SCIM Gateway into a standalone SCIM endpoint utilizing the internal [LokiJS](https://github.com/techfort/LokiJS) database. Includes two test users and groups |
 | **MongoDB** | NoSQL Database | Similar to the Loki plugin, but using an externally managed MongoDB database, showcasing multi-tenant and multi-endpoint capabilities via `baseEntity` |
 | **Entra ID** | REST Webservices | Entra ID user provisioning via Microsoft Graph API |
-| **SCIM** | REST Webservice | Using plugin Loki as a SCIM provisioning endpoint. May become a SCIM version-gateway (e.g., 1.1 => 2.0) |
+| **Generic** | REST Webservice | Generic template plugin configured to use plugin-loki as a SCIM provisioning endpoint. Supports the endpointMapper `valueMap` option for allowlisting and mapping (e.g., groups). Can also be used as a SCIM version gateway (e.g., 1.1 => 2.0) |
 | **API** | REST Webservices | A non-SCIM plugin demonstrating API Gateway functionality for custom REST specifications |
 | **Soap** | SOAP Webservice | Demonstrates user provisioning to a SOAP-based endpoint with example WSDLs |
 | **MSSQL** | Database | Demonstrates user provisioning to an MSSQL database |
@@ -1304,11 +1305,47 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.2.0
+
+[Improved]
+
+- New `plugin-generic` replacing previous `plugin-scim`. This new plugin use the endpointMapper for flexible attribute mapping and also supports the new mapper option `valueMap` (e.g., group filtering and mapping). The default configuration uses one-to-one SCIM mapping, with plugin-loki as the target SCIM endpoint.
+- endpointMapper now supports the 'valueMap' option
+
+	Example configuration:
+
+		"map": {
+		  "group": {
+		    ...
+		    "displayName": {
+		      "mapTo": "displayName",
+		      "type": "string",
+		      "valueMap": {
+		        "outboundEndpointGrp1": "inboundScimGrp1",
+		        "Employees": "Admins"
+		      }
+		    },
+		    ...
+		  }
+		  ...
+		}
+
+	Using the above settings restricts the client using SCIM Gateway with regard to group management.
+	The client will only see and be able to manage groups with SCIM names "inboundScimGrp1" and "Admins",
+	if their mapped counterparts exist at the target endpoint as "outboundEndpointGrp1" and "Employees".
+
+	Use case:
+
+	- Allowlisting specific groups or user objects that includes attribute mapping having the valueMap option configured.
+	- Supporting different inbound/outbound names (e.g., Entra ID group provisioning to SCIM Gateway).
+
+
 ### v6.1.20
 
 [Fixed]
 
 - plugin-entra-id: Roles introduced in v6.1.19 were missing when retrieving a single user.
+
 
 ### v6.1.19
 
