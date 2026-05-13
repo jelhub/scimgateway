@@ -27,7 +27,7 @@ if (!fsExistsSync('../../config/docker')) fs.mkdirSync('../../config/docker')
 if (!fsExistsSync('../../lib')) fs.mkdirSync('../../lib')
 
 if (!fsExistsSync('../../config/plugin-loki.json')) fs.writeFileSync('../../config/plugin-loki.json', fs.readFileSync('./config/plugin-loki.json'))
-if (!fsExistsSync('../../config/plugin-scim.json')) fs.writeFileSync('../../config/plugin-scim.json', fs.readFileSync('./config/plugin-scim.json'))
+if (!fsExistsSync('../../config/plugin-generic.json')) fs.writeFileSync('../../config/plugin-generic.json', fs.readFileSync('./config/plugin-generic.json'))
 if (!fsExistsSync('../../config/plugin-soap.json')) fs.writeFileSync('../../config/plugin-soap.json', fs.readFileSync('./config/plugin-soap.json'))
 if (!fsExistsSync('../../config/plugin-mssql.json')) fs.writeFileSync('../../config/plugin-mssql.json', fs.readFileSync('./config/plugin-mssql.json'))
 if (!fsExistsSync('../../config/plugin-saphana.json')) fs.writeFileSync('../../config/plugin-saphana.json', fs.readFileSync('./config/plugin-saphana.json'))
@@ -37,7 +37,7 @@ if (!fsExistsSync('../../config/plugin-ldap.json')) fs.writeFileSync('../../conf
 if (!fsExistsSync('../../config/plugin-mongodb.json')) fs.writeFileSync('../../config/plugin-mongodb.json', fs.readFileSync('./config/plugin-mongodb.json'))
 
 fs.writeFileSync('../../lib/plugin-loki.ts', fs.readFileSync('./lib/plugin-loki.ts'))
-fs.writeFileSync('../../lib/plugin-scim.ts', fs.readFileSync('./lib/plugin-scim.ts'))
+fs.writeFileSync('../../lib/plugin-generic.ts', fs.readFileSync('./lib/plugin-generic.ts'))
 fs.writeFileSync('../../lib/plugin-soap.ts', fs.readFileSync('./lib/plugin-soap.ts'))
 fs.writeFileSync('../../lib/plugin-mssql.ts', fs.readFileSync('./lib/plugin-mssql.ts'))
 fs.writeFileSync('../../lib/plugin-saphana.ts', fs.readFileSync('./lib/plugin-saphana.ts'))
