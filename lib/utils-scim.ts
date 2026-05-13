@@ -674,6 +674,14 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
             }
           }
           if (!found) arrUnsupported.push(key)
+
+          // valueMap, must be the last check because using final dotNewObj
+          const valueMap = mapObj[key]?.valueMap
+          if (valueMap && typeof valueMap === 'object' && Object.keys(valueMap).length > 0 && dotNewObj[key]) {
+            const keyFromValue = Object.entries(valueMap).find(([, v]) => v === dotNewObj[key])
+            if (keyFromValue && keyFromValue[0]) dotNewObj[key] = keyFromValue[0]
+            else arrUnsupported.push(`${key}.valueMap{"n/a":"${dotNewObj[key]}"}`)
+          }
         }
       } else { // string (get)
         const resArr: any = []
@@ -822,6 +830,12 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
               }
             }
           }
+          // valueMap, must be the last check because using final dotNewObj
+          const valueMap = mapObj[key]?.valueMap
+          if (valueMap && typeof valueMap === 'object' && Object.keys(valueMap).length > 0 && dotNewObj[mapTo]) {
+            if (valueMap[dotNewObj[mapTo]]) dotNewObj[mapTo] = valueMap[dotNewObj[mapTo]]
+            else arrUnsupported.push(`${key}.valueMap{"${dotNewObj[mapTo]}":"n/a"}`)
+          }
         }
       } else { // string
         let newStr = ''
@@ -869,7 +883,8 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
     arrErr.push(arrUnsupported[i])
   }
   if (!err && arrErr.length > 0) {
-    err = new Error(`endpointMapper: skipping - no mapping found for attributes: ${arrErr.toString()}`)
+    err = new Error(`endpointMapper - no valid map for: ${arrErr.toString()}`)
+    if (err.message.includes('valueMap')) err.name = 'invalidValue'
   }
 
   if (isObj) {
