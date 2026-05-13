@@ -12,7 +12,7 @@
 //
 
 // start one or more plugins:
-// import './lib/plugin-scim.ts'
+// import './lib/plugin-generic.ts'
 // import './lib/plugin-entra-id.ts'
 // import './lib/plugin-ldap.ts'
 // import './lib/plugin-mongodb.ts'
