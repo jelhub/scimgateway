@@ -180,10 +180,7 @@
         },
         "userName": {
           "mapTo": "userName",
-          "type": "string",
-          "xvalueMap": {
-            "bjensen": "Xbjensen"
-          }
+          "type": "string"
         },
         "active": {
           "mapTo": "active",
