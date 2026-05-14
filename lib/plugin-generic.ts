@@ -52,6 +52,14 @@ const config = scimgateway.getConfig()
 scimgateway.authPassThroughAllowed = false
 // end - mandatory plugin initialization
 
+const isAllowlistingUser = config.map?.user
+  ? Object.values(config.map.user).some((item: any) => typeof item?.valueMap === 'object' && Object.keys(item.valueMap).length > 0)
+  : false
+
+const isAllowlistingGroup = config.map?.group
+  ? Object.values(config.map.group).some((item: any) => typeof item.valueMap === 'object' && Object.keys(item.valueMap).length > 0)
+  : false
+
 // =================================================
 // getUsers
 // =================================================
@@ -114,16 +122,13 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     totalResults: null,
   }
 
-  const isAllowlisting = config.map?.user
-    ? Object.values(config.map.user).some((item: any) => typeof item?.valueMap === 'object' && Object.keys(item.valueMap).length > 0)
-    : false
-  let currentStartIndex = isAllowlisting ? 1 : targetStartIndex
+  let currentStartIndex = isAllowlistingUser ? 1 : targetStartIndex
   let allValidResources: any[] = []
   let totalSkipped = 0
   let targetTotalResults: number | null = null
   let iteration = 0
   const maxIterations = 5 // Safety limit for look-ahead fetching
-  const resourcesNeeded = isAllowlisting ? targetStartIndex + targetCount - 1 : targetCount
+  const resourcesNeeded = isAllowlistingUser ? targetStartIndex + targetCount - 1 : targetCount
 
   try {
     while (allValidResources.length < resourcesNeeded && iteration < maxIterations) {
@@ -166,8 +171,8 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 
       if (targetTotalResults === null) {
         // Target endpoint returned full list
-        ret.totalResults = isAllowlisting ? allValidResources.length : targetStartIndex - 1 + allValidResources.length
-        ret.Resources = isAllowlisting ? allValidResources.slice(targetStartIndex - 1, targetStartIndex - 1 + targetCount) : allValidResources.slice(0, targetCount)
+        ret.totalResults = isAllowlistingUser ? allValidResources.length : targetStartIndex - 1 + allValidResources.length
+        ret.Resources = isAllowlistingUser ? allValidResources.slice(targetStartIndex - 1, targetStartIndex - 1 + targetCount) : allValidResources.slice(0, targetCount)
         return ret
       }
 
@@ -185,8 +190,8 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     }
     if (ctx?.paging && Object.hasOwn(ctx.paging, 'totalResults')) targetTotalResults = ctx.paging.totalResults
 
-    ret.totalResults = (targetTotalResults !== null && targetTotalResults > totalSkipped) ? targetTotalResults - totalSkipped : (isAllowlisting ? allValidResources.length : targetStartIndex - 1 + allValidResources.length)
-    ret.Resources = isAllowlisting ? allValidResources.slice(targetStartIndex - 1, targetStartIndex - 1 + targetCount) : allValidResources.slice(0, targetCount)
+    ret.totalResults = (targetTotalResults !== null && targetTotalResults > totalSkipped) ? targetTotalResults - totalSkipped : (isAllowlistingUser ? allValidResources.length : targetStartIndex - 1 + allValidResources.length)
+    ret.Resources = isAllowlistingUser ? allValidResources.slice(targetStartIndex - 1, targetStartIndex - 1 + targetCount) : allValidResources.slice(0, targetCount)
     if (!ret.startIndex) ret.startIndex = targetStartIndex
 
     return ret
@@ -345,16 +350,13 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   }
   */
 
-  const isAllowlisting = config.map?.group
-    ? Object.values(config.map.group).some((item: any) => typeof item.valueMap === 'object' && Object.keys(item.valueMap).length > 0)
-    : false
-  let currentStartIndex = isAllowlisting ? 1 : targetStartIndex
+  let currentStartIndex = isAllowlistingGroup ? 1 : targetStartIndex
   let allValidResources: any[] = []
   let totalSkipped = 0
   let targetTotalResults: number | null = null
   let iteration = 0
   const maxIterations = 5 // Safety limit for look-ahead fetching
-  const resourcesNeeded = isAllowlisting ? targetStartIndex + targetCount - 1 : targetCount
+  const resourcesNeeded = isAllowlistingGroup ? targetStartIndex + targetCount - 1 : targetCount
 
   try {
     while (allValidResources.length < resourcesNeeded && iteration < maxIterations) {
@@ -399,8 +401,8 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
 
       if (targetTotalResults === null) {
         // Target endpoint returned full list
-        ret.totalResults = isAllowlisting ? allValidResources.length : targetStartIndex - 1 + allValidResources.length
-        ret.Resources = isAllowlisting ? allValidResources.slice(targetStartIndex - 1, targetStartIndex - 1 + targetCount) : allValidResources.slice(0, targetCount)
+        ret.totalResults = isAllowlistingGroup ? allValidResources.length : targetStartIndex - 1 + allValidResources.length
+        ret.Resources = isAllowlistingGroup ? allValidResources.slice(targetStartIndex - 1, targetStartIndex - 1 + targetCount) : allValidResources.slice(0, targetCount)
         return ret
       }
 
@@ -418,8 +420,8 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     }
     if (ctx?.paging && Object.hasOwn(ctx.paging, 'totalResults')) targetTotalResults = ctx.paging.totalResults
 
-    ret.totalResults = (targetTotalResults !== null && targetTotalResults > totalSkipped) ? targetTotalResults - totalSkipped : (isAllowlisting ? allValidResources.length : targetStartIndex - 1 + allValidResources.length)
-    ret.Resources = isAllowlisting ? allValidResources.slice(targetStartIndex - 1, targetStartIndex - 1 + targetCount) : allValidResources.slice(0, targetCount)
+    ret.totalResults = (targetTotalResults !== null && targetTotalResults > totalSkipped) ? targetTotalResults - totalSkipped : (isAllowlistingGroup ? allValidResources.length : targetStartIndex - 1 + allValidResources.length)
+    ret.Resources = isAllowlistingGroup ? allValidResources.slice(targetStartIndex - 1, targetStartIndex - 1 + targetCount) : allValidResources.slice(0, targetCount)
     if (!ret.startIndex) ret.startIndex = targetStartIndex
 
     return ret
