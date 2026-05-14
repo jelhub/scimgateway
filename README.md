@@ -1305,16 +1305,22 @@ MIT © [Jarle Elshaug](https://www.elshaug.xyz)
 
 ## Change log
 
+### v6.2.1
+
+[Fixed]
+
+- `HelperRest`: fixed some minor log cosmetics introduced in v6.2.0
+
 ### v6.2.0
 
 [Fixed]
 
-- `helper-rest` failed on Bun v1.3.14 due to stricter compliance with Fetch standards.
+- `HelperRest`: failed on Bun v1.3.14 due to stricter compliance with Fetch standards.
 
 [Improved]
 
 - New `plugin-generic` replacing previous `plugin-scim`. This new plugin use the endpointMapper for flexible attribute mapping and also supports the new mapper option `valueMap` (e.g., group filtering and mapping). The default configuration uses one-to-one SCIM mapping, with plugin-loki as the target SCIM endpoint.
-- endpointMapper now supports the 'valueMap' option
+- endpointMapper now supports the `valueMap` option
 
 	Example configuration:
 
