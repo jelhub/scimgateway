@@ -435,10 +435,9 @@ export class HelperRest {
   private async getServiceClient(baseEntity: string, connectionObj: Record<string, any>, method: string, path: string, opt?: any, ctx?: any) {
     const action = 'getServiceClient'
     if (typeof connectionObj !== 'object' || connectionObj === null) connectionObj = {}
-    let urlObj: any
     if (!path) path = ''
     try {
-      urlObj = new URL(path)
+      new URL(path)
     } catch (err) {
       //
       // path (no url) - default approach and client will be cached based on config
@@ -473,18 +472,12 @@ export class HelperRest {
           const err = new Error(`missing connection configuration: baseUrls`)
           throw err
         }
-        urlObj = new URL(connectionObj.baseUrls[0])
         const param: any = {
           baseUrl: connectionObj.baseUrls[0],
           options: {
-            json: true, // json-object response instead of string
             headers: {
               Accept: 'application/json',
             },
-            host: urlObj.hostname,
-            port: urlObj.port, // null if https and 443 defined in url
-            protocol: urlObj.protocol, // http: or https:
-            // 'method' and 'path' added at the end
           },
         }
 
@@ -567,16 +560,9 @@ export class HelperRest {
       }
       const cli: any = structuredClone(this._serviceClient[baseEntity]) // client ready
 
-      // failover support
-      path = this._serviceClient[baseEntity].baseUrl + path
-      urlObj = new URL(path)
-      cli.options.host = urlObj.hostname
-      cli.options.port = urlObj.port
-      cli.options.protocol = urlObj.protocol
-
-      // adding none static
       cli.options.method = method
-      cli.options.path = `${urlObj.pathname}${urlObj.search}`
+      cli.options.url = this._serviceClient[baseEntity].baseUrl + path // failover supported
+
       if (opt) {
         if (opt?.connection) delete opt.connection // only used for internal connection options
         cli.options = utils.extendObj(cli.options, opt) // merge with argument options
@@ -589,15 +575,11 @@ export class HelperRest {
     //
     this.scimgateway.logDebug(baseEntity, `${action}: Using raw client`)
     let options: any = {
-      json: true,
       headers: {
         Accept: 'application/json',
       },
-      host: urlObj.hostname,
-      port: urlObj.port,
-      protocol: urlObj.protocol,
       method: method,
-      path: urlObj.pathname + urlObj.search,
+      url: path,
     }
 
     // proxy
@@ -646,12 +628,13 @@ export class HelperRest {
   **/
   private async doRequestHandler(baseEntity: string, method: string, path: string, body?: any, ctx?: any, opt?: any, retryCount?: number): Promise<any> {
     const connectionObj = this.config_entity[baseEntity]?.connection ?? {}
+    let options: Record<any, any> = {}
     let retryAfter = 0
     try {
       const controller = new AbortController()
       const signal = controller.signal
       const cli = await this.getServiceClient(baseEntity, connectionObj, method, path, opt, ctx)
-      const options = cli.options
+      options = cli.options
       const timeout = setTimeout(() => controller.abort(), options.abortTimeout ? options.abortTimeout * 1000 : this.idleTimeout * 1000) // 120 seconds default abort timeout
       options.signal = signal
 
@@ -676,39 +659,33 @@ export class HelperRest {
           options.body = dataString
         } else if (options.headers) delete options.headers['Content-Type']
 
-        let url = `${options.protocol}//${options.host}${options.port ? ':' + options.port : ''}${options.path}`
-        if (this._serviceClient[baseEntity]?.nextLink[url]) {
+        if (this._serviceClient[baseEntity]?.nextLink[options.url]) {
           if (ctx?.paging?.startIndex && ctx.paging.startIndex > 1) {
-            if (ctx.paging.startIndex === this._serviceClient[baseEntity]?.nextLink[url].startIndex) {
-              url = this._serviceClient[baseEntity]?.nextLink[url]['@odata.nextLink']
+            if (ctx.paging.startIndex === this._serviceClient[baseEntity]?.nextLink[options.url].startIndex) {
+              options.url = this._serviceClient[baseEntity]?.nextLink[options.url]['@odata.nextLink']
             } else {
               if (!ctx) ctx = {}
               if (!ctx.paging) ctx.paging = {}
-              if (this._serviceClient[baseEntity]?.nextLink[url].totalResults
-                && ctx.paging.startIndex > this._serviceClient[baseEntity]?.nextLink[url].totalResults) {
-                ctx.paging.totalResults = this._serviceClient[baseEntity]?.nextLink[url].totalResults
+              if (this._serviceClient[baseEntity]?.nextLink[options.url].totalResults
+                && ctx.paging.startIndex > this._serviceClient[baseEntity]?.nextLink[options.url].totalResults) {
+                ctx.paging.totalResults = this._serviceClient[baseEntity]?.nextLink[options.url].totalResults
                 return { body: { value: [] } }
               } else {
                 // reset the paging cursor - none expected startIndex sequence, using default none paged url
                 ctx.paging.startIndex = 1 // caller should check and return this new startIndex in final response
-                delete this._serviceClient[baseEntity].nextLink[url]
+                delete this._serviceClient[baseEntity].nextLink[options.url]
               }
             }
           }
         } else {
-          if (ctx?.paging?.startIndex > 1 && !this._serviceClient[baseEntity]?.nextLink[url]) { // no previous paging and invalid startIndex
+          if (ctx?.paging?.startIndex > 1 && !this._serviceClient[baseEntity]?.nextLink[options.url]) { // no previous paging and invalid startIndex
             ctx.paging.totalResults = ctx.paging.startIndex - 1
             return { body: { value: [] } }
           }
         }
 
-        // Bun v1.3.14 became stricter and more aligned with standards.
-        delete options.host
-        delete options.port
-        delete options.protocol
-
         // execute request
-        const f = await fetch(url, options)
+        const f = await fetch(options.url, options)
         if (!f.status) throw new Error('Response missing status code')
 
         const result: any = {
@@ -733,7 +710,7 @@ export class HelperRest {
           }
           throw new Error(JSON.stringify(result))
         }
-        this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${options.protocol}//${options.host}${(options.port ? `:${options.port}` : '')}${options.path} Body = ${JSON.stringify(body)} Response = ${JSON.stringify(result)}`)
+        this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${options.url} Body = ${JSON.stringify(body)} Response = ${JSON.stringify(result)}`)
 
         // OData paging logic
         // client prerequisite for enabling doRequest() OData paging support (see plugin-entra-id):
@@ -766,7 +743,7 @@ export class HelperRest {
               ctx.paging.totalResults = totalResults
             }
           } else { // no more paging
-            const linkBase = decodeURIComponent(url.substring(0, url.indexOf('$skiptoken') - 1))
+            const linkBase = decodeURIComponent(options.url?.substring(0, options.url?.indexOf('$skiptoken') - 1))
             if (ctx?.paging?.startIndex && ctx.paging.startIndex > 1 && this._serviceClient[baseEntity]?.nextLink[linkBase]) {
               if (!this._serviceClient[baseEntity]?.nextLink[linkBase].isCount) { // final no count page
                 const itemsPerPage = result.body.value.length
@@ -821,8 +798,8 @@ export class HelperRest {
         }
       } else {
         if (statusCode === 404) { // not logged as error e.g. getUser-manager
-          this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
-        } else this.scimgateway.logError(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
+          this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${options.url} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
+        } else this.scimgateway.logError(baseEntity, `doRequest ${method} ${options.url} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
         if (statusCode === 401) delete this._serviceClient[baseEntity]
         throw err
       }
