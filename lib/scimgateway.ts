@@ -56,6 +56,12 @@ export class ScimGateway {
   * header in the communication with endpoint
   */
   authPassThroughAllowed: boolean
+  /** 
+  * pluginAndOrFilter can be set to 'true' by the plugin for letting the plugin handle query filtering that includes simple `and`/`or` logic instead of default handled by scimgateway
+  *  
+  */
+  pluginAndOrFilter: boolean
+
   //
   // plugin methods
   //
@@ -364,6 +370,7 @@ export class ScimGateway {
     this.configDir = configDir
     this.configFile = configFile
     this.authPassThroughAllowed = false // set to true by plugin if using Auth PassThrough
+    this.pluginAndOrFilter = false // set to true by plugin if plugin handle simple and/or query filter
 
     let found: Record<string, any> = {}
     let configErr: any
@@ -1538,8 +1545,10 @@ export class ScimGateway {
       let isOrFilter = false
       if (getObj.rawFilter) {
         getObj.rawFilter = decodeURIComponent(getObj.rawFilter.trim())
-        if (getObj.rawFilter.includes(' and ')) isAndFilter = true
-        if (getObj.rawFilter.includes(' or ')) isOrFilter = true
+        // Strip quoted literals (handling escaped quotes) to check for operators outside of values
+        const filterWithoutQuotes = getObj.rawFilter.replace(/"(?:\\"|[^"])*"/g, '""')
+        if (filterWithoutQuotes.includes(' and ')) isAndFilter = true
+        if (filterWithoutQuotes.includes(' or ')) isOrFilter = true
       }
       if (ctx.query.filter) ctx.query.filter = decodeURIComponent(ctx.query.filter.trim())
       else ctx.query.filter = ''
@@ -1553,7 +1562,7 @@ export class ScimGateway {
             const value = arrFilter.slice(2).join(' ').replace(/"/g, '')
             getObj.value = value
           } else if (arrFilter[arrFilter.length - 1].endsWith(']')) { // emails[type eq "work"]
-            const rePattern = /^(.*)\[(.*) (.*) (.*)\]$/
+            const rePattern = /^(.*)\[(.*) (.*) (".*")\]$/
             const arrMatches = ctx.query.filter.match(rePattern)
             if (Array.isArray(arrMatches) && arrMatches.length === 5) {
               getObj.attribute = `${arrMatches[1]}.${arrMatches[2]}` // emails.type
@@ -1703,7 +1712,7 @@ export class ScimGateway {
           const splitBy = isAndFilter ? ' and ' : ' or '
           const arr = obj.rawFilter.split(splitBy)
           const originalGetObjArrLength = arr.length
-          let getObjArr: object[] = []
+          let getObjArr: Record<string, any>[] = []
           let complexAttr = ''
           for (let i = 0; i < arr.length; i++) {
             arr[i] = arr[i].replace(/\(/g, '').replace(/\)/g, '').trim()
@@ -1752,43 +1761,51 @@ export class ScimGateway {
           }
 
           if (getObjArr.length > 0) {
-            const getObj = async (o: Record<string, any>) => {
-              return await (this as any)[handle.getMethod](baseEntity, o, attributes, ctx.passThrough)
-            }
-            const chunk = 5
-            const chunkRes: Record<string, any>[] = []
-            logger.debug(`${gwName} calling ${handle.getMethod} in chunks of ${chunk}`, { baseEntity: ctx?.routeObj?.baseEntity })
-            do {
-              const arrChunk = getObjArr.splice(0, chunk)
-              const results = await Promise.allSettled(arrChunk.map(o => getObj(o))) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
-              const errors = results.filter(result => result.status === 'rejected').map(result => result.reason.message)
-              if (errors.length > 0) {
-                const errMsg = `${handle.getMethod} chunks error: ${errors.join(', ')}`
-                throw new Error(errMsg)
+            if (this.pluginAndOrFilter && getObjArr.length === 2) { // simple and/or logic handled by plugin
+              const o = getObjArr[0]
+              if (isAndFilter) o.and = getObjArr[1]
+              else if (isOrFilter) o.or = getObjArr[1]
+              logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
+              res = await (this as any)[handle.getMethod](baseEntity, o, attributes, ctx.passThrough)
+            } else { // and/or logic handled by scimgateway
+              const getObj = async (o: Record<string, any>) => {
+                return await (this as any)[handle.getMethod](baseEntity, o, attributes, ctx.passThrough)
               }
-              const arrArr = results.map(result => result?.value?.Resources)
-              for (let i = 0; i < arrArr.length; i++) {
-                Array.prototype.push.apply(chunkRes, arrArr[i])
-              }
-            } while (getObjArr.length > 0)
-
-            if (isAndFilter) {
-              const idCounts = new Map<string, number>()
-              for (const item of chunkRes) {
-                if (item.id) {
-                  idCounts.set(item.id, (idCounts.get(item.id) || 0) + 1)
+              const chunk = 5
+              const chunkRes: Record<string, any>[] = []
+              logger.debug(`${gwName} calling ${handle.getMethod} in chunks of ${chunk}`, { baseEntity: ctx?.routeObj?.baseEntity })
+              do {
+                const arrChunk = getObjArr.splice(0, chunk)
+                const results = await Promise.allSettled(arrChunk.map(o => getObj(o))) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
+                const errors = results.filter(result => result.status === 'rejected').map(result => result.reason.message)
+                if (errors.length > 0) {
+                  const errMsg = `${handle.getMethod} chunks error: ${errors.join(', ')}`
+                  throw new Error(errMsg)
                 }
+                const arrArr = results.map(result => result?.value?.Resources)
+                for (let i = 0; i < arrArr.length; i++) {
+                  Array.prototype.push.apply(chunkRes, arrArr[i])
+                }
+              } while (getObjArr.length > 0)
+
+              if (isAndFilter) {
+                const idCounts = new Map<string, number>()
+                for (const item of chunkRes) {
+                  if (item.id) {
+                    idCounts.set(item.id, (idCounts.get(item.id) || 0) + 1)
+                  }
+                }
+                const intersectionIds = new Set<string>()
+                for (const [id, count] of idCounts.entries()) {
+                  if (count === originalGetObjArrLength) intersectionIds.add(id)
+                }
+                res = { Resources: Array.from(new Map(chunkRes.filter(item => intersectionIds.has(item.id)).map(item => [item.id, item])).values()) }
+              } else if (isOrFilter) {
+                const uniqueResources = Array.from(new Map(chunkRes.map(item =>
+                  [item.id, item])).values(),
+                )
+                res = { Resources: uniqueResources }
               }
-              const intersectionIds = new Set<string>()
-              for (const [id, count] of idCounts.entries()) {
-                if (count === originalGetObjArrLength) intersectionIds.add(id)
-              }
-              res = { Resources: Array.from(new Map(chunkRes.filter(item => intersectionIds.has(item.id)).map(item => [item.id, item])).values()) }
-            } else if (isOrFilter) {
-              const uniqueResources = Array.from(new Map(chunkRes.map(item =>
-                [item.id, item])).values(),
-              )
-              res = { Resources: uniqueResources }
             }
           }
         }
