@@ -26,7 +26,7 @@ export class HelperRest {
   private config_entity: any
   private scimgateway: any
   private idleTimeout: number
-  private graphUrl = 'https://graph.microsoft.com/beta' // beta instead of 'v1.0' gives all user attributes when no $select
+  private graphUrl = 'https://graph.microsoft.com/v1.0' // 'v1.0' requires $select=attributes. Using 'beta' returns all user attributes when no $select
   private googleUrl = 'https://www.googleapis.com'
 
   constructor(scimgateway: any, optionalEntities?: Record<string, any>) {
@@ -718,7 +718,7 @@ export class HelperRest {
         //   if (!ctx) ctx = { paging }
         //   else ctx.paging = paging
         if (result.body && typeof result.body === 'object') {
-          if (result.body['@odata.nextLink']) { // {"@odata.nextLink": "https://graph.microsoft.com/beta/users?$top=100&$skiptoken=xxx"}
+          if (result.body['@odata.nextLink']) { // {"@odata.nextLink": "https://graph.microsoft.com/v1.0/users?$top=100&$skiptoken=xxx"}
             if (!ctx) ctx = {}
             if (!ctx.paging) ctx.paging = {}
             const nextLinkBase = decodeURIComponent(result.body['@odata.nextLink'].substring(0, result.body['@odata.nextLink'].indexOf('$skiptoken') - 1))
@@ -865,7 +865,7 @@ export class HelperRest {
   * {
   *   "type": "oauth",
   *   "options": {
-  *     "azureTenantId": "<Entra ID azureTenantId", // Entra ID authentication - if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
+  *     "azureTenantId": "<Entra ID azureTenantId", // Entra ID authentication - if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/v1.0]
   *     "tokenUrl": "<tokenUrl>", // must be set if not using azureTenantId
   *     "clientId": "<clientId>",
   *     "clientSecret": "<clientSecret>"
@@ -924,7 +924,7 @@ export class HelperRest {
   * {
   *   "type": "oauthJwtBearer",
   *   "options": {
-  *     "azureTenantId": "<Entra ID azureTenantId", // Entra ID authentication, if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
+  *     "azureTenantId": "<Entra ID azureTenantId", // Entra ID authentication, if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/v1.0]
   *     "clientId": "<clientId>",
   *     "tls": { // files located in ./config/certs
   *       "key": "key.pem",
