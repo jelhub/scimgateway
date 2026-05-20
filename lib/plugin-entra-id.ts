@@ -187,9 +187,10 @@ if (!groupAttributes.includes('members.value')) groupAttributes.push('members.va
 // =================================================
 scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   //
-  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <> }
+  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <>, and/or: <getObj> }
   // rawFilter is always included when filtering
   // attribute, operator and value are included when requesting unique object or simpel filtering
+  // and/or will be included and the value set to corresponding getObj if the mandatory plugin initialization have 'scimgateway.pluginAndOrFilter = true' and the request query filter includes simple and/or logic 
   // See comments in the "mandatory if-else logic - start"
   //
   // "attributes" is array of attributes to be returned - if empty, all supported attributes should be returned
@@ -839,6 +840,11 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreGroups() in versions < 4.x.x
     if (includeMembers) path = `/groups?$top=${getObj.count}&$count=true&$select=${attrs.join()}&$expand=members($select=id,displayName)`
     else path = `/groups?$top=${getObj.count}&$count=true&$select=${attrs.join()}`
+  }
+  if (getObj.and || getObj.or) {
+    // plugin have enabled 'scimgateway.pluginAndOrFilter' and the query includes an additonal and/or getObj that must to be handled and combined with the initial getObj
+    // we could have this logic above, if not it must be defined here
+    throw new Error(`${action} error: logic for handling and/or filter is not implemented by plugin, not supporting: ${getObj.rawFilter}`)
   }
   // mandatory if-else logic - end
 
