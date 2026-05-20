@@ -63,6 +63,7 @@ import { ScimGateway } from 'scimgateway'
 const scimgateway = new ScimGateway()
 const config = scimgateway.getConfig()
 scimgateway.authPassThroughAllowed = false
+scimgateway.pluginAndOrFilterEnabled = false
 // end - mandatory plugin initialization
 
 if (config?.connection?.authentication?.options?.password) {
@@ -96,6 +97,11 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all users to be returned - correspond to exploreUsers() in versions < 4.x.x
     sqlQuery = 'select * from [Users]'
+  }
+  if (getObj.and || getObj.or) {
+    // plugin have enabled 'scimgateway.pluginAndOrFilterEnabled' and the query includes an additonal and/or getObj that must to be handled and combined with the initial getObj
+    // we could have this logic above, if not it must be defined here
+    throw new Error(`${action} error: logic for handling and/or filter is not implemented by plugin, not supporting: ${getObj.rawFilter}`)
   }
   // mandatory if-else logic - end
 
@@ -268,6 +274,11 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreGroups() in versions < 4.x.x
     sqlQuery = 'select * from [Groups]'
+  }
+  if (getObj.and || getObj.or) {
+    // plugin have enabled 'scimgateway.pluginAndOrFilterEnabled' and the query includes an additonal and/or getObj that must to be handled and combined with the initial getObj
+    // we could have this logic above, if not it must be defined here
+    throw new Error(`${action} error: logic for handling and/or filter is not implemented by plugin, not supporting: ${getObj.rawFilter}`)
   }
   // mandatory if-else logic - end
   if (!sqlQuery) throw new Error(`${action} error: mandatory if-else logic not fully implemented`)
