@@ -57,10 +57,10 @@ export class ScimGateway {
   */
   authPassThroughAllowed: boolean
   /** 
-  * pluginAndOrFilter can be set to 'true' by the plugin for letting the plugin handle query filtering that includes simple `and`/`or` logic instead of default handled by scimgateway
+  * pluginAndOrFilterEnabled can be set to 'true' by the plugin for letting the plugin handle query filtering that includes simple `and`/`or` logic instead of default handled by scimgateway
   *  
   */
-  pluginAndOrFilter: boolean
+  pluginAndOrFilterEnabled: boolean
 
   //
   // plugin methods
@@ -370,7 +370,7 @@ export class ScimGateway {
     this.configDir = configDir
     this.configFile = configFile
     this.authPassThroughAllowed = false // set to true by plugin if using Auth PassThrough
-    this.pluginAndOrFilter = false // set to true by plugin if plugin handle simple and/or query filter
+    this.pluginAndOrFilterEnabled = false // set to true by plugin if plugin handle simple and/or query filter
 
     let found: Record<string, any> = {}
     let configErr: any
@@ -1761,7 +1761,7 @@ export class ScimGateway {
           }
 
           if (getObjArr.length > 0) {
-            if (this.pluginAndOrFilter && getObjArr.length === 2) { // simple and/or logic handled by plugin
+            if (this.pluginAndOrFilterEnabled && getObjArr.length === 2) { // simple and/or logic handled by plugin
               const o = getObjArr[0]
               if (isAndFilter) o.and = getObjArr[1]
               else if (isOrFilter) o.or = getObjArr[1]
