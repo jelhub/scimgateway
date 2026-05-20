@@ -24,7 +24,7 @@ import { ScimGateway } from 'scimgateway'
 const scimgateway = new ScimGateway()
 const config = scimgateway.getConfig()
 scimgateway.authPassThroughAllowed = false
-scimgateway.pluginAndOrFilter = false
+scimgateway.pluginAndOrFilterEnabled = false
 // end - mandatory plugin initialization
 
 const endpointHost = config.host
@@ -68,7 +68,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     sqlQuery = 'select USER_NAME, USER_DEACTIVATED from SYS.USERS where IS_SAML_ENABLED like \'TRUE\''
   }
   if (getObj.and || getObj.or) {
-    // plugin have enabled 'scimgateway.pluginAndOrFilter' and the query includes an additonal and/or getObj that must to be handled and combined with the initial getObj
+    // plugin have enabled 'scimgateway.pluginAndOrFilterEnabled' and the query includes an additonal and/or getObj that must to be handled and combined with the initial getObj
     // we could have this logic above, if not it must be defined here
     throw new Error(`${action} error: logic for handling and/or filter is not implemented by plugin, not supporting: ${getObj.rawFilter}`)
   }
@@ -242,7 +242,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreGroups() in versions < 4.x.x
   }
   if (getObj.and || getObj.or) {
-    // plugin have enabled 'scimgateway.pluginAndOrFilter' and the query includes an additonal and/or getObj that must to be handled and combined with the initial getObj
+    // plugin have enabled 'scimgateway.pluginAndOrFilterEnabled' and the query includes an additonal and/or getObj that must to be handled and combined with the initial getObj
     // we could have this logic above, if not it must be defined here
     throw new Error(`${action} error: logic for handling and/or filter is not implemented by plugin, not supporting: ${getObj.rawFilter}`)
   }
