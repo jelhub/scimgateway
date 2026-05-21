@@ -26,7 +26,7 @@ export class HelperRest {
   private config_entity: any
   private scimgateway: any
   private idleTimeout: number
-  private graphUrl = 'https://graph.microsoft.com/v1.0' // 'v1.0' requires $select=attributes. Using 'beta' returns all user attributes when no $select
+  private graphUrl = 'https://graph.microsoft.com/beta' // using 'beta' which returns all user attributes when no $select and supports IGA Access Packages assignments
   private googleUrl = 'https://www.googleapis.com'
 
   constructor(scimgateway: any, optionalEntities?: Record<string, any>) {
