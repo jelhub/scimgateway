@@ -1218,6 +1218,7 @@ const scimgateway = new ScimGateway()
 const helper = new HelperRest(scimgateway)  // include if using REST
 const config = scimgateway.getConfig()
 scimgateway.authPassThroughAllowed = false
+scimgateway.pluginAndOrFilterEnabled = false
 // end - mandatory plugin initialization
 ```
 
