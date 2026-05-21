@@ -730,6 +730,7 @@ import { ScimGateway } from 'scimgateway'
 const scimgateway = new ScimGateway()
 const config = scimgateway.getConfig()
 scimgateway.authPassThroughAllowed = true // and configuration file having: scimgateway.auth.passThrough=true
+scimgateway.pluginAndOrFilterEnabled = false
 // end - mandatory plugin initialization
 ```
 
