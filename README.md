@@ -190,7 +190,7 @@ GET http://localhost:8880/Groups?filter=members.value eq "bjensen"&attributes=id
 
 Press `Ctrl+C` to stop.
 
-> **Node.js users:** start with `node --import=tsx ./index.ts`
+> Using **Node.js**, the startup command is: `node --import=tsx ./index.ts`
 
 ### Upgrading
 
