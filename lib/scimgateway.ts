@@ -1763,6 +1763,7 @@ export class ScimGateway {
           if (getObjArr.length > 0) {
             if (this.pluginAndOrFilterEnabled && getObjArr.length === 2) { // simple and/or logic handled by plugin
               const o = getObjArr[0]
+              o.rawFilter = obj.rawFilter
               if (isAndFilter) o.and = getObjArr[1]
               else if (isOrFilter) o.or = getObjArr[1]
               logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
