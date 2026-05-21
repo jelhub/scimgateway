@@ -6,7 +6,7 @@
     "scim": {
       "version": "2.0",
       "customSchema": null,
-      "skipTypeConvert": false,
+      "skipTypeConvert": true,
       "groupMemberOfUser": false,
       "usePutSoftSync": false
     },
@@ -198,14 +198,14 @@
           "mapTo": "roles",
           "type": "complexArray",
           "x-agent-schema": {
-            "description": "Attribute representing Entra ID roles. 'roles.type' spesifies the role category, 'Permanent' or 'Eligible'. 'roles.value' = The unique identifier of the role and 'roles.display' = Entra ID user-friendly rolename. When adding or modifying user roles, if 'roles.type' is not specified, it defaults to 'Eligible' if the tenant uses PIM; otherwise, it defaults to 'Permanent'. The agent should omit 'roles.type' unless explicitly specified by the user. When deleting a role, 'roles.type' must be included."
+            "description": "Attribute representing Entra ID roles. 'roles.type' specifies the role category, 'Permanent' or 'Eligible'. 'roles.value' = The unique identifier of the role and 'roles.display' = Entra ID user-friendly rolename. When adding or modifying user roles, if 'roles.type' is not specified, it defaults to 'Eligible' if the tenant uses PIM; otherwise, it defaults to 'Permanent'. The agent should omit 'roles.type' unless explicitly specified by the user. When deleting a role, 'roles.type' must be included."
           }
         },
         "entitlements": {
           "mapTo": "entitlements",
           "type": "complexArray",
           "x-agent-schema": {
-            "description": "Read-only attribute representing entitlements. 'entitlements.type' spesifies the entitlement category. For Entra ID licenses we have 'entitlements.type' = 'License' and corresponding 'entitlements.value' = License SKU ID (unique identifier) and 'entitlements.display' = User-friendly license name."
+            "description": "Attribute representing entitlements. 'entitlements.type' specifies the entitlement category: 'License' (read-only) or 'AccessPackage' (read-write). 'entitlements.value' = License SKU ID or AccessPackage ID (unique identifier). 'entitlements.display' = User-friendly name."
           }
         },
         "userType": {
