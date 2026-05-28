@@ -705,8 +705,11 @@ export class HelperRest {
         if (f.status > 399) {
           if (f.status === 429) { // throttle
             const v = f.headers.get('retry-after')
-            if (v) retryAfter = parseInt(v, 10) + 1
-            else retryAfter = 10
+            if (v) {
+              retryAfter = parseInt(v, 10)
+              if (isNaN(retryAfter)) retryAfter = 10
+              retryAfter += 1
+            } else retryAfter = 10
           }
           throw new Error(JSON.stringify(result))
         }
@@ -765,6 +768,12 @@ export class HelperRest {
       if (err.message.includes('ratelimit')) { // have seen throttling not follow standard 429/retry-after, but instead using 500 and error message only
         if (!retryAfter) retryAfter = 60
       }
+
+      if (retryAfter) {
+        this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} throttle/ratelimit error - awaiting ${retryAfter} seconds before automatic retry`)
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
+      }
+
       if (!retryCount) retryCount = 0
       let urlObj
       try { urlObj = new URL(path) } catch (err) { void 0 }
@@ -773,12 +782,6 @@ export class HelperRest {
 
       if (isServiceClient && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || statusCode === 504 || oAuthTokeErr || retryAfter)) {
         this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
-        if (retryAfter) {
-          this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} throttle/ratelimit error - awaiting ${retryAfter} seconds before automatic retry`)
-          await new Promise(resolve => setTimeout(function () {
-            resolve(null)
-          }, retryAfter * 1000))
-        }
         if (retryCount < connectionObj.baseUrls.length) {
           retryCount++
           if (isServiceClient) {
