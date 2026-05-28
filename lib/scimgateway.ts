@@ -945,7 +945,7 @@ export class ScimGateway {
                   description: item.description ?? '',
                   required: (item.mapTo === 'userName') ? true : false,
                   caseExact: false,
-                  mutability: 'readWrite',
+                  mutability: item.mutability ?? 'readWrite',
                   returned: 'default',
                   uniqueness: (item.mapTo === 'userName') ? 'server' : 'none',
                 }
