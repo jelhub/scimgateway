@@ -3,7 +3,7 @@
 //
 // Author:  Jarle Elshaug
 //
-// Purpose: Entra ID provisioning including licenses e.g. O365
+// Purpose: Entra ID user and group provisioning including roles and access packages in addition to retrieving license, MFA and sign-in information
 //
 // Prereq:  Entra ID configuration:
 //          Entra Application key defined (clientsecret). Other options are upload a certificate or configure "Federated Identity Credentials"
@@ -21,14 +21,15 @@
 //        Schema generated according mapping configuration.
 //        Note:
 //          - 'map.user.signInActivity' requires Entra ID Premium license and API permissions 'AuditLog.Read.All'.
+//          - 'map.user.mfa' provides MFA status information and requires API permissions 'UserAuthenticationMethod.Read.All'
 //          - 'map.user.entitlements' relates to Licenses and Access Packages. Access Packages requires API permissions 'EntitlementManagement.ReadWrite.All' 
 //          - 'map.user.roles relates to standard Permanent roles and PIM Permanent and Eligible roles.
 //            PIM is included on tenant having P2 or Governance License and requires following API permissions:
 //            - PIM Eligible roles requires API permissions 'RoleEligiblitySchedule.ReadWrite.All'
 //            - PIM Permanent roles requires API permissions 'RoleManagement.ReadWrite.Directory'
-//          - Remove mapping if conditions not met
+//          - Remove mapping if conditions not met or consider using only 'Read' if no management needed
 //
-// /User                                      SCIM (custom)                       Endpoint (AAD)
+// /User                                      SCIM (custom)                       Endpoint (Entra ID)
 // --------------------------------------------------------------------------------------------
 // User Principal Name                        userName                            userPrincipalName
 // Id                                         id                                  id
@@ -61,9 +62,10 @@
 // Groups                                     groups - virtual readOnly           N/A
 // Roles                                      roles                               roles (roleAssignments/roleEligibilitySchedules) - type=Permanent/Eligiable, value=id, display=role display name
 // Entitlements                               entitlements                        entitlements (assignedLicenses) - type=License, value=skuId and display=user-friendly-license-name / type=AccessPackage, value=AP-id and display=AP-displayName
-// SignInActivity                             signInActivity                      signInActivity (lastSignInDateTime, lastSuccessfulSignInDateTime and lastNonInteractiveSignInDateTime), Note: Requires Entra ID Premium license and API permissions: 'AuditLog.Read.All'. Remove this mapping if conditions not met".
+// SignInActivity                             signInActivity                      signInActivity (lastSignInDateTime, lastSuccessfulSignInDateTime and lastNonInteractiveSignInDateTime)
+// MFA                                        mfa                                 mfa (mfa.isMfaCapable and mfa.isLegacyEnabled)
 //
-// /Group                                     SCIM (custom)                       Endpoint (AAD)
+// /Group                                     SCIM (custom)                       Endpoint (Entra ID)
 // --------------------------------------------------------------------------------------------
 // Name                                       displayName                         displayName
 // Id                                         id                                  id
@@ -122,6 +124,7 @@ for (const key in config.map.user) { // mapAttributesTo = ['id', 'country', 'pre
     let attr = key.split('.')[0]
     // complexArray/complexObject are special
     if (config.map.user[key].mapTo === 'entitlements') attr = 'assignedLicenses'
+    if (config.map.user[key].mapTo === 'mfa') attr = 'perUserMfaState'
     if (config.map.user[key].mapTo === 'roles') continue
 
     if (!userSelectAttributes.includes(attr)) userSelectAttributes.push(attr)
@@ -147,22 +150,32 @@ if (!groupAttributes.includes('members.value')) groupAttributes.push('members.va
   for (const baseEntity in config.entity) {
     try {
       permission[baseEntity] = {}
-      const [signInResult, eligibleResult, permanentScheduleResult, accessPackageResult] = await Promise.allSettled([
+      let probeUserId: string | undefined
+      try {
+        const res = await helper.doRequest(baseEntity, 'GET', '/users?$top=1&$select=id', null, null)
+        probeUserId = res?.body?.value?.[0]?.id
+      } catch (err) { }
+
+      const [signInResult, eligibleResult, permanentScheduleResult, accessPackageResult, mfaResult] = await Promise.allSettled([
         (async () => {
           if (!mapAttributesTo.includes('signInActivity')) throw new Error('skipping signInActivity check')
-          await helper.doRequest(baseEntity, 'GET', '/users?$top=1&$select=id,signInActivity', null, null)
+          await helper.doRequest(baseEntity, 'GET', '/users?$top=1&$select=id,signInActivity', null, { skipLogAsError: true })
         })(),
         (async () => {
           if (!mapAttributesTo.includes('roles')) throw new Error('skipping eligible check')
-          await helper.doRequest(baseEntity, 'GET', '/roleManagement/directory/roleEligibilityScheduleInstances?$top=1', null, null)
+          await helper.doRequest(baseEntity, 'GET', '/roleManagement/directory/roleEligibilityScheduleInstances?$top=1', null, { skipLogAsError: true })
         })(),
         (async () => {
           if (!mapAttributesTo.includes('roles')) throw new Error('skipping permanent schedule check')
-          await helper.doRequest(baseEntity, 'GET', '/roleManagement/directory/roleAssignmentScheduleInstances?$top=1', null, null)
+          await helper.doRequest(baseEntity, 'GET', '/roleManagement/directory/roleAssignmentScheduleInstances?$top=1', null, { skipLogAsError: true })
         })(),
         (async () => {
           if (!mapAttributesTo.includes('entitlements')) throw new Error('skipping access package check')
-          await helper.doRequest(baseEntity, 'GET', '/identityGovernance/entitlementManagement/accessPackages?$top=1&$select=id', null, null)
+          await helper.doRequest(baseEntity, 'GET', '/identityGovernance/entitlementManagement/accessPackages?$top=1&$select=id', null, { skipLogAsError: true })
+        })(),
+        (async () => {
+          if (!mapAttributesTo.includes('mfa') || !probeUserId) throw new Error('skipping mfaMethods check')
+          await helper.doRequest(baseEntity, 'GET', `/users/${probeUserId}/authentication/methods`, null, { skipLogAsError: true })
         })(),
       ])
       if (signInResult.status === 'fulfilled') {
@@ -175,19 +188,25 @@ if (!groupAttributes.includes('members.value')) groupAttributes.push('members.va
         permission[baseEntity].eligible = true
       } else {
         permission[baseEntity].eligible = false
-        if (mapAttributesTo.includes('roles')) scimgateway.logError(baseEntity, `PIM eligible role functionality has been deactivated because it requires either a P2 or Governance license, as well as the API permission 'RoleEligibilitySchedule.ReadWrite.All'`)
+        if (mapAttributesTo.includes('roles')) scimgateway.logError(baseEntity, `PIM eligible role functionality has been deactivated because it requires either a P2 or Governance license, as well as the minimum API permission 'RoleEligibilitySchedule.Read.All'`)
       }
       if (permanentScheduleResult.status === 'fulfilled') {
         permission[baseEntity].permanentSchedule = true
       } else {
         permission[baseEntity].permanentSchedule = false
-        if (mapAttributesTo.includes('roles')) scimgateway.logError(baseEntity, `PIM permanent role functionality has been deactivated because it requires either a P2 or Governance license, as well as the API permission 'RoleManagement.ReadWrite.Directory'`)
+        if (mapAttributesTo.includes('roles')) scimgateway.logError(baseEntity, `PIM permanent role functionality has been deactivated because it requires either a P2 or Governance license, as well as the minimum API permission 'RoleManagement.Read.Directory'`)
       }
       if (accessPackageResult.status === 'fulfilled') {
         permission[baseEntity].accessPackage = true
       } else {
         permission[baseEntity].accessPackage = false
-        if (mapAttributesTo.includes('roles')) scimgateway.logError(baseEntity, `IGA Access Packages functionality has been deactivated because it requires API permission 'EntitlementManagement.ReadWrite.All'`)
+        if (mapAttributesTo.includes('roles')) scimgateway.logError(baseEntity, `IGA Access Packages functionality has been deactivated because it requires minimum API permission 'EntitlementManagement.Read.All'`)
+      }
+      if (mfaResult.status === 'fulfilled') {
+        permission[baseEntity].mfa = true
+      } else {
+        permission[baseEntity].mfa = false
+        if (mapAttributesTo.includes('mfa')) scimgateway.logError(baseEntity, `MFA Methods functionality has been deactivated because it requires API permissions 'UserAuthenticationMethod.Read.All'`)
       }
     } catch (err) {}
   }
@@ -217,7 +236,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     Resources: [],
     totalResults: null,
   }
-  let response: any
+  let response: Record<string, any> = {}
   let selectAttributes: string[] = []
 
   if (attributes.length > 0) {
@@ -227,6 +246,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       if (!attr) continue
       // complexArray/complexObject are special
       if (attribute.startsWith('entitlements')) attr = 'assignedLicenses'
+      if (attribute.startsWith('mfa')) attr = 'perUserMfaState'
       if (attribute.startsWith('roles')) continue
       if (!selectAttributes.includes(attr)) selectAttributes.push(attr)
     }
@@ -289,17 +309,18 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
           if (config.map.user[arr[0]] && ['complexArray', 'complexObject'].includes(config.map.user[arr[0]]?.type)) {
             if (arr[0] === 'roles') {
               if (type && type !== 'Permanent' && type !== 'Eligible') throw new Error(`${action} filter error: when using roles.type, the type must be either 'Permanent' or 'Eligible`)
+              if (!type && obj.operator === 'pr') obj = { attribute: 'roles.type' } // 'filter=roles pr' - precense => filter all objects having roles
               const o = await getUsersByRole(baseEntity, obj, (type) ? decodeURIComponent(type) as 'Permanent' | 'Eligible' : undefined, ctx)
-
               if (!Array.isArray(o) || o.length === 0) return ret
-              const fnArr: { fn: () => Promise<any> }[] = []
+              const fnArr: { fn: () => Promise<any>, index?: number, objArr?: any, key?: string }[] = []
+              response.body = { value: [] }
+              if (!response.body?.value) response.body = { value: [] }
               for (const id of o) {
                 const userPath = `/users/${id}?$select=${selectAttributes.join(',')}`
                 const fn = () => helper.doRequest(baseEntity, 'GET', userPath, null, ctx?.headers ? { headers: ctx?.headers } : undefined)
-                fnArr.push({ fn })
+                fnArr.push({ fn, objArr: response.body.value })
               }
-              response = { body: { value: [] } }
-              await fnCunckExecute(fnArr, response.body.value) // fnCunckExecute results in response.body.value and evaluated later
+              await fnCunckExecute(fnArr) // fnCunckExecute results in response.body.value and evaluated later
               if (response.body.value.length === 0) return ret
             } else if (arr[0] === 'entitlements') { // using entitlements for licenses and access packages
               if (getObj.attribute !== 'entitlements.type' && getObj.and?.attribute !== 'entitlements.type') throw new Error(`${action} filter error: mandatory entitlements.type is missing, examples: entitlements[type eq "xxx"], entitlements[type eq "xxx" and value eq "xxx"], entitlements[type eq "xxx" and display <eq/co/sw> "xxx"]`)
@@ -325,19 +346,20 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
                 }
                 if (typeof o !== 'object' || o === null || Object.keys(o).length === 0) return ret
                 const isAttrsOk = attributes.length > 0 && attributes.length < 3 && (attributes.includes('id') || attributes.includes('displayName'))
-                const fnArr: { fn: () => Promise<any> }[] = []
+                const fnArr: { fn: () => Promise<any>, index?: number, objArr?: any, key?: string }[] = []
+                response.body = { value: [] }
+                if (!response.body?.value) response.body = { value: [] }
                 for (const key in o) {
                   if (isAttrsOk) ret.Resources.push(o[key])
                   else {
                     const userPath = `/users/${key}?$select=${selectAttributes.join(',')}`
                     const fn = () => helper.doRequest(baseEntity, 'GET', userPath, null, ctx?.headers ? { headers: ctx?.headers } : undefined)
-                    fnArr.push({ fn })
+                    fnArr.push({ fn, objArr: response.body.value })
                   }
                 }
                 if (isAttrsOk) return ret
                 else {
-                  response = { body: { value: [] } }
-                  await fnCunckExecute(fnArr, response.body.value) // fnCunckExecute results in response.body.value and evaluated later
+                  await fnCunckExecute(fnArr)
                   if (response.body.value.length === 0) return ret
                 }
               } else throw new Error(`${action} error: entitlements.type must be either "License" or "AccessPackage"`)
@@ -412,31 +434,30 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     if (!response.body.value) {
       throw new Error(`invalid response: ${JSON.stringify(response)}`)
     }
-    const fnArr: { index: number, fn: () => Promise<any> }[] = []
+    const fnArr: { fn: () => Promise<any>, index?: number, objArr?: any, key?: string }[] = []
     const byValues = await getEntitlementsByValues(baseEntity, ctx)
 
-    // include manager
-    if (!isExpandManager && selectAttributes.includes('manager')) {
-      for (let i = 0; i < response.body.value.length; ++i) {
-        if (!response.body.value[i].id) break
+    for (let i = 0; i < response.body.value.length; ++i) {
+      if (!response.body.value[i].id) break
+
+      // include manager
+      if (!isExpandManager && selectAttributes.includes('manager')) {
         const singleUserPath = `/users/${response.body.value[i].id}/manager?$select=userPrincipalName`
         const fn = () => helper.doRequest(baseEntity, 'GET', singleUserPath, null, ctx?.headers ? { headers: ctx?.headers } : undefined, options)
-        fnArr.push({ index: i, fn })
+        // fnArr.push({ index: i, fn })
+        fnArr.push({ index: i, fn, objArr: response.body.value, key: 'manager' })
       }
-      await fnCunckExecute(fnArr, response.body.value, 'manager')
-    }
 
-    // include groups (before roles)
-    if (attributes.length === 0 || attributes.includes('groups')) {
-      for (let i = 0; i < response.body.value.length; ++i) {
-        if (!response.body.value[i].id) break
+      // include groups (before roles)
+      if (attributes.length === 0 || attributes.includes('groups')) {
         const fn = () => scimgateway.getUserGroups(baseEntity, response.body.value[i].id, ctx?.headers ? { headers: ctx?.headers } : undefined)
-        fnArr.push({ index: i, fn })
+        fnArr.push({ index: i, fn, objArr: response.body.value, key: 'groups' })
       }
-      await fnCunckExecute(fnArr, response.body.value, 'groups')
     }
 
-    // attribute cleanup and mapping
+    if (fnArr.length > 0) await fnCunckExecute(fnArr)
+
+    // attribute mapping and cleanup
     for (let i = 0; i < response.body.value.length; ++i) {
       const obj = response.body.value[i]
       if (obj.manager?.userPrincipalName) {
@@ -445,13 +466,19 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         else delete obj.manager
       }
 
+      if (obj.perUserMfaState && permission[baseEntity]?.mfa) {
+        const isLegacyEnabled = obj.perUserMfaState === 'enabled' || obj.perUserMfaState === 'enforced'
+        if (!obj.mfa) obj.mfa = {}
+        obj.mfa.isLegacyEnabled = isLegacyEnabled
+      }
+
       if (obj.signInActivity) {
         delete obj.signInActivity.lastSignInRequestId
         delete obj.signInActivity.lastNonInteractiveSignInRequestId
         delete obj.signInActivity.lastSuccessfulSignInRequestId
       }
 
-      // include roles and entitlements
+      // include roles, entitlements and MFA - MFA here and not in above fnArr/fnCunckExecute to reduce throttle noise
       if (obj.id) {
         const roles = async (obj: Record<string, any>): Promise<Record<string, any>[]> => {
           // roles type=Permanent/Eligible
@@ -476,12 +503,26 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
           }
           return result
         }
+        const mfa = async (obj: Record<string, any>): Promise<boolean | undefined> => {
+          // include MFA 'isMfaCapable', which indicates whether the user has registered authentication methods eligible for MFA.
+          if (attributes.length === 0 || attributes.includes('mfa') || attributes.includes('mfa.isMfaCapable')) {
+            if (permission[baseEntity]?.mfa) {
+              return await getUserisMfaCapable(baseEntity, obj.id, ctx?.headers ? { headers: ctx?.headers } : undefined)
+            } else return undefined
+          }
+        }
+
         const arrResolve = await Promise.all([
           roles(obj),
           entitlements(obj),
+          mfa(obj),
         ])
         obj.roles = arrResolve[0]
         obj.entitlements = arrResolve[1]
+        if (arrResolve[2] !== undefined) {
+          if (!obj.mfa) obj.mfa = {}
+          obj.mfa.isMfaCapable = arrResolve[2]
+        }
       }
 
       // map to inbound
@@ -562,7 +603,6 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   const method = 'DELETE'
   const path = `/Users/${id}`
   const body = null
-
   try {
     await helper.doRequest(baseEntity, method, path, body, ctx)
     return (null)
@@ -570,16 +610,13 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
     throw new Error(`${action} error: ${err.message}`)
   }
 }
+
 // =================================================
 // modifyUser
 // =================================================
 scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const action = 'modifyUser'
   scimgateway.logDebug(baseEntity, `handling ${action} id=${id} attrObj=${JSON.stringify(attrObj)} passThrough=${ctx ? 'true' : 'false'}`)
-
-  // roles and entitlements only supported for getUsers - readOnly 
-  // if (attrObj.roles) delete attrObj.roles
-  // if (attrObj.entitlements) delete attrObj.entitlements
 
   const [parsedAttrObj]: Record<string, any>[] = scimgateway.endpointMapper('outbound', attrObj, config.map.user) // SCIM/CustomSCIM => endpoint attribute standard
   if (parsedAttrObj instanceof Error) throw (parsedAttrObj) // error object
@@ -774,7 +811,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   const profile = () => { // patch
     return new Promise((resolve, reject) => {
       (async () => {
-        if (JSON.stringify(parsedAttrObj) === '{}') return resolve(null)
+        if (Object.keys(parsedAttrObj).length === 0) return resolve(null)
         let res: any
         for (const key in parsedAttrObj) { // if object, the modified Entra ID object must contain all elements, if not they will be cleared e.g. employeeOrgData
           if (typeof parsedAttrObj[key] === 'object') { // get original object and merge
@@ -1682,6 +1719,31 @@ const getUserAccessPackages = async (baseEntity: string, userId: string, include
   return result
 }
 
+const isMethodMfaCapable = (odataType: string): boolean => {
+  return [
+    '#microsoft.graph.microsoftAuthenticatorAuthenticationMethod',
+    '#microsoft.graph.passwordlessMicrosoftAuthenticatorAuthenticationMethod',
+    '#microsoft.graph.phoneAuthenticationMethod',
+    '#microsoft.graph.softwareOathAuthenticationMethod',
+    '#microsoft.graph.fido2AuthenticationMethod',
+  ].includes(odataType)
+}
+
+const getUserisMfaCapable = async (baseEntity: string, userId: string, ctx?: undefined | Record<string, any>): Promise<boolean> => {
+  const action = 'getUserAccessPackages'
+  const method = 'GET'
+  const body = null
+  const path = `/users/${userId}/authentication/methods`
+  const r = await helper.doRequest(baseEntity, method, path, body, ctx?.headers ? { headers: ctx?.headers } : undefined)
+  if (!r.body?.value) {
+    if (r.body?.id) r.body.value = [r.body]
+    else throw new Error(`${action} error: invalid response: ${JSON.stringify(r)}`)
+  }
+  const methodTypes = r.body.value.map((m: any) => m['@odata.type'])
+  if (methodTypes.length < 1) return false
+  return methodTypes.some(isMethodMfaCapable)
+}
+
 /**
 * getUsersByRole returns an array of user IDs having a specific role assigned
 * @param baseEntity 
@@ -1724,23 +1786,24 @@ const getUsersByRole = async (baseEntity: string, getObj: Record<string, any>, t
 
   if (activePrincipals.size === 0) return []
 
-  // 3. Resolve Principals (determine if User or Group)
+  // 3. Resolve principals (determine if user or group)
   const userIds = new Set<string>()
-  const principalsToResolve: { fn: () => Promise<any> }[] = []
+  const fnArrPrincipalObjects: { fn: () => Promise<any>, index?: number, objArr?: any, key?: string }[] = []
+  const principalObjects: any[] = []
   for (const pId of activePrincipals) {
     const path = `/directoryObjects/${pId}`
-    principalsToResolve.push({ fn: () => helper.doRequest(baseEntity, 'GET', path, null, ctx?.headers ? { headers: ctx?.headers } : undefined) })
+    fnArrPrincipalObjects.push({ fn: () => helper.doRequest(baseEntity, 'GET', path, null, ctx?.headers ? { headers: ctx?.headers } : undefined), objArr: principalObjects })
   }
-  const principalObjects: any[] = []
-  await fnCunckExecute(principalsToResolve, principalObjects)
+  if (fnArrPrincipalObjects.length > 0) await fnCunckExecute(fnArrPrincipalObjects)
 
-  // 4. Handle Users directly and fetch transitive members for Groups
-  const groupMembersToFetch: { fn: () => Promise<any> }[] = []
+  // 4. Handle users directly and fetch transitive members for groups
+  const fnArrGroupResults: { fn: () => Promise<any>, index?: number, objArr?: any, key?: string }[] = []
+  const groupResults: any[] = []
   for (const obj of principalObjects) {
     if (!obj || !obj.id) continue
     if (obj['@odata.type'] === '#microsoft.graph.user') userIds.add(obj.id)
     else if (obj['@odata.type'] === '#microsoft.graph.group') {
-      // Use a custom function to fetch all transitive members including paging
+      // fetch all transitive members including paging
       const fetchAllMembers = async (groupId: string) => {
         let members: any[] = []
         let nextPath: string | null = `/groups/${groupId}/transitiveMembers/microsoft.graph.user?$select=id`
@@ -1748,63 +1811,80 @@ const getUsersByRole = async (baseEntity: string, getObj: Record<string, any>, t
           const res = await helper.doRequest(baseEntity, 'GET', nextPath, null, ctx?.headers ? { headers: ctx?.headers } : undefined)
           if (!res.body?.value) break
           members.push(...res.body.value)
-          // extract nextLink and convert to relative path
           nextPath = res.body['@odata.nextLink'] ? res.body['@odata.nextLink'].split('/beta')[1] : null
         }
-        return { body: { value: members } } // Wrap results for fnCunckExecute compatibility
+        return { body: { value: members } }
       }
-      groupMembersToFetch.push({ fn: () => fetchAllMembers(obj.id) })
+      fnArrGroupResults.push({ fn: () => fetchAllMembers(obj.id), objArr: groupResults })
     }
   }
-  const groupResults: any[] = []
-  if (groupMembersToFetch.length > 0) await fnCunckExecute(groupMembersToFetch, groupResults)
+
+  if (fnArrGroupResults.length > 0) await fnCunckExecute(fnArrGroupResults)
   groupResults.forEach((m: any) => m.id && userIds.add(m.id.toLowerCase()))
 
   return Array.from(userIds)
 }
 
 /**
-* fnCunckExecute runs functions asynchronous in chunks
-* @param fnArr array of objects that must include function and optionally index [{fn, index}]. If `index` is included, it represent the index of `objArr` that should be updated with `key` set to the value of the function result.
-* @param objArr optionally array of objects. `objArr[index].key` will be set to function result. If objArr included e.g. empty, but no index and no key, function result will be inserted to objArr.
-* @param key optionally key
-* @returns undefined, but updated objArr if objArr argument is included
+* fnCunckExecute runs array of functions asynchronous in chunks
+* @param fnArr array of objects that must include function and optionally index, objArr and key [{fn, index, objArr, key}]. Function will always be executed. Any optional objArr will be updated according to provided index/key
+* @param fnArr.index optional and represent the index of `objArr` that should be updated with `key` set to the value of the function result
+* @param fnArr.objArr optionally array of objects or a single object that will be updated based on fn result. If index, `objArr[index].key` will be set to function result. If key, but no index, function result will be inserted to objArr[key].
+* @param fnArr.key optionally key
+* @param chunkSize optinally size of chunks used, default 5
+* @returns undefined, but updated objArr if objArr is included
 **/
-const fnCunckExecute = async (fnArr: { index?: number, fn: () => Promise<any> }[], objArr?: Record<string, any>[], key?: string) => {
-  if (!Array.isArray(fnArr)) throw new Error(`fnCunckExecute get ${key} error: fnArr and/or objArr is not array`)
-  if (fnArr.length > 0) {
-    if (typeof fnArr[0] !== 'object' || !fnArr[0].fn) throw new Error(`fnCunckExecute error: fnArr missing fn object(s)`)
-    else if (fnArr[0].index !== undefined && !(objArr || key)) throw new Error(`fnCunckExecute error: missing reponseValue/key`)
-    const chunk = 5
-    do {
-      const arrChunk = fnArr.splice(0, chunk)
-      const results = await Promise.allSettled(arrChunk.map(o => o.fn())) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
-      const errors = results.filter(result => result.status === 'rejected').map(result => result.reason.message)
-      if (errors.length > 0) {
-        let errMsg
-        let statusCode
-        try {
-          const res = JSON.parse(errors[0])
-          statusCode = res?.statusCode
-          errMsg = res?.body?.error?.message
-        } catch (err) { errMsg = errors.join(', ') }
-        if (statusCode !== 404) throw new Error(errMsg)
-      }
-      results.forEach((result, idx) => {
-        if (result.status === 'fulfilled') {
-          if (!result.value?.body) return
-          const res = result.value.body
-          if (typeof arrChunk[idx].index === 'number' && objArr && key) {
-            if (res.value) objArr[arrChunk[idx].index][key] = res.value
-            else objArr[arrChunk[idx].index][key] = res // Assign the result to the specific index and key
-          } else if (arrChunk[idx].index === undefined && objArr && key === undefined) { // When index and key are undefined, append to objArr if objArr provided
-            if (Array.isArray(res.value)) objArr.push(...res.value) // If res.value is an array, spread its elements into objArr
-            else objArr.push(res) // Otherwise, push the entire res object
+const fnCunckExecute = async (fnArr: { fn: () => Promise<any>, index?: number, objArr?: Record<string, any>[] | Record<string, any>, key?: string }[], chunkSize?: number) => {
+  if (!Array.isArray(fnArr)) throw new Error(`fnCunckExecute error: fnArr is not array`)
+  if (fnArr.length === 0) return
+  if (typeof fnArr[0] !== 'object' || !fnArr[0].fn) throw new Error(`fnCunckExecute error: fnArr missing fn object(s)`)
+  else if (fnArr[0].index !== undefined && !(fnArr[0].objArr || fnArr[0].key)) throw new Error(`fnCunckExecute error: missing reponseValue/key`)
+  if (!chunkSize || chunkSize < 1) chunkSize = 5
+  do {
+    const arrChunk = fnArr.splice(0, chunkSize)
+    const results = await Promise.allSettled(arrChunk.map(o => o.fn())) as { status: 'fulfilled' | 'rejected', reason: any, value: any }[] // processing max chunk async              
+    const errors = results.filter(result => result.status === 'rejected').map(result => result.reason.message)
+    if (errors.length > 0) {
+      let errMsg
+      let statusCode
+      try {
+        const res = JSON.parse(errors[0])
+        statusCode = res?.statusCode
+        errMsg = res?.body?.error?.message
+      } catch (err) { errMsg = errors.join(', ') }
+      if (statusCode !== 404) throw new Error(errMsg)
+    }
+    results.forEach((result, idx) => {
+      if (result.status === 'fulfilled') {
+        const objArr: any = arrChunk[idx].objArr
+        const key = arrChunk[idx].key
+        const index = arrChunk[idx].index
+        if (result.value === undefined) return
+        const res: any = result.value.body || result.value
+        const val = (res && res.value !== undefined) ? res.value : res
+        if (typeof index === 'number' && objArr && key) {
+          const keyArr = key.split('.')
+          if (keyArr.length > 2) throw new Error(`fnCunckExecute error: key ${key} can not be more than 2 levels deep`)
+          if (keyArr.length === 2 && !objArr[index][keyArr[0]]) objArr[index][keyArr[0]] = {}
+          if (keyArr.length === 1) objArr[index][keyArr[0]] = val
+          else objArr[index][keyArr[0]][keyArr[1]] = val
+        } else if (index === undefined && objArr) {
+          if (key === undefined) { // When index and key are undefined, append to objArr if objArr provided
+            if (Array.isArray(objArr)) {
+              if (Array.isArray(res.value)) objArr.push(...res.value) // If res.value is an array, spread its elements into objArr
+              else objArr.push(res) // Otherwise, push the entire res object
+            }
+          } else {
+            const keyArr = key.split('.')
+            if (keyArr.length > 2) throw new Error(`fnCunckExecute error: key ${key} can not be more than 2 levels deep`)
+            if (keyArr.length === 2 && !objArr[keyArr[0]]) objArr[keyArr[0]] = {}
+            if (keyArr.length === 1) objArr[keyArr[0]] = val
+            else objArr[keyArr[0]][keyArr[1]] = val
           }
         }
-      })
-    } while (fnArr.length > 0)
-  }
+      }
+    })
+  } while (fnArr.length > 0)
 }
 
 //
