@@ -171,6 +171,7 @@
           "comment": "This mapping requires Entra ID Premium license and API permissions: 'AuditLog.Read.All'. Remove this mapping if conditions not met",
           "mapTo": "signInActivity",
           "type": "complexObject",
+          "mutability": "readOnly",
           "subAttributes": [
             {
               "name": "lastSignInDateTime",
@@ -189,7 +190,30 @@
             }
           ],
           "x-agent-schema": {
-            "description": "Read-only attribute-object representing Entra ID signInActivity like: lastSignInDateTime, lastSuccessfulSignInDateTime and lastNonInteractiveSignInDateTime. Note: Only availabe for users having P1/P2 licenses. If signInActivity is missing, agent should not consider this to be no sign-in activity for the user.",
+            "description": "Read-only attribute object representing Entra ID signInActivity like: lastSignInDateTime, lastSuccessfulSignInDateTime and lastNonInteractiveSignInDateTime. Note: Only availabe for users having P1/P2 licenses. If signInActivity is missing, agent should not consider this to be no sign-in activity for the user.",
+            "readOnly": true
+          }
+        },
+        "mfa": {
+          "mapTo": "mfa",
+          "type": "complexObject",
+          "mutability": "readOnly",
+          "subAttributes": [
+            {
+              "name": "isMfaCapable",
+              "mutability": "readOnly",
+              "description": "true/false - user has at least one MFA-capable method registered (members only; for guests, methods are in home tenant and enforcement is via Conditional Access).",
+              "type": "boolean"
+            },
+            {
+              "name": "isLegacyEnabled",
+              "mutability": "readOnly",
+              "description": "true/false - legacy per-user MFA is enabled ('perUserMfaState' is 'enabled' or 'enforced'); such users bypass/aren´t fully controlled by standard Conditional Access only design and therefore require special attention.",
+              "type": "boolean"
+            }
+          ],
+        "x-agent-schema": {
+            "description": "Read-only attribute object representing the user's MFA capabilities. Note: 'mfa.isMfaCapable' does not mean MFA is enabled for the user. Conditional Access policies or using Security Defaults must be verified separately.",
             "readOnly": true
           }
         },
