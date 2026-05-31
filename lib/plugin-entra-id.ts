@@ -637,6 +637,18 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
     return undefined
   }
 
+  // MFA Reset
+  if (Object.hasOwn(parsedAttrObj, 'mfa')) {
+    if (parsedAttrObj.mfa.reset === true) {
+      if (!permission[baseEntity]?.mfa || !permission[baseEntity]?.eligible) throw new Error(`${action} error: MFA reset is not supported by the endpoint - missing permissions.`)
+      const currentRoles = await getUserRoles(baseEntity, id, [], true, ctx)
+      const isPrivileged = currentRoles.some(r => isPrivilegedRole(r.value))
+      if (isPrivileged) throw new Error(`${action} error: MFA reset is not allowed for users with high-privilege roles for security reasons.`)
+      await resetUserMfa(baseEntity, id, ctx)
+    }
+    delete parsedAttrObj.mfa
+  }
+
   // Roles
   if (Object.hasOwn(parsedAttrObj, 'roles') && Array.isArray(parsedAttrObj.roles)) {
     const r: Record<string, any>[] = []
@@ -655,7 +667,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
       const res: Record<string, any> = { value: el.value, type: el.type }
       if (el.display) res.display = el.display
       if (el.operation === 'delete') {
-        if (el.value === '62e90394-69f5-4237-9190-012177145e10') throw new Error(`${action} error: Removal of the 'Global Administrator' role is not allowed for security reasons.`)
+        if (isPrivilegedRole(el.value)) throw new Error(`${action} error: Removal of high-privilege roles is not allowed for security reasons.`)
         res.operation = el.operation
       }
       r.push(res)
@@ -1719,6 +1731,15 @@ const getUserAccessPackages = async (baseEntity: string, userId: string, include
   return result
 }
 
+const isPrivilegedRole = (roleId: string): boolean => {
+  return [
+    '62e90394-69f5-4237-9190-012177145e10', // Global Administrator
+    'e8611ab8-c189-46e8-94e1-60213ab1f814', // Privileged Role Administrator
+    '7be44c8a-adaf-4e2a-84d6-ab2649e08a13', // Privileged Authentication Administrator
+    'c4e39bd9-1100-46d3-8c65-fb160da0071f', // Authentication Administrator
+  ].includes(roleId)
+}
+
 const isMethodMfaCapable = (odataType: string): boolean => {
   return [
     '#microsoft.graph.microsoftAuthenticatorAuthenticationMethod',
@@ -1729,8 +1750,24 @@ const isMethodMfaCapable = (odataType: string): boolean => {
   ].includes(odataType)
 }
 
+const getAuthMethodCollectionFromODataType = (odataType: string): string => {
+  const map: Record<string, string> = {
+    '#microsoft.graph.microsoftAuthenticatorAuthenticationMethod': 'microsoftAuthenticatorMethods',
+    '#microsoft.graph.passwordlessMicrosoftAuthenticatorAuthenticationMethod': 'microsoftAuthenticatorMethods',
+    '#microsoft.graph.phoneAuthenticationMethod': 'phoneMethods',
+    '#microsoft.graph.softwareOathAuthenticationMethod': 'softwareOathMethods',
+    '#microsoft.graph.fido2AuthenticationMethod': 'fido2Methods',
+    '#microsoft.graph.emailAuthenticationMethod': 'emailMethods',
+    '#microsoft.graph.temporaryAccessPassAuthenticationMethod': 'temporaryAccessPassMethods',
+    '#microsoft.graph.windowsHelloForBusinessAuthenticationMethod': 'windowsHelloForBusinessMethods',
+    '#microsoft.graph.passwordAuthenticationMethod': 'passwordMethods',
+  }
+  const collection = map[odataType]
+  return collection
+}
+
 const getUserisMfaCapable = async (baseEntity: string, userId: string, ctx?: undefined | Record<string, any>): Promise<boolean> => {
-  const action = 'getUserAccessPackages'
+  const action = 'getUserisMfaCapable'
   const method = 'GET'
   const body = null
   const path = `/users/${userId}/authentication/methods`
@@ -1742,6 +1779,35 @@ const getUserisMfaCapable = async (baseEntity: string, userId: string, ctx?: und
   const methodTypes = r.body.value.map((m: any) => m['@odata.type'])
   if (methodTypes.length < 1) return false
   return methodTypes.some(isMethodMfaCapable)
+}
+
+const resetUserMfa = async (baseEntity: string, userId: string, ctx?: undefined | Record<string, any>): Promise<boolean> => {
+  const action = 'resetUserMfa'
+  const method = 'GET'
+  const body = null
+  const path = `/users/${userId}/authentication/methods`
+  const r = await helper.doRequest(baseEntity, method, path, body, ctx?.headers ? { headers: ctx?.headers } : undefined)
+  if (!r.body?.value) {
+    if (r.body?.id) r.body.value = [r.body]
+    else throw new Error(`${action} error: invalid response: ${JSON.stringify(r)}`)
+  }
+  const methods = r.body.value.map((m: any) => { return { 'id': m.id, '@odata.type': m['@odata.type'] } })
+  if (methods.length < 1) return false
+  const fnArr: { fn: () => Promise<any>, index?: number, objArr?: any, key?: string }[] = []
+  for (const m of methods) {
+    if (!isMethodMfaCapable(m['@odata.type'])) continue
+    const methodName = getAuthMethodCollectionFromODataType(m['@odata.type'])
+    if (!methodName) continue
+    const path = `/users/${userId}/authentication/${methodName}/${m.id}`
+    const fn = () => helper.doRequest(baseEntity, 'DELETE', path, null, ctx?.headers ? { headers: ctx?.headers } : undefined)
+    fnArr.push({ fn })
+  }
+  if (fnArr.length === 0) return false
+  // include revoke sessions
+  const fn = () => helper.doRequest(baseEntity, 'POST', `/users/${userId}/invalidateAllRefreshTokens`, null, ctx?.headers ? { headers: ctx?.headers } : undefined)
+  fnArr.push({ fn })
+  await fnCunckExecute(fnArr)
+  return true
 }
 
 /**
