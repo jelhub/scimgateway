@@ -4405,7 +4405,7 @@ Content-Transfer-Encoding: quoted-printable
       // found logic
       if (lastKey === 'password' && key.startsWith('scimgateway.auth.basic')) foundBasic = true
       else if (lastKey === 'token' && key.startsWith('scimgateway.auth.bearerToken')) foundBearerToken = true
-      else if ((lastKey === 'publicKey' || lastKey === 'secret' || lastKey === 'wellKnownUri' || 'azureTenantId') && key.startsWith('scimgateway.auth.bearerJwt')) foundBearerJwt = true
+      else if ((lastKey === 'publicKey' || lastKey === 'secret' || lastKey === 'wellKnownUri' || lastKey === 'azureTenantId') && key.startsWith('scimgateway.auth.bearerJwt')) foundBearerJwt = true
       else if (lastKey === 'clientSecret' && key.startsWith('scimgateway.auth.bearerOAuth')) foundBearerOAuth = true
 
       // certificate full path
