@@ -794,13 +794,13 @@ export class HelperRest {
           const ret = await this.doRequestHandler(baseEntity, method, path, body, ctx, opt, retryCount) // retry
           return ret // problem fixed
         } else {
-          if (statusCode === 404 || ctx.skipLogAsError) {
+          if (statusCode === 404 || ctx?.skipLogAsError) {
             this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
           } else this.scimgateway.logError(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
           throw err
         }
       } else {
-        if (statusCode === 404 || ctx.skipLogAsError) { // 404 not logged as error e.g. getUser-manager
+        if (statusCode === 404 || ctx?.skipLogAsError) { // 404 not logged as error e.g. getUser-manager
           this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${options.url} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
         } else this.scimgateway.logError(baseEntity, `doRequest ${method} ${options.url} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
         if (statusCode === 401) delete this._serviceClient[baseEntity]
