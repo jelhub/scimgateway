@@ -210,10 +210,16 @@
               "mutability": "readOnly",
               "description": "true/false - legacy per-user MFA is enabled ('perUserMfaState' is 'enabled' or 'enforced'); such users bypass/aren´t fully controlled by standard Conditional Access only design and therefore require special attention.",
               "type": "boolean"
+            },
+            {
+              "name": "reset",
+              "mutability": "writeOnly",
+              "description": "Set to 'true' will reset users MFA capabilites and user will be forced to re-register MFA.",
+              "type": "boolean"
             }
           ],
         "x-agent-schema": {
-            "description": "Read-only attribute object representing the user's MFA capabilities. Note: 'mfa.isMfaCapable' does not mean MFA is enabled for the user. Conditional Access policies or using Security Defaults must be verified separately.",
+            "description": "Read-only attribute object (except for 'mfa.reset') presenting the user's MFA capabilities. Note: 'mfa.isMfaCapable' does not mean MFA is enabled for the user. Conditional Access policies or using Security Defaults must be verified separately.",
             "readOnly": true
           }
         },
