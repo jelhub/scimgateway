@@ -2261,6 +2261,7 @@ export class ScimGateway {
           if (res?.Resources && Array.isArray(res.Resources) && res.Resources.length === 1) {
             // we might have endpoint like Entra ID that hasn’t caught up yet due to internal sync
             // ensure returned object reflects changes by doing a merge with patch payload (convertedScim) 
+            if (finalScimdata?.mfa) delete finalScimdata.mfa // writeOnly mfa.reset
             res.Resources[0] = this.patchObj(res.Resources[0], finalScimdata) // merge
             if (res.Resources[0].password) delete res.Resources[0].password
           }
