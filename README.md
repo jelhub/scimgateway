@@ -81,7 +81,7 @@ SCIM Gateway is a user provisioning bridge built with [Bun](https://bun.sh/) and
 
 ## What's New
 
-- **`plugin-entra-id`** now supports Entra ID roles and access packages, in addition to reading MFA capabilities and licenses.
+- **`plugin-entra-id`** now supports Entra ID roles, access packages and MFA, in addition to reading licenses.
 - **`plugin-generic`** replaces `plugin-scim` — a flexible template using `endpointMapper` with the new `valueMap` option for allowlisting and name mapping e.g., groups
 - **`GET /Roles` and `GET /Entitlements`** endpoint support, with user management via SCIM `roles` and `entitlements` attributes; `plugin-entra-id` uses `entitlements` for Entra ID licenses (read-only) and `roles` for Permanent and Eligible PIM roles (full management)
 - **AI Agent ready** — `x-agent-schema` configuration in `endpointMapper` enables custom schema generation with MCP tool instructions for autonomous provisioning agents
