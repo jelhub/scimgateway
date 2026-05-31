@@ -1054,7 +1054,7 @@ The `baseEntity` parameter enables multi-tenant setups — create multiple endpo
    - `Organization.ReadWrite.All`
    - Additional for signInActivity, MFA, roles, and access packages:
      - `AuditLog.Read.All` *(sign-in activity; only if using `map.user.signInActivity`; requires Entra ID Premium)*
-     - `UserAuthenticationMethod.Read.All` *(MFA information; only if using `map.user.mfa`)*
+     - `UserAuthenticationMethod.ReadWrite.All` *(MFA information and reset; only if using `map.user.mfa`)*
      - `RoleEligibilitySchedule.ReadWrite.Directory` *(PIM Eligible roles; only if using `map.user.roles`)*
      - `RoleManagement.ReadWrite.Directory` *(PIM Permanent roles; only if using `map.user.roles`)*
      - `EntitlementManagement.ReadWrite.All` *(IGA Access Packages; only if using `map.user.entitlements`)*
@@ -1063,7 +1063,7 @@ The `baseEntity` parameter enables multi-tenant setups — create multiple endpo
 
 > For full access to admin users, assign the `Global Administrator` role. The `User Administrator` role has limitations on users with admin roles.
 
-> Note, if PIM and Access Package `management` is not required, `ReadWrite` can be replaced with `Read`. **Remove any mapping configuration whose conditions are not met** — The minimum `Read` permissions are validated at startup.
+> Note, if MFA, PIM, and Access Package `management` is not required, `ReadWrite` can be replaced with `Read`. **Remove any mapping configuration whose conditions are not met** — The minimum `Read` permissions are validated at startup.
 
 ### Plugin Configuration
 

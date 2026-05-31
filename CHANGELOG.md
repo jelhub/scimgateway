@@ -1,5 +1,8 @@
 # Change Log
 
+### v6.2.4
+- **[Improved]** `plugin-entra-id` now support reset users MFA capabilites and user will be forced to re-register MFA.
+
 ### v6.2.3
 - **[Improved]** `plugin-entra-id` now includes information on whether a user has registered for MFA (has an MFA-capable method registered).
 
