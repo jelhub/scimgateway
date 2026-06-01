@@ -641,7 +641,12 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   if (Object.hasOwn(parsedAttrObj, 'mfa')) {
     if (parsedAttrObj.mfa.reset === true) {
       if (!permission[baseEntity]?.mfa || !permission[baseEntity]?.eligible) throw new Error(`${action} error: MFA reset is not supported by the endpoint - missing permissions.`)
-      const currentRoles = await getUserRoles(baseEntity, id, [], true, ctx)
+      const res = await scimgateway.getGroups(baseEntity, { attribute: 'members.value', operator: 'eq', value: id }, ['id', 'displayName'], ctx)
+      let userGroups: Record<string, any>[] = []
+      if (res?.Resources && Array.isArray(res.Resources)) {
+        userGroups = res.Resources.map((r: Record<string, any>) => { return { value: r.id } })
+      }
+      const currentRoles = await getUserRoles(baseEntity, id, userGroups, true, ctx)
       const isPrivileged = currentRoles.some(r => isPrivilegedRole(r.value))
       if (isPrivileged) throw new Error(`${action} error: MFA reset is not allowed for users with high-privilege roles for security reasons.`)
       await resetUserMfa(baseEntity, id, ctx)
