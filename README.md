@@ -90,7 +90,7 @@ SCIM Gateway is a user provisioning bridge built with [Bun](https://bun.sh/) and
 - **v6.0.0** — API method response bodies returned as-is; new `publicApi()` method for unauthenticated `/pub/api` routes; `bearerJwtAzure.tenantIdGUID` replaced by `bearerJwt.azureTenantId`
 - **Federated Identity Credentials** (Entra ID) — access Microsoft-protected resources without managing secrets, via internal JWKS
 - **External JWKS** support for JWT authentication
-- **Azure Relay** — secure outbound-only tunnel with one minute of setup (~$10/month per listener)
+- **Azure Relay** — secure outbound-only tunnel with one minute of setup
 - **ETag** and **Bulk Operations** support (SCIM RFC 7644)
 - **Remote real-time log subscription** via browser, curl, or custom client at `https://<host>/logger`
 - **Gateway chaining** — chain `gateway1 → gateway2 → gateway3 → endpoint` with reverse-proxy-style auth validation

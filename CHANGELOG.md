@@ -1,5 +1,8 @@
 # Change Log
 
+### v6.2.5
+- **[Fixed]** jwt config key `azureTenantId` not detected.
+
 ### v6.2.4
 - **[Improved]** `plugin-entra-id` now support reset users MFA capabilites and user will be forced to re-register MFA.
 
