@@ -769,12 +769,6 @@ export class HelperRest {
         if (!retryAfter) retryAfter = 60
       }
 
-      if (retryAfter) {
-        this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} throttle/ratelimit error - awaiting ${retryAfter} seconds before automatic retry`)
-        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
-      }
-
-      if (!retryCount) retryCount = 0
       let urlObj
       try { urlObj = new URL(path) } catch (err) { void 0 }
       let isServiceClient = !urlObj && this._serviceClient[baseEntity] && !this.lock.isLocked() // !isLocked to avoid retry ongoing doRequest with failing getAccessToken()
@@ -782,12 +776,22 @@ export class HelperRest {
 
       if (isServiceClient && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || statusCode === 504 || oAuthTokeErr || retryAfter)) {
         this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
-        if (retryCount < connectionObj.baseUrls.length) {
-          retryCount++
-          if (isServiceClient) {
-            this.updateServiceClient(baseEntity, { baseUrl: connectionObj.baseUrls[retryCount - 1] })
-            this.scimgateway.logDebug(baseEntity, `${(connectionObj.baseUrls.length > 1) ? 'failover ' : ''}retry[${retryCount}] using baseUrl = ${this._serviceClient[baseEntity].baseUrl}`)
+
+        let maxRetry = connectionObj.baseUrls.length
+        if (!retryCount) retryCount = 0
+        if (retryAfter && retryCount === maxRetry) maxRetry += 1 // allow one additional attempt when throttle
+
+        if (retryCount < maxRetry) {
+          if (retryAfter) {
+            this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} throttle/ratelimit error - awaiting ${retryAfter} seconds before automatic retry`)
+            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
           }
+          const index = retryCount < connectionObj.baseUrls.length ? retryCount : connectionObj.baseUrls.length - 1
+          retryCount++
+
+          this.updateServiceClient(baseEntity, { baseUrl: connectionObj.baseUrls[index] })
+          this.scimgateway.logDebug(baseEntity, `${(connectionObj.baseUrls.length > 1) ? 'failover ' : ''}retry[${retryCount}] using baseUrl = ${this._serviceClient[baseEntity].baseUrl}`)
+
           if (oAuthTokeErr) {
             delete this._serviceClient[baseEntity] // ensure new getAccessToken request - token used should not have been expired, but rejected for other reason e.g. token server restart and no persistent token store?
           }
