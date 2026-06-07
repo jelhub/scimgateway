@@ -84,7 +84,6 @@ scimgateway.authPassThroughAllowed = false
 scimgateway.pluginAndOrFilterEnabled = true
 // end - mandatory plugin initialization
 
-const newHelper = new HelperRest(scimgateway)
 const entitlementsByValues: Record<string, any> = {}
 const rolesByValues: Record<string, any> = {}
 const rolesAssignments: Record<string, any> = {}
@@ -941,15 +940,14 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     if (getObj.operator === 'eq' && ['id', 'displayName', 'externalId'].includes(getObj.attribute)) {
       // mandatory - unique filtering - single unique user to be returned - correspond to getUser() in versions < 4.x.x
       if (getObj.attribute === 'id') {
-        if (includeMembers) path = `/groups/${getObj.value}?$select=${attrs.join()}&$expand=members($select=id,displayName)`
-        else path = `/groups/${getObj.value}?$select=${attrs.join()}`
+        path = `/groups/${getObj.value}?$select=${attrs.join()}`
       } else {
-        if (includeMembers) path = `/groups?$filter=${getObj.attribute} eq '${getObj.value}'&$select=${attrs.join()}&$expand=members($select=id,displayName)`
-        else path = `/groups?$filter=${getObj.attribute} eq '${getObj.value}'&$select=${attrs.join()}`
+        path = `/groups?$filter=${getObj.attribute} eq '${getObj.value}'&$select=${attrs.join()}`
       }
     } else if (isUserMemberOf) {
       // mandatory - return all groups the user 'id' (getObj.value) is member of - correspond to getGroupMembers() in versions < 4.x.x
       // Resources = [{ id: <id-group>> , displayName: <displayName-group>, members [{value: <id-user>}] }]
+      includeMembers = false
       path = `/users/${getObj.value}/transitiveMemberOf/microsoft.graph.group?$top=${getObj.count}&$count=true&$select=id,displayName`
     } else {
       // optional - simpel filtering
@@ -961,8 +959,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     throw new Error(`${action} error: not supporting advanced filtering: ${getObj.rawFilter}`)
   } else {
     // mandatory - no filtering (!getObj.operator && !getObj.rawFilter) - all groups to be returned - correspond to exploreGroups() in versions < 4.x.x
-    if (includeMembers) path = `/groups?$top=${getObj.count}&$count=true&$select=${attrs.join()}&$expand=members($select=id,displayName)`
-    else path = `/groups?$top=${getObj.count}&$count=true&$select=${attrs.join()}`
+    path = `/groups?$top=${getObj.count}&$count=true&$select=${attrs.join()}`
   }
   if (getObj.and || getObj.or) {
     // plugin have enabled 'scimgateway.pluginAndOrFilterEnabled' and the query includes an additonal and/or getObj that must to be handled and combined with the initial getObj
@@ -984,7 +981,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   if (!ctx) ctx = { paging }
   else ctx.paging = paging
 
-  const newCtx = { ...ctx }
+  const newCtx: Record<string, any> = ctx?.headers ? { headers: ctx?.headers } : {}
   newCtx.paging = { startIndex: 1 }
 
   try {
@@ -993,11 +990,11 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     if (!isUserMemberOf) response = await helper.doRequest(baseEntity, method, path, body, ctx, options)
     else {
       // request both the default transitiveMemberOf (includes nested groups) and memberOf because we want to distinguish SCIM type=direct/indirect
-      const pathMemberOf = `/users/${getObj.value}/memberOf/microsoft.graph.group?$top=${getObj.count}&$count=true&$select=id,displayName`
+      let pathMemberOf = `/users/${getObj.value}/memberOf/microsoft.graph.group?$count=true&$select=id,displayName`
       const allErrors: string[] = []
       const results = await Promise.allSettled([
         helper.doRequest(baseEntity, method, path, body, ctx, options),
-        newHelper.doRequest(baseEntity, method, pathMemberOf, body, newCtx, options), // using newHelper to avoid shared internal helperRest paging 
+        helper.doRequest(baseEntity, method, pathMemberOf, body, newCtx, options),
       ])
       const errors = results
         .filter(r => r.status === 'rejected')
@@ -1010,30 +1007,23 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       }
 
       response = (results[0] as PromiseFulfilledResult<any>).value // includes all groups (also nested)
-      responseMemberOf = (results[1] as PromiseFulfilledResult<any>).value // do not include nested groups
-
-      let nextStartIndex = scimgateway.getNextStartIndex(responseMemberOf.body.value.length * 2, newCtx.paging.startIndex, responseMemberOf.body.value.length)
-      if (nextStartIndex > newCtx.paging.startIndex && responseMemberOf && responseMemberOf.body.value && Array.isArray(responseMemberOf.body.value)) {
-        // use paging to ensure responseMemberOf is complete 
-        let totalResults = responseMemberOf.body.value.length
-        let startIndex = 1
+      responseMemberOf = (results[1] as PromiseFulfilledResult<any>).value // does not include nested groups
+      while (newCtx.paging.nextLink) {
         let res: any
-        do {
-          try {
-            startIndex = nextStartIndex
-            newCtx.paging.startIndex = startIndex
-            res = await newHelper.doRequest(baseEntity, method, pathMemberOf, body, newCtx, options)
-          } catch (err) { void 0 }
-          if (res?.body && res.body.value && Array.isArray(res.body.value) && res.body.value.length > 0) {
-            const count = res.body.value.length
-            totalResults += count
-            nextStartIndex = scimgateway.getNextStartIndex(totalResults + count, startIndex, count)
-            for (let i = 0; i < res.body.value.length; i++) {
-              if (!res.body.value[i].id) continue
-              responseMemberOf.body.value.push(res.body.value[i])
-            }
+        pathMemberOf = newCtx.paging.nextLink
+        delete newCtx.paging.nextLink
+        try {
+          res = await helper.doRequest(baseEntity, method, pathMemberOf, body, newCtx, options)
+        } catch (err: any) {
+          delete newCtx.paging.nextLink
+          break
+        }
+        if (res?.body && res.body.value && Array.isArray(res.body.value) && res.body.value.length > 0) {
+          for (let i = 0; i < res.body.value.length; i++) {
+            if (!res.body.value[i].id) continue
+            responseMemberOf.body.value.push(res.body.value[i])
           }
-        } while (nextStartIndex > startIndex)
+        }
       }
 
       if (response.body && response.body.value && Array.isArray(response.body.value)) {
@@ -1047,6 +1037,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
         })
       }
     }
+
     if (!response.body) {
       throw new Error(`invalid response: ${JSON.stringify(response)}`)
     }
@@ -1056,6 +1047,22 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     }
 
     for (let i = 0; i < response.body.value.length; ++i) {
+      if (includeMembers) {
+        const id = response.body.value[i].id
+        if (!id) break
+        let path = `/groups/${id}/members?$select=id,displayName`
+        const newCtx: Record<string, any> = ctx?.headers ? { headers: ctx?.headers } : {}
+        newCtx.paging = { startIndex: 1 }
+        const r = await helper.doRequest(baseEntity, 'GET', path, null, newCtx, options)
+        response.body.value[i].members = r.body?.value || []
+        while (newCtx.paging.nextLink) {
+          const path = newCtx.paging.nextLink
+          delete newCtx.paging.nextLink
+          const r = await helper.doRequest(baseEntity, 'GET', path, null, newCtx, options)
+          response.body.value[i].members.push(...r.body?.value || [])
+        }
+      }
+
       let members: any
       if (response.body.value[i].members) {
         members = response.body.value[i].members.reduce((acc: any[], el: Record<string, any>) => {
