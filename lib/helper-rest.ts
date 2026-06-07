@@ -59,6 +59,35 @@ export class HelperRest {
         }
       }
     }
+
+    ;(async () => {
+      // housekeeping - odata pagination
+      while (true) {
+        await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000)) // 5 minutes
+        for (const baseEntity in this.config_entity) {
+          if (!this._serviceClient[baseEntity].index) continue
+          for (const index in this._serviceClient[baseEntity].index) {
+            const parsed = parseInt(index, 10)
+            if (Number.isNaN(parsed)) continue
+            if (Object.keys(this._serviceClient[baseEntity].index[parsed]).length === 0) {
+              delete this._serviceClient[baseEntity].index[parsed]
+              continue
+            }
+            for (const optionsUrl in this._serviceClient[baseEntity].index[parsed]) {
+              const validTo = this._serviceClient[baseEntity].index[parsed][optionsUrl].validTo
+              if (Number.isNaN(validTo)) {
+                delete this._serviceClient[baseEntity].index[parsed][optionsUrl]
+                continue
+              }
+              const now = Math.floor(Date.now() / 1000)
+              if (now > validTo) {
+                delete this._serviceClient[baseEntity].index[parsed][optionsUrl]
+              }
+            }
+          }
+        }
+      }
+    })()
   }
 
   /**
@@ -659,28 +688,25 @@ export class HelperRest {
           options.body = dataString
         } else if (options.headers) delete options.headers['Content-Type']
 
-        if (this._serviceClient[baseEntity]?.nextLink[options.url]) {
-          if (ctx?.paging?.startIndex && ctx.paging.startIndex > 1) {
-            if (ctx.paging.startIndex === this._serviceClient[baseEntity]?.nextLink[options.url].startIndex) {
-              options.url = this._serviceClient[baseEntity]?.nextLink[options.url]['@odata.nextLink']
-            } else {
-              if (!ctx) ctx = {}
-              if (!ctx.paging) ctx.paging = {}
-              if (this._serviceClient[baseEntity]?.nextLink[options.url].totalResults
-                && ctx.paging.startIndex > this._serviceClient[baseEntity]?.nextLink[options.url].totalResults) {
-                ctx.paging.totalResults = this._serviceClient[baseEntity]?.nextLink[options.url].totalResults
-                return { body: { value: [] } }
-              } else {
-                // reset the paging cursor - none expected startIndex sequence, using default none paged url
-                ctx.paging.startIndex = 1 // caller should check and return this new startIndex in final response
-                delete this._serviceClient[baseEntity].nextLink[options.url]
-              }
+        const optionsUrl = options.url
+        const startIndex: number = ctx?.paging?.startIndex || 0
+        if (startIndex > 1) {
+          if (this._serviceClient[baseEntity].index && this._serviceClient[baseEntity].index[startIndex]
+            && this._serviceClient[baseEntity].index[startIndex][optionsUrl] && this._serviceClient[baseEntity].index[startIndex][optionsUrl].nextLink) {
+            options.url = this._serviceClient[baseEntity].index[startIndex][optionsUrl].nextLink
+          } else {
+            let max = 0
+            for (const key in this._serviceClient[baseEntity].index) {
+              const parsed = parseInt(key, 10)
+              if (Number.isNaN(parsed)) continue
+              if (!this._serviceClient[baseEntity].index[parsed][optionsUrl]?.totalResults) continue
+              if (parsed > max) max = parsed
             }
-          }
-        } else {
-          if (ctx?.paging?.startIndex > 1 && !this._serviceClient[baseEntity]?.nextLink[options.url]) { // no previous paging and invalid startIndex
-            ctx.paging.totalResults = ctx.paging.startIndex - 1
-            return { body: { value: [] } }
+            if (max > 0) {
+              ctx.paging.totalResults = this._serviceClient[baseEntity].index[max][optionsUrl].totalResults
+              if (startIndex > ctx.paging.totalResults) return { body: { value: [] } }
+            }
+            throw new Error(`Strict sequencing is required; startIndex=${ctx.paging.startIndex} is not the expected value.`)
           }
         }
 
@@ -724,35 +750,44 @@ export class HelperRest {
           if (result.body['@odata.nextLink']) { // {"@odata.nextLink": "https://graph.microsoft.com/v1.0/users?$top=100&$skiptoken=xxx"}
             if (!ctx) ctx = {}
             if (!ctx.paging) ctx.paging = {}
-            const nextLinkBase = decodeURIComponent(result.body['@odata.nextLink'].substring(0, result.body['@odata.nextLink'].indexOf('$skiptoken') - 1))
             const count = result.body['@odata.count']
             if (count !== undefined) {
               ctx.paging.totalResults = count
             }
-            let totalResults = ctx.paging.totalResults
-            if (!totalResults) totalResults = (this._serviceClient[baseEntity].nextLink[nextLinkBase]?.totalResults)
-            let isCount = this._serviceClient[baseEntity].nextLink[nextLinkBase]?.isCount || count !== undefined
             const itemsPerPage = result.body.value.length
-            this._serviceClient[baseEntity].nextLink[nextLinkBase] = {}
-            this._serviceClient[baseEntity].nextLink[nextLinkBase]['startIndex'] = ctx.paging.startIndex ? ctx.paging.startIndex + itemsPerPage : itemsPerPage + 1
-            this._serviceClient[baseEntity].nextLink[nextLinkBase]['@odata.nextLink'] = result.body['@odata.nextLink']
-            this._serviceClient[baseEntity].nextLink[nextLinkBase]['isCount'] = isCount
-            if (isCount) {
-              this._serviceClient[baseEntity].nextLink[nextLinkBase]['totalResults'] = totalResults // count=true ignored when using nextLink
+            const nextStartIndex = ctx.paging.startIndex ? ctx.paging.startIndex + itemsPerPage : itemsPerPage + 1
+            let totalResults = ctx.paging.totalResults
+            if (ctx.paging.startIndex && this._serviceClient[baseEntity].index && this._serviceClient[baseEntity].index[ctx.paging.startIndex]) {
+              if (this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl]) {
+                if (!totalResults) totalResults = this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl].totalResults
+              }
+              delete this._serviceClient[baseEntity].index[ctx.paging.startIndex] // could consider not to delte prior and let houskeeping do the cleanup
+            }
+
+            if (!this._serviceClient[baseEntity].index) this._serviceClient[baseEntity].index = {}
+            if (!this._serviceClient[baseEntity].index[nextStartIndex]) this._serviceClient[baseEntity].index[nextStartIndex] = {}
+            if (!this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl]) this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl] = {}
+            this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl].nextLink = result.body['@odata.nextLink']
+            if (count) {
+              this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl].totalResults = totalResults // count=true ignored when using nextLink
               ctx.paging.totalResults = totalResults
             } else {
               const totalResults = ctx.paging.startIndex - 1 + (itemsPerPage * 2) // ensure new client paging
-              this._serviceClient[baseEntity].nextLink[nextLinkBase]['totalResults'] = totalResults
+              this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl].totalResults = totalResults
               ctx.paging.totalResults = totalResults
             }
+            const d = Math.floor((Date.now() + 5 * 60 * 1000) / 1000)// now + 5 minutes
+            this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl].validTo = d
           } else { // no more paging
-            const linkBase = decodeURIComponent(options.url?.substring(0, options.url?.indexOf('$skiptoken') - 1))
-            if (ctx?.paging?.startIndex && ctx.paging.startIndex > 1 && this._serviceClient[baseEntity]?.nextLink[linkBase]) {
-              if (!this._serviceClient[baseEntity]?.nextLink[linkBase].isCount) { // final no count page
-                const itemsPerPage = result.body.value.length
-                const totalResults = ctx.paging.startIndex - 1 + itemsPerPage
-                this._serviceClient[baseEntity].nextLink[linkBase]['totalResults'] = totalResults
+            if (ctx?.paging?.startIndex) {
+              const itemsPerPage = result.body.value.length
+              const totalResults = ctx.paging.startIndex - 1 + itemsPerPage
+              if (this._serviceClient[baseEntity].index && this._serviceClient[baseEntity].index[ctx.paging.startIndex] && this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl]) {
+                // keeping the last one with updated totalResults to catch startIndex > totalResults, houskeeping will clean up after 5 minutes
+                this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl].totalResults = totalResults // update the last one with correct totalResults
                 ctx.paging.totalResults = totalResults
+                const d = Math.floor((Date.now() + 5 * 60 * 1000) / 1000)
+                this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl].validTo = d
               }
             }
           }
@@ -779,7 +814,10 @@ export class HelperRest {
 
         let maxRetry = connectionObj.baseUrls.length
         if (!retryCount) retryCount = 0
-        if (retryAfter && retryCount === maxRetry) maxRetry += 1 // allow one additional attempt when throttle
+        if (retryAfter) {
+          const delta = retryCount - maxRetry
+          if (delta >= 0 && delta < 2) maxRetry += delta + 1 // allow 3 retry for the same initial throttle
+        }
 
         if (retryCount < maxRetry) {
           if (retryAfter) {
