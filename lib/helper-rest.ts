@@ -65,7 +65,7 @@ export class HelperRest {
       while (true) {
         await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000)) // 5 minutes
         for (const baseEntity in this.config_entity) {
-          if (!this._serviceClient[baseEntity].index) continue
+          if (!this._serviceClient[baseEntity]?.index) continue
           for (const index in this._serviceClient[baseEntity].index) {
             const parsed = parseInt(index, 10)
             if (Number.isNaN(parsed)) continue
@@ -747,7 +747,7 @@ export class HelperRest {
         //   if (!ctx) ctx = { paging }
         //   else ctx.paging = paging
         if (result.body && typeof result.body === 'object') {
-          if (result.body['@odata.nextLink']) { // {"@odata.nextLink": "https://graph.microsoft.com/v1.0/users?$top=100&$skiptoken=xxx"}
+          if (result.body['@odata.nextLink']) { // {"@odata.nextLink": "https://graph.microsoft.com/beta/users?$top=100&$skiptoken=xxx"}
             if (!ctx) ctx = {}
             if (!ctx.paging) ctx.paging = {}
             const count = result.body['@odata.count']
@@ -768,6 +768,11 @@ export class HelperRest {
             if (!this._serviceClient[baseEntity].index[nextStartIndex]) this._serviceClient[baseEntity].index[nextStartIndex] = {}
             if (!this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl]) this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl] = {}
             this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl].nextLink = result.body['@odata.nextLink']
+            ctx.paging.nextLink = result.body['@odata.nextLink'] // gives client option to auto-paginate without using startIndex
+            if (ctx.paging.nextLink.startsWith(this.graphUrl)) {
+              ctx.paging.nextLink = ctx.paging.nextLink.slice(this.graphUrl.length)
+            }
+
             if (count) {
               this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl].totalResults = totalResults // count=true ignored when using nextLink
               ctx.paging.totalResults = totalResults
@@ -779,15 +784,18 @@ export class HelperRest {
             const d = Math.floor((Date.now() + 5 * 60 * 1000) / 1000)// now + 5 minutes
             this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl].validTo = d
           } else { // no more paging
-            if (ctx?.paging?.startIndex) {
-              const itemsPerPage = result.body.value.length
-              const totalResults = ctx.paging.startIndex - 1 + itemsPerPage
-              if (this._serviceClient[baseEntity].index && this._serviceClient[baseEntity].index[ctx.paging.startIndex] && this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl]) {
+            if (ctx?.paging) {
+              if (ctx.paging.nextLink) delete ctx.paging.nextLink
+              if (ctx.paging.startIndex) {
+                const itemsPerPage = result.body.value.length
+                const totalResults = ctx.paging.startIndex - 1 + itemsPerPage
+                if (this._serviceClient[baseEntity].index && this._serviceClient[baseEntity].index[ctx.paging.startIndex] && this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl]) {
                 // keeping the last one with updated totalResults to catch startIndex > totalResults, houskeeping will clean up after 5 minutes
-                this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl].totalResults = totalResults // update the last one with correct totalResults
-                ctx.paging.totalResults = totalResults
-                const d = Math.floor((Date.now() + 5 * 60 * 1000) / 1000)
-                this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl].validTo = d
+                  this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl].totalResults = totalResults // update the last one with correct totalResults
+                  ctx.paging.totalResults = totalResults
+                  const d = Math.floor((Date.now() + 5 * 60 * 1000) / 1000)
+                  this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl].validTo = d
+                }
               }
             }
           }
@@ -910,7 +918,7 @@ export class HelperRest {
   * {
   *   "type": "oauth",
   *   "options": {
-  *     "azureTenantId": "<Entra ID azureTenantId", // Entra ID authentication - if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/v1.0]
+  *     "azureTenantId": "<Entra ID azureTenantId", // Entra ID authentication - if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
   *     "tokenUrl": "<tokenUrl>", // must be set if not using azureTenantId
   *     "clientId": "<clientId>",
   *     "clientSecret": "<clientSecret>"
@@ -969,7 +977,7 @@ export class HelperRest {
   * {
   *   "type": "oauthJwtBearer",
   *   "options": {
-  *     "azureTenantId": "<Entra ID azureTenantId", // Entra ID authentication, if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/v1.0]
+  *     "azureTenantId": "<Entra ID azureTenantId", // Entra ID authentication, if baseUrls not defined, baseUrls automatically set to [https://graph.microsoft.com/beta]
   *     "clientId": "<clientId>",
   *     "tls": { // files located in ./config/certs
   *       "key": "key.pem",
