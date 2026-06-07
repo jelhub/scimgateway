@@ -769,8 +769,9 @@ export class HelperRest {
             if (!this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl]) this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl] = {}
             this._serviceClient[baseEntity].index[nextStartIndex][optionsUrl].nextLink = result.body['@odata.nextLink']
             ctx.paging.nextLink = result.body['@odata.nextLink'] // gives client option to auto-paginate without using startIndex
-            if (ctx.paging.nextLink.startsWith(this.graphUrl)) {
-              ctx.paging.nextLink = ctx.paging.nextLink.slice(this.graphUrl.length)
+            if (ctx.paging.nextLink.startsWith(this._serviceClient[baseEntity].baseUrl)) {
+              ctx.paging.nextLink = ctx.paging.nextLink.slice(this._serviceClient[baseEntity].baseUrl.length)
+              if (!ctx.paging.nextLink.startsWith('/')) ctx.paging.nextLink = '/' + ctx.paging.nextLink
             }
 
             if (count) {
