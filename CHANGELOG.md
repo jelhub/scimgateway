@@ -1,5 +1,9 @@
 # Change Log
 
+### v6.2.6
+- **[Fixed]** `plugin-entra-id` group members retrieval is not paginated, and members may be missing for groups with many members.
+- **[Improved]** `HelperRest` updated OData pagination logic and allowing some more throttle retries.
+
 ### v6.2.5
 - **[Fixed]** jwt config key `azureTenantId` not detected.
 
