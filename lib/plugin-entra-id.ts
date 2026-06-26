@@ -76,7 +76,7 @@
 import path from 'node:path'
 
 // start - mandatory plugin initialization
-import { ScimGateway, HelperRest } from 'scimgateway'
+import { ScimGateway, HelperRest, LicenseData } from 'scimgateway'
 const scimgateway = new ScimGateway()
 const helper = new HelperRest(scimgateway)
 const config = scimgateway.getConfig()
@@ -93,18 +93,14 @@ const permission: Record<string, any> = {}
 
 // load Azure license mapping JSON-file having skuPartNumber and corresponding user-friendly name
 let fs: typeof import('fs')
-let licenseMapping: Record<string, any> = {}
+let licenseMapping: Record<string, any> = LicenseData
 async function loadLicenseMapping() {
   try {
     if (!fs) fs = (await import('fs'))
+    // runtime override: if file exists in pluginDir, use it instead of the embedded default
     let mappingPath = path.join(scimgateway.pluginDir, 'azure-license-mapping.json')
     if (fs.existsSync(mappingPath)) {
       licenseMapping = JSON.parse(fs.readFileSync(mappingPath, 'utf8'))
-    } else {
-      mappingPath = path.join(scimgateway.gwDir, 'azure-license-mapping.json')
-      if (fs.existsSync(mappingPath)) {
-        licenseMapping = JSON.parse(fs.readFileSync(mappingPath, 'utf8'))
-      }
     }
   } catch (err) {
     scimgateway.logDebug('plugin-entra-id', `Error loading license mapping: ${err}`)
@@ -251,7 +247,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     }
   } else selectAttributes = userSelectAttributes
 
-  if (!permission[baseEntity]?.signInActivity) { // remove signInActivity
+  if (permission[baseEntity]?.signInActivity === false) { // remove signInActivity
     const index = selectAttributes.indexOf('signInActivity')
     if (index > -1) {
       selectAttributes.splice(index, 1)
