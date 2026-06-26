@@ -26,8 +26,7 @@
 // SOFTWARE.
 //
 
-// @ts-expect-error type declaration file not found
-import { Saml20 as saml } from 'saml'
+import { Saml20 as saml } from './saml/index.js' // The `saml` entry in `package.json` must be kept — it provides the sub-dependencies (@xmldom/xmldom, moment, xml-crypto, etc.) that this local copy requires.
 import crypto from 'node:crypto'
 
 export const samlAssertionUtils = {
