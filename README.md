@@ -331,7 +331,7 @@ For Entra ID apps accessing the gateway:
 
 ```json
 "wellKnownUri": "https://login.microsoftonline.com/{tenant-id}/v2.0/.well-known/openid-configuration",
-"options": { "audience": "{application-id}" }
+"options": { "audience": "application-id" }
 ```
 
 #### OAuth Client Credentials

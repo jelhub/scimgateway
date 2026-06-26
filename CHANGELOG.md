@@ -1,5 +1,8 @@
 # Change Log
 
+### v6.2.7
+- **[Fixed]** When compiling scimgateway plugins to standalone binaries using `bun build --compile`, the original `saml` npm package failed at runtime on any machine other than the build machine.
+
 ### v6.2.6
 - **[Fixed]** `plugin-entra-id` group members retrieval is not paginated, and members may be missing for groups with many members.
 - **[Improved]** `HelperRest` updated OData pagination logic and allowing some more throttle retries.
