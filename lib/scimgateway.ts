@@ -25,6 +25,8 @@ import * as utils from './utils.ts'
 import * as utilsScim from './utils-scim.ts'
 import * as stream from './scim-stream.js'
 export * from './helper-rest.ts'
+import LicenseData from './azure-license-mapping.json'
+export { LicenseData }
 // @ts-expect-error: cannot find declaration
 import hycoPkg from 'hyco-https'
 
