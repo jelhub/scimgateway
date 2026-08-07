@@ -52,7 +52,7 @@
     "lokijs": "^1.5.12",
     "mongodb": "^7.2.0",
     "node-machine-id": "1.1.12",
-    "nodemailer": "^8.0.10",
+    "nodemailer": "^9.0.4",
     "saml": "^4.0.0",
     "tsx": "^4.22.4"
   },
