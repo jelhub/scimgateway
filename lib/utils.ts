@@ -771,6 +771,30 @@ export class TimerMapCache {
   }
 }
 
+/**
+ * normalizeHeaders ensure we use Header class object
+  * @param raw header object based on Header class or a raw object with key/value pairs
+  * @returns header class object
+ */
+export const normalizeHeaders = function (raw?: Record<string, string | string[]> | Headers | null): Headers {
+  if (raw instanceof Headers) {
+    return raw
+  }
+  const headers = new Headers()
+  if (raw && typeof raw === 'object') {
+    for (const [key, value] of Object.entries(raw)) {
+      if (Array.isArray(value)) {
+        for (const v of value) {
+          headers.append(key, v)
+        }
+      } else {
+        headers.set(key, value)
+      }
+    }
+  }
+  return headers
+}
+
 const STATUS_TEXT: Record<number, string> = {
   100: 'Continue',
   101: 'Switching Protocols',
