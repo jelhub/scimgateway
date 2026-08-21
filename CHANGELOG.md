@@ -1,5 +1,9 @@
 # Change Log
 
+### v6.2.8
+- **[Fixed]** incorrect response headers when running in stream publisher mode.
+- Dependencies bump
+
 ### v6.2.7
 - **[Fixed]** When compiling scimgateway plugins to standalone binaries using `bun build --compile`, the original `saml` npm package failed at runtime on any machine other than the build machine.
 
