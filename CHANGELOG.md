@@ -1,8 +1,8 @@
 # Change Log
 
 ### v6.2.9
-- **[Fixed]** Failed to start when using latest NodeJS version.
-- **[Fixed]** Incorrect response headers when running in stream publisher mode.
+- **[Fixed]** Scimgateway failed to start when using latest NodeJS version.
+- **[Fixed]** Incorrect response headers when running scimgateway in stream publisher mode.
 - Dependencies bump
 
 ### v6.2.7
