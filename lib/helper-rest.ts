@@ -60,7 +60,7 @@ export class HelperRest {
       }
     }
 
-    ;(async () => {
+    ; (async () => {
       // housekeeping - odata pagination
       while (true) {
         await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000)) // 5 minutes
@@ -97,11 +97,18 @@ export class HelperRest {
    * @returns { access_token: 'xxx', token_type: 'Bearer/Basic', validTo: 'xxx' }
    */
   public async getAccessToken(baseEntity: string, connectionObj: Record<string, any>) { // public in case token is needed for other logic e.g. sending mail
+    const lockWaitStarted = Date.now()
+
     await this.lock.acquire()
     const d = Math.floor(Date.now() / 1000) // seconds (unix time)
     if (this._serviceClient[baseEntity]?.accessToken?.validTo >= d + 30) { // avoid simultaneously token requests
       this.lock.release()
       return this._serviceClient[baseEntity].accessToken
+    }
+
+    if (Date.now() - lockWaitStarted > 2 * 60 * 1000) { // ensure we do not queue up stale conditions
+      this.lock.release()
+      throw new Error('Timed out waiting for getAccessToken lock')
     }
 
     const action = 'getAccessToken'
@@ -422,7 +429,7 @@ export class HelperRest {
       connOpt.headers['Content-Type'] = 'application/x-www-form-urlencoded' // body must be query string formatted (no JSON)
 
       const response = await this.doRequest(baseEntity, method, tokenUrl, form, undefined, connOpt)
-      if (!response.body) {
+      if (!response?.body) {
         const err = new Error(`[${action}] No data retrieved from: ${method} ${tokenUrl}`)
         throw (err)
       }
@@ -791,7 +798,7 @@ export class HelperRest {
                 const itemsPerPage = result.body.value.length
                 const totalResults = ctx.paging.startIndex - 1 + itemsPerPage
                 if (this._serviceClient[baseEntity].index && this._serviceClient[baseEntity].index[ctx.paging.startIndex] && this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl]) {
-                // keeping the last one with updated totalResults to catch startIndex > totalResults, houskeeping will clean up after 5 minutes
+                  // keeping the last one with updated totalResults to catch startIndex > totalResults, houskeeping will clean up after 5 minutes
                   this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl].totalResults = totalResults // update the last one with correct totalResults
                   ctx.paging.totalResults = totalResults
                   const d = Math.floor((Date.now() + 5 * 60 * 1000) / 1000)
@@ -815,13 +822,15 @@ export class HelperRest {
 
       let urlObj
       try { urlObj = new URL(path) } catch (err) { void 0 }
-      let isServiceClient = !urlObj && this._serviceClient[baseEntity] && !this.lock.isLocked() // !isLocked to avoid retry ongoing doRequest with failing getAccessToken()
-      let oAuthTokeErr = statusCode === 401 && connectionObj?.auth?.type && connectionObj.auth.type.startsWith('oauth')
+      const isServiceClient = !!(!urlObj && this._serviceClient[baseEntity] && !this.lock.isLocked()) // !isLocked to avoid retry ongoing doRequest with failing getAccessToken()
+      const isFedCredTokeRequest = !!(this.lock.isLocked() && connectionObj.auth?.options?.fedCred?.issuer) // internal JWKS may fail because of in-memory store e.g. Azure docker container restart (instead of stop/start) having traffic routed to "Previous Container" before final switch and shutdown.
+      const isOAuthTokeErr = !!(statusCode === 401 && connectionObj.auth?.type?.startsWith('oauth'))
 
-      if (isServiceClient && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || statusCode === 504 || oAuthTokeErr || retryAfter)) {
+      if ((isServiceClient || isFedCredTokeRequest) && (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || err.code === 'ABORT_ERR' || err.code === 'ETIMEDOUT' || statusCode === 504 || isOAuthTokeErr || retryAfter)) {
         this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} Body = ${JSON.stringify(body)} Error Response = ${err.message}`)
 
         let maxRetry = connectionObj.baseUrls.length
+        if (isFedCredTokeRequest) maxRetry = 30
         if (!retryCount) retryCount = 0
         if (retryAfter) {
           const delta = retryCount - maxRetry
@@ -833,14 +842,18 @@ export class HelperRest {
             this.scimgateway.logDebug(baseEntity, `doRequest ${method} ${path} throttle/ratelimit error - awaiting ${retryAfter} seconds before automatic retry`)
             await new Promise(resolve => setTimeout(resolve, retryAfter * 1000))
           }
-          const index = retryCount < connectionObj.baseUrls.length ? retryCount : connectionObj.baseUrls.length - 1
+          const index = retryCount < maxRetry ? retryCount : maxRetry - 1
           retryCount++
 
-          this.updateServiceClient(baseEntity, { baseUrl: connectionObj.baseUrls[index] })
-          this.scimgateway.logDebug(baseEntity, `${(connectionObj.baseUrls.length > 1) ? 'failover ' : ''}retry[${retryCount}] using baseUrl = ${this._serviceClient[baseEntity].baseUrl}`)
-
-          if (oAuthTokeErr) {
-            delete this._serviceClient[baseEntity] // ensure new getAccessToken request - token used should not have been expired, but rejected for other reason e.g. token server restart and no persistent token store?
+          if (isFedCredTokeRequest) {
+            this.scimgateway.logDebug(baseEntity, `${(maxRetry > 1) ? 'failover ' : ''}retry[${retryCount}] using url = ${path}`)
+            await new Promise(resolve => setTimeout(resolve, 2 * 1000))
+          } else {
+            this.updateServiceClient(baseEntity, { baseUrl: connectionObj.baseUrls[index] })
+            this.scimgateway.logDebug(baseEntity, `${(maxRetry > 1) ? 'failover ' : ''}retry[${retryCount}] using baseUrl = ${this._serviceClient[baseEntity].baseUrl}`)
+            if (isOAuthTokeErr) {
+              delete this._serviceClient[baseEntity] // ensure new getAccessToken request - token used should not have been expired, but rejected for other reason e.g. token server restart and no persistent token store?
+            }
           }
           const ret = await this.doRequestHandler(baseEntity, method, path, body, ctx, opt, retryCount) // retry
           return ret // problem fixed
