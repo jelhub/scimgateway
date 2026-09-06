@@ -247,7 +247,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     }
   } else selectAttributes = userSelectAttributes
 
-  if (permission[baseEntity]?.signInActivity === false) { // remove signInActivity
+  if (!permission[baseEntity]?.signInActivity) { // remove signInActivity
     const index = selectAttributes.indexOf('signInActivity')
     if (index > -1) {
       selectAttributes.splice(index, 1)
