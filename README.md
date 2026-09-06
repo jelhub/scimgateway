@@ -83,7 +83,7 @@ SCIM Gateway is a user provisioning bridge built with [Bun](https://bun.sh/) and
 
 - **`plugin-entra-id`** now supports Entra ID roles, access packages and MFA, in addition to reading licenses.
 - **`plugin-generic`** replaces `plugin-scim` — a flexible template using `endpointMapper` with the new `valueMap` option for allowlisting and name mapping e.g., groups
-- **`GET /Roles` and `GET /Entitlements`** endpoint support, with user management via SCIM `roles` and `entitlements` attributes; `plugin-entra-id` uses `entitlements` for Entra ID licenses (read-only) and `roles` for Permanent and Eligible PIM roles (full management)
+- **`GET /Roles` and `GET /Entitlements`** endpoint support, with user management via SCIM `roles` and `entitlements` attributes; `plugin-entra-id` uses `entitlements` for Entra ID licenses (read-only) and access packages (full management) and `roles` for Permanent and Eligible PIM roles (full management)
 - **AI Agent ready** — `x-agent-schema` configuration in `endpointMapper` enables custom schema generation with MCP tool instructions for autonomous provisioning agents
 - **Bun binary builds** — compile a plugin into a single executable for simplified deployment
 - **ES module / TypeScript support in Node.js** via `tsx`
@@ -802,7 +802,7 @@ helper.doRequest(baseEntity, method, path, body?, ctx?, options?)
 }
 ```
 
-#### Entra ID — Federated Credentials (no secrets)
+#### Entra ID — Federated Credentials (no secrets - internal JWKS)
 
 ```json
 "connection": {
@@ -821,7 +821,7 @@ helper.doRequest(baseEntity, method, path, body?, ctx?, options?)
 }
 ```
 
-> The `issuer`, `subject`, and `name` must match the Federated Credentials configured in Entra ID (scenario: "Other issuer"). The gateway must be reachable from the internet at the `issuer` URL, or use Azure Relay for outbound-only communication.
+> The `issuer`, `subject` (Entra issuer-value), and `name` must match the Federated Credentials configured in Entra ID (scenario: "Other issuer"). The gateway must be reachable from the internet at the `issuer` URL, or use Azure Relay for outbound-only communication.
 
 #### General OAuth (Client Credentials)
 
