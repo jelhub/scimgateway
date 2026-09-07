@@ -1,5 +1,10 @@
 # Change Log
 
+### v6.2.10
+- **[Fixed]*** HelperRest: Implement retry logic for failed access token requests when the token provider uses Federated Credentials with SCIM Gateway’s internal JWKS (`connection.auth.option.fedCred` configured). Such failure might occur when a request is routed from one gateway to another, e.g., during a Docker container restart where two containers temporarily run concurrently.
+- **[Improved]** The map configuration used by `endpointMapper` and schema generation now supports a `mapOverride` configuration for a specific entity (`baseEntity` URL). See `plugin-entra-id.json` for an example.
+- **[Improved]** The `saml` npm package (GitHub: `node-saml`) is now fully bundled with SCIM Gateway, including updated dependencies, as it is no longer actively maintained by the author.
+
 ### v6.2.9
 - **[Fixed]** Scimgateway failed to start when using latest NodeJS version.
 - **[Fixed]** Incorrect response headers when running scimgateway in stream publisher mode.

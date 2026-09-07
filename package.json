@@ -1,6 +1,6 @@
 {
   "name": "scimgateway",
-  "version": "6.2.9",
+  "version": "6.2.10",
   "type": "module",
   "description": "Using SCIM protocol as a gateway for user provisioning to other endpoints",
   "author": "Jarle Elshaug <jarle.elshaug@gmail.com> (https://elshaug.xyz)",
@@ -41,7 +41,8 @@
     "@nats-io/transport-node": "^3.4.0",
     "@types/ldapjs": "^3.0.6",
     "@types/lokijs": "^1.5.14",
-    "@types/tedious": "^18.0.0",
+    "@xmldom/xmldom": "^0.9.12",
+    "async": "^3.2.6",
     "dot-object": "^2.1.5",
     "fold-to-ascii": "^5.0.1",
     "https-proxy-agent": "^9.1.0",
@@ -50,11 +51,15 @@
     "jose": "^6.2.9",
     "ldapjs": "^3.0.7",
     "lokijs": "^1.5.12",
+    "moment": "^2.30.1",
     "mongodb": "^7.5.0",
     "node-machine-id": "1.1.12",
     "nodemailer": "^9.0.5",
-    "saml": "^4.0.0",
-    "tsx": "^4.23.12"
+    "tsx": "^4.23.13",
+    "valid-url": "^1.0.9",
+    "xml-crypto": "^6.1.2",
+    "xml-encryption": "^6.0.1",
+    "xml-name-validator": "^5.0.0"
   },
   "peerDependencies": {
     "typescript": "^6.0.2"
@@ -65,8 +70,8 @@
     "@types/dot-object": "^2.1.6",
     "@types/node": "^26.2.0",
     "@types/nodemailer": "^8.0.1",
-    "@typescript-eslint/eslint-plugin": "^8.67.0",
-    "@typescript-eslint/parser": "^8.67.0",
-    "eslint": "^10.8.1"
+    "@typescript-eslint/eslint-plugin": "^8.69.0",
+    "@typescript-eslint/parser": "^8.69.0",
+    "eslint": "^10.10.0"
   }
 }
