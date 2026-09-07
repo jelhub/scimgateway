@@ -5,7 +5,8 @@ Licensed under the MIT License — see [LICENSE](./LICENSE).
 
 ## Why This Exists
 
-When compiling scimgateway plugins to standalone binaries using `bun build --compile`, the original `saml` npm package fails at runtime on any machine other than the build machine.
+- When compiling scimgateway plugins to standalone binaries using `bun build --compile`, the original `saml` npm package fails at runtime on any machine other than the build machine.
+- `node-saml` is no longer actively maintained and has outdated dependencies with known vulnerabilities.
 
 **Root cause:** The original `saml` package uses `fs.readFileSync` with `__dirname`-resolved paths to load XML template files (`saml11.template` and `saml20.template`) at module initialization:
 
@@ -31,13 +32,17 @@ Only one functional change was made — **templates are inlined as string consta
 ### `utils.js`
 - Removed `const fs = require('fs')` — no longer needed
 - Changed `factoryForNode(pathToTemplate)` to `factoryForNode(templateString)` — accepts an XML string directly instead of a file path
+- Changed `parseFromString(templateString)` to `parseFromString(templateString, 'application/xml');`
 
 ### `saml11.js` and `saml20.js`
 - Removed `path.join(__dirname, '*.template')` file references
 - Template XML is inlined as a string constant passed to `factoryForNode()`
 - Removed `var path = require('path')` (no longer needed)
 
-### `xml/encrypt.js` and `xml/sign.js`
+### `xml/sign.js`
+- Changed: `const sig = new SignedXml(...)`, `sig.addReference(...)` and `sig.addReference(...)`
+
+### `xml/encrypt.js`
 - Copied unchanged from the original package
 
 ### `index.js`
@@ -53,14 +58,12 @@ In `lib/samlAssertion.ts`:
 
 ## Dependencies
 
-The sub-dependencies used by this code remain as npm packages (not copied):
+The sub-dependencies used by this code are included at their latest versions in the scimgateway package.json (`xpath` included in `xml-crypto`):
 - `@xmldom/xmldom`
+- `async`
 - `moment`
+- `valid-url`
 - `xml-crypto`
 - `xml-encryption`
-- `valid-url`
 - `xml-name-validator`
-- `async`
-- `xpath`
 
-The `saml` entry in `package.json` must be kept — it provides the sub-dependencies (@xmldom/xmldom, moment, xml-crypto, etc.) that this local copy requires.
