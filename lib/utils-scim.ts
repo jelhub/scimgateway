@@ -570,17 +570,25 @@ const recursiveStrMap = function (direction: string, dotMap: any, obj: any, dotP
 }
 
 /**
-* SCIM/CustomScim <=> endpoint attribute parsing used by plugins  
+* SCIM/CustomScim <=> endpoint attribute parsing used by plugins.  
+* mapOverride is optional, used to override part of mapObj for specific baseEntity plugin use case. 
 * TODO: rewrite and simplify...
 * @returns [object/string, err]
 */
-export function endpointMapper(direction: string, parseObj: any, mapObj: any) {
+export function endpointMapper(direction: string, parseObj: any, mapObj: any, mapOverride?: any): [any, Error | null] {
   if (direction !== 'inbound' && direction !== 'outbound') {
     const msg = 'Plugin using endpointMapper(direction, parseObj, mapObj) with incorrect direction - direction must be set to \'outbound\' or \'inbound\''
     return [parseObj, new Error(msg)]
   }
 
-  const dotMap = dot.dot(mapObj)
+  let map = mapObj
+  if (typeof mapOverride === 'object') {
+    if (Object.keys(mapOverride).length > 0) {
+      map = utils.extendObj(structuredClone(mapObj), mapOverride)
+    }
+  }
+
+  const dotMap = dot.dot(map)
   let str: any
   let isObj = false
   let noneCore = false
