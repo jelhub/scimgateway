@@ -884,7 +884,12 @@ export class ScimGateway {
         // endpointMapper being used
         // Schemas returned should instead reflect what is defined in the plugin config file
         // For AI Agent MCP tools, the 'x-agent-schema' attribute can be used to enhance their functionality or provide additional context when processing SCIM requests - see plugin-entra-id.json for example usage.
-        const map = this.config.endpoint.map
+        let map = this.config.endpoint.map
+        if (typeof this.config.endpoint?.entity?.[ctx.routeObj.baseEntity]?.mapOverride === 'object') {
+          if (Object.keys(this.config.endpoint.entity[ctx.routeObj.baseEntity].mapOverride).length > 0) {
+            map = utils.extendObj(structuredClone(this.config.endpoint.map), this.config.endpoint.entity[ctx.routeObj.baseEntity].mapOverride)
+          }
+        }
         const updateSchema = (resourceName: string, mapSection: any) => {
           if (!mapSection) return
           const resource = tx.Resources.find((r: any) => r.name === resourceName)
