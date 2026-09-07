@@ -13,7 +13,7 @@ export default [
       parser: parserTs,
     },
     rules: {
-      ...stylistic.configs['recommended-flat'].rules,
+      ...stylistic.configs['recommended'].rules,
       ...tseslint.configs['recommended'].rules,
       '@stylistic/no-trailing-spaces': ['error', { ignoreComments: true }],
       '@stylistic/brace-style': ['error', '1tbs', { allowSingleLine: true }],
@@ -31,6 +31,7 @@ export default [
       '**/dist/**',
       '**/build/**',
       '**/config/**',
+      '**/lib/saml/**',
       '**/lib/scim-stream.js',
     ],
   },
