@@ -7,7 +7,9 @@
 
 **Author:** [Jarle Elshaug](https://www.elshaug.xyz)
 
-SCIM Gateway is a user provisioning bridge built with [Bun](https://bun.sh/) and [Node.js](https://nodejs.dev/) using TypeScript. It translates incoming SCIM 1.1/2.0 requests into endpoint-specific protocols — turning any destination into a SCIM-compatible interface without vendor lock-in.
+**Turn any destination into a SCIM-compatible interface — without vendor lock-in.**
+
+SCIM Gateway is an identity integration gateway that translates **SCIM 1.1 and SCIM 2.0** requests into endpoint-specific protocols such as **REST, SQL, NoSQL, LDAP and SOAP**.
 
 ![SCIM Gateway Architecture](https://jelhub.github.io/images/ScimGateway.svg)
 
