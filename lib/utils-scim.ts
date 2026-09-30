@@ -999,6 +999,36 @@ export function getMultivalueTypes(objName: string, scimDef: Record<string, any>
     .map((obj: Record<string, any>) => obj.name)
 }
 
+/**
+* getSchemaAttributeName returns the canonical (schema-defined) casing of a filter attribute name.
+* SCIM attribute names are case insensitive (RFC 7643 §2.1, RFC 7644 §3.4.2.2), so a filter using
+* e.g. `username eq "x"` must behave like `userName eq "x"`. Each dot-separated segment is matched
+* case insensitively against the resource schema (top-level attributes, then subAttributes) plus the
+* SCIM common attributes. Unknown segments (e.g. custom attributes or extension `urn:` prefixes) are
+* returned unchanged so custom/endpoint-specific filtering keeps working.
+* objName should be 'User' or 'Group' etc.
+*/
+export function getSchemaAttributeName(objName: string, attrName: string, scimDef: Record<string, any>): string {
+  if (!objName || !attrName || attrName.startsWith('urn:')) return attrName // extension schema names left untouched
+
+  const obj = scimDef?.Schemas?.Resources?.find((el: Record<string, any>) => el.name === objName)
+  if (!obj || !Array.isArray(obj.attributes)) return attrName
+
+  const commonAttributes = ['schemas', 'id', 'externalId', 'meta']
+  const segments = attrName.split('.')
+  let candidates: Record<string, any>[] = obj.attributes
+
+  return segments.map((segment) => {
+    const lc = segment.toLowerCase()
+    const common = commonAttributes.find(name => name.toLowerCase() === lc)
+    const match = candidates?.find((el: Record<string, any>) => el.name?.toLowerCase() === lc)
+    candidates = match && Array.isArray(match.subAttributes) ? match.subAttributes : [] // descend for next segment
+    if (match) return match.name
+    if (common) return common
+    return segment // unknown segment - keep original casing
+  }).join('.')
+}
+
 export function addResources(data: any, startIndex?: string, sortBy?: string, sortOrder?: string) {
   if (!data || JSON.stringify(data) === '{}') data = [] // no user/group found
   const res: { [key: string]: any } = { Resources: [] }
