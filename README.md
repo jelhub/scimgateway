@@ -11,6 +11,8 @@
 
 SCIM Gateway is an identity integration gateway that translates **SCIM 1.1 and SCIM 2.0** requests into endpoint-specific protocols such as **REST, SQL, NoSQL, LDAP and SOAP**.
 
+**SCIM With Your Own Intelligence!**
+
 ![SCIM Gateway Architecture](https://jelhub.github.io/images/ScimGateway.svg)
 
 ---
