@@ -1590,6 +1590,11 @@ export class ScimGateway {
         }
       }
 
+      // RFC 7644 §3.4.2.2 / RFC 7643 §2.1 - attribute names in filters are case insensitive.
+      // Normalize the parsed attribute name to the schema's canonical casing (operators are already
+      // lowercased above) so e.g. `username eq "x"` matches like `userName eq "x"`.
+      if (getObj.attribute) getObj.attribute = utilsScim.getSchemaAttributeName(handle.description, getObj.attribute, this.scimDef)
+
       let err
       if (handle.getMethod === 'getEntitlements' || handle.getMethod === 'getRoles') {
         if (typeof (this as any)[handle.getMethod] !== 'function') err = new Error(`plugin method ${handle.getMethod}() not implemented`)
@@ -1757,7 +1762,7 @@ export class ScimGateway {
             // create filter
             if (arrFilter.length > 2 && arrFilter[2].startsWith('"') && arrFilter[arrFilter.length - 1].endsWith('"')) {
               const o: any = {}
-              o.attribute = arrFilter[0] // id
+              o.attribute = utilsScim.getSchemaAttributeName(handle.description, arrFilter[0], this.scimDef) // id (canonical casing, see RFC 7644 §3.4.2.2)
               o.operator = arrFilter[1].toLowerCase() // eq
               o.value = decodeURIComponent(arrFilter.slice(2).join(' ').replace(/"/g, '')) // bjensen
               getObjArr.push(o)
