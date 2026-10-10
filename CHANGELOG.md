@@ -1,5 +1,9 @@
 # Change Log
 
+### v6.2.11
+- **[Fixed]**  Attribute filter names are case insensitive (RFC 7644 §3.4.2.2 / RFC 7643 §2.1) e.g. `username eq "x"` - `userName eq "x"`.
+- Dependencies bump
+
 ### v6.2.10
 - **[Fixed]** HelperRest: Implement retry logic for failed access token requests when the token provider uses Federated Credentials with SCIM Gateway’s internal JWKS (`connection.auth.option.fedCred` configured). Such failure might occur when a request is routed from one gateway to another, e.g., during a Docker container restart where two containers temporarily run concurrently.
 - **[Improved]** The map configuration used by `endpointMapper` and schema generation now supports a `mapOverride` configuration for a specific entity (`baseEntity` URL). See `plugin-entra-id.json` for an example.
