@@ -1144,11 +1144,16 @@ export class ScimGateway {
         updateSchema('Group', map.group)
       }
 
+      if (!ctx.response) {
+        this.scimDef.Schemas = tx // special case for startup to re-initialize schemas according to the current endpointMapper configuration
+        return
+      }
       tx = utilsScim.addResources(tx, undefined, undefined, undefined)
       tx = utilsScim.addSchemasStripAttr(tx, isScimv2)
       ctx.response.body = JSON.stringify(tx)
     }
     funcHandler.getHandlerSchemas = getHandlerSchemas
+    getHandlerSchemas({ routeObj: { baseEntity: 'undefined' } } as Context) // re-initialize this.scimDef.Schemas in case endpointMapper being used
 
     // scimv2 GET /ResourceTypes, scimv1 not used
     const getHandlerResourceTypes = async (ctx: Context) => {
@@ -1590,9 +1595,8 @@ export class ScimGateway {
         }
       }
 
-      // RFC 7644 §3.4.2.2 / RFC 7643 §2.1 - attribute names in filters are case insensitive.
-      // Normalize the parsed attribute name to the schema's canonical casing (operators are already
-      // lowercased above) so e.g. `username eq "x"` matches like `userName eq "x"`.
+      // RFC 7644 §3.4.2.2 / RFC 7643 §2.1 - attribute filter names are case insensitive.
+      // Normalize to the schema's canonical casing  e.g. `username eq "x"` => `userName eq "x"`.
       if (getObj.attribute) getObj.attribute = utilsScim.getSchemaAttributeName(handle.description, getObj.attribute, this.scimDef)
 
       let err
