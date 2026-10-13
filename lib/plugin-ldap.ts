@@ -124,7 +124,7 @@ scimgateway.pluginAndOrFilterEnabled = false
 // =================================================
 scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   //
-  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <>, and/or: <getObj> }
+  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <>, cursor: <undefined|null|string>, and/or: <getObj> }
   // rawFilter is always included when filtering
   // attribute, operator and value are included when requesting unique object or simpel filtering
   // and/or will be included and the value set to corresponding getObj if the mandatory plugin initialization have 'scimgateway.pluginAndOrFilterEnabled = true' and the request query filter includes simple and/or logic 
@@ -478,7 +478,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 // =================================================
 scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   //
-  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <>, and/or: <getObj> }
+  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <>, cursor: <undefined|null|string>, and/or: <getObj> }
   // rawFilter is always included when filtering
   // attribute, operator and value are included when requesting unique object or simpel filtering
   // and/or will be included and the value set to corresponding getObj if the mandatory plugin initialization have 'scimgateway.pluginAndOrFilterEnabled = true' and the request query filter includes simple and/or logic 
