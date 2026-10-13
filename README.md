@@ -85,6 +85,7 @@ SCIM With Your Own Intelligence!
 
 ## What's New
 
+- Cursor-based pagination [RFC 9865](https://www.rfc-editor.org/info/rfc9865) is now supported alongside the default index-based pagination. Cursor can also be used with plugins that use index-based pagination.
 - **`plugin-entra-id`** now supports Entra ID roles, access packages and MFA, in addition to reading licenses.
 - **`plugin-generic`** replaces `plugin-scim` — a flexible template using `endpointMapper` with the new `valueMap` option for allowlisting and name mapping e.g., groups
 - **`GET /Roles` and `GET /Entitlements`** endpoint support, with user management via SCIM `roles` and `entitlements` attributes; `plugin-entra-id` uses `entitlements` for Entra ID licenses (read-only) and access packages (full management) and `roles` for Permanent and Eligible PIM roles (full management)

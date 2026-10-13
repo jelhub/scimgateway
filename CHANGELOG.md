@@ -1,5 +1,8 @@
 # Change Log
 
+### v6.3.0
+- **[Improved]** Cursor-based pagination [RFC 9865](https://www.rfc-editor.org/info/rfc9865) is now supported alongside the default index-based pagination. Cursor can also be used with plugins that use index-based pagination.
+
 ### v6.2.11
 - **[Fixed]**  Attribute filter names are case insensitive (RFC 7644 §3.4.2.2 / RFC 7643 §2.1) e.g. `username eq "x"` - `userName eq "x"`.
 - Dependencies bump
