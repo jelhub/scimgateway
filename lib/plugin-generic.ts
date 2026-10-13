@@ -451,7 +451,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
   const [targetObj, err] = scimgateway.endpointMapper('outbound', groupObj, config.map.group)
   if (err && err.message.includes('displayName.valueMap')) {
     // valueMap configured for object having mapTo=displayName and value not allowlisted
-    err.message = new Error(`${action} error: ${err.message}`)
+    err.message = `${action} error: ${err.message}`
     throw err
   }
 
