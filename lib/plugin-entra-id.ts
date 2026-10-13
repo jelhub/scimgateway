@@ -212,7 +212,7 @@ if (!groupAttributes.includes('members.value')) groupAttributes.push('members.va
 // =================================================
 scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   //
-  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <>, and/or: <getObj> }
+  // "getObj" = { attribute: <>, operator: <>, value: <>, rawFilter: <>, startIndex: <>, count: <>, cursor: <undefined|null|string>, and/or: <getObj> }
   // rawFilter is always included when filtering
   // attribute, operator and value are included when requesting unique object or simpel filtering
   // and/or will be included and the value set to corresponding getObj if the mandatory plugin initialization have 'scimgateway.pluginAndOrFilterEnabled = true' and the request query filter includes simple and/or logic 
@@ -409,7 +409,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   }
 
   // enable doRequest() OData paging support 
-  let paging = { startIndex: getObj.startIndex }
+  let paging = { startIndex: getObj.startIndex, cursor: getObj.cursor }
   if (!ctx) ctx = { paging }
   else ctx.paging = paging
 
@@ -430,7 +430,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       throw new Error(`invalid response: ${JSON.stringify(response)}`)
     }
     const fnArr: { fn: () => Promise<any>, index?: number, objArr?: any, key?: string }[] = []
-    const byValues = await getEntitlementsByValues(baseEntity, ctx)
+    const byValues = await getEntitlementsByValues(baseEntity, ctx?.headers ? { headers: ctx?.headers } : {})
 
     for (let i = 0; i < response.body.value.length; ++i) {
       if (!response.body.value[i].id) break
@@ -527,17 +527,21 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         ret.Resources.push(scimObj)
       }
     }
-
+    if (getObj.cursor !== undefined) {
+      ret.nextCursor = ctx.paging.nextCursor
+      if (ret.nextCursor === undefined) ret.nextCursor = null
+    }
     if (getObj.startIndex !== ctx.paging.startIndex) { // changed by doRequest()
       ret.startIndex = ctx.paging.startIndex
     }
     if (ctx.paging.totalResults) ret.totalResults = ctx.paging.totalResults // set by doRequest()
     else ret.totalResults = getObj.startIndex ? getObj.startIndex - 1 + response.body.value.length : response.body.value.length
-
     return (ret)
   } catch (err: any) {
     if (err.message.includes('Request_ResourceNotFound')) return { Resources: [] }
-    throw new Error(`${action} error: ${err.message}`)
+    const newErr = new Error(`${action} error: ${err.message}`)
+    newErr.name = err.name
+    throw newErr
   }
 }
 
@@ -973,7 +977,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   }
 
   // enable doRequest() OData paging support 
-  let paging = { startIndex: getObj.startIndex }
+  let paging = { startIndex: getObj.startIndex, cursor: getObj.cursor }
   if (!ctx) ctx = { paging }
   else ctx.paging = paging
 
@@ -1097,6 +1101,10 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
       }
     }
 
+    if (getObj.cursor !== undefined) {
+      ret.nextCursor = ctx.paging.nextCursor
+      if (ret.nextCursor === undefined) ret.nextCursor = null
+    }
     if (getObj.startIndex !== ctx.paging.startIndex) { // changed by doRequest()
       ret.startIndex = ctx.paging.startIndex
     }
@@ -1106,7 +1114,9 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     return (ret)
   } catch (err: any) {
     if (err.message.includes('Request_ResourceNotFound')) return { Resources: [] }
-    throw new Error(`${action} error: ${err.message}`)
+    const newErr = new Error(`${action} error: ${err.message}`)
+    newErr.name = err.name
+    throw newErr
   }
 }
 
@@ -1222,7 +1232,7 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
   // Response format: Resources[{type: <category e.g, License>, value: <unique id>, displayName: <display name>}]
   //
   const action = 'getEntitlements'
-  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes} passThrough=${ctx ? 'true' : 'false'}`)
+  scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes} passThrough=${ctx?.headers ? 'true' : 'false'}`)
 
   const ret: any = {
     Resources: [],

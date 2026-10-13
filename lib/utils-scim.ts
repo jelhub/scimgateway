@@ -1029,7 +1029,7 @@ export function getSchemaAttributeName(objName: string, attrName: string, scimDe
   }).join('.')
 }
 
-export function addResources(data: any, startIndex?: string, sortBy?: string, sortOrder?: string) {
+export function addResources(data: any, useCursor: boolean, startIndex?: number, sortBy?: string, sortOrder?: string) {
   if (!data || JSON.stringify(data) === '{}') data = [] // no user/group found
   const res: { [key: string]: any } = { Resources: [] }
   if (Array.isArray(data)) res.Resources = data
@@ -1038,10 +1038,12 @@ export function addResources(data: any, startIndex?: string, sortBy?: string, so
   } else res.Resources.push(data)
 
   if (Object.hasOwn(data, 'totalResults')) res.totalResults = data.totalResults
+  if (Object.hasOwn(data, 'nextCursor')) res.nextCursor = data.nextCursor
+
   if (data.startIndex) {
     res.startIndex = data.startIndex
-  } else if (startIndex) {
-    res.startIndex = parseInt(startIndex, 10)
+  } else if (startIndex !== undefined) {
+    res.startIndex = startIndex
   } else {
     res.startIndex = 1
   }
@@ -1051,12 +1053,24 @@ export function addResources(data: any, startIndex?: string, sortBy?: string, so
   res.itemsPerPage = res.Resources.length // Specifies the number of search results returned in a query response page
 
   if (!res.startIndex || isNaN(res.startIndex)) {
-    if (startIndex) res.startIndex = parseInt(startIndex) // The 1-based index of the first result in the current set of search results
+    if (startIndex !== undefined) res.startIndex = startIndex
     else res.startIndex = 1
   }
   if (res.startIndex > res.totalResults) { // invalid paging request
     res.Resources = []
     res.itemsPerPage = 0
+  }
+
+  if (useCursor) {
+    if (res.nextCursor === null || res.nextCursor === '') delete res.nextCursor // no more pages
+    else {
+      const next: Record<string, any> = { startIndex: res.startIndex + res.itemsPerPage }
+      if (res.nextCursor !== undefined) next.nextCursor = res.nextCursor
+      res.nextCursor = Buffer.from(JSON.stringify(next)).toString('base64url')
+    }
+    if (res.itemsPerPage === 0 || res.startIndex + res.itemsPerPage > res.totalResults
+      || res.nextCursor === '' || res.nextCursor === null) delete res.nextCursor
+    delete res.startIndex
   }
 
   if (sortBy) res.Resources.sort(utils.sortByKey(sortBy, sortOrder))

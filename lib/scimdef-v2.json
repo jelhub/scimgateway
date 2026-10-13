@@ -4,6 +4,13 @@
   "patch": {
     "supported": true
   },
+  "pagination": {
+    "cursor": true,
+    "index": true,
+    "defaultPaginationMethod": "index",
+    "defaultPageSize": 200,
+    "cursorTimeout": 300
+  },
   "bulk": {
     "supported": true,
     "maxPayloadSize": 1048576,

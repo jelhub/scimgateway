@@ -11,6 +11,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent'
 import { URL } from 'url'
 import { Buffer } from 'node:buffer'
 import { createPublicKey, createPrivateKey, createHash } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import { samlAssertion } from './samlAssertion.ts'
 import fs from 'node:fs'
 import querystring from 'querystring'
@@ -66,22 +67,21 @@ export class HelperRest {
         await new Promise(resolve => setTimeout(resolve, 5 * 60 * 1000)) // 5 minutes
         for (const baseEntity in this.config_entity) {
           if (!this._serviceClient[baseEntity]?.index) continue
-          for (const index in this._serviceClient[baseEntity].index) {
-            const parsed = parseInt(index, 10)
-            if (Number.isNaN(parsed)) continue
-            if (Object.keys(this._serviceClient[baseEntity].index[parsed]).length === 0) {
-              delete this._serviceClient[baseEntity].index[parsed]
+          for (const key in this._serviceClient[baseEntity].index) {
+            if (Object.keys(this._serviceClient[baseEntity].index[key]).length === 0) {
+              delete this._serviceClient[baseEntity].index[key]
               continue
             }
-            for (const optionsUrl in this._serviceClient[baseEntity].index[parsed]) {
-              const validTo = this._serviceClient[baseEntity].index[parsed][optionsUrl].validTo
+            for (const optionsUrl in this._serviceClient[baseEntity].index[key]) {
+              const validTo = this._serviceClient[baseEntity].index[key][optionsUrl].validTo
               if (Number.isNaN(validTo)) {
-                delete this._serviceClient[baseEntity].index[parsed][optionsUrl]
+                delete this._serviceClient[baseEntity].index[key][optionsUrl]
                 continue
               }
               const now = Math.floor(Date.now() / 1000)
               if (now > validTo) {
-                delete this._serviceClient[baseEntity].index[parsed][optionsUrl]
+                if (Number.isNaN(key)) delete this._serviceClient[baseEntity].index[key] // cursor key is not a number, delete full key because it is unique
+                else delete this._serviceClient[baseEntity].index[key][optionsUrl] // might have parallell request using key (startIndex), delete only the expired optionUrl object which links to unique url
               }
             }
           }
@@ -696,12 +696,19 @@ export class HelperRest {
         } else if (options.headers) delete options.headers['Content-Type']
 
         const optionsUrl = options.url
-        const startIndex: number = ctx?.paging?.startIndex || 0
-        if (startIndex > 1) {
-          if (this._serviceClient[baseEntity].index && this._serviceClient[baseEntity].index[startIndex]
-            && this._serviceClient[baseEntity].index[startIndex][optionsUrl] && this._serviceClient[baseEntity].index[startIndex][optionsUrl].nextLink) {
-            options.url = this._serviceClient[baseEntity].index[startIndex][optionsUrl].nextLink
+        let startIndex: number = ctx?.paging?.startIndex || 0
+        if (startIndex > 1 || ctx?.paging?.cursor) {
+          let sIndex = startIndex
+          if (ctx?.paging?.cursor) sIndex = ctx.paging.cursor
+          if (this._serviceClient[baseEntity].index && this._serviceClient[baseEntity].index[sIndex]
+            && this._serviceClient[baseEntity].index[sIndex][optionsUrl] && this._serviceClient[baseEntity].index[sIndex][optionsUrl].nextLink) {
+            options.url = this._serviceClient[baseEntity].index[sIndex][optionsUrl].nextLink
           } else {
+            if (ctx?.paging?.cursor) {
+              const err = new Error(`Cursor error: Invalid cursor`)
+              err.name = 'invalidCursor'
+              throw err
+            }
             let max = 0
             for (const key in this._serviceClient[baseEntity].index) {
               const parsed = parseInt(key, 10)
@@ -750,7 +757,7 @@ export class HelperRest {
 
         // OData paging logic
         // client prerequisite for enabling doRequest() OData paging support (see plugin-entra-id):
-        //   let paging = { startIndex: getObj.startIndex }
+        //   let paging = { startIndex: getObj.startIndex, cursor: getObj.cursor }
         //   if (!ctx) ctx = { paging }
         //   else ctx.paging = paging
         if (result.body && typeof result.body === 'object') {
@@ -762,7 +769,11 @@ export class HelperRest {
               ctx.paging.totalResults = count
             }
             const itemsPerPage = result.body.value.length
-            const nextStartIndex = ctx.paging.startIndex ? ctx.paging.startIndex + itemsPerPage : itemsPerPage + 1
+            let nextStartIndex = ctx.paging.startIndex ? ctx.paging.startIndex + itemsPerPage : itemsPerPage + 1
+            if (ctx.paging.cursor !== undefined) {
+              ctx.paging.nextCursor = randomBytes(12).toString('base64url')
+              nextStartIndex = ctx.paging.nextCursor
+            }
             let totalResults = ctx.paging.totalResults
             if (ctx.paging.startIndex && this._serviceClient[baseEntity].index && this._serviceClient[baseEntity].index[ctx.paging.startIndex]) {
               if (this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl]) {
@@ -794,6 +805,7 @@ export class HelperRest {
           } else { // no more paging
             if (ctx?.paging) {
               if (ctx.paging.nextLink) delete ctx.paging.nextLink
+              if (ctx.paging.cursor !== undefined) ctx.paging.nextCursor = null
               if (ctx.paging.startIndex) {
                 const itemsPerPage = result.body.value.length
                 const totalResults = ctx.paging.startIndex - 1 + itemsPerPage
