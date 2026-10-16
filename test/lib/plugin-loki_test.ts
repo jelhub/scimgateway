@@ -20,6 +20,7 @@ const options = {
     },
   },
 }
+let nextCursor: string
 
 async function fetchSCIM(method: string, endpoint: string, body?: any, headers?: any) {
   const response = await fetch(`${baseUrl}${endpoint}`, {
@@ -100,6 +101,72 @@ describe('plugin-loki', async () => {
     expect(users.Resources[1].id).toBe('jsmith')
     expect(users.Resources[1].meta.version).toBeDefined()
     expect(users.Resources[1].groups).toBe(undefined)
+  })
+
+  test('getUsers index-pagination test (1)', async () => {
+    const res = await fetchSCIM('GET', '/Users?attributes=userName&startIndex=1&count=1', undefined, options.std.headers) // id and meta is always returned
+    const users = res.body
+    expect(res.status).toBe(200)
+    expect(users.totalResults).toBe(2)
+    expect(users.itemsPerPage).toBe(1)
+    expect(users.startIndex).toBe(1)
+    expect(users).toBeDefined()
+    expect(users.Resources.length).toBe(1)
+    expect(users.Resources[0].userName).toBe('bjensen')
+    expect(users.Resources[0].id).toBe('bjensen')
+  })
+
+  test('getUsers index-pagination test (2)', async () => {
+    const res = await fetchSCIM('GET', '/Users?attributes=userName&startIndex=2&count=1', undefined, options.std.headers) // id and meta is always returned
+    const users = res.body
+    expect(res.status).toBe(200)
+    expect(users.totalResults).toBe(2)
+    expect(users.itemsPerPage).toBe(1)
+    expect(users.startIndex).toBe(2)
+    expect(users).toBeDefined()
+    expect(users.Resources.length).toBe(1)
+    expect(users.Resources[0].userName).toBe('jsmith')
+    expect(users.Resources[0].id).toBe('jsmith')
+  })
+
+  test('getUsers index-pagination test (3)', async () => {
+    const res = await fetchSCIM('GET', '/Users?attributes=userName&startIndex=3&count=1', undefined, options.std.headers) // id and meta is always returned
+    const users = res.body
+    expect(res.status).toBe(200)
+    expect(users.totalResults).toBe(2)
+    expect(users.itemsPerPage).toBe(0)
+    expect(users.startIndex).toBe(3)
+    expect(users).toBeDefined()
+    expect(users.Resources.length).toBe(0)
+  })
+
+  test('getUsers cursor-pagination test (1)', async () => {
+    const res = await fetchSCIM('GET', '/Users?attributes=userName&cursor&count=1', undefined, options.std.headers) // id and meta is always returned
+    const users = res.body
+    expect(res.status).toBe(200)
+    expect(users.totalResults).toBe(2)
+    expect(users.itemsPerPage).toBe(1)
+    expect(users.startIndex).toBeUndefined()
+    expect(users.nextCursor).toBeDefined()
+    nextCursor = users.nextCursor
+    expect(users).toBeDefined()
+    expect(users.Resources.length).toBe(1)
+    expect(users.Resources[0].userName).toBe('bjensen')
+    expect(users.Resources[0].id).toBe('bjensen')
+  })
+
+  test('getUsers cursor-pagination test (2)', async () => {
+    const res = await fetchSCIM('GET', `/Users?attributes=userName&cursor=${encodeURIComponent(nextCursor)}&count=1`, undefined, options.std.headers) // id and meta is always returned
+    const users = res.body
+    expect(res.status).toBe(200)
+    expect(users.totalResults).toBe(2)
+    expect(users.itemsPerPage).toBe(1)
+    expect(users.startIndex).toBeUndefined()
+    expect(users.nextCursor).toBeUndefined()
+    expect(users).toBeDefined()
+    expect(users.Resources.length).toBe(1)
+    expect(users.Resources[0].userName).toBe('jsmith')
+    expect(users.Resources[0].id).toBe('jsmith')
   })
 
   test('getUsers unique test (1)', async () => {
