@@ -2190,7 +2190,7 @@ export class ScimGateway {
         scimres = utilsScim.addSchemasStripAttr(scimres, isScimv2, handle.description)
         if (eTag) ctx.response.headers.set('ETag', eTag)
         if (scimres?.meta?.location) ctx.response.headers.set('Location', scimres.meta.location)
-        if (handle.modifyMethod === 'modifyGroup') ctx.response.status = 204 // skip body
+        if (handle.modifyMethod === 'modifyGroup' && !ctx.query.attributes) ctx.response.status = 204 // skip body
         else {
           ctx.response.status = 200
           ctx.response.body = JSON.stringify(scimres)
@@ -2290,16 +2290,27 @@ export class ScimGateway {
           }
         }
 
-        if (!res) { // include full object in response - TODO: include user's groups if missing
+        if (!res) { // include full object in response
           if (typeof (this as any)[handle.getMethod] !== 'function') {
             ctx.response.status = 204
             return
           }
-          const ob = { attribute: 'id', operator: 'eq', value: id }
-          logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
-          res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
 
+          const ob = { attribute: 'id', operator: 'eq', value: id }
+          const arr = [
+            await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough),
+          ]
+          if (handle.modifyMethod === 'modifyUser' && (typeof (this as any)[handler.groups.getMethod] === 'function')) {
+            arr.push(await getMemberOf(baseEntity, id, handler.groups.getMethod, ctx.passThrough)) // get groups the user is a member of
+          }
+          logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
+          let arrResolve = []
+          try {
+            arrResolve = await Promise.all(arr)
+          } catch (err) {}
+          if (arrResolve.length > 0) res = arrResolve[0]
           if (res?.Resources && Array.isArray(res.Resources) && res.Resources.length === 1) {
+            if (arrResolve.length > 1) res.Resources[0].groups = arrResolve[1]
             // we might have endpoint like Entra ID that hasn’t caught up yet due to internal sync
             // ensure returned object reflects changes by doing a merge with patch payload (convertedScim) 
             if (finalScimdata?.mfa) delete finalScimdata.mfa // writeOnly mfa.reset
@@ -2307,7 +2318,6 @@ export class ScimGateway {
             if (res.Resources[0].password) delete res.Resources[0].password
           }
         }
-
         return response(res)
       } catch (err: any) {
         // check if error caused by: add existing member or remove none existing member => should not be an error
