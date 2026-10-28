@@ -116,11 +116,11 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         break
       case 'sw':
         getObj.operator = '$regex'
-        getObj.value = new RegExp(`^${getObj.value}.*`)
+        getObj.value = new RegExp(`^${getObj.value}.*`, 'i')
         break
       case 'ew':
         getObj.operator = '$regex'
-        getObj.value = new RegExp(`.*${getObj.value}$`)
+        getObj.value = new RegExp(`.*${getObj.value}$`, 'i')
         break
       default:
         if (!validFilterOperators.includes(getObj.operator)) {
@@ -318,11 +318,11 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
         break
       case 'sw':
         getObj.operator = '$regex'
-        getObj.value = new RegExp(`^${getObj.value}.*`)
+        getObj.value = new RegExp(`^${getObj.value}.*`, 'i')
         break
       case 'ew':
         getObj.operator = '$regex'
-        getObj.value = new RegExp(`.*${getObj.value}$`)
+        getObj.value = new RegExp(`.*${getObj.value}$`, 'i')
         break
       default:
         if (!validFilterOperators.includes(getObj.operator)) {
