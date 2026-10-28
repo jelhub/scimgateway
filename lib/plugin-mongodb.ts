@@ -158,7 +158,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
     switch (getObj.operator) {
       case 'co':
         getObj.operator = '$regex'
-        getObj.value = new RegExp(`.*${getObj.value}.*`, 'i')
+        getObj.value = new RegExp(getObj.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') // escape special chars, case insensitive
         break
       case 'ge':
         getObj.operator = '$gte'
@@ -398,7 +398,7 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
     switch (getObj.operator) {
       case 'co':
         getObj.operator = '$regex'
-        getObj.value = new RegExp(`.*${getObj.value}.*`, 'i')
+        getObj.value = new RegExp(getObj.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') // escape special chars, case insensitive
         break
       case 'ge':
         getObj.operator = '$gte'

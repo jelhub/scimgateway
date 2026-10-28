@@ -106,7 +106,9 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
   if (getObj.operator) { // convert to plugin supported syntax
     switch (getObj.operator) {
       case 'co':
-        getObj.operator = '$contains'
+        // getObj.operator = '$contains'
+        getObj.operator = '$regex'
+        getObj.value = new RegExp(getObj.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') // escape special chars, case insensitive
         break
       case 'ge':
         getObj.operator = '$gte'
@@ -308,7 +310,9 @@ scimgateway.getGroups = async (baseEntity, getObj, attributes, ctx) => {
   if (getObj.operator) { // convert to plugin supported syntax
     switch (getObj.operator) {
       case 'co':
-        getObj.operator = '$contains'
+        // getObj.operator = '$contains'
+        getObj.operator = '$regex'
+        getObj.value = new RegExp(getObj.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') // escape special chars, case insensitive
         break
       case 'ge':
         getObj.operator = '$gte'
