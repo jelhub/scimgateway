@@ -173,7 +173,7 @@ describe('plugin-loki', async () => {
     const res = await fetchSCIM('GET', '/Users/bjensen', undefined, options.std.headers)
     const user = res.body
     expect(res.headers.get('etag')).toBe('W/"0"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Users/bjensen')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/bjensen`)
     expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('bjensen')
@@ -289,7 +289,7 @@ describe('plugin-loki', async () => {
     const group = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"0"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Groups/Admins')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/Admins`)
     expect(group).toBeDefined()
     expect(group.schemas).toBeDefined()
     expect(group.meta.location).toBeDefined()
@@ -361,14 +361,14 @@ describe('plugin-loki', async () => {
     }
     const res = await fetchSCIM('POST', '/Users', newUser, options.content.headers)
     expect(res.status).toBe(201)
-    expect(res.body.meta.location).toBe('http://localhost:8880/Users/jgilber')
+    expect(res.body.meta.location).toBe(`${baseUrl}/Users/jgilber`)
   })
 
   test('getUser just created test', async () => {
     const res = await fetchSCIM('GET', '/Users/jgilber', undefined, options.std.headers)
     const user = res.body
     expect(res.headers.get('etag')).toBe('W/"0"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Users/jgilber')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/jgilber`)
     expect(res.status).toBe(200)
     expect(user).toBeDefined()
     expect(user.id).toBe('jgilber')
@@ -493,9 +493,9 @@ describe('plugin-loki', async () => {
     const res = await fetchSCIM('PATCH', '/Users/jgilber', user, options.content.headers)
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"1"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Users/jgilber')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/jgilber`)
     expect(res.body.meta.version).toBe('W/"1"')
-    expect(res.body.meta.location).toBe('http://localhost:8880/Users/jgilber')
+    expect(res.body.meta.location).toBe(`${baseUrl}/Users/jgilber`)
   })
 
   test('getUser just modified test', async () => {
@@ -503,7 +503,7 @@ describe('plugin-loki', async () => {
     const user = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"1"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Users/jgilber')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/jgilber`)
     expect(user).toBeDefined()
     expect(user.id).toBe('jgilber')
     expect(user.active).toBe(false) // modified
@@ -525,7 +525,7 @@ describe('plugin-loki', async () => {
     expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).toBe('test1-value') // modified
     expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).toBe('test2-value') // modified
     expect(user.meta.version).toBe('W/"1"')
-    expect(user.meta.location).toBe('http://localhost:8880/Users/jgilber')
+    expect(user.meta.location).toBe(`${baseUrl}/Users/jgilber`)
   })
 
   test('replaceUser test', async () => {
@@ -562,7 +562,7 @@ describe('plugin-loki', async () => {
     const user = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"2"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Users/jgilber')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/jgilber`)
     expect(user).toBeDefined()
     expect(user.id).toBe('jgilber')
     expect(user.active).toBe(false)
@@ -583,7 +583,7 @@ describe('plugin-loki', async () => {
     expect(user.groups[0].value).toBe('Admins')
     expect(user.groups[1].value).toBe('Employees')
     expect(user.meta.version).toBe('W/"2"')
-    expect(user.meta.location).toBe('http://localhost:8880/Users/jgilber')
+    expect(user.meta.location).toBe(`${baseUrl}/Users/jgilber`)
   })
 
   test('deleteUser test', async () => {
@@ -602,9 +602,9 @@ describe('plugin-loki', async () => {
     const res = await fetchSCIM('POST', '/Groups', newGroup, options.content.headers)
     expect(res.status).toBe(201)
     expect(res.headers.get('etag')).toBe('W/"0"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Groups/GoGoLoki')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoLoki`)
     expect(res.body.meta.version).toBe('W/"0"')
-    expect(res.body.meta.location).toBe('http://localhost:8880/Groups/GoGoLoki')
+    expect(res.body.meta.location).toBe(`${baseUrl}/Groups/GoGoLoki`)
   })
 
   test('getGroup just created test', async () => {
@@ -612,12 +612,12 @@ describe('plugin-loki', async () => {
     const group = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"0"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Groups/GoGoLoki')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoLoki`)
     expect(group).toBeDefined()
     expect(group.displayName).toBe('GoGoLoki')
     expect(group.id).toBe('GoGoLoki')
     expect(group.meta.version).toBe('W/"0"')
-    expect(group.meta.location).toBe('http://localhost:8880/Groups/GoGoLoki')
+    expect(group.meta.location).toBe(`${baseUrl}/Groups/GoGoLoki`)
   })
 
   test('modifyGroupMembers test', async () => {
@@ -642,9 +642,15 @@ describe('plugin-loki', async () => {
     // body = { members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] } // scim v1.1
 
     const res = await fetchSCIM('PATCH', '/Groups/GoGoLoki?attributes=members', body, options.content.headers)
-    expect(res.status).toBe(204)
+    const group = res.body
+    expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"1"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Groups/GoGoLoki')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoLoki`)
+    expect(group).toBeDefined()
+    expect(group.id).toBe('GoGoLoki')
+    expect(group.members).toBeDefined()
+    expect(group.members.length).toBe(1) // bjensen removed
+    expect(group.members[0].value).toBe('jsmith') // 
   })
 
   test('getGroup just modified members test', async () => {
@@ -652,14 +658,14 @@ describe('plugin-loki', async () => {
     const group = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"1"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Groups/GoGoLoki')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoLoki`)
     expect(group).toBeDefined()
     expect(group.displayName).toBe('GoGoLoki')
     expect(group.id).toBe('GoGoLoki')
     expect(group.members.length).toBe(1) // bjensen removed
     expect(group.members[0].value).toBe('jsmith') // 
     expect(group.meta.version).toBe('W/"1"')
-    expect(group.meta.location).toBe('http://localhost:8880/Groups/GoGoLoki')
+    expect(group.meta.location).toBe(`${baseUrl}/Groups/GoGoLoki`)
   })
 
   test('replaceGroup test', async () => {
@@ -677,11 +683,11 @@ describe('plugin-loki', async () => {
     const group = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"2"')
-    expect(res.headers.get('location')).toBe('http://localhost:8880/Groups/GoGoLoki')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoLoki`)
     expect(group.displayName).toBe('NewGoGoLoki')
     expect(group.members.length).toBe(2)
     expect(group.meta.version).toBe('W/"2"')
-    expect(group.meta.location).toBe('http://localhost:8880/Groups/GoGoLoki')
+    expect(group.meta.location).toBe(`${baseUrl}/Groups/GoGoLoki`)
   })
 
   test('deleteGroup test', async () => {
@@ -746,10 +752,10 @@ describe('plugin-loki', async () => {
     expect(res.body.Operations.length).toBe(5)
     expect(res.body.Operations[0].bulkId).toBe('qwerty')
     expect(res.body.Operations[0].status.code).toBe('201')
-    expect(res.body.Operations[0].location).toBe('http://localhost:8880/Users/alice')
+    expect(res.body.Operations[0].location).toBe(`${baseUrl}/Users/alice`)
     expect(res.body.Operations[1].bulkId).toBe('ytrewq')
     expect(res.body.Operations[1].status.code).toBe('201')
-    expect(res.body.Operations[1].location).toBe('http://localhost:8880/Groups/Tour%20Guides')
+    expect(res.body.Operations[1].location).toBe(`${baseUrl}/Groups/Tour%20Guides`)
     expect(res.body.Operations[2].bulkId).toBeUndefined()
     expect(res.body.Operations[2].status.code).toBe('204')
     expect(res.body.Operations[2].method).toBe('PATCH')

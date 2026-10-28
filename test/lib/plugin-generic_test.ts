@@ -26,7 +26,7 @@ async function fetchSCIM(method: string, endpoint: string, body?: any, headers?:
     body: body ? JSON.stringify(body) : undefined,
   })
   const data = response.status !== 204 ? await response.json() : null
-  return { status: response.status, body: data }
+  return { status: response.status, body: data, headers: response.headers }
 }
 
 describe('plugin-generic', async () => {
@@ -236,7 +236,7 @@ describe('plugin-generic', async () => {
     }
     const res = await fetchSCIM('POST', '/Users', newUser, options.content.headers)
     expect(res.status).toBe(201)
-    expect(res.body.meta.location).toBe('http://localhost:8886/Users/jgilber')
+    expect(res.body.meta.location).toBe(`${baseUrl}/Users/jgilber`)
   })
 
   test('getUser just created test', async () => {
@@ -355,7 +355,7 @@ describe('plugin-generic', async () => {
     }
     const res = await fetchSCIM('POST', '/Groups', newGroup, options.content.headers)
     expect(res.status).toBe(201)
-    expect(res.body.meta.location).toBe('http://localhost:8886/Groups/GoGoRest')
+    expect(res.body.meta.location).toBe(`${baseUrl}/Groups/GoGoRest`)
   })
 
   test('getGroup just created test', async () => {
@@ -387,7 +387,16 @@ describe('plugin-generic', async () => {
     }
     // payload = { members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] } // scim v1.1
     const res = await fetchSCIM('PATCH', '/Groups/GoGoRest?attributes=members', payload, options.content.headers)
-    expect(res.status).toBe(204)
+    const group = res.body
+    expect(res.status).toBe(200)
+    expect(res.headers.get('etag')).toBeDefined()
+    expect(res.headers.get('etag')).not.toBe('W/"1"')
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoRest`)
+    expect(group).toBeDefined()
+    expect(group.id).toBe('GoGoRest')
+    expect(group.members).toBeDefined()
+    expect(group.members.length).toBe(1) // bjensen removed
+    expect(group.members[0].value).toBe('jsmith')
   })
 
   test('getGroup just modified members test', async () => {
