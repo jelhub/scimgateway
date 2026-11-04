@@ -774,6 +774,9 @@ export class HelperRest {
               ctx.paging.nextCursor = randomBytes(12).toString('base64url')
               nextStartIndex = ctx.paging.nextCursor
             }
+            if (!utils.isSafeKey(nextStartIndex) || !utils.isSafeKey(optionsUrl)) {
+              throw new Error('Unsafe key for pagination/url')
+            }
             let totalResults = ctx.paging.totalResults
             if (ctx.paging.startIndex && this._serviceClient[baseEntity].index && this._serviceClient[baseEntity].index[ctx.paging.startIndex]) {
               if (this._serviceClient[baseEntity].index[ctx.paging.startIndex][optionsUrl]) {
