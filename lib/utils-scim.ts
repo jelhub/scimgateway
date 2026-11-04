@@ -447,7 +447,7 @@ export function patchObj(userObj: Record<string, any>, attrObj: Record<string, a
           let elExist = false
           for (const k in el) {
             if (el[k] !== e[k]) {
-              if (k === 'primary') continue
+              if (k === 'primary' || k === 'operation') continue
               elExist = false
               break
             }
@@ -455,6 +455,7 @@ export function patchObj(userObj: Record<string, any>, attrObj: Record<string, a
           }
           return elExist
         })
+        if (el.operation !== undefined) delete el.operation
         if (index < 0) userObj[key].push(el)
       })
     } else if (isMultiValueTypes(key)) { // "type converted object" logic and original blank type having type "undefined"
@@ -580,8 +581,20 @@ export function endpointMapper(direction: string, parseObj: any, mapObj: any, ma
     const msg = 'Plugin using endpointMapper(direction, parseObj, mapObj) with incorrect direction - direction must be set to \'outbound\' or \'inbound\''
     return [parseObj, new Error(msg)]
   }
+  if (typeof mapObj !== 'object' || mapObj === null) {
+    const msg = 'Plugin using endpointMapper(direction, parseObj, mapObj) with incorrect mapObj - mapObj must be a non-null object'
+    return [parseObj, new Error(msg)]
+  }
 
-  let map = mapObj
+  // remove any schema definition from mapObj entries for mapping purposes
+  let map = Object.fromEntries(
+    Object.entries<Record<string, any>>(mapObj).map(([key, value]) => {
+      const mapping = { ...value }
+      delete mapping.schema
+      return [key, mapping]
+    }),
+  )
+
   if (typeof mapOverride === 'object') {
     if (Object.keys(mapOverride).length > 0) {
       map = utils.extendObj(structuredClone(mapObj), mapOverride)
