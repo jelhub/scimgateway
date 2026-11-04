@@ -196,8 +196,7 @@
         },
         "name": {
           "mapTo": "name",
-          "type": "complexObject",
-          "subAttributes": []
+          "type": "complexObject"
         },
         "emails": {
           "mapTo": "emails",
