@@ -882,7 +882,8 @@ export class ScimGateway {
       let tx = structuredClone(this.scimDef.Schemas)
       if (this.config.endpoint?.map) {
         // endpointMapper being used
-        // Schemas returned should instead reflect what is defined in the plugin config file
+        // Schemas returned should instead reflect what is defined in the plugin configuration within the map section
+        // Configuration object 'schema' within the map section will override and dictate the final schema structure for the resource
         // For AI Agent MCP tools, the 'x-agent-schema' attribute can be used to enhance their functionality or provide additional context when processing SCIM requests - see plugin-entra-id.json for example usage.
         let map = this.config.endpoint.map
         if (typeof this.config.endpoint?.entity?.[ctx.routeObj.baseEntity]?.mapOverride === 'object') {
@@ -901,10 +902,7 @@ export class ScimGateway {
           const typeDone: Record<string, string> = {}
           for (const key in mapSection) {
             const item = mapSection[key]
-            if (!item.mapTo && key === 'x-agent-schema') {
-              resource['x-agent-schema'] = JSON.stringify(item) // top level schema update
-              continue
-            }
+            const mapSchema = item.schema ?? {}
             if (!item.mapTo || item.mapTo === 'id') continue
             const parts = item.mapTo.split('.')
             if (parts.length === 1) {
@@ -912,24 +910,25 @@ export class ScimGateway {
               let attr: any
               if (org) { // reusing original SCIM definition
                 attr = structuredClone(org)
-                if (item.subAttributes && Array.isArray(item.subAttributes) && attr?.subAttributes && Array.isArray(attr.subAttributes)) {
+                if (mapSchema.subAttributes && Array.isArray(mapSchema.subAttributes) && attr?.subAttributes && Array.isArray(attr.subAttributes)) {
                   // any configuration subAttributes takes precidence
-                  for (const el of item.subAttributes) {
+                  for (const el of mapSchema.subAttributes) {
                     if (typeof el !== 'object' || !el.name) continue
                     const existingSub = attr.subAttributes.find((sa: any) => sa.name === el.name)
                     if (existingSub) {
                       if (el.description) existingSub.description = el.description
                       if (el.mutability) existingSub.mutability = el.mutability
                       if (el.canonicalValues) existingSub.canonicalValues = el.canonicalValues
+                      if (el.required !== undefined) existingSub.required = el.required
                     } else {
                       const newSub: Record<string, any> = {
                         name: el.name,
                         type: el.type ?? 'string',
-                        multiValued: el.mulitvalue ?? false,
-                        description: el.description ?? '',
-                        required: false,
+                        multiValued: mapSchema.mulitvalue ?? false,
+                        description: mapSchema.description ?? '',
+                        required: mapSchema.required ?? false,
                         caseExact: false,
-                        mutability: el.mutability ?? 'readWrite',
+                        mutability: mapSchema.mutability ?? 'readWrite',
                         returned: 'default',
                         uniqueness: 'none',
                       }
@@ -943,32 +942,53 @@ export class ScimGateway {
                       attr.subAttributes.push(newSub)
                     }
                   }
+                } else {
+                  if (mapSchema.description) attr.description = mapSchema.description
+                  if (mapSchema.mutability) attr.mutability = mapSchema.mutability
+                  if (mapSchema.canonicalValues) attr.canonicalValues = mapSchema.canonicalValues
+                  if (mapSchema.required !== undefined) attr.required = mapSchema.required
+                  if (item.type === 'complexObject' || item.type === 'complexArray') {
+                    for (const el in mapSchema) { // support like: roles.type.canonicalValues: ["Permanent","Eligible"]
+                      const arrAttr = el.split('.')
+                      if (arrAttr.length < 3 || attr.name !== arrAttr[0] || !attr.subAttributes) continue
+                      const obj = attr.subAttributes.find((sub: any) => sub.name === arrAttr[1])
+                      if (!obj) continue
+                      obj[arrAttr[2]] = mapSchema[el]
+                    }
+                    // delete any subAttributes object named 'primary'
+                    if (attr.subAttributes && Array.isArray(attr.subAttributes)) {
+                      attr.subAttributes = attr.subAttributes.filter((sub: any) => sub.name !== 'primary')
+                    }
+                  }
                 }
               } else {
+                const isRequired = mapSchema.required ?? false
                 attr = {
                   name: item.mapTo,
                   type: (item.type === 'boolean') ? item.type : 'string',
                   multiValued: (item.type === 'array' || item.type === 'complexArray') ? true : false,
-                  description: item.description ?? '',
-                  required: (item.mapTo === 'userName') ? true : false,
+                  description: mapSchema.description ?? '',
+                  required: (isRequired || item.mapTo === 'userName') ? true : false,
                   caseExact: false,
-                  mutability: item.mutability ?? 'readWrite',
+                  mutability: mapSchema.mutability ?? 'readWrite',
                   returned: 'default',
                   uniqueness: (item.mapTo === 'userName') ? 'server' : 'none',
                 }
+
+                if (mapSchema.canonicalValues) attr.canonicalValues = mapSchema.canonicalValues
                 if (item.type === 'complexObject' || item.type === 'complexArray') {
                   attr.type = 'complex'
                   attr.multiValued = false
                   attr.subAttributes = []
-                  if (item.subAttributes && Array.isArray(item.subAttributes)) {
-                    for (const el of item.subAttributes) {
+                  if (mapSchema.subAttributes && Array.isArray(mapSchema.subAttributes)) {
+                    for (const el of mapSchema.subAttributes) {
                       if (typeof el !== 'object' || el === null || !el.name) continue
                       const obj: Record<string, any> = {
                         name: el.name,
                         type: el.type ?? 'string',
                         multiValued: el.mulitvalue ?? false,
                         description: el.description ?? '',
-                        required: false,
+                        required: el.required ?? false,
                         caseExact: false,
                         mutability: el.mutability ?? 'readWrite',
                         returned: 'default',
@@ -985,12 +1005,8 @@ export class ScimGateway {
                   }
                 }
               }
-              if (item['x-agent-schema']) {
-                const agentSchema = structuredClone(item['x-agent-schema'])
-                if (agentSchema.description) {
-                  attr.description = agentSchema.description
-                  delete agentSchema.description
-                }
+              if (mapSchema['x-agent-schema']) {
+                const agentSchema = structuredClone(mapSchema['x-agent-schema'])
                 if (Object.keys(agentSchema).length > 0) attr['x-agent-schema'] = JSON.stringify(agentSchema)
               }
               if (isV1) {
@@ -1010,7 +1026,7 @@ export class ScimGateway {
                   if (name === 'id') continue
                   if (userNameFound && name !== 'userName') {
                     attrCopy.description = ''
-                    delete attrCopy['x-agent-schema']
+                    delete attrCopy.schema
                   }
                   if (name === 'userName') {
                     if (!isV1) attrCopy.uniqueness = 'server'
@@ -1034,7 +1050,7 @@ export class ScimGateway {
                     name: parent,
                     type: 'complex',
                     multiValued: (parts.length === 3 || item.type === 'array' || item.type === 'complexArray') ? true : false,
-                    description: `A list of ${parent} for the ${resourceName}`,
+                    description: `${parent} object with attribute details for the ${resourceName}`,
                     required: false,
                     subAttributes: [],
                   }
@@ -1049,15 +1065,18 @@ export class ScimGateway {
                 if (orgParent) org = orgParent.subAttributes.find((r: any) => r.name === sub)
                 if (org) {
                   subAttr = structuredClone(org) // reusing original SCIM definition
+                  for (const key in mapSchema) {
+                    subAttr[key] = mapSchema[key]
+                  }
                 } else {
                   subAttr = {
                     name: sub,
                     type: (item.type === 'boolean') ? item.type : 'string',
-                    multiValued: false,
-                    description: item.description ?? '',
-                    required: false,
+                    multiValued: mapSchema.multiValued ?? false,
+                    description: mapSchema.description ?? '',
+                    required: mapSchema.required ?? false,
                     caseExact: false,
-                    mutability: 'readWrite',
+                    mutability: mapSchema.mutability ?? 'readWrite',
                     returned: 'default',
                     uniqueness: 'none',
                   }
@@ -1101,13 +1120,21 @@ export class ScimGateway {
                   }
                 }
 
-                if (item['x-agent-schema']) {
-                  const hints = structuredClone(item['x-agent-schema'])
-                  if (hints.description) {
-                    subAttr.description = hints.description
-                    delete hints.description
+                if (mapSchema['x-agent-schema']) {
+                  const agentSchema = mapSchema['x-agent-schema']
+                  if (agentSchema['x-agent-parent-schema']) {
+                    // iterate x-agent-parent-schema keys and apply them to the parent object
+                    for (const e in agentSchema['x-agent-parent-schema']) {
+                      if (e === 'x-agent-schema') {
+                        complexAttrs[parent]['x-agent-schema'] = agentSchema['x-agent-parent-schema']['x-agent-schema']
+                        continue
+                      }
+                      complexAttrs[parent][e] = agentSchema['x-agent-parent-schema'][e]
+                    }
+                    delete agentSchema['x-agent-parent-schema']
                   }
-                  if (Object.keys(hints).length > 0) subAttr['x-agent-schema'] = JSON.stringify(hints)
+                  if (Object.keys(agentSchema).length > 0) subAttr['x-agent-schema'] = JSON.stringify(agentSchema)
+                  else delete subAttr['x-agent-schema']
                 }
                 complexAttrs[parent].subAttributes.push(subAttr)
               } else if (parts.length === 3) { // phoneNumbers.work.value
@@ -1142,6 +1169,9 @@ export class ScimGateway {
         }
         updateSchema('User', map.user)
         updateSchema('Group', map.group)
+        if (this.config?.endpoint?.map?.user) { // using endpointMapper configuration, remove enterprise schema
+          tx.Resources = tx.Resources.filter((s: any) => s.id !== 'urn:ietf:params:scim:schemas:extension:enterprise:2.0:User')
+        }
       }
 
       if (!ctx.response) {
@@ -1159,6 +1189,12 @@ export class ScimGateway {
     const getHandlerResourceTypes = async (ctx: Context) => {
       const tx = this.scimDef.ResourceType
       if (Array.isArray(tx.Resources)) {
+        if (this.config?.endpoint?.map?.user) {
+          const arrUserExtensions = tx.Resources.filter((r: any) => r.schema === 'urn:ietf:params:scim:schemas:core:2.0:User' && r.schemaExtensions !== undefined)
+          arrUserExtensions.forEach((r: any) => {
+            delete r.schemaExtensions // not using schemaExtensions for endpointMapper configuration
+          })
+        }
         tx.totalResults = tx.Resources.length
         tx.itemsPerPage = tx.Resources.length
         tx.startIndex = 1
@@ -2284,9 +2320,23 @@ export class ScimGateway {
           }
           const res = await Promise.allSettled(groups.map((groupsObj: Record<string, any>) => updateGroup(groupsObj)))
           const errRes = res.filter(result => result.status === 'rejected').map(result => result.reason.message)
+          for (let i = 0; i < errRes.length; i++) {
+            const errMsg = errRes[i]
+            const [_, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, new Error(errMsg))
+            if (statusCode === 404 && groups[i]?.operation === 'delete') { // remove a non-existing group from user - not an error
+              groups.splice(i, 1)
+              errRes.splice(i, 1)
+              continue
+            }
+            if (statusCode === 409 && groups[i]?.operation !== 'delete') { // add a group to user that is already existing - not an error
+              groups.splice(i, 1)
+              errRes.splice(i, 1)
+              continue
+            }
+          }
           if (errRes.length > 0) {
-            const errMsg = `modify user group membership error: ${errRes.join(', ')}`
-            throw new Error(errMsg)
+            const errMsgFull = `modify user group membership error: ${errRes.join(', ')}`
+            throw new Error(errMsgFull)
           }
         }
 
@@ -2314,6 +2364,9 @@ export class ScimGateway {
             // we might have endpoint like Entra ID that hasn’t caught up yet due to internal sync
             // ensure returned object reflects changes by doing a merge with patch payload (convertedScim) 
             if (finalScimdata?.mfa) delete finalScimdata.mfa // writeOnly mfa.reset
+            if (groups && groups.length > 0) {
+              finalScimdata.groups = groups
+            }
             res.Resources[0] = this.patchObj(res.Resources[0], finalScimdata) // merge
             if (res.Resources[0].password) delete res.Resources[0].password
           }
