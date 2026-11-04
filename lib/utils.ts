@@ -855,11 +855,22 @@ const STATUS_TEXT: Record<number, string> = {
 }
 
 /**
- * statusText returns http status text for given status code
-  * @param stauts http code
-  * @returns status text
- */
+* statusText returns http status text for given status code
+* @param status http code
+* @returns status text
+*/
 export function statusText(status: number | undefined): string {
   if (!status) return ''
   return STATUS_TEXT[status] ?? ''
+}
+
+/**
+ * isSafeKey checks if a key is safe to use as an object property
+ * @param key the key to check (string or number)
+ * @returns true if the key is safe, false otherwise
+ */
+export function isSafeKey(key: unknown): key is string | number {
+  if (typeof key === 'number') return Number.isFinite(key)
+  if (typeof key !== 'string') return false
+  return key !== '__proto__' && key !== 'constructor' && key !== 'prototype'
 }
