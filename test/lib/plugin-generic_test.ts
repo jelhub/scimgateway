@@ -38,14 +38,14 @@ describe('plugin-generic', async () => {
     expect(users.itemsPerPage).toBe(2)
     expect(users.startIndex).toBe(1)
     expect(users).toBeDefined()
-    expect(users.Resources[0].userName).toBe('bjensen')
-    expect(users.Resources[0].id).toBe('bjensen')
+    expect(users.Resources[0].userName).toBe('barbara.jane.jensen')
+    expect(users.Resources[0].id).toBe('barbara.jane.jensen')
     expect(users.Resources[0].name.givenName).toBe('Barbara')
     expect(users.Resources[0].groups[0].value).toBe('Admins')
     expect(users.Resources[0].groups[0].display).toBe('Admins')
     expect(users.Resources[0].groups[0].type).toBe('direct')
-    expect(users.Resources[1].userName).toBe('jsmith')
-    expect(users.Resources[1].id).toBe('jsmith')
+    expect(users.Resources[1].userName).toBe('john.smith')
+    expect(users.Resources[1].id).toBe('john.smith')
     expect(users.Resources[1].name.givenName).toBe('John')
     expect(users.Resources[1].groups[0].value).toBe('Employees')
     expect(users.Resources[1].groups[0].display).toBe('Employees')
@@ -60,30 +60,30 @@ describe('plugin-generic', async () => {
     expect(users.itemsPerPage).toBe(2)
     expect(users.startIndex).toBe(1)
     expect(users).toBeDefined()
-    expect(users.Resources[0].userName).toBe('bjensen')
-    expect(users.Resources[0].id).toBe('bjensen')
+    expect(users.Resources[0].userName).toBe('barbara.jane.jensen')
+    expect(users.Resources[0].id).toBe('barbara.jane.jensen')
     expect(users.Resources[0].groups).toBe(undefined)
-    expect(users.Resources[1].userName).toBe('jsmith')
-    expect(users.Resources[1].id).toBe('jsmith')
+    expect(users.Resources[1].userName).toBe('john.smith')
+    expect(users.Resources[1].id).toBe('john.smith')
     expect(users.Resources[1].groups).toBe(undefined)
   })
 
   test('getUsers unique test (1)', async () => {
-    const res = await fetchSCIM('GET', '/Users/bjensen', undefined, options.std.headers)
+    const res = await fetchSCIM('GET', '/Users/barbara.jane.jensen', undefined, options.std.headers)
     const user = res.body
     expect(res.status).toBe(200)
     expect(user).toBeDefined()
-    expect(user.id).toBe('bjensen')
+    expect(user.id).toBe('barbara.jane.jensen')
     expect(user.active).toBe(true)
     expect(user.name.givenName).toBe('Barbara')
     expect(user.name.familyName).toBe('Jensen')
     expect(user.name.formatted).toBe('Ms. Barbara J Jensen, III')
     expect(user.entitlements[0].type).toBe('newentitlement')
-    expect(user.entitlements[0].value).toBe('bjensen entitlement')
+    expect(user.entitlements[0].value).toBe('barbara.jane.jensen entitlement')
     expect(user.phoneNumbers[0].type).toBe('work')
     expect(user.phoneNumbers[0].value).toBe('555-555-5555')
     expect(user.emails[0].type).toBe('work')
-    expect(user.emails[0].value).toBe('bjensen@example.com')
+    expect(user.emails[0].value).toBe('barbara.jane.jensen@example.com')
     expect(user.groups[0].value).toBe('Admins')
     expect(user.groups[0].display).toBe('Admins')
     expect(user.groups[0].type).toBe('direct')
@@ -93,34 +93,34 @@ describe('plugin-generic', async () => {
 
   test('getUsers unique test (2)', async () => {
     const res = await fetchSCIM('GET', '/Users'
-      + '?filter=userName eq "bjensen"&attributes=attributes=ims,locale,name.givenName,externalId,preferredLanguage,userType,id,title,timezone,name.middleName,name.familyName,nickName,name.formatted,meta.location,userName,name.honorificSuffix,meta.version,meta.lastModified,meta.created,name.honorificPrefix,emails,phoneNumbers,photos,x509Certificates.value,profileUrl,roles,active,addresses,displayName,entitlements',
+      + '?filter=userName eq "barbara.jane.jensen"&attributes=attributes=ims,locale,name.givenName,externalId,preferredLanguage,userType,id,title,timezone,name.middleName,name.familyName,nickName,name.formatted,meta.location,userName,name.honorificSuffix,meta.version,meta.lastModified,meta.created,name.honorificPrefix,emails,phoneNumbers,photos,x509Certificates.value,profileUrl,roles,active,addresses,displayName,entitlements',
     undefined, options.std.headers)
     const user = res?.body?.Resources[0]
     expect(res.status).toBe(200)
     expect(user).toBeDefined()
-    expect(user.id).toBe('bjensen')
+    expect(user.id).toBe('barbara.jane.jensen')
     expect(user.active).toBe(true)
     expect(user.name.givenName).toBe('Barbara')
     expect(user.name.familyName).toBe('Jensen')
     expect(user.name.formatted).toBe('Ms. Barbara J Jensen, III')
     expect(user.entitlements[0].type).toBe('newentitlement')
-    expect(user.entitlements[0].value).toBe('bjensen entitlement')
+    expect(user.entitlements[0].value).toBe('barbara.jane.jensen entitlement')
     expect(user.phoneNumbers[0].type).toBe('work')
     expect(user.phoneNumbers[0].value).toBe('555-555-5555')
     expect(user.emails[0].type).toBe('work')
-    expect(user.emails[0].value).toBe('bjensen@example.com')
+    expect(user.emails[0].value).toBe('barbara.jane.jensen@example.com')
     expect(user.groups).toBe(undefined)
   })
 
   test('getUsers filter test (1)', async () => {
     const res = await fetchSCIM('GET', '/Users'
-      + '?filter=emails.value eq "bjensen@example.com"&attributes=emails,id,name.givenName',
+      + '?filter=emails.value eq "barbara.jane.jensen@example.com"&attributes=emails,id,name.givenName',
     undefined, options.std.headers)
     const user = res?.body?.Resources[0]
     expect(res.status).toBe(200)
     expect(user).toBeDefined()
-    expect(user.emails[0].value).toBe('bjensen@example.com')
-    expect(user.id).toBe('bjensen')
+    expect(user.emails[0].value).toBe('barbara.jane.jensen@example.com')
+    expect(user.id).toBe('barbara.jane.jensen')
     expect(user.name.givenName).toBe('Barbara')
     expect(user.active).toBe(undefined)
     expect(user.entitlements).toBe(undefined)
@@ -134,8 +134,8 @@ describe('plugin-generic', async () => {
     const users = res?.body?.Resources
     expect(res.status).toBe(200)
     expect(users.length).toBe(2)
-    expect(users[0].id).toBe('jsmith')
-    expect(users[1].id).toBe('bjensen')
+    expect(users[0].id).toBe('john.smith')
+    expect(users[1].id).toBe('barbara.jane.jensen')
   })
 
   test('getGroups all test (1)', async () => {
@@ -181,8 +181,8 @@ describe('plugin-generic', async () => {
     expect(group.meta.location).toBeDefined()
     expect(group.displayName).toBe('Admins')
     expect(group.id).toBe('Admins')
-    expect(group.members[0].value).toBe('bjensen')
-    expect(group.members[0].display).toBe('Babs Jensen')
+    expect(group.members[0].value).toBe('barbara.jane.jensen')
+    expect(group.members[0].display).toBe('Barbara Jane Jensen')
   })
 
   test('getGroups uniqe test (2)', async () => {
@@ -195,18 +195,18 @@ describe('plugin-generic', async () => {
     expect(groups.schemas).toBeDefined()
     expect(groups.Resources[0].displayName).toBe('Admins')
     expect(groups.Resources[0].id).toBe('Admins')
-    expect(groups.Resources[0].members[0].value).toBe('bjensen')
+    expect(groups.Resources[0].members[0].value).toBe('barbara.jane.jensen')
   })
 
   test('getGroups member test', async () => {
     const res = await fetchSCIM('GET', '/Groups'
-      + '?filter=members.value eq "bjensen"&attributes=members.value,displayName',
+      + '?filter=members.value eq "barbara.jane.jensen"&attributes=members.value,displayName',
     undefined, options.std.headers)
     const groupMembers = res.body
     expect(res.status).toBe(200)
     expect(groupMembers).toBeDefined()
     expect(groupMembers.Resources[0].displayName).toBe('Admins')
-    expect(groupMembers.Resources[0].members[0].value).toBe('bjensen')
+    expect(groupMembers.Resources[0].members[0].value).toBe('barbara.jane.jensen')
     expect(groupMembers.Resources[0].totalResults).toBe(groupMembers.Resources[0].members[0].length)
   })
 
@@ -350,7 +350,7 @@ describe('plugin-generic', async () => {
       displayName: 'GoGoRest',
       externalId: undefined,
       members: [{
-        value: 'bjensen',
+        value: 'barbara.jane.jensen',
       }],
     }
     const res = await fetchSCIM('POST', '/Groups', newGroup, options.content.headers)
@@ -373,19 +373,19 @@ describe('plugin-generic', async () => {
         op: 'add',
         path: 'members',
         value: [
-          { value: 'jsmith' },
+          { value: 'john.smith' },
         ],
       },
       {
         op: 'remove',
         path: 'members',
         value: [
-          { value: 'bjensen' },
+          { value: 'barbara.jane.jensen' },
         ],
       },
     ],
     }
-    // payload = { members: [{ value: 'jsmith' }, { operation: 'delete', value: 'bjensen' }], schemas: ['urn:scim:schemas:core:1.0'] } // scim v1.1
+    // payload = { members: [{ value: 'john.smith' }, { operation: 'delete', value: 'barbara.jane.jensen' }], schemas: ['urn:scim:schemas:core:1.0'] } // scim v1.1
     const res = await fetchSCIM('PATCH', '/Groups/GoGoRest?attributes=members', payload, options.content.headers)
     const group = res.body
     expect(res.status).toBe(200)
@@ -395,8 +395,8 @@ describe('plugin-generic', async () => {
     expect(group).toBeDefined()
     expect(group.id).toBe('GoGoRest')
     expect(group.members).toBeDefined()
-    expect(group.members.length).toBe(1) // bjensen removed
-    expect(group.members[0].value).toBe('jsmith')
+    expect(group.members.length).toBe(1) // barbara.jane.jensen removed
+    expect(group.members[0].value).toBe('john.smith')
   })
 
   test('getGroup just modified members test', async () => {
@@ -407,7 +407,7 @@ describe('plugin-generic', async () => {
     expect(group.displayName).toBe('GoGoRest')
     expect(group.id).toBe('GoGoRest')
     expect(group.members.length).toBe(1)
-    expect(group.members[0].value).toBe('jsmith')
+    expect(group.members[0].value).toBe('john.smith')
   })
 
   test('deleteGroup test', async () => {
