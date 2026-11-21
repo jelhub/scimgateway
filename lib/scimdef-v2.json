@@ -34,7 +34,7 @@
     {
       "type": "httpbasic",
       "name": "HTTP Basic",
-      "description": "Authentication scheme using the HTTP Basic Standard",
+      "description": "Authentication scheme using the `HTTP Basic` standard",
       "specURI": "http://www.rfc-editor.org/info/rfc2617",
       "documentationUri": "https://elshaug.xyz",
       "primary": true
@@ -42,14 +42,14 @@
     {
       "type": "oauthbearertoken",
       "name": "OAuth Bearer Token",
-      "description": "Authentication scheme using the OAuth Bearer Token Standard",
+      "description": "Authentication scheme using the `OAuth Bearer Token` standard",
       "specUri": "http://www.rfc-editor.org/info/rfc6750",
       "documentationUri": "https://elshaug.xyz"
     },
     {
       "type": "oauth2",
       "name": "OAuth v2.0",
-      "description": "Authentication Scheme using the OAuth Standard",
+      "description": "Authentication scheme using the `OAuth` standard",
       "specUri": "http://tools.ietf.org/html/rfc6749",
       "documentationUri": "https://elshaug.xyz"
     }
@@ -129,7 +129,7 @@
             "name": "userName",
             "type": "string",
             "multiValued": false,
-            "description": "Unique identifier the user uses to sign in to the service provider. Each user MUST have a non-empty userName, unique across all users. If no other format is defined, use '<givenname>.<familyname>' in lowercase. Transliterate every character to plain ASCII a-z: remove accents and expand ligatures (æ -> ae, ø -> o, å -> a). Join name tokens with '.'. Example: 'Åse Kari Kjærøy' -> 'ase.kari.kjaeroy'.",
+            "description": "The user’s unique identifier (login). Required and unique across all users. On create: if the request supplies a `userName`, use it as-is. Otherwise generate one from the full name (given name(s) and family name ): split into space-delimited tokens, join them with `.`, lowercase, and transliterate to plain ASCII (remove accents and expand ligatures: æ -> ae, ø -> o, å -> a, ä -> a, ö -> o, ü -> u, é -> e, è -> e, ñ -> n, ß -> ss). Then remove all characters except `a-z`, `0-9`, `.`, `-` and `_`, collapse repeated periods and trim leading/trailing periods. Example: `Åse Kari Kjærøy` -> `ase.kari.kjaeroy`. HTTP 409 Conflict rule: if creation fails with `HTTP 409 Conflict` because `userName` is already taken (SCIM `scimType: uniqueness`), append a number, starting at 2, then retry. Example: `ase.kari.kjaeroy` -> `ase.kari.kjaeroy2`. If that also fails, use 3, then 4, and so on, up to 5 attempts, then report the failure. On update: do not change `userName` unless explicitly requested.",
             "required": true,
             "caseExact": false,
             "mutability": "readWrite",
@@ -140,14 +140,14 @@
             "name": "name",
             "type": "complex",
             "multiValued": false,
-            "description": "The components of the user's real name.",
+            "description": "The user’s real name and its components, including given, family, and middle names, a formatted name, titles, and suffixes.",
             "required": false,
             "subAttributes": [
               {
                 "name": "formatted",
                 "type": "string",
                 "multiValued": false,
-                "description": "The full name, including middle names, titles and suffixes, formatted for display. Optional; set only when known.",
+                "description": "The full name, including middle names, titles and suffixes, formatted for display.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -169,7 +169,7 @@
                 "name": "givenName",
                 "type": "string",
                 "multiValued": false,
-                "description": "The given (first) name(s): all tokens of the full name except the last.",
+                "description": "The given (first, including middle) name(s): all tokens of the full name except the last.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -180,7 +180,7 @@
                 "name": "middleName",
                 "type": "string",
                 "multiValued": false,
-                "description": "The middle name(s). Optional; set only when stated explicitly.",
+                "description": "The middle name(s).",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -191,7 +191,7 @@
                 "name": "honorificPrefix",
                 "type": "string",
                 "multiValued": false,
-                "description": "The honorific prefix (title), such as Mr. or Dr. Optional; set only when stated.",
+                "description": "The honorific prefix (title), such as `Mr.` or `Dr.`",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -202,7 +202,7 @@
                 "name": "honorificSuffix",
                 "type": "string",
                 "multiValued": false,
-                "description": "The honorific suffix, such as Jr. Optional; set only when stated.",
+                "description": "The honorific suffix, such as `Jr.`",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -218,7 +218,7 @@
             "name": "displayName",
             "type": "string",
             "multiValued": false,
-            "description": "The name of the user for display to end users, normally the full name.",
+            "description": "The user’s full name.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -229,7 +229,7 @@
             "name": "nickName",
             "type": "string",
             "multiValued": false,
-            "description": "The casual name of the user, if different from the given name. Optional; set only when known.",
+            "description": "The user’s casual name, if different from the given name.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -241,7 +241,7 @@
             "type": "reference",
             "referenceTypes": ["external"],
             "multiValued": false,
-            "description": "URL of the user's online profile page. Optional; set only when known.",
+            "description": "The URL of the user’s online profile page.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -252,7 +252,7 @@
             "name": "title",
             "type": "string",
             "multiValued": false,
-            "description": "The user's job title. Optional; set only when known.",
+            "description": "The user’s job title.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -263,7 +263,7 @@
             "name": "userType",
             "type": "string",
             "multiValued": false,
-            "description": "The relationship between the organization and the user, such as Employee or Contractor. Optional; set only when known.",
+            "description": "The user’s organization relationship, such as `Employee` or `Contractor`.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -274,7 +274,7 @@
             "name": "preferredLanguage",
             "type": "string",
             "multiValued": false,
-            "description": "The user's preferred written or spoken language (language tag). Optional; set only when known.",
+            "description": "The user’s preferred written or spoken language (language tag).",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -285,7 +285,7 @@
             "name": "locale",
             "type": "string",
             "multiValued": false,
-            "description": "The user's default location for localizing currency, dates and numbers (language tag). Optional; set only when known.",
+            "description": "The user’s default location for localizing currency, dates and numbers (language tag).",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -296,7 +296,7 @@
             "name": "timezone",
             "type": "string",
             "multiValued": false,
-            "description": "The user's time zone in IANA (Olson) format. Optional; set only when known.",
+            "description": "The user’s time zone in IANA (Olson) format.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -307,7 +307,7 @@
             "name": "active",
             "type": "boolean",
             "multiValued": false,
-            "description": "The user's administrative status. true = enabled, false = disabled. New users are normally created with true.",
+            "description": "The user’s administrative status: `true` means enabled and `false` means disabled. On create: `true` unless otherwise stated. On modify: `false` to disable, `true` to enable.",
             "required": false,
             "mutability": "readWrite",
             "returned": "default"
@@ -316,7 +316,7 @@
             "name": "password",
             "type": "string",
             "multiValued": false,
-            "description": "The user's clear-text password, used to set an initial password or reset it. Never returned. Set only when a password is provided.",
+            "description": "The user’s clear-text password, used to set an initial password or reset it. Never returned. Set only when a password is provided.",
             "required": false,
             "caseExact": false,
             "mutability": "writeOnly",
@@ -327,14 +327,14 @@
             "name": "emails",
             "type": "complex",
             "multiValued": true,
-            "description": "Email addresses of the user. Optional; set only when an address is known. Never derive an address from the name or userName.",
+            "description": "The user’s email addresses, with types `work`, `home`, or `other`.",
             "required": false,
             "subAttributes": [
               {
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
-                "description": "Email address of the user, canonicalized to lowercase.",
+                "description": "The user’s email address, canonicalized to lowercase.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -356,7 +356,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "A label for the address's function: work, home or other.",
+                "description": "A label for the address’s function: `work`, `home`, or `other`.",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [
@@ -372,7 +372,7 @@
                 "name": "primary",
                 "type": "boolean",
                 "multiValued": false,
-                "description": "true for the preferred email address. At most one address may be primary.",
+                "description": "`true` for the preferred email address. At most one address may be primary.",
                 "required": false,
                 "mutability": "readWrite",
                 "returned": "default"
@@ -386,14 +386,14 @@
             "name": "phoneNumbers",
             "type": "complex",
             "multiValued": true,
-            "description": "Phone numbers of the user. Optional; set only when a number is known.",
+            "description": "The user’s phone numbers, with types `mobile`, `work`, `home`, `fax`, `pager`, or `other`.",
             "required": false,
             "subAttributes": [
               {
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
-                "description": "Phone number of the user, as provided.",
+                "description": "The user’s phone number, as provided.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -415,13 +415,13 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "A label for the number's function: work, home, mobile, fax, pager or other.",
+                "description": "A label for the number’s function: `mobile`, `work`, `home`, `fax`, `pager`, or `other`.",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [
+                  "mobile",
                   "work",
                   "home",
-                  "mobile",
                   "fax",
                   "pager",
                   "other"
@@ -434,7 +434,7 @@
                 "name": "primary",
                 "type": "boolean",
                 "multiValued": false,
-                "description": "true for the preferred phone number. At most one number may be primary.",
+                "description": "`true` for the preferred phone number. At most one number may be primary.",
                 "required": false,
                 "mutability": "readWrite",
                 "returned": "default"
@@ -447,14 +447,14 @@
             "name": "ims",
             "type": "complex",
             "multiValued": true,
-            "description": "Instant messaging addresses of the user. Optional; set only when known.",
+            "description": "The user’s instant messaging addresses.",
             "required": false,
             "subAttributes": [
               {
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
-                "description": "Instant messaging address of the user, as provided.",
+                "description": "The user’s instant messaging address, as provided.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -476,7 +476,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "The messaging service: aim, gtalk, icq, xmpp, msn, skype, qq or yahoo.",
+                "description": "The messaging service: `aim`, `gtalk`, `icq`, `xmpp`, `msn`, `skype`, `qq`, or `yahoo`.",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [
@@ -497,7 +497,7 @@
                 "name": "primary",
                 "type": "boolean",
                 "multiValued": false,
-                "description": "true for the preferred messaging address. At most one address may be primary.",
+                "description": "`true` for the preferred messaging address. At most one address may be primary.",
                 "required": false,
                 "mutability": "readWrite",
                 "returned": "default"
@@ -510,7 +510,7 @@
             "name": "photos",
             "type": "complex",
             "multiValued": true,
-            "description": "URLs of photos of the user. Optional; set only when known.",
+            "description": "URLs of the user’s photos.",
             "required": false,
             "subAttributes": [
               {
@@ -518,7 +518,7 @@
                 "type": "reference",
                 "referenceTypes": ["external"],
                 "multiValued": false,
-                "description": "URL of a photo of the user, as provided.",
+                "description": "A URL of the user’s photo, as provided.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -540,7 +540,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "The photo's function: photo or thumbnail.",
+                "description": "The photo’s function: `photo` or `thumbnail`.",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [
@@ -555,7 +555,7 @@
                 "name": "primary",
                 "type": "boolean",
                 "multiValued": false,
-                "description": "true for the preferred photo. At most one photo may be primary.",
+                "description": "`true` for the preferred photo. At most one photo may be primary.",
                 "required": false,
                 "mutability": "readWrite",
                 "returned": "default"
@@ -568,7 +568,7 @@
             "name": "addresses",
             "type": "complex",
             "multiValued": true,
-            "description": "Physical mailing addresses of the user. Optional; set only the parts that are known.",
+            "description": "The user’s physical mailing addresses, including known parts such as `formatted`, `streetAddress`, `locality`, `region`, `postalCode`, and `country`.",
             "required": false,
             "subAttributes": [
               {
@@ -641,7 +641,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "A label indicating the attribute's function; e.g., 'work', 'home' or 'other'.",
+                "description": "A label indicating the attribute’s function; e.g., `work`, `home` or `other`.",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [
@@ -662,17 +662,17 @@
             "name": "groups",
             "type": "complex",
             "multiValued": true,
-            "description": "Groups the user belongs to, direct or indirect (nested or dynamic membership). Only direct membership can be added or removed.",
+            "description": "Groups the user belongs to, whether directly or indirectly (through nested or dynamic membership). Only direct membership can be added or removed. The `groups[].value` is the group’s `id` attribute.",
             "required": false,
             "subAttributes": [
               {
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
-                "description": "The id of the group resource. Not the group name.",
+                "description": "The `id` of the group resource, not its name.",
                 "required": false,
                 "caseExact": false,
-                "mutability": "readWrite",
+                "mutability": "readOnly",
                 "returned": "default",
                 "uniqueness": "none"
               },
@@ -684,7 +684,7 @@
                   "Group"
                 ],
                 "multiValued": false,
-                "description": "The URI of the corresponding Group resource to which the user belongs",
+                "description": "The URI of the corresponding `Group` resource to which the user belongs.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readOnly",
@@ -695,7 +695,7 @@
                 "name": "display",
                 "type": "string",
                 "multiValued": false,
-                "description": "A human readable name, primarily used for display purposes. READ-ONLY.",
+                "description": "A human-readable name, primarily used for display. `readOnly`.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readOnly",
@@ -706,7 +706,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "A label indicating the attribute's function; e.g., 'direct' or 'indirect'.",
+                "description": "A label indicating the attribute’s function; e.g., `direct` or `indirect`.",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [
@@ -725,14 +725,14 @@
             "name": "entitlements",
             "type": "complex",
             "multiValued": true,
-            "description": "Entitlements assigned to the user.",
+            "description": "The user’s assigned entitlements.",
             "required": false,
             "subAttributes": [
               {
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
-                "description": "The id of the entitlement, as listed by the service provider's entitlement catalog.",
+                "description": "The entitlement’s id, as listed by the service provider’s entitlement catalog.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -743,7 +743,7 @@
                 "name": "display",
                 "type": "string",
                 "multiValued": false,
-                "description": "The display name of the entitlement. Recommended when adding.",
+                "description": "The entitlement’s display name. Recommended when adding.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -754,7 +754,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "The entitlement type, as listed by the service provider's entitlement catalog.",
+                "description": "The entitlement’s type, as listed by the service provider’s entitlement catalog.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -765,7 +765,7 @@
                 "name": "primary",
                 "type": "boolean",
                 "multiValued": false,
-                "description": "true for the preferred entitlement. At most one entitlement may be primary. Optional.",
+                "description": "`true` for the preferred entitlement. At most one entitlement may be primary. Optional.",
                 "required": false,
                 "mutability": "readWrite",
                 "returned": "default"
@@ -785,7 +785,7 @@
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
-                "description": "The id of the role, as listed by the service provider's role catalog.",
+                "description": "The role’s id, as listed by the service provider’s role catalog.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -796,7 +796,7 @@
                 "name": "display",
                 "type": "string",
                 "multiValued": false,
-                "description": "The display name of the role. Recommended when adding.",
+                "description": "The role’s display name. Recommended when adding.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -807,7 +807,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "The role type, as listed by the service provider's role catalog.",
+                "description": "The role’s type, as listed by the service provider’s role catalog.",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [],
@@ -819,7 +819,7 @@
                 "name": "primary",
                 "type": "boolean",
                 "multiValued": false,
-                "description": "true for the preferred role. At most one role may be primary. Optional.",
+                "description": "`true` for the preferred role. At most one role may be primary. Optional.",
                 "required": false,
                 "mutability": "readWrite",
                 "returned": "default"
@@ -832,7 +832,7 @@
             "name": "x509Certificates",
             "type": "complex",
             "multiValued": true,
-            "description": "Certificates issued to the user. Optional; set only when known.",
+            "description": "Certificates issued to the user.",
             "required": false,
             "caseExact": false,
             "subAttributes": [
@@ -862,7 +862,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "A label for the certificate's function. Optional.",
+                "description": "A label for the certificate’s function. Optional.",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [],
@@ -874,7 +874,7 @@
                 "name": "primary",
                 "type": "boolean",
                 "multiValued": false,
-                "description": "true for the preferred certificate. At most one certificate may be primary.",
+                "description": "`true` for the preferred certificate. At most one certificate may be primary.",
                 "required": false,
                 "mutability": "readWrite",
                 "returned": "default"
@@ -899,7 +899,7 @@
             "name": "displayName",
             "type": "string",
             "multiValued": false,
-            "description": "The name of the group. REQUIRED.",
+            "description": "The name of the group. Required and unique across all groups.",
             "required": true,
             "caseExact": false,
             "mutability": "readWrite",
@@ -917,7 +917,7 @@
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
-                "description": "The id of the member resource (User or Group). Not a userName or display name.",
+                "description": "The `id` of the member resource (`User` or `Group`), not a `userName` or `displayName`.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "immutable",
@@ -943,7 +943,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "The member resource type: User or Group.",
+                "description": "The member resource type: `User` or `Group`.",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [
@@ -968,13 +968,13 @@
       {
         "id": "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User",
         "name": "EnterpriseUser",
-        "description": "Enterprise User",
+        "description": "The user’s enterprise attributes, including `employeeNumber`, `costCenter`, `organization`, `division`, `department`, and `manager`.",
         "attributes": [
           {
             "name": "employeeNumber",
             "type": "string",
             "multiValued": false,
-            "description": "Identifier assigned to the person by the organization. Optional; set only when known.",
+            "description": "The user’s identifier assigned by the organization.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -985,7 +985,7 @@
             "name": "costCenter",
             "type": "string",
             "multiValued": false,
-            "description": "The name of the cost center. Optional; set only when known.",
+            "description": "The user’s cost center name.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -996,7 +996,7 @@
             "name": "organization",
             "type": "string",
             "multiValued": false,
-            "description": "The name of the organization. Optional; set only when known.",
+            "description": "The user’s organization name.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -1007,7 +1007,7 @@
             "name": "division",
             "type": "string",
             "multiValued": false,
-            "description": "The name of the division. Optional; set only when known.",
+            "description": "The user’s division name.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -1018,7 +1018,7 @@
             "name": "department",
             "type": "string",
             "multiValued": false,
-            "description": "The name of the department. Optional; set only when known.",
+            "description": "The user’s department name.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -1029,14 +1029,14 @@
             "name": "manager",
             "type": "complex",
             "multiValued": false,
-            "description": "The user's manager, referencing the id of the manager's User resource.",
+            "description": "The user’s manager, referencing the `id` of the manager’s `User` resource.",
             "required": false,
             "subAttributes": [
               {
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
-                "description": "The id of the manager's User resource. Not a userName or display name. Required when manager is set. Empty string clears the manager.",
+                "description": "The `id` of the manager’s `User` resource, not a `userName` or `displayName`. Required when `manager` is set. An empty string clears the manager.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -1050,7 +1050,7 @@
                   "User"
                 ],
                 "multiValued": false,
-                "description": "The URI of the manager's User resource. Set by the service provider.",
+                "description": "The URI of the manager’s `User` resource. Set by the service provider.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readOnly",
@@ -1061,7 +1061,7 @@
                 "name": "displayName",
                 "type": "string",
                 "multiValued": false,
-                "description": "The display name of the manager. Read-only.",
+                "description": "The manager’s name. `readOnly`.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readOnly",
@@ -1082,13 +1082,13 @@
       {
         "id": "urn:ietf:params:scim:schemas:custom:2.0:Role",
         "name": "Role",
-        "description": "Endpoint role used for the user roles attribute",
+        "description": "Roles supported by the endpoint. These are used as a lookup catalog for managing the user’s roles attribute.",
         "attributes": [
           {
             "name": "id",
             "type": "string",
             "multiValued": false,
-            "description": "The unique identifier for the role.",
+            "description": "The role’s unique identifier.",
             "required": true,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1099,7 +1099,7 @@
             "name": "displayName",
             "type": "string",
             "multiValued": false,
-            "description": "A human-readable name for the role.",
+            "description": "The role’s name.",
             "required": false,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1110,7 +1110,7 @@
             "name": "type",
             "type": "string",
             "multiValued": false,
-            "description": "A label indicating the role's function.",
+            "description": "A tag used to categorize the role",
             "required": false,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1126,13 +1126,13 @@
       {
         "id": "urn:ietf:params:scim:schemas:custom:2.0:Entitlement",
         "name": "Entitlement",
-        "description": "Endpoint entitlement used for the user entitlements attribute",
+        "description": "Entitlements supported by the endpoint. These are used as a lookup catalog for managing the user’s entitlements attribute.",
         "attributes": [
           {
             "name": "id",
             "type": "string",
             "multiValued": false,
-            "description": "The unique identifier for the entitlement.",
+            "description": "The entitlement’s unique identifier.",
             "required": true,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1143,7 +1143,7 @@
             "name": "displayName",
             "type": "string",
             "multiValued": false,
-            "description": "A human-readable name for the entitlement.",
+            "description": "The entitlement’s name.",
             "required": false,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1154,7 +1154,7 @@
             "name": "type",
             "type": "string",
             "multiValued": false,
-            "description": "A label indicating the entitlement's function.",
+            "description": "A tag used to categorize the entitlement",
             "required": false,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1166,7 +1166,7 @@
             "name": "typeInfo",
             "type": "complex",
             "multiValued": false,
-            "description": "Specifies additional information about the specific type of the entitlement. subAttributes may vary depending on the type of the entitlement.",
+            "description": "Specifies additional information about the entitlement’s type. The `subAttributes` may vary depending on the entitlement type.",
             "required": false,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1184,7 +1184,7 @@
       {
         "id": "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig",
         "name": "Service Provider Configuration",
-        "description": "Schema for representing the service provider's configuration",
+        "description": "Schema for representing the service provider’s configuration",
         "attributes": [
           {
             "name": "documentationUri",
@@ -1193,7 +1193,7 @@
               "external"
             ],
             "multiValued": false,
-            "description": "An HTTP addressable URL pointing to the service provider's human consumable help documentation.",
+            "description": "An HTTP addressable URL pointing to the service provider’s human consumable help documentation.",
             "required": false,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1204,7 +1204,7 @@
             "name": "patch",
             "type": "complex",
             "multiValued": false,
-            "description": "A complex type that specifies PATCH configuration options.",
+            "description": "A complex type that specifies `PATCH` configuration options.",
             "required": true,
             "returned": "default",
             "mutability": "readOnly",
@@ -1224,7 +1224,7 @@
             "name": "bulk",
             "type": "complex",
             "multiValued": false,
-            "description": "A complex type that specifies BULK configuration options.",
+            "description": "A complex type that specifies `BULK` configuration options.",
             "required": true,
             "returned": "default",
             "mutability": "readOnly",
@@ -1264,7 +1264,7 @@
             "name": "filter",
             "type": "complex",
             "multiValued": false,
-            "description": "A complex type that specifies FILTER options.",
+            "description": "A complex type that specifies `FILTER` options.",
             "required": true,
             "returned": "default",
             "mutability": "readOnly",
@@ -1343,7 +1343,7 @@
                 "name": "name",
                 "type": "string",
                 "multiValued": false,
-                "description": "The common authentication scheme name; e.g., HTTP Basic.",
+                "description": "The common authentication scheme name; e.g., `HTTP Basic`.",
                 "required": true,
                 "caseExact": false,
                 "mutability": "readOnly",
@@ -1368,7 +1368,7 @@
                   "external"
                 ],
                 "multiValued": false,
-                "description": "An HTTP addressable URL pointing to the Authentication Scheme's specification.",
+                "description": "An HTTP-addressable URL pointing to the authentication scheme’s specification.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readOnly",
@@ -1382,7 +1382,7 @@
                   "external"
                 ],
                 "multiValued": false,
-                "description": "An HTTP addressable URL pointing to the Authentication Scheme's usage documentation.",
+                "description": "An HTTP-addressable URL pointing to the authentication scheme’s usage documentation.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readOnly",
@@ -1402,7 +1402,7 @@
             "name": "id",
             "type": "string",
             "multiValued": false,
-            "description": "The resource type's server unique id. May be the same as the 'name' attribute.",
+            "description": "The resource type’s server-unique `id`. It may be the same as its `name`.",
             "required": false,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1413,7 +1413,7 @@
             "name": "name",
             "type": "string",
             "multiValued": false,
-            "description": "The resource type name. When applicable service providers MUST specify the name specified in the core schema specification; e.g., User",
+            "description": "The resource type name. When applicable, service providers MUST use the name specified in the core schema specification; e.g., `User`.",
             "required": true,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1424,7 +1424,7 @@
             "name": "description",
             "type": "string",
             "multiValued": false,
-            "description": "The resource type's human readable description. When applicable service providers MUST specify the description specified in the core schema specification.",
+            "description": "The resource type’s human-readable description. When applicable, service providers MUST use the description specified in the core schema specification.",
             "required": false,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1438,7 +1438,7 @@
               "uri"
             ],
             "multiValued": false,
-            "description": "The resource type's HTTP addressable endpoint relative to the Base URL; e.g., /Users",
+            "description": "The resource type’s HTTP-addressable endpoint relative to the base URL; e.g., `/Users`.",
             "required": true,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1463,7 +1463,7 @@
             "name": "schemaExtensions",
             "type": "complex",
             "multiValued": false,
-            "description": "A list of URIs of the resource type's schema extensions",
+            "description": "A list of URIs of the resource type’s schema extensions",
             "required": true,
             "mutability": "readOnly",
             "returned": "default",
@@ -1486,7 +1486,7 @@
                 "name": "required",
                 "type": "boolean",
                 "multiValued": false,
-                "description": "A Boolean value that specifies whether the schema extension is required for the resource type. If true, a resource of this type MUST include this schema extension and include any attributes declared as required in this schema extension. If false, a resource of this type MAY omit this schema extension.",
+                "description": "A Boolean value that specifies whether the schema extension is required for the resource type. If `true`, a resource of this type MUST include this schema extension and any attributes declared as required in it. If `false`, a resource of this type MAY omit this schema extension.",
                 "required": true,
                 "mutability": "readOnly",
                 "returned": "default"
@@ -1504,7 +1504,7 @@
             "name": "id",
             "type": "string",
             "multiValued": false,
-            "description": "The unique URI of the schema. When applicable service providers MUST specify the URI specified in the core schema specification",
+            "description": "The unique URI of the schema. When applicable, service providers MUST use the URI specified in the core schema specification.",
             "required": true,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1515,7 +1515,7 @@
             "name": "name",
             "type": "string",
             "multiValued": false,
-            "description": "The schema's human readable name. When applicable service providers MUST specify the name specified in the core schema specification; e.g., User",
+            "description": "The schema’s human-readable name. When applicable, service providers MUST use the name specified in the core schema specification; e.g., `User`.",
             "required": true,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1526,7 +1526,7 @@
             "name": "description",
             "type": "string",
             "multiValued": false,
-            "description": "The schema's human readable description. When applicable service providers MUST specify the name specified in the core schema specification; e.g., User",
+            "description": "The schema’s human-readable description. When applicable, service providers MUST use the description specified in the core schema specification.",
             "required": false,
             "caseExact": false,
             "mutability": "readOnly",
@@ -1546,7 +1546,7 @@
                 "name": "name",
                 "type": "string",
                 "multiValued": false,
-                "description": "The attribute's name",
+                "description": "The attribute’s name",
                 "required": true,
                 "caseExact": true,
                 "mutability": "readOnly",
@@ -1557,7 +1557,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "The attribute's data type. Valid values include: 'string', 'complex', 'boolean', 'decimal', 'integer', 'dateTime', 'reference'. ", "required": true,
+                "description": "The attribute’s data type. Valid values include `string`, `complex`, `boolean`, `decimal`, `integer`, `dateTime`, and `reference`.", "required": true,
                 "canonicalValues": [
                   "string",
                   "complex",
@@ -1576,7 +1576,7 @@
                 "name": "multiValued",
                 "type": "boolean",
                 "multiValued": false,
-                "description": "Boolean indicating an attribute's plurality.",
+                "description": "Boolean indicating an attribute’s plurality.",
                 "required": true,
                 "mutability": "readOnly",
                 "returned": "default"
@@ -1605,7 +1605,7 @@
                 "name": "canonicalValues",
                 "type": "string",
                 "multiValued": true,
-                "description": "A collection of canonical values.  When applicable service providers MUST specify the canonical types specified in the core schema specification; e.g., 'work', 'home'.",
+                "description": "A collection of canonical values. When applicable, service providers MUST specify the canonical values defined in the core schema specification; e.g., `work` and `home`.",
                 "required": false,
                 "caseExact": true,
                 "mutability": "readOnly",
@@ -1642,7 +1642,7 @@
                 "name": "returned",
                 "type": "string",
                 "multiValued": false,
-                "description": "Indicates when an attribute is returned in a response (e.g., to a query).",
+                "description": "Indicates when an attribute is returned in a response. Values include `always`, `never`, `default`, and `request`.",
                 "required": false,
                 "caseExact": true,
                 "mutability": "readOnly",
@@ -1675,7 +1675,7 @@
                 "name": "referenceTypes",
                 "type": "string",
                 "multiValued": true,
-                "description": "Used only with an attribute of type 'reference'. Specifies a SCIM resourceType that a reference attribute MAY refer to. e.g., User",
+                "description": "Used only with an attribute of type `reference`. Specifies a SCIM resource type that a reference attribute MAY refer to; e.g., `User`.",
                 "required": false,
                 "caseExact": true,
                 "mutability": "readOnly",
@@ -1695,7 +1695,7 @@
                     "name": "name",
                     "type": "string",
                     "multiValued": false,
-                    "description": "The attribute's name",
+                    "description": "The attribute’s name",
                     "required": true,
                     "caseExact": true,
                     "mutability": "readOnly",
@@ -1706,7 +1706,7 @@
                     "name": "type",
                     "type": "string",
                     "multiValued": false,
-                    "description": "The attribute's data type. Valid values include: 'string', 'complex', 'boolean', 'decimal', 'integer', 'dateTime', 'reference'. ",
+                    "description": "The attribute’s data type. Valid values include: `string`, `complex`, `boolean`, `decimal`, `integer`, `dateTime`, `reference`. ",
                     "required": true,
                     "caseExact": false,
                     "mutability": "readOnly",
@@ -1726,7 +1726,7 @@
                     "name": "multiValued",
                     "type": "boolean",
                     "multiValued": false,
-                    "description": "Boolean indicating an attribute's plurality.",
+                    "description": "Boolean indicating an attribute’s plurality.",
                     "required": true,
                     "mutability": "readOnly",
                     "returned": "default"
@@ -1755,7 +1755,7 @@
                     "name": "canonicalValues",
                     "type": "string",
                     "multiValued": true,
-                    "description": "A collection of canonical values.  When applicable service providers MUST specify the canonical types specified in the core schema specification; e.g., 'work', 'home'.",
+                    "description": "A collection of canonical values. When applicable, service providers MUST specify the canonical values defined in the core schema specification; e.g., `work` and `home`.",
                     "required": false,
                     "caseExact": true,
                     "mutability": "readOnly",
@@ -1792,7 +1792,7 @@
                     "name": "returned",
                     "type": "string",
                     "multiValued": false,
-                    "description": "Indicates when an attribute is returned in a response (e.g., to a query).",
+                    "description": "Indicates when an attribute is returned in a response. Values include `always`, `never`, `default`, and `request`.",
                     "required": false,
                     "caseExact": true,
                     "mutability": "readOnly",
@@ -1825,7 +1825,7 @@
                     "name": "referenceTypes",
                     "type": "string",
                     "multiValued": false,
-                    "description": "Used only with an attribute of type 'reference'. Specifies a SCIM resourceType that a reference attribute MAY refer to. e.g., 'User'",
+                    "description": "Used only with an attribute of type `reference`. Specifies a SCIM `resourceType` that a reference attribute MAY refer to; e.g., `User`.",
                     "required": false,
                     "caseExact": true,
                     "mutability": "readOnly",
@@ -1844,8 +1844,8 @@
 "TestmodeUsers": {
   "Resources": [
     {
-      "id": "bjensen",
-      "userName": "bjensen",
+      "id": "id-of-barbara.jane.jensen",
+      "userName": "barbara.jane.jensen",
       "name": {
         "formatted": "Ms. Barbara J Jensen, III",
         "familyName": "Jensen",
@@ -1854,12 +1854,12 @@
         "honorificPrefix": "Ms.",
         "honorificSuffix": "III"
       },
-      "displayName": "Babs Jensen",
+      "displayName": "Barbara Jane Jensen",
       "nickName": "Babs",
-      "profileUrl": "https://login.example.com/bjensen",
+      "profileUrl": "https://login.example.com/barbara.jane.jensen",
       "emails": [
         {
-          "value": "bjensen@example.com",
+          "value": "barbara.jane.jensen@example.com",
           "type": "work",
           "primary": true
         },
@@ -1901,7 +1901,9 @@
       ],
       "roles": [
         {
-        "value": "Role-A"
+        "display": "User Administrator",
+        "type": "iga",
+        "value": "USER_ADMINISTRATOR"
         }
       ],
       "ims": [
@@ -1924,8 +1926,9 @@
       ],
       "entitlements": [
         {
-        "value": "bjensen entitlement",
-        "type": "newentitlement"
+        "display": "Microsoft Entra ID Governance",
+        "value": "ENTRA_ID_GOVERNANCE",
+        "type": "license"
         }
       ],
       "userType": "Employee",
@@ -1947,8 +1950,8 @@
         "division": "Theme Park",
         "department": "Tour Operations",
         "manager": {
-          "value": "jsmith",
-          "$ref": "../Users/jsmith",
+          "value": "id-of-john.smith",
+          "$ref": "../Users/id-of-john.smith",
           "displayName": "John Smith"
         }
       },
@@ -1958,12 +1961,12 @@
         "lastModified": "2011-05-13T04:42:34Z",
         "version": "W\/\"3694e05e9dff591\"",
         "location":
-          "https://example.com/v2/Users/bjensen"
+          "https://example.com/v2/Users/id-of-barbara.jane.jensen"
       }
     },
     {
-      "id": "jsmith",
-      "userName": "jsmith",
+      "id": "id-of-john.smith",
+      "userName": "john.smith",
       "name": {
         "formatted": "Mr. John Smith",
         "familyName": "Smith",
@@ -1977,7 +1980,7 @@
       "profileUrl": "https://login.example.com/johns",
       "emails": [
         {
-          "value": "jsmith@example.com",
+          "value": "john.smith@example.com",
           "type": "work",
           "primary": true
         },
@@ -2025,7 +2028,9 @@
       ],
       "roles": [
         {
-        "value": "Role-B"
+        "display": "Customer Support",
+        "type": "iga",
+        "value": "CUSTOMER_SUPPORT"
         }
       ],
       "photos": [
@@ -2042,8 +2047,9 @@
       ],
       "entitlements": [
         {
-        "value": "jsmith entitlement",
-        "type": "newentitlement"
+        "display": "Office 365 E1",
+        "value": "STANDARDPACK",
+        "type": "license"
         }
       ],
       "userType": "Employee",
@@ -2065,8 +2071,8 @@
         "division": "Theme Park",
         "department": "Tour Operations",
         "manager": {
-          "value": "bjensen",
-          "displayName": "Babs Jensen"
+          "value": "id-of-barbara.jane.jensen",
+          "displayName": "Barbara Jane Jensen"
         }
       },
       "meta": {
@@ -2075,7 +2081,7 @@
         "lastModified": "2016-05-13T04:42:34Z",
         "version": "W\/\"3694e05e9dff591\"",
         "location":
-          "https://example.com/v2/Users/jsmith"
+          "https://example.com/v2/Users/id-of-john.smith"
       }
     }
   ]
@@ -2085,27 +2091,27 @@
   "Resources": [
     {
     "displayName": "Admins",
-    "id": "Admins",
+    "id": "id-of-admins",
     "members": [
       {
-        "value": "bjensen",
-        "display": "Babs Jensen"
+        "value": "id-of-barbara.jane.jensen",
+        "display": "Barbara Jane Jensen"
       }
     ],
     "meta": {
       "resourceType": "Group",
       "created": "2010-01-23T04:56:22Z",
       "lastModified": "2011-05-13T04:42:34Z",
-      "location": "https://example.com/v2/Groups/Admins",
+      "location": "https://example.com/v2/Groups/id-of-admins",
       "version": "W\/\"3694e05e9dff592\""
     }
   },
   {
     "displayName": "Employees",
-    "id": "Employees",
+    "id": "id-of-employees",
     "members": [
       {
-        "value": "jsmith",
+        "value": "id-of-john.smith",
         "display": "John Smith"
       }
     ],
@@ -2113,7 +2119,7 @@
       "resourceType": "Group",
       "created": "2010-01-23T04:56:22Z",
       "lastModified": "2011-05-13T04:42:34Z",
-      "location": "https://example.com/v2/Groups/Employees",
+      "location": "https://example.com/v2/Groups/id-of-employees",
       "version": "W\/\"3694e05e9dff592\""
     }
   }
