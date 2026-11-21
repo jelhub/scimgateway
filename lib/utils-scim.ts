@@ -35,13 +35,17 @@ export function convertedScim(obj: any, multiValueTypes: string[]): any {
     if (Array.isArray(scimdata[key]) && (scimdata[key].length > 0)) {
       if (key === 'groups' || key === 'members' || key === 'roles') {
         scimdata[key].forEach(function (element, index) {
+          if (typeof element !== 'object' || element === null) return
           if (element.value) scimdata[key][index].value = decodeURIComponent(element.value)
+          if (element.operation === 'remove') scimdata[key][index].operation = 'delete'
         })
       } else if (multiValueTypes.includes(key)) { // "type converted object" // groups, roles, member and scim.excludeTypeConvert are not included
         const tmpAddr: any = []
         scimdata[key].forEach(function (element) {
-          if (!element.type) element.type = 'undefined' // "none-type"
-          if (element.operation && element.operation === 'delete') { // add as delete if same type not included as none delete
+          if (typeof element !== 'object' || element === null) return
+          if (element.type === undefined) element.type = 'undefined' // "none-type"
+          if (element.operation === 'remove') element.operation = 'delete'
+          if (element.operation === 'delete') { // add as delete if same type not included as none delete
             const arr = scimdata[key].filter((obj: Record<string, any>) => obj.type && obj.type === element.type && !obj.operation)
             if (arr.length < 1) {
               if (!newMulti[key]) newMulti[key] = {}
