@@ -441,12 +441,23 @@ export const stripObj = (obj: Record<string, any>, attributes?: string, excluded
     arrRet = arrObj.map((obj) => {
       const ret: Record<string, any> = {}
       for (let i = 0; i < arrAttr.length; i++) {
+        if (arrAttr[i].startsWith('urn:')) { // schema extension attribute e.g., urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:department
+          const pos = arrAttr[i].lastIndexOf(':')
+          const attrs = arrAttr[i].substring(pos + 1)
+          const schema = arrAttr[i].substring(0, pos).replaceAll('.', '##')
+          arrAttr[i] = schema + '.' + attrs
+        }
         const attr = arrAttr[i].split('.') // title / name.familyName / emails.value
+        if (attr[0].startsWith('urn:')) attr[0] = attr[0].replaceAll('##', '.')
         if (Object.hasOwn(obj, attr[0])) {
           if (attr.length === 1) ret[attr[0]] = obj[attr[0]]
           else if (Object.hasOwn(obj[attr[0]], attr[1])) { // name.familyName
             if (!ret[attr[0]]) ret[attr[0]] = {}
             ret[attr[0]][attr[1]] = obj[attr[0]][attr[1]]
+            if (attr.length > 2 && Object.hasOwn(obj[attr[0]][attr[1]], attr[2])) {
+              ret[attr[0]][attr[1]] = {}
+              ret[attr[0]][attr[1]][attr[2]] = obj[attr[0]][attr[1]][attr[2]]
+            }
           } else if (Array.isArray(obj[attr[0]])) { // emails.value / phoneNumbers.type
             if (!ret[attr[0]]) ret[attr[0]] = []
             const arr = obj[attr[0]]
