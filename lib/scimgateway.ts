@@ -412,7 +412,7 @@ export class ScimGateway {
     this.logger = logger
 
     const oAuthTokenExpire = 3600 // seconds
-    let pwErrCount = 0
+    let authErr: Record<string, any> = {}
     let isMailLock = false
     let ipAllowListChecker: any
     let server: any
@@ -861,10 +861,13 @@ export class ScimGateway {
       }
       if (authType === 'Bearer') ctx.response.headers.set('www-authenticate', 'Bearer realm=""')
       else ctx.response.headers.set('www-authenticate', 'Basic realm=""')
-      if (pwErrCount < 3) pwErrCount += 1
-      else { // delay brute force attempts
+      if (!authErr[ctx.ip]) authErr[ctx.ip] = { errCount: 0 }
+      authErr[ctx.ip].errCount += 1
+      authErr[ctx.ip].errDate = Date.now()
+      authErr[ctx.ip].authType = authType
+      if (authErr[ctx.ip].errCount > 3) { // delay brute-force attempts
         const delay = (this.config.scimgateway.idleTimeout || 120) - 5
-        logger.error(`${gwName} ${ctx.request.url} => max authentication failures reached, delaying response with ${delay} seconds to prevent brute force`, { baseEntity: ctx?.routeObj?.baseEntity })
+        logger.error(`${gwName} ${ctx.request.url} => Maximum authentication failures reached for client ${ctx.ip} using authentication ${authType}, delaying response by ${delay} seconds to prevent brute-force attacks`, { baseEntity: ctx?.routeObj?.baseEntity })
         await new Promise((resolve) => {
           setTimeout(() => { resolve(null) }, 1000 * delay)
         })
@@ -1390,15 +1393,15 @@ export class ScimGateway {
         if (!token) {
           err = 'invalid_client'
           errDescr = 'incorrect or missing client_id/client_secret or baseEntity'
-          if (pwErrCount < 3) {
-            pwErrCount += 1
-          } else { // delay brute force attempts
+          if (!authErr[ctx.ip]) authErr[ctx.ip] = { errCount: 0 }
+          authErr[ctx.ip].errCount += 1
+          authErr[ctx.ip].errDate = Date.now()
+          authErr[ctx.ip].authType = authType
+          if (authErr[ctx.ip].errCount > 3) { // delay brute-force attempts
             const delay = (this.config.scimgateway.idleTimeout || 120) - 5
-            logger.error(`${gwName} [oauth] ${ctx.origin + ctx.path} ${errDescr} => delaying response with ${delay} seconds to prevent brute force`)
+            logger.error(`${gwName} [oauth] ${ctx.origin + ctx.path} ${errDescr} => Maximum authentication failures reached for client ${ctx.ip} using authentication ${authType}, delaying response by ${delay} seconds to prevent brute-force attacks`, { baseEntity: ctx?.routeObj?.baseEntity })
             await new Promise((resolve) => {
-              setTimeout(() => {
-                resolve(ctx)
-              }, 1000 * delay)
+              setTimeout(() => { resolve(null) }, 1000 * delay)
             })
             ctx.response.status = 401
             return
