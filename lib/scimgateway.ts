@@ -25,7 +25,7 @@ import * as utils from './utils.ts'
 import * as utilsScim from './utils-scim.ts'
 import * as stream from './scim-stream.js'
 export * from './helper-rest.ts'
-import LicenseData from './azure-license-mapping.json'
+import LicenseData from './azure-license-mapping.json' with { type: 'json' }
 export { LicenseData }
 // @ts-expect-error: cannot find declaration
 import hycoPkg from 'hyco-https'
@@ -948,7 +948,7 @@ export class ScimGateway {
                   if (mapSchema.canonicalValues) attr.canonicalValues = mapSchema.canonicalValues
                   if (mapSchema.required !== undefined) attr.required = mapSchema.required
                   if (item.type === 'complexObject' || item.type === 'complexArray') {
-                    for (const el in mapSchema) { // support like: roles.type.canonicalValues: ["Permanent","Eligible"]
+                    for (const el in mapSchema) { // support like: roles.type.canonicalValues: ["permanent","eligible"]
                       const arrAttr = el.split('.')
                       if (arrAttr.length < 3 || attr.name !== arrAttr[0] || !attr.subAttributes) continue
                       const obj = attr.subAttributes.find((sub: any) => sub.name === arrAttr[1])
@@ -1639,7 +1639,7 @@ export class ScimGateway {
 
       let err
       if (handle.getMethod === 'getEntitlements' || handle.getMethod === 'getRoles') {
-        if (typeof (this as any)[handle.getMethod] !== 'function') err = new Error(`plugin method ${handle.getMethod}() not implemented`)
+        if (typeof (this as any)[handle.getMethod] !== 'function') err = new Error(`plugin method ${handle.getMethod}() not implemented. The client may independently define the 'type', 'display', and 'value' to be used.`)
       }
       if (!err && getObj.attribute) {
         if (this.multiValueTypes.includes(getObj.attribute) || getObj.attribute === 'roles') {
@@ -2010,17 +2010,93 @@ export class ScimGateway {
         return
       }
       delete jsonBody.id // in case included in request
-      const addGrps: any = []
+      const groups: Record<string, any>[] = []
       try {
-        if (scimdata.groups && Array.isArray(scimdata.groups) && handle.createMethod === 'createUser') {
-          if (!this.config.scimgateway.scim.groupMemberOfUser) {
+        if (handle.createMethod === 'createUser') {
+          if (scimdata.groups && Array.isArray(scimdata.groups) && !this.config.scimgateway.scim.groupMemberOfUser) {
+            if (typeof (this as any)[handler.groups.modifyMethod] !== 'function') throw new Error(`groups cannot be managed - plugin method ${handler.groups.modifyMethod}() is not implemented.`)
             for (let i = 0; i < scimdata.groups.length; i++) {
               if (!scimdata.groups[i].value) continue
-              addGrps.push(decodeURIComponent(scimdata.groups[i].value))
+              const obj: any = structuredClone(scimdata.groups[i])
+              obj.value = decodeURIComponent(obj.value)
+              groups.push(obj)
             }
             delete scimdata.groups
+
+            if (groups.length > 0) { // verify groups exist before creating user
+              const searchGroups = async (groupId: string) => {
+                return await (this as any)[handler.groups.getMethod](baseEntity, { attribute: 'id', operator: 'eq', value: groupId }, ['id', 'displayName'], ctx.passThrough)
+              }
+              const res = await Promise.allSettled(groups.map((group: Record<string, any>) => searchGroups(group.value)))
+              const groupsNotFound: string[] = []
+              res.forEach((el: Record<string, any>, index) => {
+                if (el?.status === 'rejected' || !el?.value?.Resources || el.value.Resources.length !== 1) groupsNotFound.push(`${'`' + groups[index].value + '`'}`)
+                else if (el.value.Resources[0].displayName && el.value.Resources[0].id === groups[index].value) groups[index].display = el.value.Resources[0].displayName
+              })
+              if (groupsNotFound.length > 0) {
+                const errMsg = `Error: User’s ${'`groups`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id = '}${groupsNotFound.join(', ')}.`
+                throw new Error(errMsg)
+              }
+              res.forEach((el: Record<string, any>, index) => { // add the group’s displayName for response purposes
+                const grpId = el.value?.Resources[0]?.id
+                const grpDisplayName = el.value?.Resources[0]?.displayName
+                if (groups[index].value === grpId && grpDisplayName) groups[index].display = grpDisplayName
+              })
+            }
+          }
+
+          // if manager, verify manager exist before creating user
+          let manager = { managerId: '', key: '' }
+          let isEntra = false
+          for (const key of Object.keys(scimdata)) {
+            if ((key.indexOf(':extension:') || key === 'manager') && typeof (scimdata[key]) === 'object' && scimdata[key] !== null) {
+              if (scimdata[key]?.managerId) { // Entra ID
+                manager.managerId = scimdata[key]?.managerId
+                manager.key = 'managerId'
+                if (scimdata.passwordProfile) isEntra = true
+                break
+              } else if (scimdata[key]?.manager && typeof scimdata[key].manager === 'object' && scimdata[key].manager !== null) {
+                if (scimdata[key].manager.managerId) {
+                  manager.managerId = scimdata[key].manager.managerId // SCIM v1.1
+                  manager.key = 'managerId'
+                } else if (scimdata[key].manager.value) {
+                  manager.managerId = scimdata[key].manager.value // SCIM v2.0
+                  manager.key = 'value'
+                }
+                break
+              }
+            }
+          }
+          if (manager.managerId) {
+            let obj = { attribute: 'id', operator: 'eq', value: manager.managerId }
+            if (isEntra) obj.attribute = 'userName'
+            let res = await (this as any)[handle.getMethod](baseEntity, obj, ['id', 'userName'], ctx.passThrough)
+            if (!res?.Resources || !Array.isArray(res.Resources) || res.Resources.length !== 1) {
+              const errMsg = `Error: User’s manager does not exist at the target. ${'`manager.' + manager.key + '=' + obj.value + '`'} does not reference a valid ${'`' + obj.attribute + '`'} of the manager. There are no target users matching ${'`' + obj.attribute + '=' + obj.value + '`'}.`
+              throw new Error(errMsg)
+            }
+          }
+        } else if (handle.createMethod === 'createGroup') {
+          // check if members exists
+          if (scimdata.members && Array.isArray(scimdata.members) && scimdata.members.length > 0) {
+            const searchUsers = async (userId: string) => {
+              return await (this as any)[handler.users.getMethod](baseEntity, { attribute: 'id', operator: 'eq', value: userId }, ['id'], ctx.passThrough)
+            }
+            const results = await Promise.allSettled(scimdata.members.map((membersObj: Record<string, any>) => searchUsers(membersObj.value)))
+            const userIdNotFound: string[] = []
+            results.forEach((result: any, index: number) => {
+              if (result.status === 'rejected') return
+              if (result?.value?.Resources && Array.isArray(result.value.Resources) && result.value.Resources.length !== 1) {
+                userIdNotFound.push(scimdata.members[index].value)
+              }
+            })
+            if (userIdNotFound.length > 0) {
+              const errMsg = `Error: Groups’s ${'`members`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id = '}${userIdNotFound.join(', ')}.`
+              throw new Error(errMsg)
+            }
           }
         }
+
         logger.debug(`${gwName} calling ${handle.createMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
         const response = await (this as any)[handle.createMethod](baseEntity, scimdata, ctx.passThrough)
 
@@ -2064,19 +2140,19 @@ export class ScimGateway {
         delete jsonBody.password
 
         const eTag = utils.getEtag(jsonBody)
-        if (addGrps.length > 0 && handle.createMethod === 'createUser') { // add group membership
+        if (groups.length > 0 && handle.createMethod === 'createUser') { // add group membership
           const addGroups = async (groupId: string) => {
             return await (this as any)[handler.groups.modifyMethod](baseEntity, groupId, { members: [{ value: decodeURIComponent(jsonBody.id) }] }, ctx.passThrough)
           }
-          const res = await Promise.allSettled(addGrps.map((groupId: string) => addGroups(groupId)))
+          const res = await Promise.allSettled(groups.map((group: Record<string, any>) => addGroups(group.value)))
           const errAdd = res.filter(result => result.status === 'rejected').map(result => result.reason.message)
           if (errAdd.length > 0) {
             const errMsg = `user created, but there are group membership errors: ${errAdd.join(', ')}`
             throw new Error(errMsg)
           }
           jsonBody.groups = []
-          addGrps.forEach((el: any) => {
-            jsonBody.groups.push({ value: el, type: 'direct' })
+          groups.forEach((el: Record<string, any>) => {
+            jsonBody.groups.push({ value: el.value, display: el.display, type: 'direct' })
           })
         }
 
@@ -2289,17 +2365,16 @@ export class ScimGateway {
         return
       }
       delete scimdata.id
-      const groups: any = []
-      if (scimdata.groups && Array.isArray(scimdata.groups) && handle.modifyMethod === 'modifyUser') {
-        if (!this.config.scimgateway.scim.groupMemberOfUser) {
-          for (let i = 0; i < scimdata.groups.length; i++) {
-            if (!scimdata.groups[i].value) continue
-            const obj: any = structuredClone(scimdata.groups[i])
-            obj.value = decodeURIComponent(obj.value)
-            groups.push(obj)
-          }
-          delete scimdata.groups
+      const groups: Record<string, any>[] = []
+      if (scimdata.groups && Array.isArray(scimdata.groups) && handle.modifyMethod === 'modifyUser' && !this.config.scimgateway.scim.groupMemberOfUser) {
+        if (typeof (this as any)[handler.groups.modifyMethod] !== 'function') throw new Error(`groups cannot be managed - plugin method ${handler.groups.modifyMethod}() is not implemented.`)
+        for (let i = 0; i < scimdata.groups.length; i++) {
+          if (!scimdata.groups[i].value) continue
+          const obj: any = structuredClone(scimdata.groups[i])
+          obj.value = decodeURIComponent(obj.value)
+          groups.push(obj)
         }
+        delete scimdata.groups
       }
       try {
         let res: any
@@ -2318,8 +2393,8 @@ export class ScimGateway {
             if (groupsObj.operation) memberObj.operation = groupsObj.operation
             return await (this as any)[handler.groups.modifyMethod](baseEntity, groupId, { members: [memberObj] }, ctx.passThrough)
           }
-          const res = await Promise.allSettled(groups.map((groupsObj: Record<string, any>) => updateGroup(groupsObj)))
-          const errRes = res.filter(result => result.status === 'rejected').map(result => result.reason.message)
+          const results = await Promise.allSettled(groups.map((groupsObj: Record<string, any>) => updateGroup(groupsObj)))
+          const errRes = results.filter(result => result.status === 'rejected').map(result => result.reason.message)
           for (let i = 0; i < errRes.length; i++) {
             const errMsg = errRes[i]
             const [_, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, new Error(errMsg))
@@ -2363,7 +2438,6 @@ export class ScimGateway {
             if (arrResolve.length > 1) res.Resources[0].groups = arrResolve[1]
             // we might have endpoint like Entra ID that hasn’t caught up yet due to internal sync
             // ensure returned object reflects changes by doing a merge with patch payload (convertedScim) 
-            if (finalScimdata?.mfa) delete finalScimdata.mfa // writeOnly mfa.reset
             if (groups && groups.length > 0) {
               finalScimdata.groups = groups
             }
@@ -2373,32 +2447,64 @@ export class ScimGateway {
         }
         return response(res)
       } catch (err: any) {
-        // check if error caused by: add existing member or remove none existing member => should not be an error
-        if (finalScimdata.members && Array.isArray(finalScimdata.members) && finalScimdata.members.length > 0
-          && Object.keys(finalScimdata).length === 1 && handle.modifyMethod === 'modifyGroup') {
-          const ob = { attribute: 'id', operator: 'eq', value: id }
-          logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
-          let res: any
-          try {
-            if (typeof (this as any)[handle.getMethod] === 'function') {
-              res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
-            }
-          } catch (e) { }
-          if (res?.Resources && Array.isArray(res.Resources) && res.Resources[0]?.members && Array.isArray(res.Resources[0].members)) {
-            const currentMembers = res.Resources[0].members
-            let isOk: boolean = true
-            finalScimdata.members.forEach((member: any) => {
-              const found = currentMembers.find((el: Record<string, any>) => {
-                return (decodeURIComponent(el.value) === member.value)
-              })
-              if ((found && member.operator === 'delete') || (!found && member.operation !== 'delete')) {
-                isOk = false
-                return
+        if (handle.modifyMethod === 'modifyGroup') {
+          // check if error caused by: add existing member or remove none existing member => should not be an error
+          if (finalScimdata.members && Array.isArray(finalScimdata.members) && finalScimdata.members.length > 0 && Object.keys(finalScimdata).length === 1) {
+            const ob = { attribute: 'id', operator: 'eq', value: id }
+            logger.debug(`${gwName} calling ${handle.getMethod}`, { baseEntity: ctx?.routeObj?.baseEntity })
+            let res: any
+            try {
+              if (typeof (this as any)[handle.getMethod] === 'function') {
+                res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
               }
+            } catch (e) { }
+            if (res?.Resources && Array.isArray(res.Resources) && res.Resources[0]?.members && Array.isArray(res.Resources[0].members)) {
+              const currentMembers = res.Resources[0].members
+              let isOk: boolean = true
+              const userArr: string[] = []
+              finalScimdata.members.forEach((member: any) => {
+                const found = currentMembers.find((el: Record<string, any>) => {
+                  return (decodeURIComponent(el.value) === member.value)
+                })
+                if ((found && member.operator === 'delete') || (!found && member.operation !== 'delete')) {
+                  isOk = false
+                  userArr.push(member.value)
+                  return
+                }
+              })
+              if (isOk) {
+                ctx.response.status = 204
+                return
+              } else { // check if members exist
+                const searchUsers = async (userId: string) => {
+                  return await (this as any)[handler.users.getMethod](baseEntity, { attribute: 'id', operator: 'eq', value: userId }, ['id'], ctx.passThrough)
+                }
+                const results = await Promise.allSettled(userArr.map(userId => searchUsers(userId)))
+                const userIdNotFound: string[] = []
+                results.forEach((result: any, index: number) => {
+                  if (result.status === 'rejected') return
+                  if (result?.value?.Resources && Array.isArray(result.value.Resources) && result.value.Resources.length !== 1) {
+                    userIdNotFound.push(userArr[index])
+                  }
+                })
+                const errMsg = `Error: Groups’s ${'`members`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id = '}${userIdNotFound.join(', ')}.`
+                err.message = errMsg + ' Target message: ' + err.message
+              }
+            }
+          }
+        } else if (handle.modifyMethod === 'modifyUser') {
+          if (groups.length > 0) { // verify groups exist
+            const searchGroups = async (groupId: string) => {
+              return await (this as any)[handler.groups.getMethod](baseEntity, { attribute: 'id', operator: 'eq', value: groupId }, ['id', 'displayName'], ctx.passThrough)
+            }
+            const res = await Promise.allSettled(groups.map((group: Record<string, any>) => searchGroups(group.value)))
+            const groupsNotFound: string[] = []
+            res.forEach((el: Record<string, any>, index) => {
+              if (el?.status === 'rejected' || !el?.value?.Resources || el.value.Resources.length !== 1) groupsNotFound.push(`${'`' + groups[index].value + '`'}`)
             })
-            if (isOk) {
-              ctx.response.status = 204
-              return
+            if (groupsNotFound.length > 0) {
+              const errMsg = `Error: User’s ${'`groups`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id = '}${groupsNotFound.join(', ')}.`
+              err.message = errMsg + ' Target message: ' + err.message
             }
           }
         }
