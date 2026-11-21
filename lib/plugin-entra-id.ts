@@ -14,8 +14,8 @@
 // Notes: For Symantec/Broadcom/CA Provisioning - Use ConnectorXpress, import metafile
 //        "node_modules\scimgateway\config\resources\Azure - ScimGateway.xml" for creating endpoint
 //
-//        'GET /Roles' retrieves a list of all available roles specified by type (Permanent or Eligible) and corresponds with the users attribute roles.
-//        'GET /Entitlements' retrieves a list of all available entitlements specified by type (License or AccessPackage) and corresponds with the users attribute entitlements.
+//        'GET /Roles' retrieves a list of all available roles specified by type (permanent or eligible) and corresponds with the users attribute roles.
+//        'GET /Entitlements' retrieves a list of all available entitlements specified by type (license or access-package) and corresponds with the users attribute entitlements.
 //
 //        Using "Custom SCIM" attributes defined in configuration endpoint.entity.map
 //        Schema generated according mapping configuration.
@@ -23,10 +23,10 @@
 //          - 'map.user.signInActivity' requires Entra ID Premium license and API permissions 'AuditLog.Read.All'.
 //          - 'map.user.mfa' provides MFA status information and requires API permissions 'UserAuthenticationMethod.Read.All'
 //          - 'map.user.entitlements' relates to Licenses and Access Packages. Access Packages requires API permissions 'EntitlementManagement.ReadWrite.All' 
-//          - 'map.user.roles relates to standard Permanent roles and PIM Permanent and Eligible roles.
+//          - 'map.user.roles relates to standard permanent roles and PIM permanent and eligible roles.
 //            PIM is included on tenant having P2 or Governance License and requires following API permissions:
-//            - PIM Eligible roles requires API permissions 'RoleEligiblitySchedule.ReadWrite.All'
-//            - PIM Permanent roles requires API permissions 'RoleManagement.ReadWrite.Directory'
+//            - PIM eligible roles requires API permissions 'RoleEligiblitySchedule.ReadWrite.All'
+//            - PIM permanent roles requires API permissions 'RoleManagement.ReadWrite.Directory'
 //          - Remove mapping if conditions not met or consider using only 'Read' if no management needed
 //
 // /User                                      SCIM (custom)                       Endpoint (Entra ID)
@@ -60,8 +60,8 @@
 // Office Location                            officeLocation                      officeLocation
 // Proxy Addresses                            proxyAddresses.value                proxyAddresses
 // Groups                                     groups - virtual readOnly           N/A
-// Roles                                      roles                               roles (roleAssignments/roleEligibilitySchedules) - type=Permanent/Eligiable, value=id, display=role display name
-// Entitlements                               entitlements                        entitlements (assignedLicenses) - type=License, value=skuId and display=user-friendly-license-name / type=AccessPackage, value=AP-id and display=AP-displayName
+// Roles                                      roles                               roles (roleAssignments/roleEligibilitySchedules) - type=permanent/eligible, value=id, display=role display name
+// Entitlements                               entitlements                        entitlements (assignedLicenses) - type=license, value=skuId and display=user-friendly-license-name / type=access-package, value=AP-id and display=AP-displayName
 // SignInActivity                             signInActivity                      signInActivity (lastSignInDateTime, lastSuccessfulSignInDateTime and lastNonInteractiveSignInDateTime)
 // MFA                                        mfa                                 mfa (mfa.isMfaCapable and mfa.isLegacyEnabled)
 //
@@ -303,9 +303,9 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
 
           if (config.map.user[arr[0]] && ['complexArray', 'complexObject'].includes(config.map.user[arr[0]]?.type)) {
             if (arr[0] === 'roles') {
-              if (type && type !== 'Permanent' && type !== 'Eligible') throw new Error(`${action} filter error: when using roles.type, the type must be either 'Permanent' or 'Eligible`)
+              if (type && type !== 'permanent' && type !== 'eligible') throw new Error(`${action} filter error: when using roles.type, the type must be either 'permanent' or 'eligible`)
               if (!type && obj.operator === 'pr') obj = { attribute: 'roles.type' } // 'filter=roles pr' - precense => filter all objects having roles
-              const o = await getUsersByRole(baseEntity, obj, (type) ? decodeURIComponent(type) as 'Permanent' | 'Eligible' : undefined, ctx)
+              const o = await getUsersByRole(baseEntity, obj, (type) ? decodeURIComponent(type) as 'permanent' | 'eligible' : undefined, ctx)
               if (!Array.isArray(o) || o.length === 0) return ret
               const fnArr: { fn: () => Promise<any>, index?: number, objArr?: any, key?: string }[] = []
               response.body = { value: [] }
@@ -319,24 +319,24 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
               if (response.body.value.length === 0) return ret
             } else if (arr[0] === 'entitlements') { // using entitlements for licenses and access packages
               if (getObj.attribute !== 'entitlements.type' && getObj.and?.attribute !== 'entitlements.type') throw new Error(`${action} filter error: mandatory entitlements.type is missing, examples: entitlements[type eq "xxx"], entitlements[type eq "xxx" and value eq "xxx"], entitlements[type eq "xxx" and display <eq/co/sw> "xxx"]`)
-              if (type === 'License') {
-                if (obj.operator === 'eq' && obj.attribute === 'entitlements.type') { // entitlements[type eq "License"]
+              if (type === 'license') {
+                if (obj.operator === 'eq' && obj.attribute === 'entitlements.type') { // entitlements[type eq "license"]
                   path = `/users?$top=${getObj.count}&$count=true&$filter=assignedLicenses/$count ne 0&$select=${selectAttributes.join(',')}`
                   isExpandManager = false
-                } else { // entitlements[type eq "License" and value eq "xxx"], entitlements[type eq "License" and display <eq/co/sw> "xxx"]
-                  const skuIdArr = await searchEntitlementsByValues(baseEntity, obj, 'License', ctx)
+                } else { // entitlements[type eq "license" and value eq "xxx"], entitlements[type eq "license" and display <eq/co/sw> "xxx"]
+                  const skuIdArr = await searchEntitlementsByValues(baseEntity, obj, 'license', ctx)
                   if (skuIdArr.length === 0) return ret
                   if (skuIdArr.length === 1) odataFilter = `assignedLicenses/any(x:x/skuId eq ${skuIdArr[0]})`
-                  else throw new Error(`${action} filter error: not supporting: ${getObj.rawFilter} - entitlements filter resulted in more than one skuId which is not supported. For guaranteed uniqueness use: filter=entitlements[type eq "License" and value eq "<skuId>"]`)
+                  else throw new Error(`${action} filter error: not supporting: ${getObj.rawFilter} - entitlements filter resulted in more than one skuId which is not supported. For guaranteed uniqueness use: filter=entitlements[type eq "license" and value eq "<skuId>"]`)
                 }
-              } else if (type === 'AccessPackage') {
+              } else if (type === 'access-package') {
                 let o: Record<string, any> | undefined
-                if (obj.operator === 'eq' && obj.attribute === 'entitlements.type') { // entitlements[type eq "AccessPackage"]
+                if (obj.operator === 'eq' && obj.attribute === 'entitlements.type') { // entitlements[type eq "access-package"]
                   o = await getUsersByAccessPackage(baseEntity, obj, ctx?.headers ? { headers: ctx?.headers } : undefined)
-                } else { // entitlements[type eq "AccessPackage" and value eq "xxx"], entitlements[type eq "AccessPackage" and display <eq/co/sw> "xxx"]
-                  const idArr = await searchEntitlementsByValues(baseEntity, obj, 'AccessPackage', ctx)
+                } else { // entitlements[type eq "access-package" and value eq "xxx"], entitlements[type eq "access-package" and display <eq/co/sw> "xxx"]
+                  const idArr = await searchEntitlementsByValues(baseEntity, obj, 'access-package', ctx)
                   if (idArr.length === 0) return ret
-                  else if (idArr.length > 1) throw new Error(`${action} filter error: not supporting: ${getObj.rawFilter} - entitlements filter resulted in more than one id which is not supported. For guaranteed uniqueness use: filter=entitlements[type eq "AccessPackage" and value eq "<id>"]`)
+                  else if (idArr.length > 1) throw new Error(`${action} filter error: not supporting: ${getObj.rawFilter} - entitlements filter resulted in more than one id which is not supported. For guaranteed uniqueness use: filter=entitlements[type eq "access-package" and value eq "<id>"]`)
                   o = await getUsersByAccessPackage(baseEntity, { attribute: 'entitlements.value', operator: 'eq', value: idArr[0] }, ctx?.headers ? { headers: ctx?.headers } : undefined)
                 }
                 if (typeof o !== 'object' || o === null || Object.keys(o).length === 0) return ret
@@ -357,7 +357,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
                   await fnCunckExecute(fnArr)
                   if (response.body.value.length === 0) return ret
                 }
-              } else throw new Error(`${action} error: entitlements.type must be either "License" or "AccessPackage"`)
+              } else throw new Error(`${action} error: entitlements.type must be either "license" or "access-package"`)
             } else throw new Error(`${action} error: not supporting filtering: ${getObj.rawFilter}`)
             if (getObj.and) delete getObj.and // delete to flag done and final check will succeed
           } else throw new Error(`${action} error: not supporting filtering: ${getObj.rawFilter}`)
@@ -476,7 +476,7 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
       // include roles, entitlements and MFA - MFA here and not in above fnArr/fnCunckExecute to reduce throttle noise
       if (obj.id) {
         const roles = async (obj: Record<string, any>): Promise<Record<string, any>[]> => {
-          // roles type=Permanent/Eligible
+          // roles type=permanent/eligible
           if ((attributes.includes('roles') || attributes.length === 0) && mapAttributesTo.includes('roles')) {
             return await getUserRoles(baseEntity, obj.id, obj.groups, false, ctx?.headers ? { headers: ctx?.headers } : undefined)
           } else return []
@@ -484,13 +484,13 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         const entitlements = async (obj: Record<string, any>): Promise<Record<string, any>[]> => {
           const result: Record<string, any>[] = []
           if ((attributes.includes('entitlements') || attributes.length === 0) && mapAttributesTo.includes('entitlements')) {
-            // entitlements type=License => assignedLicenses
+            // entitlements type=license => assignedLicenses
             if (obj.assignedLicenses && Array.isArray(obj.assignedLicenses)) {
               for (const lic of response.body.value[i].assignedLicenses) {
                 if (lic.skuId && byValues[lic.skuId]) result.push(byValues[lic.skuId])
               }
             }
-            // entitlements type=AccessPackage
+            // entitlements type=access-package
             if (permission[baseEntity]?.accessPackage) {
               const aps = await getUserAccessPackages(baseEntity, obj.id, false, ctx?.headers ? { headers: ctx?.headers } : undefined)
               result.push(...aps)
@@ -627,11 +627,17 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
     delete parsedAttrObj.manager
   }
 
-  const fnArr: { fn: () => Promise<any> }[] = []
-  let isRolesChanged = false
+  const fnArrRoles: { fn: () => Promise<any> }[] = []
+  const fnArrAP: { fn: () => Promise<any> }[] = []
 
-  const getValueByDisplayName = async (display: string): Promise<string | undefined> => {
+  const getRoleValueByDisplayName = async (display: string): Promise<string | undefined> => {
     const res = await scimgateway.getRoles(baseEntity, { attribute: 'displayName', operator: 'eq', value: display }, [], ctx)
+    if (Array.isArray(res?.Resources) && res.Resources.length === 1) return res.Resources[0]?.id
+    return undefined
+  }
+
+  const getRoleValueById = async (value: string): Promise<string | undefined> => {
+    const res = await scimgateway.getRoles(baseEntity, { attribute: 'id', operator: 'eq', value: value }, [], ctx) // throws error if id not found
     if (Array.isArray(res?.Resources) && res.Resources.length === 1) return res.Resources[0]?.id
     return undefined
   }
@@ -656,16 +662,24 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   // Roles
   if (Object.hasOwn(parsedAttrObj, 'roles') && Array.isArray(parsedAttrObj.roles)) {
     const r: Record<string, any>[] = []
+    const notFound: string [] = []
     for (const el of parsedAttrObj.roles) {
       if (!el.type) { // set default according to tenant type (PIM vs no PIM)
-        if (permission[baseEntity].eligible) el.type = 'Eligible'
-        else el.type = 'Permanent'
+        if (permission[baseEntity].eligible) el.type = 'eligible'
+        else el.type = 'permanent'
       }
-      if (el.type !== 'Permanent' && el.type !== 'Eligible') throw new Error(`${action} error: roles.type must set to 'Permanent' or 'Eligible'`)
-      if (el.type === 'Eligible' && !permission[baseEntity]?.eligible) throw new Error(`${action} error: roles.type 'Eligible' is not supported by the endpoint or current configuration. Use 'Permanent' instead.`)
+      if (el.type !== 'permanent' && el.type !== 'eligible') throw new Error(`${action} error: roles.type must be set to 'permanent' or 'eligible'`)
+      if (el.type === 'eligible' && !permission[baseEntity]?.eligible) throw new Error(`${action} error: roles.type 'eligible' is not supported by the endpoint or current configuration. Use 'permanent' instead.`)
       if (!el.value) {
-        if (el.display) el.value = await getValueByDisplayName(el.display)
-        if (!el.value) throw new Error(`${action} error: Role modification is missing the 'value' key, or the optional 'display' key is not found or unique.`)
+        if (el.display) el.value = await getRoleValueByDisplayName(el.display)
+        if (!el.value) {
+          throw new Error(`${action} error: roles.value is missing`)
+        }
+      }
+      try {
+        await getRoleValueById(el.value) // throws error if not found
+      } catch (err) {
+        notFound.push(el.value)
       }
 
       const res: Record<string, any> = { value: el.value, type: el.type }
@@ -675,6 +689,10 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         res.operation = el.operation
       }
       r.push(res)
+    }
+    if (notFound.length > 0) {
+      const errMsg = `Error: The modify request for users’s ${'`roles`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing role. There are no target roles matching ${notFound.length > 1 ? 'ids: ' : 'id = '}${notFound.join(', ')}.`
+      throw new Error(errMsg)
     }
     delete parsedAttrObj.roles
 
@@ -691,8 +709,8 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         let path = ''
         let body: Record<string, any> = {}
 
-        if ((r.type === 'Eligible' && permission[baseEntity]?.eligible) || (r.type === 'Permanent' && permission[baseEntity]?.permanentSchedule)) {
-          path = (r.type === 'Eligible') ? '/roleManagement/directory/roleEligibilityScheduleRequests' : '/roleManagement/directory/roleAssignmentScheduleRequests'
+        if ((r.type === 'eligible' && permission[baseEntity]?.eligible) || (r.type === 'permanent' && permission[baseEntity]?.permanentSchedule)) {
+          path = (r.type === 'eligible') ? '/roleManagement/directory/roleEligibilityScheduleRequests' : '/roleManagement/directory/roleAssignmentScheduleRequests'
           body = {
             action: 'AdminAssign',
             principalId: id,
@@ -707,7 +725,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
             },
           }
         } else {
-          if (r.type === 'Eligible') throw new Error(`${action} error: add/remove eligible roles requires permission RoleEligibilitySchedule.ReadWrite.All`)
+          if (r.type === 'eligible') throw new Error(`${action} error: add/remove eligible roles requires permission RoleEligibilitySchedule.ReadWrite.All`)
           path = '/roleManagement/directory/roleAssignments'
           body = {
             principalId: id,
@@ -717,8 +735,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         }
 
         const fn = () => helper.doRequest(baseEntity, method, path, body, ctx)
-        fnArr.push({ fn })
-        isRolesChanged = true
+        fnArrRoles.push({ fn })
       }
 
       for (const r of rolesRemove) {
@@ -731,7 +748,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
           let path = ''
           let body: Record<string, any> | null = {}
 
-          if (rm.type === 'Eligible' && permission[baseEntity]?.eligible) {
+          if (rm.type === 'eligible' && permission[baseEntity]?.eligible) {
             path = '/roleManagement/directory/roleEligibilityScheduleRequests'
             body = {
               action: 'AdminRemove',
@@ -741,14 +758,13 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
               justification: 'Automated revoke submitted by SCIM Gateway',
             }
           } else {
-            if (r.type === 'Eligible') throw new Error(`${action} error: add/remove eligible roles requires permission RoleEligibilitySchedule.ReadWrite.All`)
+            if (r.type === 'eligible') throw new Error(`${action} error: add/remove eligible roles requires permission RoleEligibilitySchedule.ReadWrite.All`)
             method = 'DELETE'
             path = `/roleManagement/directory/roleAssignments/${rm.assignmentId}`
             body = null
           }
           const fn = () => helper.doRequest(baseEntity, method, path, body, ctx)
-          fnArr.push({ fn })
-          isRolesChanged = true
+          fnArrRoles.push({ fn })
         }
       }
     }
@@ -756,13 +772,17 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
 
   // Entitlements - Access Packages - Note, License management not supported through entitlements, instead use groups
   if (Object.hasOwn(parsedAttrObj, 'entitlements') && Array.isArray(parsedAttrObj.entitlements)) {
-    const accessPackagesAdd: Record<string, any> [] = parsedAttrObj.entitlements.filter(m => m.type === 'AccessPackage' && m.operation !== 'delete')
-    const accessPackagesRemove: Record<string, any> [] = parsedAttrObj.entitlements.filter(m => m.type === 'AccessPackage' && m.operation === 'delete')
+    const accessPackagesAdd: Record<string, any> [] = parsedAttrObj.entitlements.filter(m => m.type === 'access-package' && m.operation !== 'delete')
+    const accessPackagesRemove: Record<string, any> [] = parsedAttrObj.entitlements.filter(m => m.type === 'access-package' && m.operation === 'delete')
 
     if (accessPackagesAdd.length > 0) {
+      const notFound: string [] = []
       const byValues = await getEntitlementsByValues(baseEntity, ctx)
       for (const a of accessPackagesAdd) {
-        if (!byValues[a.value]) continue
+        if (!byValues[a.value]) {
+          notFound.push(a.value)
+          continue
+        }
         const assignmentPolicyId = byValues[a.value]?.typeInfo?.assignmentPolicies[0]?.id // TODO: note, using the first policy and this might be wrong if more than one defined...
         if (!assignmentPolicyId) throw new Error(`${action} error: Access Package could not be assigned to user - entitlements value ${a.value} (Access Package ID) - no policy found for this Access Package`)
         const method = 'POST'
@@ -780,14 +800,24 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
           justification: 'Automated assignment request submitted by SCIM Gateway',
         }
         const fn = () => helper.doRequest(baseEntity, method, path, body, ctx)
-        fnArr.push({ fn })
+        fnArrAP.push({ fn })
+      }
+      if (notFound.length > 0) {
+        const errMsg = `Error: The modify request for users’s ${'`entitlements`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an entitlement with type 'access-package'. There are no target access-package entitlements matching ${notFound.length > 1 ? 'ids: ' : 'id = '}${notFound.join(', ')}.`
+        throw new Error(errMsg)
       }
     }
 
     if (accessPackagesRemove.length > 0) {
+      const notFound: string [] = []
       const arrRemove: Record<string, any> [] = []
+      const byValues = await getEntitlementsByValues(baseEntity, ctx)
       const currentAPs = await getUserAccessPackages(baseEntity, id, true, ctx)
       for (const r of accessPackagesRemove) {
+        if (!byValues[r.value]) {
+          notFound.push(r.value)
+          continue
+        }
         const removeAssignments = currentAPs.filter(c => c.value === r.value && c.type === r.type && c.assignmentId)
         arrRemove.push(...removeAssignments)
       }
@@ -802,22 +832,31 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
           justification: 'Automated revoke request submitted by SCIM Gateway',
         }
         const fn = () => helper.doRequest(baseEntity, method, path, body, ctx)
-        fnArr.push({ fn })
+        fnArrAP.push({ fn })
+      }
+      if (notFound.length > 0) {
+        const errMsg = `Error: The modify request for users’s ${'`entitlements`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an entitlement with type 'access-package'. There are no target access-package entitlements matching ${notFound.length > 1 ? 'ids: ' : 'id = '}${notFound.join(', ')}.`
+        throw new Error(errMsg)
       }
     }
   }
 
-  if (fnArr.length > 0) { // update roles/entitlements
+  if (fnArrRoles.length > 0) { // update roles
     try {
-      await fnCunckExecute(fnArr)
-      if (isRolesChanged) {
-        (async () => {
-          await new Promise(resolve => setTimeout(resolve, 15000))
-          await getRolesAssignments(baseEntity, ctx, true) // make sure the internal assignments list becomes updated
-        })()
-      }
+      await fnCunckExecute(fnArrRoles)
+      ;(async () => {
+        await new Promise(resolve => setTimeout(resolve, 15000))
+        await getRolesAssignments(baseEntity, ctx, true) // make sure the internal assignments list becomes updated
+      })()
     } catch (err: any) {
-      throw new Error(`${action} roles modify error: ${err.message}`)
+      throw new Error(`${action} ${'`roles`'} modify error: ${err.message}`)
+    }
+  }
+  if (fnArrAP.length > 0) { // update Access Packages (entitlements)
+    try {
+      await fnCunckExecute(fnArrAP)
+    } catch (err: any) {
+      throw new Error(`${action} ${'`entitlements`'} type ${'`access-package`'} modify error: ${err.message}`)
     }
   }
 
@@ -1229,7 +1268,7 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
   // See comments in the "mandatory if-else logic - start"
   //
   // getEntitlements() should return all 'type' (categories) of supported entitlements
-  // Response format: Resources[{type: <category e.g, License>, value: <unique id>, displayName: <display name>}]
+  // Response format: Resources[{type: <category e.g, license>, value: <unique id>, displayName: <display name>}]
   //
   const action = 'getEntitlements'
   scimgateway.logDebug(baseEntity, `handling ${action} getObj=${getObj ? JSON.stringify(getObj) : ''} attributes=${attributes} passThrough=${ctx?.headers ? 'true' : 'false'}`)
@@ -1245,9 +1284,9 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
   // mandatory if-else logic - start
   if (getObj.operator) {
     if (getObj.attribute === 'value') {
-      searchAttr = 'value' // License skuId or AccessPackage id 
+      searchAttr = 'value' // License skuId or Access Package id 
     } else if (getObj.attribute === 'type') {
-      searchAttr = 'type' // License or AccessPackage
+      searchAttr = 'type' // license or access-package
     } else if (getObj.attribute === 'displayName') {
       searchAttr = 'displayName'
     } else {
@@ -1261,7 +1300,7 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
     // mandatory - no filtering
   }
 
-  // Licenses: entitlement type=License
+  // Licenses: entitlement type=license
   const licenses = async (): Promise<Record<string, any>[]> => {
     const result: Record<string, any>[] = []
     const method = 'GET'
@@ -1295,13 +1334,13 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
         typeInfo.derivedIncludes = licenseMapping[skuPartNumber].derivedIncludes
       }
       result.push({
-        type: 'License', id: response.body.value[i].skuId, displayName, typeInfo,
+        type: 'license', id: response.body.value[i].skuId, displayName, typeInfo,
       })
     }
     return result
   }
 
-  // Access Packages: entitlement type=AccessPackage
+  // Access Packages: entitlement type=access-package
   const accessPackages = async (): Promise<Record<string, any>[]> => {
     const result: Record<string, any>[] = []
     if (!permission[baseEntity]?.accessPackage) return result
@@ -1322,7 +1361,7 @@ scimgateway.getEntitlements = async (baseEntity, getObj, attributes, ctx) => {
         })
       }
       result.push({
-        type: 'AccessPackage', id: response.body.value[i].id, displayName: response.body.value[i].displayName, typeInfo,
+        type: 'access-package', id: response.body.value[i].id, displayName: response.body.value[i].displayName, typeInfo,
       })
     }
     return result
@@ -1480,7 +1519,7 @@ const getEntitlementsByValues = async (baseEntity: string, ctx?: undefined | Rec
         value: r.id,
         display: r.displayName,
       }
-      if (r.type === 'AccessPackage') entitlement.typeInfo = r.typeInfo // only used by modifyUser() entitlements
+      if (r.type === 'access-package') entitlement.typeInfo = r.typeInfo // only used by modifyUser() entitlements
 
       entitlementsByValues[baseEntity][entitlement.value] = entitlement
     }
@@ -1535,7 +1574,7 @@ const isAccessPackageScheduleValid = (now: Date, expiredDateTime: string, schedu
 
 /**
 * getUsersByAccessPackage returns an object with keys of user object id`s that includes an elements array of users Access Packages.
-* @returns { "UserID": { "id": \<UserID\, "displayName": \<UserDisplayName\>, entitlements: [ {"type": "AccessPackage", "value": \<AP-id\>, "display": \<AP-displayName\>}, ...] } }
+* @returns { "UserID": { "id": \<UserID\, "displayName": \<UserDisplayName\>, entitlements: [ {"type": "access-package", "value": \<AP-id\>, "display": \<AP-displayName\>}, ...] } }
 **/
 const getUsersByAccessPackage = async (baseEntity: string, getObj: Record<string, any>, ctx?: Record<string, any> | undefined): Promise<Record<string, any>> => {
   const action = 'getUsersByAccessPackage'
@@ -1582,7 +1621,7 @@ const getUsersByAccessPackage = async (baseEntity: string, getObj: Record<string
         if (!ap || !ap.id || !ap.displayName) continue
         if (!result[el.target.id]) result[el.target.id] = { id: el.target.id, displayName: el.target.displayName, entitlements: [] }
         result[el.target.id].entitlements.push({
-          type: 'AccessPackage', value: ap.id, display: ap.displayName,
+          type: 'access-package', value: ap.id, display: ap.displayName,
         })
       }
       const itemsPerPage = res.body.value.length
@@ -1675,7 +1714,7 @@ const isEligibleActive = (scheduleInfo: Record<string, any>) => {
 }
 
 //
-// getUserRoles returns user´s Entra ID roles as a SCIM roles array having type=Permanent/Eligible.
+// getUserRoles returns user´s Entra ID roles as a SCIM roles array having type=permanent/eligible.
 // includeAssignmentId=true is only used for modifyUser when deleting roles, roles array then includes the required assignmentId
 //
 const getUserRoles = async (baseEntity: string, userId: string, groups: Record<string, any>[], includeAssignmentId: boolean, ctx?: undefined | Record<string, any>): Promise<Record<string, any>[]> => {
@@ -1703,7 +1742,7 @@ const getUserRoles = async (baseEntity: string, userId: string, groups: Record<s
   const eligibleRoles = rolesAssignments.eligible.filter((role: any) => role.principalId === userId).map((role: any) => {
     const roleDef = roleDefs[role.roleDefinitionId]
     if (roleDef && isEligibleActive(role.scheduleInfo)) {
-      const entitlement: Record<string, any> = { type: 'Eligible', value: roleDef.id, display: roleDef.displayName }
+      const entitlement: Record<string, any> = { type: 'eligible', value: roleDef.id, display: roleDef.displayName }
       if (includeAssignmentId === true) entitlement.assignmentId = role.id
       return entitlement
     }
@@ -1713,8 +1752,8 @@ const getUserRoles = async (baseEntity: string, userId: string, groups: Record<s
   const permanentRoles = rolesAssignments.permanent.filter((role: any) => Ids.includes(role.principalId)).map((role: any) => {
     const roleDef = roleDefs[role.roleDefinitionId]
     if (roleDef) {
-      if (includeAssignmentId === true) return { type: 'Permanent', value: roleDef.id, display: roleDef.displayName, assignmentId: role.id }
-      return { type: 'Permanent', value: roleDef.id, display: roleDef.displayName }
+      if (includeAssignmentId === true) return { type: 'permanent', value: roleDef.id, display: roleDef.displayName, assignmentId: role.id }
+      return { type: 'permanent', value: roleDef.id, display: roleDef.displayName }
     }
     return null
   })
@@ -1723,8 +1762,8 @@ const getUserRoles = async (baseEntity: string, userId: string, groups: Record<s
 }
 
 //
-// getUserRoles returns user´s Entra ID Access Packaes as a SCIM entitlements array having type=AccessPackage.
-// includeAssignmentId=true is only used for modifyUser when deleting AccessPackage, entitlement array then includes the required assignmentId
+// getUserRoles returns user´s Entra ID Access Packaes as a SCIM entitlements array having type=access-package.
+// includeAssignmentId=true is only used for modifyUser when deleting Access Package, entitlement array then includes the required assignmentId
 //
 const getUserAccessPackages = async (baseEntity: string, userId: string, includeAssignmentId: boolean, ctx?: undefined | Record<string, any>): Promise<Record<string, any>[]> => {
   const action = 'getUserAccessPackages'
@@ -1742,7 +1781,7 @@ const getUserAccessPackages = async (baseEntity: string, userId: string, include
     if (!isAccessPackageScheduleValid(now, r.body.value[j].expiredDateTime, r.body.value[j].schedule)) continue
     const ap: Record<string, any> = r.body.value[j].accessPackage
     if (!ap || !ap.id || !ap.displayName) continue
-    const entitlement: Record<string, any> = { type: 'AccessPackage', value: ap.id, display: ap.displayName }
+    const entitlement: Record<string, any> = { type: 'access-package', value: ap.id, display: ap.displayName }
     if (includeAssignmentId === true) entitlement.assignmentId = r.body.value[j].id
     result.push(entitlement)
   }
@@ -1833,10 +1872,10 @@ const resetUserMfa = async (baseEntity: string, userId: string, ctx?: undefined 
 * @param baseEntity 
 * @param getObj { attribute: "xxx", operator: <eq/co/sw>, value: <value> }
 * @param ctx 
-* @param type "Permanent", "Eligible" or undefined
+* @param type "permanent", "eligible" or undefined
 * @returns string[] user-ids
 */
-const getUsersByRole = async (baseEntity: string, getObj: Record<string, any>, type?: 'Permanent' | 'Eligible', ctx?: Record<string, any> | undefined): Promise<string[]> => {
+const getUsersByRole = async (baseEntity: string, getObj: Record<string, any>, type?: 'permanent' | 'eligible', ctx?: Record<string, any> | undefined): Promise<string[]> => {
   // 1. Identify Role ID(s) based on getObj (supporting display, value, type)
   if (typeof getObj !== 'object' || getObj === null) return []
   let obj: Record<string, any> = { operator: getObj.operator, value: getObj.value }
@@ -1861,10 +1900,10 @@ const getUsersByRole = async (baseEntity: string, getObj: Record<string, any>, t
       }
     }
   }
-  if (!type || type === 'Permanent') {
+  if (!type || type === 'permanent') {
     check(assignments.permanent || [], false)
   }
-  if (!type || type === 'Eligible') {
+  if (!type || type === 'eligible') {
     check(assignments.eligible || [], true)
   }
 
