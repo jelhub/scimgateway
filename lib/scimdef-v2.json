@@ -142,6 +142,9 @@
             "multiValued": false,
             "description": "The user’s real name and its components, including given, family, and middle names, a formatted name, titles, and suffixes.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "none",
             "subAttributes": [
               {
                 "name": "formatted",
@@ -158,7 +161,7 @@
                 "name": "familyName",
                 "type": "string",
                 "multiValued": false,
-                "description": "The family (last) name: the final token of the full name.",
+                "description": "The family (last) name: the final token of the full name, unless family name is stated explicitly.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -169,7 +172,7 @@
                 "name": "givenName",
                 "type": "string",
                 "multiValued": false,
-                "description": "The given (first, including middle) name(s): all tokens of the full name except the last.",
+                "description": "The given (first, including middle) name(s): all tokens of the full name except the last, unless the given name is stated explicitly.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -209,16 +212,13 @@
                 "returned": "default",
                 "uniqueness": "none"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default",
-            "uniqueness": "none"
+            ]
           },
           {
             "name": "displayName",
             "type": "string",
             "multiValued": false,
-            "description": "The user’s full name.",
+            "description": "The user’s full name (`givenName` + `familyName`). On create: if not supplied, use `givenName` + space + `familyName`.",
             "required": false,
             "caseExact": false,
             "mutability": "readWrite",
@@ -329,6 +329,9 @@
             "multiValued": true,
             "description": "The user’s email addresses, with types `work`, `home`, or `other`.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "none",
             "subAttributes": [
               {
                 "name": "value",
@@ -377,10 +380,7 @@
                 "mutability": "readWrite",
                 "returned": "default"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default",
-            "uniqueness": "none"
+            ]
           },
           {
             "name": "phoneNumbers",
@@ -388,6 +388,8 @@
             "multiValued": true,
             "description": "The user’s phone numbers, with types `mobile`, `work`, `home`, `fax`, `pager`, or `other`.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
             "subAttributes": [
               {
                 "name": "value",
@@ -439,9 +441,7 @@
                 "mutability": "readWrite",
                 "returned": "default"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default"
+            ]
           },
           {
             "name": "ims",
@@ -449,6 +449,8 @@
             "multiValued": true,
             "description": "The user’s instant messaging addresses.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
             "subAttributes": [
               {
                 "name": "value",
@@ -502,9 +504,7 @@
                 "mutability": "readWrite",
                 "returned": "default"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default"
+            ]
           },
           {
             "name": "photos",
@@ -512,6 +512,8 @@
             "multiValued": true,
             "description": "URLs of the user’s photos.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
             "subAttributes": [
               {
                 "name": "value",
@@ -560,9 +562,7 @@
                 "mutability": "readWrite",
                 "returned": "default"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default"
+            ]
           },
           {
             "name": "addresses",
@@ -570,6 +570,9 @@
             "multiValued": true,
             "description": "The user’s physical mailing addresses, including known parts such as `formatted`, `streetAddress`, `locality`, `region`, `postalCode`, and `country`.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "none",
             "subAttributes": [
               {
                 "name": "formatted",
@@ -586,7 +589,7 @@
                 "name": "streetAddress",
                 "type": "string",
                 "multiValued": false,
-                "description": "The full street address component, which may include house number, street name, PO BOX, and multi-line extended street address information. This attribute MAY contain newlines.",
+                "description": "The full street address, which may include house number, street name, PO BOX, and multi-line extended street address information. This attribute MAY contain newlines.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -597,7 +600,7 @@
                 "name": "locality",
                 "type": "string",
                 "multiValued": false,
-                "description": "The city or locality component.",
+                "description": "The city or locality.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -608,7 +611,7 @@
                 "name": "region",
                 "type": "string",
                 "multiValued": false,
-                "description": "The state or region component.",
+                "description": "The state or region.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -619,7 +622,7 @@
                 "name": "postalCode",
                 "type": "string",
                 "multiValued": false,
-                "description": "The zipcode or postal code component.",
+                "description": "The zipcode or postal code.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -630,7 +633,7 @@
                 "name": "country",
                 "type": "string",
                 "multiValued": false,
-                "description": "The country name component.",
+                "description": "The country name.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -653,26 +656,25 @@
                 "returned": "default",
                 "uniqueness": "none"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default",
-            "uniqueness": "none"
+            ]
           },
           {
             "name": "groups",
             "type": "complex",
             "multiValued": true,
-            "description": "Groups the user belongs to, whether directly or indirectly (through nested or dynamic membership). Only direct membership can be added or removed. The `groups[].value` is the group’s `id` attribute.",
+            "description": "Groups the user belongs to, whether directly or indirectly (through nested or dynamic membership). New entries are always direct; send only `value`. Only entries with type `direct` can be removed. The `groups.value` is the group’s `id`.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
             "subAttributes": [
               {
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
                 "description": "The `id` of the group resource, not its name.",
-                "required": false,
+                "required": true,
                 "caseExact": false,
-                "mutability": "readOnly",
+                "mutability": "readWrite",
                 "returned": "default",
                 "uniqueness": "none"
               },
@@ -680,7 +682,6 @@
                 "name": "$ref",
                 "type": "reference",
                 "referenceTypes": [
-                  "User",
                   "Group"
                 ],
                 "multiValued": false,
@@ -706,7 +707,7 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "A label indicating the attribute’s function; e.g., `direct` or `indirect`.",
+                "description": "`direct` or `indirect` membership. Set by the server.",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [
@@ -717,9 +718,7 @@
                 "returned": "default",
                 "uniqueness": "none"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default"
+            ]
           },
           {
             "name": "entitlements",
@@ -727,6 +726,8 @@
             "multiValued": true,
             "description": "The user’s assigned entitlements.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
             "subAttributes": [
               {
                 "name": "value",
@@ -770,9 +771,7 @@
                 "mutability": "readWrite",
                 "returned": "default"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default"
+            ]
           },
           {
             "name": "roles",
@@ -780,6 +779,8 @@
             "multiValued": true,
             "description": "Roles assigned to the user.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
             "subAttributes": [
               {
                 "name": "value",
@@ -824,9 +825,7 @@
                 "mutability": "readWrite",
                 "returned": "default"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default"
+            ]
           },
           {
             "name": "x509Certificates",
@@ -835,6 +834,8 @@
             "description": "Certificates issued to the user.",
             "required": false,
             "caseExact": false,
+            "mutability": "readWrite",
+            "returned": "default",
             "subAttributes": [
               {
                 "name": "value",
@@ -879,9 +880,7 @@
                 "mutability": "readWrite",
                 "returned": "default"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default"
+            ]
           }
         ],
         "meta": {
@@ -912,13 +911,15 @@
             "multiValued": true,
             "description": "Members of the group.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
             "subAttributes": [
               {
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
                 "description": "The `id` of the member resource (`User` or `Group`), not a `userName` or `displayName`.",
-                "required": false,
+                "required": true,
                 "caseExact": false,
                 "mutability": "immutable",
                 "returned": "default",
@@ -935,7 +936,7 @@
                 "description": "The URI of the member resource. Set by the service provider.",
                 "required": false,
                 "caseExact": false,
-                "mutability": "immutable",
+                "mutability": "readOnly",
                 "returned": "default",
                 "uniqueness": "none"
               },
@@ -943,20 +944,18 @@
                 "name": "type",
                 "type": "string",
                 "multiValued": false,
-                "description": "The member resource type: `User` or `Group`.",
+                "description": "The member resource type: `User` or `Group`. The server derives it from value",
                 "required": false,
                 "caseExact": false,
                 "canonicalValues": [
                   "User",
                   "Group"
                 ],
-                "mutability": "immutable",
+                "mutability": "readOnly",
                 "returned": "default",
                 "uniqueness": "none"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default"
+            ]
           }
         ],
         "meta": {
@@ -1031,12 +1030,14 @@
             "multiValued": false,
             "description": "The user’s manager, referencing the `id` of the manager’s `User` resource.",
             "required": false,
+            "mutability": "readWrite",
+            "returned": "default",
             "subAttributes": [
               {
                 "name": "value",
                 "type": "string",
                 "multiValued": false,
-                "description": "The `id` of the manager’s `User` resource, not a `userName` or `displayName`. Required when `manager` is set. An empty string clears the manager.",
+                "description": "The manager’s `id` attribute. Never a `userName` or `displayName`. Set to \"\" to clear the manager.",
                 "required": false,
                 "caseExact": false,
                 "mutability": "readWrite",
@@ -1068,9 +1069,7 @@
                 "returned": "default",
                 "uniqueness": "none"
               }
-            ],
-            "mutability": "readWrite",
-            "returned": "default"
+            ]
           }
         ],
         "meta": {
@@ -1391,7 +1390,12 @@
               }
             ]
           }
-        ]
+        ],
+        "meta": {
+          "resourceType": "Schema",
+          "location":
+            "/Schemas/urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig"
+        }
       },
       {
         "id": "urn:ietf:params:scim:schemas:core:2.0:ResourceType",
@@ -1462,9 +1466,9 @@
           {
             "name": "schemaExtensions",
             "type": "complex",
-            "multiValued": false,
+            "multiValued": true,
             "description": "A list of URIs of the resource type’s schema extensions",
-            "required": true,
+            "required": false,
             "mutability": "readOnly",
             "returned": "default",
             "subAttributes": [
@@ -1493,7 +1497,12 @@
               }
             ]
           }
-        ]
+        ],
+        "meta": {
+          "resourceType": "Schema",
+          "location":
+            "/Schemas/urn:ietf:params:scim:schemas:core:2.0:ResourceType"
+        }
       },
       {
         "id": "urn:ietf:params:scim:schemas:core:2.0:Schema",
@@ -1824,7 +1833,7 @@
                   {
                     "name": "referenceTypes",
                     "type": "string",
-                    "multiValued": false,
+                    "multiValued": true,
                     "description": "Used only with an attribute of type `reference`. Specifies a SCIM `resourceType` that a reference attribute MAY refer to; e.g., `User`.",
                     "required": false,
                     "caseExact": true,
@@ -1836,7 +1845,12 @@
               }
             ]
           }
-        ]
+        ],
+        "meta": {
+          "resourceType": "Schema",
+          "location":
+            "/Schemas/urn:ietf:params:scim:schemas:core:2.0:Schema"
+        }
       }
     ]
 },
