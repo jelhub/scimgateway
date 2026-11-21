@@ -157,12 +157,10 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         if (!isNaN(dt)) getObj.value = dt
       }
       const queryObj: any = {}
-      if (getObj.attribute.startsWith('urn:')) { // extension schema
+      if (getObj.attribute.startsWith('urn:')) { // schema extension attribute e.g., urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.value
         const pos = getObj.attribute.lastIndexOf(':')
-        const arr = getObj.attribute.substring(pos + 1).split('.')
-        const schema = getObj.attribute.substring(0, pos) + ':' + arr[0]
-        const attrs = arr.slice(1)
-
+        const attrs = getObj.attribute.substring(pos + 1).split('.')
+        const schema = getObj.attribute.substring(0, pos)
         usersArr = users.chain().where((obj: any) => {
           if (!obj[schema]) return false
           let val = obj[schema]
@@ -243,9 +241,10 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
     }
   }
 
-  if (userObj.userName) userObj.id = userObj.userName // id set to userName or externalId
-  else if (userObj.externalId) userObj.id = userObj.externalId
-  else throw new Error(`${action} error: missing mandatory userName or externalId`)
+  let id = userObj.userName || userObj.externalId
+  id = id ? ('id-of-' + id.toLowerCase()).replace(/ /g, '_') : undefined
+  if (!id) throw new Error(`${action} error: missing mandatory userName or externalId`)
+  userObj.id = id
 
   try {
     await users.insert(userObj)
@@ -269,7 +268,7 @@ scimgateway.deleteUser = async (baseEntity, id, ctx) => {
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const users = config.entity[baseEntity].users
   const res = users.find({ id: id })
-  if (res.length !== 1) throw new Error(`${action} error: failed for user id=${id}`)
+  if (res.length !== 1) throw new Error(`${action} error: delete user (id=${id}) failed`)
   const userObj = res[0]
   await users.remove(userObj)
   return null
@@ -287,8 +286,8 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   if (attrObj.password) delete attrObj.password // exclude password db not ecrypted
 
   const res = users.find({ id: id })
-  if (res.length === 0) throw new Error(`${action} error: user id=${id} - user does not exist`)
-  if (res.length > 1) throw new Error(`${action} error: user id=${id} - user is not unique, more than one have been found`)
+  if (res.length === 0) throw new Error(`${action} error: failed to modify user (id=${id}) - there are no users with this id, user does not exist`)
+  if (res.length > 1) throw new Error(`${action} error: failed to modify user (id=${id}) - user is not unique, more than one user with this id was found`)
 
   let userObj: any = res[0]
   userObj = scimgateway.patchObj(userObj, attrObj) // merge
@@ -406,8 +405,10 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
 
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const groups = config.entity[baseEntity].groups
-  if (groupObj.externalId) groupObj.id = groupObj.externalId // for loki-plugin (scim endpoint) id is mandatory and set to displayName
-  else groupObj.id = groupObj.displayName
+  let id = groupObj.externalId || groupObj.displayName
+  id = id ? ('id-of-' + id.toLowerCase()).replace(/ /g, '_') : undefined
+  if (!id) throw new Error(`${action} error: missing mandatory displayName or externalId`)
+  groupObj.id = id
 
   if (groupObj.members) {
     const noneExistingUsers: any = []
@@ -422,7 +423,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
         }
       }
     }))
-    if (noneExistingUsers.length > 0) throw new Error(`following user(s) does not exist and can't be member of group: ${noneExistingUsers.join(', ')}`)
+    if (noneExistingUsers.length > 0) throw new Error(`following user(s) id does not exist and can't be member of group: ${noneExistingUsers.join(', ')}`)
   }
 
   try {
@@ -447,7 +448,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const groups = config.entity[baseEntity].groups
   const res = groups.find({ id: id })
-  if (res.length !== 1) throw new Error(`${action} error: failed for id=${id}`)
+  if (res.length !== 1) throw new Error(`${action} error: delete group (id=${id}) failed`)
   const groupObj = res[0]
   await groups.remove(groupObj)
   return null
@@ -463,8 +464,8 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   if (!config.entity[baseEntity]) throw new Error(`unsupported baseEntity=${baseEntity}`)
   const groups = config.entity[baseEntity].groups
   const res = groups.find({ id: id })
-  if (res.length === 0) throw new Error(`${action} error: group id=${id} - group does not exist`)
-  if (res.length > 1) throw new Error(`${action} error: group id=${id} - group is not unique, more than one have been found`)
+  if (res.length === 0) throw new Error(`${action} error: failed to modify group (id=${id}) - there are no groups with this id, group does not exist`)
+  if (res.length > 1) throw new Error(`${action} error: failed to modify group (id=${id}) - group is not unique, more than one group with this id was found`)
   const groupObj = res[0]
 
   if (!groupObj.members) groupObj.members = []
@@ -504,7 +505,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
 
   await groups.update(groupObj)
 
-  if (usersNotExist.length > 0) throw new Error(`${action} error: failed for id=${groupObj.id} - includes none existing users: ${usersNotExist.toString()}`)
+  if (usersNotExist.length > 0) throw new Error(`${action} error: failed to modify group (id=${groupObj.id}) - there are no target users matching ${usersNotExist.length > 1 ? 'ids: ' : 'id='}${usersNotExist.join(', ')}`)
   return null
 }
 

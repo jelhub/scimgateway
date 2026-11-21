@@ -204,11 +204,10 @@ scimgateway.getUsers = async (baseEntity, getObj, attributes, ctx) => {
         if (!isNaN(dt)) getObj.value = dt
       }
       findObj = {}
-      if (getObj.attribute.startsWith('urn:')) { // extension schema
+      if (getObj.attribute.startsWith('urn:')) { // schema extension attribute e.g., urn:ietf:params:scim:schemas:extension:enterprise:2.0:User:manager.value
         const pos = getObj.attribute.lastIndexOf(':')
-        const arr = getObj.attribute.substring(pos + 1).split('.')
-        const schema = getObj.attribute.substring(0, pos) + ':' + arr[0]
-        const attrs = arr.slice(1)
+        const attrs = getObj.attribute.substring(pos + 1).split('.')
+        const schema = getObj.attribute.substring(0, pos)
         const schemaEncoded = schema.replace(/\./g, '·')
         const fullPath = [schemaEncoded, ...attrs].join('.')
         findObj[fullPath] = {}
@@ -283,9 +282,10 @@ scimgateway.createUser = async (baseEntity, userObj, ctx) => {
     }
   }
 
-  if (userObj.userName) userObj.id = userObj.userName // id set to userName or externalId
-  else if (userObj.externalId) userObj.id = userObj.externalId
-  else throw new Error(`${action} error: missing mandatory userName or externalId`)
+  let id = userObj.userName || userObj.externalId
+  id = id ? ('id-of-' + id.toLowerCase()).replace(/ /g, '_') : undefined
+  if (!id) throw new Error(`${action} error: missing mandatory userName or externalId`)
+  userObj.id = id
 
   if (!userObj.meta) {
     const now = Date.now()
@@ -353,8 +353,8 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
   try {
     const users = config.entity[baseEntity][clientIdentifier].collection.users
     res = await users.find({ id }, { projection: { _id: 0 } }).toArray()
-    if (res.length === 0) throw new Error('user does not exist')
-    if (res.length > 1) throw new Error('user is not unique, more than one have been found')
+    if (res.length === 0) throw new Error(`${action} error: failed to modify user (id=${id}) - there are no users with this id, user does not exist`)
+    if (res.length > 1) throw new Error(`${action} error: failed to modify user (id=${id}) - user is not unique, more than one user with this id was found`)
   } catch (error: any) {
     throw new Error(`${action} error: could not find user with id=${id} - ${error.message}`)
   }
@@ -507,8 +507,10 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
       lastModified: now,
     }
   }
-  if (groupObj.externalId) groupObj.id = groupObj.externalId // for loki-plugin (scim endpoint) id is mandatory and set to displayName
-  else groupObj.id = groupObj.displayName
+  let id = groupObj.externalId || groupObj.displayName
+  id = id ? ('id-of-' + id.toLowerCase()).replace(/ /g, '_') : undefined
+  if (!id) throw new Error(`${action} error: missing mandatory displayName or externalId`)
+  groupObj.id = id
   groupObj = encodeDotDate(groupObj)
 
   if (groupObj.members) {
@@ -525,7 +527,7 @@ scimgateway.createGroup = async (baseEntity, groupObj, ctx) => {
       }
     }))
     if (noneExistingUsers.length > 0) {
-      throw new Error(`following user(s) does not exist and can't be member of group: ${noneExistingUsers.join(', ')}`)
+      throw new Error(`following user(s) id does not exist and can't be member of group: ${noneExistingUsers.join(', ')}`)
     }
   }
 
@@ -567,7 +569,7 @@ scimgateway.deleteGroup = async (baseEntity, id, ctx) => {
     await groups.deleteOne({ id: id })
     return null
   } catch (err: any) {
-    throw new Error(`${action} error: failed for id=${id} - ${err.message}`)
+    throw new Error(`${action} error: delete group (id=${id}) failed - ${err.message}`)
   }
 }
 
@@ -587,8 +589,8 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
 
   try {
     res = await groups.find({ id: id }, { projection: { _id: 0 } }).toArray()
-    if (res.length === 0) throw new Error('group does not exist')
-    if (res.length > 1) throw new Error('group is not unique, more than one have been found')
+    if (res.length === 0) throw new Error(`${action} error: failed to modify group (id=${id}) - there are no groups with this id, group does not exist`)
+    if (res.length > 1) throw new Error(`${action} error: failed to modify group (id=${id}) - group is not unique, more than one group with this id was found`)
   } catch (err: any) {
     throw new Error(`${action} error: group id=${id} - ${err.message}`)
   }
@@ -655,7 +657,7 @@ scimgateway.modifyGroup = async (baseEntity, id, attrObj, ctx) => {
   groupObj = encodeDotDate(groupObj)
   try {
     if (isModified) await groups.updateOne({ id: groupObj.id }, { $set: { meta: groupObj.meta } })
-    if (usersNotExist.length > 0) throw new Error(`includes none existing users: ${usersNotExist.toString()}`)
+    if (usersNotExist.length > 0) throw new Error(`${action} error: failed to modify group (id=${groupObj.id}) - there are no target users matching ${usersNotExist.length > 1 ? 'ids: ' : 'id='}${usersNotExist.join(', ')}`)
     return null
   } catch (err: any) {
     throw new Error(`${action} error: failed for id=${groupObj.id} - ${err.message}`)
