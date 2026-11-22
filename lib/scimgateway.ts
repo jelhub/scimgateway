@@ -930,10 +930,10 @@ export class ScimGateway {
                         multiValued: mapSchema.mulitvalue ?? false,
                         description: mapSchema.description ?? '',
                         required: mapSchema.required ?? false,
-                        caseExact: false,
+                        caseExact: mapSchema.caseExact ?? false,
                         mutability: mapSchema.mutability ?? 'readWrite',
-                        returned: 'default',
-                        uniqueness: 'none',
+                        returned: mapSchema.returned ?? 'default',
+                        uniqueness: mapSchema.uniqueness ?? 'none',
                       }
                       if (el.canonicalValues) newSub.canonicalValues = el.canonicalValues
                       if (isV1) {
@@ -950,6 +950,7 @@ export class ScimGateway {
                   if (mapSchema.mutability) attr.mutability = mapSchema.mutability
                   if (mapSchema.canonicalValues) attr.canonicalValues = mapSchema.canonicalValues
                   if (mapSchema.required !== undefined) attr.required = mapSchema.required
+                  if (mapSchema.caseExact !== undefined) attr.caseExact = mapSchema.caseExact
                   if (item.type === 'complexObject' || item.type === 'complexArray') {
                     for (const el in mapSchema) { // support like: roles.type.canonicalValues: ["permanent","eligible"]
                       const arrAttr = el.split('.')
@@ -972,9 +973,9 @@ export class ScimGateway {
                   multiValued: (item.type === 'array' || item.type === 'complexArray') ? true : false,
                   description: mapSchema.description ?? '',
                   required: (isRequired || item.mapTo === 'userName') ? true : false,
-                  caseExact: false,
+                  caseExact: mapSchema.caseExact ?? false,
                   mutability: mapSchema.mutability ?? 'readWrite',
-                  returned: 'default',
+                  returned: mapSchema.returned ?? 'default',
                   uniqueness: (item.mapTo === 'userName') ? 'server' : 'none',
                 }
 
@@ -992,10 +993,10 @@ export class ScimGateway {
                         multiValued: el.mulitvalue ?? false,
                         description: el.description ?? '',
                         required: el.required ?? false,
-                        caseExact: false,
+                        caseExact: el.caseExact ?? false,
                         mutability: el.mutability ?? 'readWrite',
-                        returned: 'default',
-                        uniqueness: 'none',
+                        returned: el.returned ?? 'default',
+                        uniqueness: el.uniqueness ?? 'none',
                       }
                       if (isV1) {
                         obj.readOnly = false
@@ -1010,7 +1011,7 @@ export class ScimGateway {
               }
               if (mapSchema['x-agent-schema']) {
                 const agentSchema = structuredClone(mapSchema['x-agent-schema'])
-                if (Object.keys(agentSchema).length > 0) attr['x-agent-schema'] = JSON.stringify(agentSchema)
+                if (Object.keys(agentSchema).length > 0) attr['x-agent-schema'] = agentSchema
               }
               if (isV1) {
                 attr.schema = 'urn:scim:schemas:core:1.0'
@@ -1078,10 +1079,10 @@ export class ScimGateway {
                     multiValued: mapSchema.multiValued ?? false,
                     description: mapSchema.description ?? '',
                     required: mapSchema.required ?? false,
-                    caseExact: false,
+                    caseExact: mapSchema.caseExact ?? false,
                     mutability: mapSchema.mutability ?? 'readWrite',
-                    returned: 'default',
-                    uniqueness: 'none',
+                    returned: mapSchema.returned ?? 'default',
+                    uniqueness: mapSchema.uniqueness ?? 'none',
                   }
                   if (isV1) {
                     subAttr.readOnly = false
@@ -1136,7 +1137,7 @@ export class ScimGateway {
                     }
                     delete agentSchema['x-agent-parent-schema']
                   }
-                  if (Object.keys(agentSchema).length > 0) subAttr['x-agent-schema'] = JSON.stringify(agentSchema)
+                  if (Object.keys(agentSchema).length > 0) subAttr['x-agent-schema'] = agentSchema
                   else delete subAttr['x-agent-schema']
                 }
                 complexAttrs[parent].subAttributes.push(subAttr)
@@ -1153,22 +1154,6 @@ export class ScimGateway {
           // update Schema with the new 'x-agent-schema' that might be in use
           const schemaDef = tx.Resources.find((r: any) => r.name === 'Schema')
           if (!schemaDef) return // SCIM v1.1 does not have Schema resource and should normally accept non standard
-          const attr: any = {
-            name: 'x-agent-schema',
-            type: 'string',
-            multiValued: false,
-            description: 'JSON formatted string used by AI Agent MCP tools',
-            required: false,
-            caseExact: false,
-            mutability: 'readOnly',
-            returned: 'default',
-            uniqueness: 'none',
-          }
-
-          if (Array.isArray(schemaDef?.attributes)) {
-            const found = schemaDef.attributes.find((r: any) => r.name === 'x-agent-schema')
-            if (!found) schemaDef.attributes.push(attr)
-          }
         }
         updateSchema('User', map.user)
         updateSchema('Group', map.group)
@@ -2037,7 +2022,7 @@ export class ScimGateway {
                 else if (el.value.Resources[0].displayName && el.value.Resources[0].id === groups[index].value) groups[index].display = el.value.Resources[0].displayName
               })
               if (groupsNotFound.length > 0) {
-                const errMsg = `Error: User’s ${'`groups`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id = '}${groupsNotFound.join(', ')}.`
+                const errMsg = `Error: User’s ${'`groups`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id='}${groupsNotFound.join(', ')}.`
                 throw new Error(errMsg)
               }
               res.forEach((el: Record<string, any>, index) => { // add the group’s displayName for response purposes
@@ -2090,11 +2075,11 @@ export class ScimGateway {
             results.forEach((result: any, index: number) => {
               if (result.status === 'rejected') return
               if (result?.value?.Resources && Array.isArray(result.value.Resources) && result.value.Resources.length !== 1) {
-                userIdNotFound.push(scimdata.members[index].value)
+                userIdNotFound.push(`${'`' + scimdata.members[index].value + '`'}`)
               }
             })
             if (userIdNotFound.length > 0) {
-              const errMsg = `Error: Groups’s ${'`members`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id = '}${userIdNotFound.join(', ')}.`
+              const errMsg = `Error: Groups’s ${'`members`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id='}${userIdNotFound.join(', ')}.`
               throw new Error(errMsg)
             }
           }
@@ -2487,11 +2472,11 @@ export class ScimGateway {
                 results.forEach((result: any, index: number) => {
                   if (result.status === 'rejected') return
                   if (result?.value?.Resources && Array.isArray(result.value.Resources) && result.value.Resources.length !== 1) {
-                    userIdNotFound.push(userArr[index])
+                    userIdNotFound.push(`${'`' + userArr[index] + '`'}`)
                   }
                 })
-                const errMsg = `Error: Groups’s ${'`members`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id = '}${userIdNotFound.join(', ')}.`
-                err.message = errMsg + ' Target message: ' + err.message
+                const errMsg = `Error: Groups’s ${'`members`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id='}${userIdNotFound.join(', ')}.`
+                err.message = errMsg + ' Target endpoint message: ' + err.message
               }
             }
           }
@@ -2506,8 +2491,8 @@ export class ScimGateway {
               if (el?.status === 'rejected' || !el?.value?.Resources || el.value.Resources.length !== 1) groupsNotFound.push(`${'`' + groups[index].value + '`'}`)
             })
             if (groupsNotFound.length > 0) {
-              const errMsg = `Error: User’s ${'`groups`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id = '}${groupsNotFound.join(', ')}.`
-              err.message = errMsg + ' Target message: ' + err.message
+              const errMsg = `Error: User’s ${'`groups`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id='}${groupsNotFound.join(', ')}.`
+              err.message = errMsg + ' Target endpoint message: ' + err.message
             }
           }
         }
