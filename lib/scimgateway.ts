@@ -2446,41 +2446,52 @@ export class ScimGateway {
                 res = await (this as any)[handle.getMethod](baseEntity, ob, [], ctx.passThrough)
               }
             } catch (e) { }
-            if (res?.Resources && Array.isArray(res.Resources) && res.Resources[0]?.members && Array.isArray(res.Resources[0].members)) {
-              const currentMembers = res.Resources[0].members
-              let isOk: boolean = true
-              const userArr: string[] = []
-              finalScimdata.members.forEach((member: any) => {
-                const found = currentMembers.find((el: Record<string, any>) => {
-                  return (decodeURIComponent(el.value) === member.value)
-                })
-                if ((found && member.operator === 'delete') || (!found && member.operation !== 'delete')) {
-                  isOk = false
-                  userArr.push(member.value)
-                  return
+            if (res?.Resources && Array.isArray(res.Resources)) {
+              if (res.Resources.length !== 1) {
+                if (res.Resources.length === 0) {
+                  const errMsg = `Error: Group with ${'`id=' + id + '`'} does not exist.`
+                  err.message = errMsg + ' Target endpoint message: ' + err.message
+                } else {
+                  const errMsg = `Error: More than one group was returned with ${'`id=' + id + '`'}. This should not happen; the target endpoint may be malfunctioning.`
+                  err.message = errMsg + ' Target endpoint message: ' + err.message
                 }
-              })
-              if (isOk) {
-                ctx.response.status = 204
-                return
-              } else { // check if members exist
-                const searchUsers = async (userId: string) => {
-                  return await (this as any)[handler.users.getMethod](baseEntity, { attribute: 'id', operator: 'eq', value: userId }, ['id'], ctx.passThrough)
-                }
-                const results = await Promise.allSettled(userArr.map(userId => searchUsers(userId)))
-                const userIdNotFound: string[] = []
-                results.forEach((result: any, index: number) => {
-                  if (result.status === 'rejected') return
-                  if (result?.value?.Resources && Array.isArray(result.value.Resources) && result.value.Resources.length !== 1) {
-                    userIdNotFound.push(`${'`' + userArr[index] + '`'}`)
+              } else if (res.Resources[0].members && Array.isArray(res.Resources[0].members)) {
+                const currentMembers = res.Resources[0].members
+                let isOk: boolean = true
+                const userArr: string[] = []
+                finalScimdata.members.forEach((member: any) => {
+                  const found = currentMembers.find((el: Record<string, any>) => {
+                    return (decodeURIComponent(el.value) === member.value)
+                  })
+                  if ((found && member.operator === 'delete') || (!found && member.operation !== 'delete')) {
+                    isOk = false
+                    userArr.push(member.value)
+                    return
                   }
                 })
-                const errMsg = `Error: Groups’s ${'`members`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id='}${userIdNotFound.join(', ')}.`
-                err.message = errMsg + ' Target endpoint message: ' + err.message
+                if (isOk) {
+                  ctx.response.status = 204
+                  return
+                } else { // check if members exist
+                  const searchUsers = async (userId: string) => {
+                    return await (this as any)[handler.users.getMethod](baseEntity, { attribute: 'id', operator: 'eq', value: userId }, ['id'], ctx.passThrough)
+                  }
+                  const results = await Promise.allSettled(userArr.map(userId => searchUsers(userId)))
+                  const userIdNotFound: string[] = []
+                  results.forEach((result: any, index: number) => {
+                    if (result.status === 'rejected') return
+                    if (result?.value?.Resources && Array.isArray(result.value.Resources) && result.value.Resources.length !== 1) {
+                      userIdNotFound.push(`${'`' + userArr[index] + '`'}`)
+                    }
+                  })
+                  const errMsg = `Error: Groups’s ${'`members`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id='}${userIdNotFound.join(', ')}.`
+                  err.message = errMsg + ' Target endpoint message: ' + err.message
+                }
               }
             }
           }
         } else if (handle.modifyMethod === 'modifyUser') {
+          let errMsg
           if (groups.length > 0) { // verify groups exist
             const searchGroups = async (groupId: string) => {
               return await (this as any)[handler.groups.getMethod](baseEntity, { attribute: 'id', operator: 'eq', value: groupId }, ['id', 'displayName'], ctx.passThrough)
@@ -2491,8 +2502,27 @@ export class ScimGateway {
               if (el?.status === 'rejected' || !el?.value?.Resources || el.value.Resources.length !== 1) groupsNotFound.push(`${'`' + groups[index].value + '`'}`)
             })
             if (groupsNotFound.length > 0) {
-              const errMsg = `Error: User’s ${'`groups`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id='}${groupsNotFound.join(', ')}.`
+              errMsg = `Error: User’s ${'`groups`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id='}${groupsNotFound.join(', ')}.`
               err.message = errMsg + ' Target endpoint message: ' + err.message
+            }
+          }
+          if (!errMsg) {
+            let res: any
+            try { // verify user exist
+              if (typeof (this as any)[handle.getMethod] === 'function') {
+                res = await (this as any)[handle.getMethod](baseEntity, { attribute: 'id', operator: 'eq', value: id }, ['id'], ctx.passThrough)
+              }
+            } catch (e) { }
+            if (res?.Resources && Array.isArray(res.Resources)) {
+              if (res.Resources.length !== 1) {
+                if (res.Resources.length === 0) {
+                  const errMsg = `Error: User with ${'`id=' + id + '`'} does not exist.`
+                  err.message = errMsg + ' Target endpoint message: ' + err.message
+                } else {
+                  const errMsg = `Error: More than one user was returned with ${'`id=' + id + '`'}. This should not happen; the target endpoint may be malfunctioning.`
+                  err.message = errMsg + ' Target endpoint message: ' + err.message
+                }
+              }
             }
           }
         }
