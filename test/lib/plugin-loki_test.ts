@@ -70,16 +70,16 @@ describe('plugin-loki', async () => {
     expect(users.startIndex).toBe(1)
     expect(users).toBeDefined()
     expect(users.Resources[0].userName).toBe('barbara.jane.jensen')
-    expect(users.Resources[0].id).toBe('barbara.jane.jensen')
+    expect(users.Resources[0].id).toBe('id-of-barbara.jane.jensen')
     expect(users.Resources[0].name.givenName).toBe('Barbara')
-    expect(users.Resources[0].groups[0].value).toBe('Admins')
+    expect(users.Resources[0].groups[0].value).toBe('id-of-admins')
     expect(users.Resources[0].groups[0].display).toBe('Admins')
     expect(users.Resources[0].groups[0].type).toBe('direct')
     expect(users.Resources[0].meta.version).toBeDefined()
     expect(users.Resources[1].userName).toBe('john.smith')
-    expect(users.Resources[1].id).toBe('john.smith')
+    expect(users.Resources[1].id).toBe('id-of-john.smith')
     expect(users.Resources[1].name.givenName).toBe('John')
-    expect(users.Resources[1].groups[0].value).toBe('Employees')
+    expect(users.Resources[1].groups[0].value).toBe('id-of-employees')
     expect(users.Resources[1].groups[0].display).toBe('Employees')
     expect(users.Resources[1].groups[0].type).toBe('direct')
     expect(users.Resources[1].meta.version).toBeDefined()
@@ -94,11 +94,11 @@ describe('plugin-loki', async () => {
     expect(users.startIndex).toBe(1)
     expect(users).toBeDefined()
     expect(users.Resources[0].userName).toBe('barbara.jane.jensen')
-    expect(users.Resources[0].id).toBe('barbara.jane.jensen')
+    expect(users.Resources[0].id).toBe('id-of-barbara.jane.jensen')
     expect(users.Resources[0].meta.version).toBeDefined()
     expect(users.Resources[0].groups).toBe(undefined)
     expect(users.Resources[1].userName).toBe('john.smith')
-    expect(users.Resources[1].id).toBe('john.smith')
+    expect(users.Resources[1].id).toBe('id-of-john.smith')
     expect(users.Resources[1].meta.version).toBeDefined()
     expect(users.Resources[1].groups).toBe(undefined)
   })
@@ -113,7 +113,7 @@ describe('plugin-loki', async () => {
     expect(users).toBeDefined()
     expect(users.Resources.length).toBe(1)
     expect(users.Resources[0].userName).toBe('barbara.jane.jensen')
-    expect(users.Resources[0].id).toBe('barbara.jane.jensen')
+    expect(users.Resources[0].id).toBe('id-of-barbara.jane.jensen')
   })
 
   test('getUsers index-pagination test (2)', async () => {
@@ -126,7 +126,7 @@ describe('plugin-loki', async () => {
     expect(users).toBeDefined()
     expect(users.Resources.length).toBe(1)
     expect(users.Resources[0].userName).toBe('john.smith')
-    expect(users.Resources[0].id).toBe('john.smith')
+    expect(users.Resources[0].id).toBe('id-of-john.smith')
   })
 
   test('getUsers index-pagination test (3)', async () => {
@@ -152,7 +152,7 @@ describe('plugin-loki', async () => {
     expect(users).toBeDefined()
     expect(users.Resources.length).toBe(1)
     expect(users.Resources[0].userName).toBe('barbara.jane.jensen')
-    expect(users.Resources[0].id).toBe('barbara.jane.jensen')
+    expect(users.Resources[0].id).toBe('id-of-barbara.jane.jensen')
   })
 
   test('getUsers cursor-pagination test (2)', async () => {
@@ -166,31 +166,31 @@ describe('plugin-loki', async () => {
     expect(users).toBeDefined()
     expect(users.Resources.length).toBe(1)
     expect(users.Resources[0].userName).toBe('john.smith')
-    expect(users.Resources[0].id).toBe('john.smith')
+    expect(users.Resources[0].id).toBe('id-of-john.smith')
   })
 
   test('getUsers unique test (1)', async () => {
-    const res = await fetchSCIM('GET', '/Users/barbara.jane.jensen', undefined, options.std.headers)
+    const res = await fetchSCIM('GET', '/Users/id-of-barbara.jane.jensen', undefined, options.std.headers)
     const user = res.body
     expect(res.headers.get('etag')).toBe('W/"0"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/barbara.jane.jensen`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/id-of-barbara.jane.jensen`)
     expect(res.status).toBe(200)
     expect(user).toBeDefined()
-    expect(user.id).toBe('barbara.jane.jensen')
+    expect(user.id).toBe('id-of-barbara.jane.jensen')
     expect(user.active).toBe(true)
     expect(user.name.givenName).toBe('Barbara')
     expect(user.name.familyName).toBe('Jensen')
     expect(user.name.formatted).toBe('Ms. Barbara J Jensen, III')
-    expect(user.entitlements[0].type).toBe('newentitlement')
-    expect(user.entitlements[0].value).toBe('barbara.jane.jensen entitlement')
+    expect(user.entitlements[0].type).toBe('license')
+    expect(user.entitlements[0].value).toBe('ENTRA_ID_GOVERNANCE')
     expect(user.phoneNumbers[0].type).toBe('work')
     expect(user.phoneNumbers[0].value).toBe('555-555-5555')
     expect(user.emails[0].type).toBe('work')
     expect(user.emails[0].value).toBe('barbara.jane.jensen@example.com')
-    expect(user.groups[0].value).toBe('Admins')
+    expect(user.groups[0].value).toBe('id-of-admins')
     expect(user.groups[0].display).toBe('Admins')
     expect(user.groups[0].type).toBe('direct')
-    expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager.value).toBe('john.smith')
+    expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].manager.value).toBe('id-of-john.smith')
     expect(user.meta.version).toBeDefined()
     expect(user.meta.location).toBeDefined()
     expect(user.schemas[0]).toBe('urn:ietf:params:scim:schemas:core:2.0:User')
@@ -204,13 +204,13 @@ describe('plugin-loki', async () => {
     const user = res?.body?.Resources[0]
     expect(res.status).toBe(200)
     expect(user).toBeDefined()
-    expect(user.id).toBe('barbara.jane.jensen')
+    expect(user.id).toBe('id-of-barbara.jane.jensen')
     expect(user.active).toBe(true)
     expect(user.name.givenName).toBe('Barbara')
     expect(user.name.familyName).toBe('Jensen')
     expect(user.name.formatted).toBe('Ms. Barbara J Jensen, III')
-    expect(user.entitlements[0].type).toBe('newentitlement')
-    expect(user.entitlements[0].value).toBe('barbara.jane.jensen entitlement')
+    expect(user.entitlements[0].type).toBe('license')
+    expect(user.entitlements[0].value).toBe('ENTRA_ID_GOVERNANCE')
     expect(user.phoneNumbers[0].type).toBe('work')
     expect(user.phoneNumbers[0].value).toBe('555-555-5555')
     expect(user.emails[0].type).toBe('work')
@@ -227,7 +227,7 @@ describe('plugin-loki', async () => {
     expect(users.length).toBe(1)
     expect(users[0]).toBeDefined()
     expect(users[0].emails[0].value).toBe('barbara.jane.jensen@example.com')
-    expect(users[0].id).toBe('barbara.jane.jensen')
+    expect(users[0].id).toBe('id-of-barbara.jane.jensen')
     expect(users[0].name.givenName).toBe('Barbara')
     expect(users[0].active).toBe(undefined)
     expect(users[0].entitlements).toBe(undefined)
@@ -242,8 +242,8 @@ describe('plugin-loki', async () => {
     const users = res?.body?.Resources
     expect(res.status).toBe(200)
     expect(users.length).toBe(2)
-    expect(users[0].id).toBe('john.smith')
-    expect(users[1].id).toBe('barbara.jane.jensen')
+    expect(users[0].id).toBe('id-of-john.smith')
+    expect(users[1].id).toBe('id-of-barbara.jane.jensen')
   })
 
   test('getGroups all test (1)', async () => {
@@ -258,10 +258,10 @@ describe('plugin-loki', async () => {
     expect(groups).toBeDefined()
     expect(groups.Resources[0].members).toBeDefined()
     expect(groups.Resources[0].displayName).toBe('Admins')
-    expect(groups.Resources[0].id).toBe('Admins')
+    expect(groups.Resources[0].id).toBe('id-of-admins')
     expect(groups.Resources[1].members).toBeDefined()
     expect(groups.Resources[1].displayName).toBe('Employees')
-    expect(groups.Resources[1].id).toBe('Employees')
+    expect(groups.Resources[1].id).toBe('id-of-employees')
   })
 
   test('getGroups all test (2)', async () => {
@@ -276,26 +276,26 @@ describe('plugin-loki', async () => {
     expect(groups).toBeDefined()
     expect(groups.Resources[0].members).toBe(undefined)
     expect(groups.Resources[0].displayName).toBe('Admins')
-    expect(groups.Resources[0].id).toBe('Admins')
+    expect(groups.Resources[0].id).toBe('id-of-admins')
     expect(groups.Resources[0].meta).toBeDefined()
     expect(groups.Resources[1].members).toBe(undefined)
     expect(groups.Resources[1].displayName).toBe('Employees')
-    expect(groups.Resources[1].id).toBe('Employees')
+    expect(groups.Resources[1].id).toBe('id-of-employees')
     expect(groups.Resources[1].meta).toBeDefined()
   })
 
   test('getGroups unique test (1)', async () => {
-    const res = await fetchSCIM('GET', '/Groups/Admins', undefined, options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups/id-of-admins', undefined, options.std.headers)
     const group = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"0"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/Admins`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/id-of-admins`)
     expect(group).toBeDefined()
     expect(group.schemas).toBeDefined()
     expect(group.meta.location).toBeDefined()
     expect(group.displayName).toBe('Admins')
-    expect(group.id).toBe('Admins')
-    expect(group.members[0].value).toBe('barbara.jane.jensen')
+    expect(group.id).toBe('id-of-admins')
+    expect(group.members[0].value).toBe('id-of-barbara.jane.jensen')
     // expect(group.members[0].display).toBe('barbara.jane.jensen');
   })
 
@@ -308,20 +308,18 @@ describe('plugin-loki', async () => {
     expect(groups).toBeDefined()
     expect(groups.schemas).toBeDefined()
     expect(groups.Resources[0].displayName).toBe('Admins')
-    expect(groups.Resources[0].id).toBe('Admins')
-    expect(groups.Resources[0].members[0].value).toBe('barbara.jane.jensen')
+    expect(groups.Resources[0].id).toBe('id-of-admins')
+    expect(groups.Resources[0].members[0].value).toBe('id-of-barbara.jane.jensen')
     // expect(groups.Resources[0].members[0].display).toBe('barbara.jane.jensen');
   })
 
   test('getGroups members test', async () => {
-    const res = await fetchSCIM('GET', '/Groups'
-      + '?filter=members.value eq "barbara.jane.jensen"&attributes=members.value,displayName',
-    undefined, options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups' + '?filter=members.value eq "id-of-barbara.jane.jensen"&attributes=members.value,displayName', undefined, options.std.headers)
     const groupMembers = res.body
     expect(res.status).toBe(200)
     expect(groupMembers).toBeDefined()
     expect(groupMembers.Resources[0].displayName).toBe('Admins')
-    expect(groupMembers.Resources[0].members[0].value).toBe('barbara.jane.jensen')
+    expect(groupMembers.Resources[0].members[0].value).toBe('id-of-barbara.jane.jensen')
     expect(groupMembers.Resources[0].totalResults).toBe(groupMembers.Resources[0].members[0].length)
   })
 
@@ -361,17 +359,17 @@ describe('plugin-loki', async () => {
     }
     const res = await fetchSCIM('POST', '/Users', newUser, options.content.headers)
     expect(res.status).toBe(201)
-    expect(res.body.meta.location).toBe(`${baseUrl}/Users/jgilber`)
+    expect(res.body.meta.location).toBe(`${baseUrl}/Users/id-of-jgilber`)
   })
 
   test('getUser just created test', async () => {
-    const res = await fetchSCIM('GET', '/Users/jgilber', undefined, options.std.headers)
+    const res = await fetchSCIM('GET', '/Users/id-of-jgilber', undefined, options.std.headers)
     const user = res.body
     expect(res.headers.get('etag')).toBe('W/"0"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/jgilber`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/id-of-jgilber`)
     expect(res.status).toBe(200)
     expect(user).toBeDefined()
-    expect(user.id).toBe('jgilber')
+    expect(user.id).toBe('id-of-jgilber')
     expect(user.active).toBe(true)
     expect(user.name.givenName).toBe('Jeff')
     expect(user.name.familyName).toBe('Gilbert')
@@ -490,22 +488,22 @@ describe('plugin-loki', async () => {
         },
       ],
     }
-    const res = await fetchSCIM('PATCH', '/Users/jgilber', user, options.content.headers)
+    const res = await fetchSCIM('PATCH', '/Users/id-of-jgilber', user, options.content.headers)
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"1"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/jgilber`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/id-of-jgilber`)
     expect(res.body.meta.version).toBe('W/"1"')
-    expect(res.body.meta.location).toBe(`${baseUrl}/Users/jgilber`)
+    expect(res.body.meta.location).toBe(`${baseUrl}/Users/id-of-jgilber`)
   })
 
   test('getUser just modified test', async () => {
-    const res = await fetchSCIM('GET', '/Users/jgilber', undefined, options.std.headers)
+    const res = await fetchSCIM('GET', '/Users/id-of-jgilber', undefined, options.std.headers)
     const user = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"1"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/jgilber`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/id-of-jgilber`)
     expect(user).toBeDefined()
-    expect(user.id).toBe('jgilber')
+    expect(user.id).toBe('id-of-jgilber')
     expect(user.active).toBe(false) // modified
     expect(user.name.givenName).toBe('Jeff-Modified') // modified
     // expect(user.name.familyName).toBe(undefined) // cleared - scim 1.1
@@ -525,7 +523,7 @@ describe('plugin-loki', async () => {
     expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).toBe('test1-value') // modified
     expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).toBe('test2-value') // modified
     expect(user.meta.version).toBe('W/"1"')
-    expect(user.meta.location).toBe(`${baseUrl}/Users/jgilber`)
+    expect(user.meta.location).toBe(`${baseUrl}/Users/id-of-jgilber`)
   })
 
   test('replaceUser test', async () => {
@@ -553,18 +551,18 @@ describe('plugin-loki', async () => {
         employeeNumber: '1111',
       },
       'groups': [
-        { value: 'Employees', display: 'Employees' },
-        { value: 'Admins', display: 'Admins' },
+        { value: 'id-of-employees', display: 'Employees' },
+        { value: 'id-of-admins', display: 'Admins' },
       ],
     }
 
-    const res = await fetchSCIM('PUT', '/Users/jgilber', putUser, options.content.headers)
+    const res = await fetchSCIM('PUT', '/Users/id-of-jgilber', putUser, options.content.headers)
     const user = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"2"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/jgilber`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Users/id-of-jgilber`)
     expect(user).toBeDefined()
-    expect(user.id).toBe('jgilber')
+    expect(user.id).toBe('id-of-jgilber')
     expect(user.active).toBe(false)
     expect(user.name.givenName).toBe('Jeff-2') // modified
     expect(user.name.formatted).toBe('Mr. Jeff Gilbert-2') // modified
@@ -580,14 +578,14 @@ describe('plugin-loki', async () => {
     expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test1).toBe(undefined) // deleted
     expect(user['urn:ietf:params:scim:schemas:extension:enterprise:2.0:User'].test2).toBe(undefined) // deleted
     expect(user.groups.length).toBe(2)
-    expect(user.groups[0].value).toBe('Admins')
-    expect(user.groups[1].value).toBe('Employees')
+    expect(user.groups[0].value).toBe('id-of-admins')
+    expect(user.groups[1].value).toBe('id-of-employees')
     expect(user.meta.version).toBe('W/"2"')
-    expect(user.meta.location).toBe(`${baseUrl}/Users/jgilber`)
+    expect(user.meta.location).toBe(`${baseUrl}/Users/id-of-jgilber`)
   })
 
   test('deleteUser test', async () => {
-    const res = await fetchSCIM('DELETE', '/Users/jgilber', undefined, options.std.headers)
+    const res = await fetchSCIM('DELETE', '/Users/id-of-jgilber', undefined, options.std.headers)
     expect(res.status).toBe(204)
   })
 
@@ -596,28 +594,28 @@ describe('plugin-loki', async () => {
       displayName: 'GoGoLoki',
       externalId: undefined,
       members: [{
-        value: 'barbara.jane.jensen',
+        value: 'id-of-barbara.jane.jensen',
       }],
     }
     const res = await fetchSCIM('POST', '/Groups', newGroup, options.content.headers)
     expect(res.status).toBe(201)
     expect(res.headers.get('etag')).toBe('W/"0"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoLoki`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/id-of-gogoloki`)
     expect(res.body.meta.version).toBe('W/"0"')
-    expect(res.body.meta.location).toBe(`${baseUrl}/Groups/GoGoLoki`)
+    expect(res.body.meta.location).toBe(`${baseUrl}/Groups/id-of-gogoloki`)
   })
 
   test('getGroup just created test', async () => {
-    const res = await fetchSCIM('GET', '/Groups/GoGoLoki', undefined, options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups/id-of-gogoloki', undefined, options.std.headers)
     const group = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"0"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoLoki`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/id-of-gogoloki`)
     expect(group).toBeDefined()
     expect(group.displayName).toBe('GoGoLoki')
-    expect(group.id).toBe('GoGoLoki')
+    expect(group.id).toBe('id-of-gogoloki')
     expect(group.meta.version).toBe('W/"0"')
-    expect(group.meta.location).toBe(`${baseUrl}/Groups/GoGoLoki`)
+    expect(group.meta.location).toBe(`${baseUrl}/Groups/id-of-gogoloki`)
   })
 
   test('modifyGroupMembers test', async () => {
@@ -627,45 +625,45 @@ describe('plugin-loki', async () => {
           op: 'add',
           path: 'members',
           value: [
-            { value: 'john.smith' },
+            { value: 'id-of-john.smith' },
           ],
         },
         {
           op: 'remove',
           path: 'members',
           value: [
-            { value: 'barbara.jane.jensen' },
+            { value: 'id-of-barbara.jane.jensen' },
           ],
         },
       ],
     }
     // body = { members: [{ value: 'john.smith' }, { operation: 'delete', value: 'barbara.jane.jensen' }], schemas: ['urn:scim:schemas:core:1.0'] } // scim v1.1
 
-    const res = await fetchSCIM('PATCH', '/Groups/GoGoLoki?attributes=members', body, options.content.headers)
+    const res = await fetchSCIM('PATCH', '/Groups/id-of-gogoloki?attributes=members', body, options.content.headers)
     const group = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"1"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoLoki`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/id-of-gogoloki`)
     expect(group).toBeDefined()
-    expect(group.id).toBe('GoGoLoki')
+    expect(group.id).toBe('id-of-gogoloki')
     expect(group.members).toBeDefined()
     expect(group.members.length).toBe(1) // barbara.jane.jensen removed
-    expect(group.members[0].value).toBe('john.smith') // 
+    expect(group.members[0].value).toBe('id-of-john.smith') // 
   })
 
   test('getGroup just modified members test', async () => {
-    const res = await fetchSCIM('GET', '/Groups/GoGoLoki', undefined, options.std.headers)
+    const res = await fetchSCIM('GET', '/Groups/id-of-gogoloki', undefined, options.std.headers)
     const group = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"1"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoLoki`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/id-of-gogoloki`)
     expect(group).toBeDefined()
     expect(group.displayName).toBe('GoGoLoki')
-    expect(group.id).toBe('GoGoLoki')
+    expect(group.id).toBe('id-of-gogoloki')
     expect(group.members.length).toBe(1) // barbara.jane.jensen removed
-    expect(group.members[0].value).toBe('john.smith') // 
+    expect(group.members[0].value).toBe('id-of-john.smith')
     expect(group.meta.version).toBe('W/"1"')
-    expect(group.meta.location).toBe(`${baseUrl}/Groups/GoGoLoki`)
+    expect(group.meta.location).toBe(`${baseUrl}/Groups/id-of-gogoloki`)
   })
 
   test('replaceGroup test', async () => {
@@ -673,25 +671,27 @@ describe('plugin-loki', async () => {
       displayName: 'NewGoGoLoki',
       externalId: undefined,
       members: [{
-        value: 'barbara.jane.jensen',
+        value: 'id-of-barbara.jane.jensen',
       },
       {
-        value: 'john.smith',
+        value: 'id-of-john.smith',
       }],
     }
-    const res = await fetchSCIM('PUT', '/Groups/GoGoLoki', obj, options.content.headers)
+    const res = await fetchSCIM('PUT', '/Groups/id-of-gogoloki', obj, options.content.headers)
     const group = res.body
     expect(res.status).toBe(200)
     expect(res.headers.get('etag')).toBe('W/"2"')
-    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/GoGoLoki`)
+    expect(res.headers.get('location')).toBe(`${baseUrl}/Groups/id-of-gogoloki`)
     expect(group.displayName).toBe('NewGoGoLoki')
     expect(group.members.length).toBe(2)
+    expect(group.members[0].value).toBe('id-of-john.smith')
+    expect(group.members[1].value).toBe('id-of-barbara.jane.jensen')
     expect(group.meta.version).toBe('W/"2"')
-    expect(group.meta.location).toBe(`${baseUrl}/Groups/GoGoLoki`)
+    expect(group.meta.location).toBe(`${baseUrl}/Groups/id-of-gogoloki`)
   })
 
   test('deleteGroup test', async () => {
-    const res = await fetchSCIM('DELETE', '/Groups/GoGoLoki', undefined, options.std.headers)
+    const res = await fetchSCIM('DELETE', '/Groups/id-of-gogoloki', undefined, options.std.headers)
     expect(res.status).toBe(204)
   })
 
@@ -725,25 +725,25 @@ describe('plugin-loki', async () => {
         },
         {
           method: 'PATCH',
-          path: '/Groups/Tour Guides',
+          path: '/Groups/id-of-tour_guides',
           version: 'W/"0"',
           data: {
             op: 'add',
             path: 'members',
             value: [
               {
-                value: 'barbara.jane.jensen',
+                value: 'id-of-barbara.jane.jensen',
               },
             ],
           },
         },
         {
           method: 'DELETE',
-          path: '/Groups/Tour Guides',
+          path: '/Groups/id-of-tour_guides',
         },
         {
           method: 'DELETE',
-          path: '/Users/alice',
+          path: '/Users/id-of-alice',
         },
       ],
     }
@@ -752,19 +752,19 @@ describe('plugin-loki', async () => {
     expect(res.body.Operations.length).toBe(5)
     expect(res.body.Operations[0].bulkId).toBe('qwerty')
     expect(res.body.Operations[0].status.code).toBe('201')
-    expect(res.body.Operations[0].location).toBe(`${baseUrl}/Users/alice`)
+    expect(res.body.Operations[0].location).toBe(`${baseUrl}/Users/id-of-alice`)
     expect(res.body.Operations[1].bulkId).toBe('ytrewq')
     expect(res.body.Operations[1].status.code).toBe('201')
-    expect(res.body.Operations[1].location).toBe(`${baseUrl}/Groups/Tour%20Guides`)
+    expect(res.body.Operations[1].location).toBe(`${baseUrl}/Groups/id-of-tour_guides`)
     expect(res.body.Operations[2].bulkId).toBeUndefined()
     expect(res.body.Operations[2].status.code).toBe('204')
     expect(res.body.Operations[2].method).toBe('PATCH')
-    expect(res.body.Operations[2].path).toBe('/Groups/Tour Guides')
+    expect(res.body.Operations[2].path).toBe('/Groups/id-of-tour_guides')
     expect(res.body.Operations[3].bulkId).toBeUndefined()
     expect(res.body.Operations[3].status.code).toBe('204')
-    expect(res.body.Operations[3].path).toBe('/Groups/Tour Guides')
+    expect(res.body.Operations[3].path).toBe('/Groups/id-of-tour_guides')
     expect(res.body.Operations[4].bulkId).toBeUndefined()
     expect(res.body.Operations[4].status.code).toBe('204')
-    expect(res.body.Operations[4].path).toBe('/Users/alice')
+    expect(res.body.Operations[4].path).toBe('/Users/id-of-alice')
   })
 })
