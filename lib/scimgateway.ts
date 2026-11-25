@@ -1124,21 +1124,14 @@ export class ScimGateway {
                   }
                 }
 
-                if (mapSchema['x-agent-schema']) {
-                  const agentSchema = mapSchema['x-agent-schema']
-                  if (agentSchema['x-agent-parent-schema']) {
-                    // iterate x-agent-parent-schema keys and apply them to the parent object
-                    for (const e in agentSchema['x-agent-parent-schema']) {
-                      if (e === 'x-agent-schema') {
-                        complexAttrs[parent]['x-agent-schema'] = agentSchema['x-agent-parent-schema']['x-agent-schema']
-                        continue
-                      }
-                      complexAttrs[parent][e] = agentSchema['x-agent-parent-schema'][e]
-                    }
-                    delete agentSchema['x-agent-parent-schema']
+                if (mapSchema['x-agent-schema']) subAttr['x-agent-schema'] = mapSchema['x-agent-schema']
+                if (mapSchema['parent-schema']) {
+                  // iterate parent-schema keys and apply them to the parent object
+                  const parentSchema = mapSchema['parent-schema']
+                  for (const e in parentSchema) {
+                    complexAttrs[parent][e] = parentSchema[e]
                   }
-                  if (Object.keys(agentSchema).length > 0) subAttr['x-agent-schema'] = agentSchema
-                  else delete subAttr['x-agent-schema']
+                  delete subAttr['parent-schema']
                 }
                 complexAttrs[parent].subAttributes.push(subAttr)
               } else if (parts.length === 3) { // phoneNumbers.work.value
@@ -2022,7 +2015,7 @@ export class ScimGateway {
                 else if (el.value.Resources[0].displayName && el.value.Resources[0].id === groups[index].value) groups[index].display = el.value.Resources[0].displayName
               })
               if (groupsNotFound.length > 0) {
-                const errMsg = `Error: User’s ${'`groups`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id='}${groupsNotFound.join(', ')}.`
+                const errMsg = `Error: User’s ${'`groups.value`'} does not reference the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id='}${groupsNotFound.join(', ')}.`
                 throw new Error(errMsg)
               }
               res.forEach((el: Record<string, any>, index) => { // add the group’s displayName for response purposes
@@ -2035,13 +2028,11 @@ export class ScimGateway {
 
           // if manager, verify manager exist before creating user
           let manager = { managerId: '', key: '' }
-          let isEntra = false
           for (const key of Object.keys(scimdata)) {
             if ((key.indexOf(':extension:') || key === 'manager') && typeof (scimdata[key]) === 'object' && scimdata[key] !== null) {
               if (scimdata[key]?.managerId) { // Entra ID
                 manager.managerId = scimdata[key]?.managerId
                 manager.key = 'managerId'
-                if (scimdata.passwordProfile) isEntra = true
                 break
               } else if (scimdata[key]?.manager && typeof scimdata[key].manager === 'object' && scimdata[key].manager !== null) {
                 if (scimdata[key].manager.managerId) {
@@ -2057,10 +2048,9 @@ export class ScimGateway {
           }
           if (manager.managerId) {
             let obj = { attribute: 'id', operator: 'eq', value: manager.managerId }
-            if (isEntra) obj.attribute = 'userName'
             let res = await (this as any)[handle.getMethod](baseEntity, obj, ['id', 'userName'], ctx.passThrough)
             if (!res?.Resources || !Array.isArray(res.Resources) || res.Resources.length !== 1) {
-              const errMsg = `Error: User’s manager does not exist at the target. ${'`manager.' + manager.key + '=' + obj.value + '`'} does not reference a valid ${'`' + obj.attribute + '`'} of the manager. There are no target users matching ${'`' + obj.attribute + '=' + obj.value + '`'}.`
+              const errMsg = `Error: User’s ${'`manager.' + manager.key + '`'} does not reference a valid ${'`id`'} of the manager. There are no target users matching ${'`id=' + obj.value + '`'}.`
               throw new Error(errMsg)
             }
           }
@@ -2079,7 +2069,7 @@ export class ScimGateway {
               }
             })
             if (userIdNotFound.length > 0) {
-              const errMsg = `Error: Groups’s ${'`members`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id='}${userIdNotFound.join(', ')}.`
+              const errMsg = `Error: Groups’s ${'`members.value`'} does not reference the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id='}${userIdNotFound.join(', ')}.`
               throw new Error(errMsg)
             }
           }
@@ -2484,7 +2474,7 @@ export class ScimGateway {
                       userIdNotFound.push(`${'`' + userArr[index] + '`'}`)
                     }
                   })
-                  const errMsg = `Error: Groups’s ${'`members`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id='}${userIdNotFound.join(', ')}.`
+                  const errMsg = `Error: Groups’s ${'`members.value`'} does not reference the ${'`id`'} of an existing user. There are no target users matching ${userIdNotFound.length > 1 ? 'ids: ' : 'id='}${userIdNotFound.join(', ')}.`
                   err.message = errMsg + ' Target endpoint message: ' + err.message
                 }
               }
@@ -2502,7 +2492,7 @@ export class ScimGateway {
               if (el?.status === 'rejected' || !el?.value?.Resources || el.value.Resources.length !== 1) groupsNotFound.push(`${'`' + groups[index].value + '`'}`)
             })
             if (groupsNotFound.length > 0) {
-              errMsg = `Error: User’s ${'`groups`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id='}${groupsNotFound.join(', ')}.`
+              errMsg = `Error: User’s ${'`groups.value`'} does not reference the ${'`id`'} of an existing group. There are no target groups matching ${groupsNotFound.length > 1 ? 'ids: ' : 'id='}${groupsNotFound.join(', ')}.`
               err.message = errMsg + ' Target endpoint message: ' + err.message
             }
           }
