@@ -2333,27 +2333,32 @@ export class ScimGateway {
 
       let scimdata: any, err: any
       let finalScimdata: any
-      if (jsonBody.Operations) [scimdata, err] = utilsScim.convertedScim20(jsonBody, this.multiValueTypes) // v2.0
-      else [scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes) // v1.1
-      logger.debug(`${gwName} convertedBody=${JSON.stringify(scimdata)}`, { baseEntity: ctx?.routeObj?.baseEntity })
-      if (err) {
+      const groups: Record<string, any>[] = []
+      try {
+        if (jsonBody.Operations) [scimdata, err] = utilsScim.convertedScim20(jsonBody, this.multiValueTypes) // v2.0
+        else [scimdata, err] = utilsScim.convertedScim(jsonBody, this.multiValueTypes) // v1.1
+        logger.debug(`${gwName} convertedBody=${JSON.stringify(scimdata)}`, { baseEntity: ctx?.routeObj?.baseEntity })
+        if (err) throw err
+        delete scimdata.id
+        if (scimdata.groups && Array.isArray(scimdata.groups) && handle.modifyMethod === 'modifyUser' && !this.config.scimgateway.scim.groupMemberOfUser) {
+          if (typeof (this as any)[handler.groups.modifyMethod] !== 'function') throw new Error(`groups cannot be managed - plugin method ${handler.groups.modifyMethod}() is not implemented.`)
+          for (let i = 0; i < scimdata.groups.length; i++) {
+            if (!scimdata.groups[i].value) continue
+            const obj: any = structuredClone(scimdata.groups[i])
+            obj.value = decodeURIComponent(obj.value)
+            if (obj.type === 'indirect') throw new Error('`groups.type=indirect` are read-only, only the target endpoint can manage `indirect` group memberships.')
+            else obj.type = 'direct'
+            groups.push(obj)
+          }
+          delete scimdata.groups
+        }
+      } catch (err: any) {
         const [e, statusCode] = utilsScim.jsonErr(this.config.scimgateway.scim.version, pluginName, 500, err)
         ctx.response.status = statusCode
         ctx.response.body = JSON.stringify(e)
         return
       }
-      delete scimdata.id
-      const groups: Record<string, any>[] = []
-      if (scimdata.groups && Array.isArray(scimdata.groups) && handle.modifyMethod === 'modifyUser' && !this.config.scimgateway.scim.groupMemberOfUser) {
-        if (typeof (this as any)[handler.groups.modifyMethod] !== 'function') throw new Error(`groups cannot be managed - plugin method ${handler.groups.modifyMethod}() is not implemented.`)
-        for (let i = 0; i < scimdata.groups.length; i++) {
-          if (!scimdata.groups[i].value) continue
-          const obj: any = structuredClone(scimdata.groups[i])
-          obj.value = decodeURIComponent(obj.value)
-          groups.push(obj)
-        }
-        delete scimdata.groups
-      }
+
       try {
         let res: any
         if (Array.isArray(scimdata.members) && scimdata.members.length === 0 && handle.modifyMethod === 'modifyGroup') {
@@ -2379,11 +2384,13 @@ export class ScimGateway {
             if (statusCode === 404 && groups[i]?.operation === 'delete') { // remove a non-existing group from user - not an error
               groups.splice(i, 1)
               errRes.splice(i, 1)
+              i--
               continue
             }
             if (statusCode === 409 && groups[i]?.operation !== 'delete') { // add a group to user that is already existing - not an error
               groups.splice(i, 1)
               errRes.splice(i, 1)
+              i--
               continue
             }
           }
