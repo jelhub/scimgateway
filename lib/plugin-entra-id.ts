@@ -177,31 +177,31 @@ if (!groupAttributes.includes('members.value')) groupAttributes.push('members.va
         permission[baseEntity].signInActivity = true
       } else {
         permission[baseEntity].signInActivity = false
-        if (mapAttributesTo.includes('signInActivity')) scimgateway.logError(baseEntity, `signInActivity functionality has been deactivatede because it requires Entra ID Premium license, as well as the API permissions 'AuditLog.Read.All'`)
+        if (mapAttributesTo.includes('signInActivity')) scimgateway.logWarn(baseEntity, `signInActivity functionality has been deactivatede because it requires Entra ID Premium license, as well as the API permissions 'AuditLog.Read.All'`)
       }
       if (eligibleResult.status === 'fulfilled') {
         permission[baseEntity].eligible = true
       } else {
         permission[baseEntity].eligible = false
-        if (mapAttributesTo.includes('roles')) scimgateway.logError(baseEntity, `PIM eligible role functionality has been deactivated because it requires either a P2 or Governance license, as well as the minimum API permission 'RoleEligibilitySchedule.Read.All'`)
+        if (mapAttributesTo.includes('roles')) scimgateway.logWarn(baseEntity, `PIM eligible role functionality has been deactivated because it requires either a P2 or Governance license, as well as the minimum API permission 'RoleEligibilitySchedule.Read.All'`)
       }
       if (permanentScheduleResult.status === 'fulfilled') {
         permission[baseEntity].permanentSchedule = true
       } else {
         permission[baseEntity].permanentSchedule = false
-        if (mapAttributesTo.includes('roles')) scimgateway.logError(baseEntity, `PIM permanent role functionality has been deactivated because it requires either a P2 or Governance license, as well as the minimum API permission 'RoleManagement.Read.Directory'`)
+        if (mapAttributesTo.includes('roles')) scimgateway.logWarn(baseEntity, `PIM permanent role functionality has been deactivated because it requires either a P2 or Governance license, as well as the minimum API permission 'RoleManagement.Read.Directory'`)
       }
       if (accessPackageResult.status === 'fulfilled') {
         permission[baseEntity].accessPackage = true
       } else {
         permission[baseEntity].accessPackage = false
-        if (mapAttributesTo.includes('roles')) scimgateway.logError(baseEntity, `IGA Access Packages functionality has been deactivated because it requires minimum API permission 'EntitlementManagement.Read.All'`)
+        if (mapAttributesTo.includes('roles')) scimgateway.logWarn(baseEntity, `IGA Access Packages functionality has been deactivated because it requires minimum API permission 'EntitlementManagement.Read.All'`)
       }
       if (mfaResult.status === 'fulfilled') {
         permission[baseEntity].mfa = true
       } else {
         permission[baseEntity].mfa = false
-        if (mapAttributesTo.includes('mfa')) scimgateway.logError(baseEntity, `MFA Methods functionality has been deactivated because it requires API permissions 'UserAuthenticationMethod.Read.All'`)
+        if (mapAttributesTo.includes('mfa')) scimgateway.logWarn(baseEntity, `MFA Methods functionality has been deactivated because it requires API permissions 'UserAuthenticationMethod.Read.All'`)
       }
     } catch (err) {}
   }
@@ -691,7 +691,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
       r.push(res)
     }
     if (notFound.length > 0) {
-      const errMsg = `Error: The modify request for users’s ${'`roles`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an existing role. There are no target roles matching ${notFound.length > 1 ? 'ids: ' : 'id = '}${notFound.join(', ')}.`
+      const errMsg = `Error: User’s ${'`roles.value`'} does not reference the ${'`id`'} of an existing role. There are no target roles matching ${notFound.length > 1 ? 'ids: ' : 'id = '}${notFound.join(', ')}.`
       throw new Error(errMsg)
     }
     delete parsedAttrObj.roles
@@ -803,7 +803,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         fnArrAP.push({ fn })
       }
       if (notFound.length > 0) {
-        const errMsg = `Error: The modify request for users’s ${'`entitlements`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an entitlement with type 'access-package'. There are no target access-package entitlements matching ${notFound.length > 1 ? 'ids: ' : 'id = '}${notFound.join(', ')}.`
+        const errMsg = `Error: User’s ${'`entitlements.value`'} does not reference the ${'`id`'} of an existing entitlement with type ${'`access-package`'}. There are no target access-package entitlements matching ${notFound.length > 1 ? 'ids: ' : 'id = '}${notFound.join(', ')}.`
         throw new Error(errMsg)
       }
     }
@@ -835,7 +835,7 @@ scimgateway.modifyUser = async (baseEntity, id, attrObj, ctx) => {
         fnArrAP.push({ fn })
       }
       if (notFound.length > 0) {
-        const errMsg = `Error: The modify request for users’s ${'`entitlements`'} attribute contains a ${'`value`'} that does not match the ${'`id`'} of an entitlement with type 'access-package'. There are no target access-package entitlements matching ${notFound.length > 1 ? 'ids: ' : 'id = '}${notFound.join(', ')}.`
+        const errMsg = `Error: User’s ${'`entitlements.value`'} does not reference the ${'`id`'} of an existing entitlement with type ${'`access-package`'}. There are no target access-package entitlements matching ${notFound.length > 1 ? 'ids: ' : 'id = '}${notFound.join(', ')}.`
         throw new Error(errMsg)
       }
     }
