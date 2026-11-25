@@ -1046,7 +1046,10 @@ export function getSchemaAttributeName(objName: string, attrName: string, scimDe
   }).join('.')
 }
 
-export function addResources(data: any, useCursor: boolean, startIndex?: number, sortBy?: string, sortOrder?: string) {
+export function addResources(data: any, getObj: Record<string, any>, sortBy?: string, sortOrder?: string) {
+  if (typeof getObj !== 'object' || getObj === null) getObj = {}
+  const useCursor = getObj.cursor !== undefined
+  const startIndex = getObj.startIndex
   if (!data || JSON.stringify(data) === '{}') data = [] // no user/group found
   const res: { [key: string]: any } = { Resources: [] }
   if (Array.isArray(data)) res.Resources = data
@@ -1082,6 +1085,7 @@ export function addResources(data: any, useCursor: boolean, startIndex?: number,
     if (res.nextCursor === null || res.nextCursor === '') delete res.nextCursor // no more pages
     else {
       const next: Record<string, any> = { startIndex: res.startIndex + res.itemsPerPage }
+      if (getObj.count !== undefined) next.count = getObj.count
       if (res.nextCursor !== undefined) next.nextCursor = res.nextCursor
       res.nextCursor = Buffer.from(JSON.stringify(next)).toString('base64url')
     }
