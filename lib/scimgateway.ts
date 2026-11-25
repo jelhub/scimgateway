@@ -1159,7 +1159,7 @@ export class ScimGateway {
         this.scimDef.Schemas = tx // special case for startup to re-initialize schemas according to the current endpointMapper configuration
         return
       }
-      tx = utilsScim.addResources(tx, ctx?.query?.cursor !== undefined, undefined, undefined, undefined)
+      tx = utilsScim.addResources(tx, { cursor: ctx?.query?.cursor }, undefined, undefined)
       tx = utilsScim.addSchemasStripAttr(tx, isScimv2)
       ctx.response.body = JSON.stringify(tx)
     }
@@ -1720,7 +1720,6 @@ export class ScimGateway {
       try {
         getObj.cursor = ctx?.query?.cursor // undefined, empty string or string
         if (getObj.cursor !== undefined) {
-          useCursor = true
           if (getObj.cursor === '') {
             getObj.cursor = null
             getObj.startIndex = 1
@@ -1731,6 +1730,7 @@ export class ScimGateway {
               if (typeof cursorObj !== 'object' || cursorObj === null) throw new Error('cursorObj is not JSON')
               if (!cursorObj.startIndex) throw new Error('cursorObj is missing startIndex')
               getObj.startIndex = cursorObj.startIndex
+              if (cursorObj.count !== undefined) getObj.count = cursorObj.count
               if (cursorObj.nextCursor) getObj.cursor = cursorObj.nextCursor
               else getObj.cursor = null
             } catch (err) {
@@ -1741,8 +1741,8 @@ export class ScimGateway {
           }
         }
 
+        if (getObj.count === undefined) getObj.count = ctx.query.count ? parseInt(ctx.query.count, 10) : 200 // defaults to 200 (plugin may override)
         if (getObj.startIndex === undefined) getObj.startIndex = ctx.query.startIndex ? parseInt(ctx.query.startIndex, 10) : 1
-        getObj.count = ctx.query.count ? parseInt(ctx.query.count, 10) : 200 // defaults to 200 (plugin may override)
         if (getObj.startIndex < 1) {
           const err = new Error(`${handle.getMethod} error: startIndex must be a positive integer starting at 1`)
           err.name = 'invalidValue'
@@ -1909,7 +1909,7 @@ export class ScimGateway {
         if (this.config.scimgateway.scim.skipMetaLocation) location = undefined
         else if (ctx.query.excludedAttributes && ctx.query.excludedAttributes.includes('meta')) location = undefined
 
-        let scimdata = utilsScim.addResources(res, useCursor, getObj.startIndex, ctx.query.sortBy, ctx.query.sortOrder)
+        let scimdata = utilsScim.addResources(res, getObj, ctx.query.sortBy, ctx.query.sortOrder)
         scimdata = utilsScim.addSchemasStripAttr(scimdata, isScimv2, handle.description, ctx.query.attributes, ctx.query.excludedAttributes, location)
         if (getObj.count === 0) {
           scimdata.Resources = []
