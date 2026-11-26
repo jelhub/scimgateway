@@ -13,7 +13,7 @@
     "log": {
       "loglevel": {
         "file": "debug",
-        "console": "error"
+        "console": "warn"
       },
       "customMasking": null
     },
@@ -150,8 +150,13 @@
         "mapOverride": {
           "user": {
             "userPrincipalName": {
-              "x-agent-schema": {
-                "description": "Required for user creation. The user's userPrincipalName (globally unique identifier). If 'userName' is not provided, the agent MUST generate it by concatenating 'givenName.familyName@my-company.com', all in lowercase and normalizing special characters. For example, for 'Barbara Jensen', the userName is 'barbara.jensen@my-company.com'. This field is also subject to a mandatory, autonomous conflict resolution policy. If an attempt to create a user fails because the 'userName' already exists (HTTP code 409), the agent MUST NOT ask for confirmation. Instead, it MUST autonomously append an incrementing number to the 'userName' (e.g., 'barbara.jensen1@my-company.com') and retry the creation until it succeeds. This entire process is mandatory and must be performed without user interaction."
+              "schema": {
+                "description": "Entra ID `userPrincipalName` (UPN), the user’s sign-in identifier. Required and unique across all users. This is NOT the user’s name. On create: if the request supplies a `userName`, use it as-is. Otherwise generate one from the full name (`givenName` + `familyName`): split into space-delimited tokens, join them with `.`, lowercase, and transliterate to plain ASCII (remove accents and expand ligatures: æ -> ae, ø -> o, å -> a, ä -> a, ö -> o, ü -> u, é -> e, è -> e, ñ -> n, ß -> ss). Then remove all characters except `a-z`, `0-9`, `.`, `-` and `_`, collapse repeated periods and trim leading/trailing periods, limit the result to 64 characters, and append `@my-company.com`. Example: `Åse Kari Kjærøy` -> `ase.kari.kjaeroy@my-company.com`. On HTTP 409 Conflict: if creation fails with `HTTP 409 Conflict` because `userName` is already taken (SCIM `scimType: uniqueness`), insert a number directly before the `@` character, starting at 2, then retry. The domain `@my-company.com` must stay at the end. Example: `ase.kari.kjaeroy@my-company.com` -> `ase.kari.kjaeroy2@my-company.com`. WRONG: `ase.kari.kjaeroy@my-company.com2`. Try numbers 2-5, then report failure. On update: do not change `userName` unless explicitly requested."
+              }
+            },
+            "usageLocation": {
+              "schema": {
+                "description": "Country where the user consumes Microsoft services, as ISO 3166-1 alpha-2 code (e.g. NO, US) or a supported country name. Required by Entra ID for license assignment: users without `usageLocation` cannot receive licenses (including via group-based licensing or access packages). On create: always set it. Use the stated `usageLocation`; otherwise derive it from the user's `country`; otherwise use `NO`. Not the same as `country` (postal address only). On modify: change only when explicitly requested; changing it can make licensed services unavailable."
               }
             }
           }
@@ -159,418 +164,436 @@
       }
     },
     "map": {
+      "comment1": "map.user and map.group automatically generate schemas based on the default SCIM schemas. These defaults can be overridden by including a `schema` object containing standard schema attributes.",
+      "comment2": "If using AI Agent and MCP tools, the `user.userPrincipalName.schema.description` must have the domain `@my-company.com` replaced with your actual domain or use `endpoint.entity.xxx.mapOverride.user.userPrincipalName.schema.description` to override for a specific baseEntity.",
+      "comment3": "If using AI Agent and MCP tools, the `user.usageLocation.schema.description` defaults to `NO` and must be changed accordingly",
+      "comment4": "user.signInActivity: requires Entra ID P1/P2 license and the API permissions: `AuditLog.Read.All`. Remove this mapping if conditions not met.",
+      "comment5": "user.roles: managing eligible directory roles requires Entra ID P2 or Entra ID Governance (PIM) and the `RoleEligibilitySchedule.ReadWrite.Directory` API permission. Managing permanent role assignments requires the `RoleManagement.ReadWrite.Directory` API permission. Remove this mapping if the required permissions and licenses are not available.",
       "user": {
         "id": {
           "mapTo": "id",
           "type": "string"
         },
         "userPrincipalName": {
-          "mapTo": "userName,externalId",
+          "mapTo": "userName",
           "type": "string",
-          "comment": "If using AI Agent and mcp tools, change the below description '@example.com' to your domain or use 'endpoint.entity.xxx.mapOverride.user.userPrincipalName.x-agent-schema.description' to override the description for a specific baseEntity.",
-          "x-agent-schema": {
-            "description": "Required for user creation. The user's userPrincipalName (globally unique identifier). If 'userName' is not provided, the agent MUST generate it by concatenating 'givenName.familyName@example.com', all in lowercase and normalizing special characters. For example, for 'Barbara Jensen', the userName is 'barbara.jensen@example.com'. This field is also subject to a mandatory, autonomous conflict resolution policy. If an attempt to create a user fails because the 'userName' already exists (HTTP code 409), the agent MUST NOT ask for confirmation. Instead, it MUST autonomously append an incrementing number to the 'userName' (e.g., 'barbara.jensen1@example.com') and retry the creation until it succeeds. This entire process is mandatory and must be performed without user interaction.",
-            "x-agent-hints": {
-              "uniqueSuffixOnConflict": true,
-              "doNotPromptOnConflict": true
-            }
+          "schema": {
+            "description": "Entra ID `userPrincipalName` (UPN), the user’s sign-in identifier. Required and unique across all users. This is NOT the user’s name. On create: if the request supplies a `userName`, use it as-is. Otherwise generate one from the full name (`givenName` + `familyName`): split into space-delimited tokens, join them with `.`, lowercase, and transliterate to plain ASCII (remove accents and expand ligatures: æ -> ae, ø -> o, å -> a, ä -> a, ö -> o, ü -> u, é -> e, è -> e, ñ -> n, ß -> ss). Then remove all characters except `a-z`, `0-9`, `.`, `-` and `_`, collapse repeated periods and trim leading/trailing periods, limit the result to 64 characters, and append `@my-company.com`. Example: `Åse Kari Kjærøy` -> `ase.kari.kjaeroy@my-company.com`. On HTTP 409 Conflict: if creation fails with `HTTP 409 Conflict` because `userName` is already taken (SCIM `scimType: uniqueness`), insert a number directly before the `@` character, starting at 2, then retry. The domain `@my-company.com` must stay at the end. Example: `ase.kari.kjaeroy@my-company.com` -> `ase.kari.kjaeroy2@my-company.com`. WRONG: `ase.kari.kjaeroy@my-company.com2`. Try numbers 2-5, then report failure. On update: do not change `userName` unless explicitly requested."
           }
         },
         "signInActivity": {
-          "comment": "This mapping requires Entra ID Premium license and API permissions: 'AuditLog.Read.All'. Remove this mapping if conditions not met",
           "mapTo": "signInActivity",
           "type": "complexObject",
-          "mutability": "readOnly",
-          "subAttributes": [
-            {
-              "name": "lastSignInDateTime",
-              "mutability": "readOnly",
-              "description": "The last interactive sign-in date and time for a specific user. This property records the last time a user attempted an interactive sign-in to the directory—whether the attempt was successful or not."
-            },
-            {
-              "name": "lastSuccessfulSignInDateTime",
-              "mutability": "readOnly",
-              "description": "The date and time of the user's most recent successful interactive or non-interactive sign-in. Use this property if you need to determine when the account was truly accessed."
-            },
-            {
-              "name": "lastNonInteractiveSignInDateTime",
-              "mutability": "readOnly",
-              "description": "The last non-interactive sign-in date for a specific user. You can use this field to calculate the last time a client attempted (either successfully or unsuccessfully) to sign in to the directory on behalf of a user."
-            }
-          ],
-          "x-agent-schema": {
-            "description": "Read-only attribute object representing Entra ID signInActivity like: lastSignInDateTime, lastSuccessfulSignInDateTime and lastNonInteractiveSignInDateTime. Note: Only availabe for users having P1/P2 licenses. If signInActivity is missing, agent should not consider this to be no sign-in activity for the user.",
-            "readOnly": true
+          "schema": {
+            "description": "Read-only Entra ID sign-in data (requires an Entra ID P1/P2 tenant). Use `lastSuccessfulSignInDateTime` to judge activity. If signInActivity is missing for a user while other users have it, the user has never signed in. If it is missing for all users, sign-in data is unavailable.",
+            "mutability": "readOnly",
+            "subAttributes": [
+              {
+                "name": "lastSignInDateTime",
+                "mutability": "readOnly",
+                "type": "dateTime",
+                "description": "Last interactive sign-in attempt, successful or failed. Do not use for inactivity."
+              },
+              {
+                "name": "lastSuccessfulSignInDateTime",
+                "mutability": "readOnly",
+                "type": "dateTime",
+                "description": "Last successful sign-in (interactive or non-interactive). The only reliable activity indicator."
+              },
+              {
+                "name": "lastNonInteractiveSignInDateTime",
+                "mutability": "readOnly",
+                "type": "dateTime",
+                "description": "Last non-interactive sign-in attempt (a client signing in on the user’s behalf), successful or failed. Do not use for inactivity."
+              }
+            ]
           }
         },
         "mfa": {
           "mapTo": "mfa",
           "type": "complexObject",
-          "mutability": "readOnly",
-          "subAttributes": [
-            {
-              "name": "isMfaCapable",
-              "mutability": "readOnly",
-              "description": "true/false - user has at least one MFA-capable method registered (members only; for guests, methods are in home tenant and enforcement is via Conditional Access).",
-              "type": "boolean"
-            },
-            {
-              "name": "isLegacyEnabled",
-              "mutability": "readOnly",
-              "description": "true/false - legacy per-user MFA is enabled ('perUserMfaState' is 'enabled' or 'enforced'); such users bypass/aren´t fully controlled by standard Conditional Access only design and therefore require special attention.",
-              "type": "boolean"
-            },
-            {
-              "name": "reset",
-              "mutability": "writeOnly",
-              "description": "Set to 'true' will reset users MFA capabilites and user will be forced to re-register MFA.",
-              "type": "boolean"
-            }
-          ],
-        "x-agent-schema": {
-            "description": "Read-only attribute object (except for 'mfa.reset') presenting the user's MFA capabilities. Note: 'mfa.isMfaCapable' does not mean MFA is enabled for the user. Conditional Access policies or using Security Defaults must be verified separately.",
-            "readOnly": true
+          "schema": {
+            "description": "Read-only attribute object (except for `mfa.reset`) presenting the user’s MFA capabilities. Note: `mfa.isMfaCapable` does not mean MFA is enabled for the user. Conditional Access policies or using Security Defaults must be verified separately.",
+            "mutability": "readWrite",
+            "subAttributes": [
+              {
+                "name": "isMfaCapable",
+                "description": "true/false - user has at least one MFA-capable method registered (members only; for guests, methods are in home tenant and enforcement is via Conditional Access).",
+                "mutability": "readOnly",
+                "type": "boolean"
+              },
+              {
+                "name": "isLegacyEnabled",
+                "mutability": "readOnly",
+                "description": "true/false - legacy per-user MFA is enabled (`perUserMfaState` is `enabled` or `enforced`); such users bypass/aren’t fully controlled by standard Conditional Access only design and therefore require special attention.",
+                "type": "boolean"
+              },
+              {
+                "name": "reset",
+                "description": "Set to `true` will reset user’s MFA capabilities and user will be forced to re-register MFA. Only set when explicitly requested; confirm the target `userName` with the requester before sending.",
+                "mutability": "writeOnly",
+                "type": "boolean",
+                "returned": "never"
+              }
+            ]
           }
         },
         "roles": {
-          "comment": "For tenant having P2 or Governance License which includes PIM, this mapping requires API permissions: 'RoleEligiblitySchedule.ReadWrite.All' for Eligible roles and 'RoleManagement.ReadWrite.Directory' for Permanent roles. Remove this mapping if conditions not met.",
           "mapTo": "roles",
           "type": "complexArray",
-          "x-agent-schema": {
-            "description": "Attribute representing Entra ID roles. 'roles.type' specifies the role category, 'Permanent' or 'Eligible'. 'roles.value' = The unique identifier of the role and 'roles.display' = Entra ID user-friendly rolename. When adding or modifying user roles, if 'roles.type' is not specified, it defaults to 'Eligible' if the tenant uses PIM; otherwise, it defaults to 'Permanent'. The agent should omit 'roles.type' unless explicitly specified by the user. When deleting a role, 'roles.type' must be included."
+          "schema": {
+            "description": "The user’s Entra ID directory role assignments with types `permanent` or `eligible`. Look up role ids with `list_roles`.",
+            "roles.type.canonicalValues": [
+              "permanent",
+              "eligible"
+            ],
+            "roles.type.description": "A tag used to categorize the user’s role, either `permanent` or `eligible`. Omit when adding (defaults to `eligible` if the tenant uses PIM; otherwise, defaults to `permanent`) unless the user specifies it; include when removing.",
+            "roles.value.description": "The role’s unique `id` from `list_roles`",
+            "roles.value.required": true,
+            "roles.display.description": "The role’s display name (the `displayName` from `list_roles`). Recommended when adding."
           }
         },
         "entitlements": {
           "mapTo": "entitlements",
           "type": "complexArray",
-          "x-agent-schema": {
-            "description": "Attribute representing entitlements. 'entitlements.type' specifies the entitlement category: 'License' (read-only) or 'AccessPackage' (read-write). 'entitlements.value' = License SKU ID or AccessPackage ID (unique identifier). 'entitlements.display' = User-friendly name."
+          "schema": {
+            "description": "The user’s entitlements with types `license` or `access-package` which is the Entra ID assigned Licenses and Access Packages. Look up ids with `list_entitlements`. Licenses are read-only; only Access Packages can be added or removed.",
+            "entitlements.type.canonicalValues": [
+              "license",
+              "access-package"
+            ],
+            "entitlements.type.description": "A tag used to categorize the user’s entitlement, either `license` (read-only) or `access-package`.",
+            "entitlements.type.required": true,
+            "entitlements.value.description": "The entitlement’s unique `id` from `list_entitlements`",
+            "entitlements.value.required": true,
+            "entitlements.display.description": "The entitlement’s display name (the `displayName` from `list_entitlements`). Recommended when adding."
           }
+        },
+        "groups": {
+          "mapTo": "groups",
+          "type": "complexObject"
         },
         "userType": {
           "mapTo": "userType",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Required for user creation. The user's type. Can be 'Member' or 'Guest'. The agent MUST always set this value to 'Member' without prompting the user.",
-            "x-agent-hints": {
-              "doNotPrompt": true
-            }
+          "schema": {
+            "description": "`Member` or `Guest`. On create: always `Member`.",
+            "required": true,
+            "canonicalValues": [
+              "Member",
+              "Guest"
+            ]
           }
         },
         "accountEnabled": {
           "mapTo": "active",
           "type": "boolean",
-          "x-agent-schema": {
-            "description": "Required for user creation. Active flag ('true' is enable, 'false' is disable). The agent MUST always set this value to 'true' without prompting the user.",
-            "x-agent-hints": {
-              "doNotPrompt": true
-            }
+          "schema": {
+            "description": "The user’s administrative status: `true` means enabled and `false` means disabled. On create: `true` unless otherwise stated. On modify: `false` to disable, `true` to enable.",
+            "required": true
           }
         },
         "givenName": {
           "mapTo": "name.givenName",
           "type": "string",
-          "x-agent-schema": {
-            "description": "First name"
+          "schema": {
+            "description": "The given (first, including middle) name(s): all tokens of the full name except the last, unless the given name is stated explicitly.",
+            "required": true,
+            "parent-schema": {
+                "description": "The user’s real name and its components, including given and family names.",
+                "required": true
+            }
           }
         },
         "surname": {
           "mapTo": "name.familyName",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Last name"
+          "schema": {
+            "description": "The family (last) name: the final token of the full name, unless family name is stated explicitly.",
+            "required": true
           }
         },
         "displayName": {
           "mapTo": "displayName",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Display name"
+          "schema": {
+            "description": "The user’s full name (`givenName` + `familyName`). On create: if not supplied, use `givenName` + space + `familyName`.",
+            "required": true
           }
         },
         "jobTitle": {
           "mapTo": "jobTitle",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Job title"
+          "schema": {
+            "description": "The user’s job title."
           }
         },
         "employeeId": {
           "mapTo": "employeeId",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Employee ID"
+          "schema": {
+            "description": "The user’s identifier assigned by the organization."
           }
         },
         "employeeType": {
           "mapTo": "employeeType",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Employee type"
+          "schema": {
+            "description": "The user’s employee type (e.g., `Contractor`, `Intern`, `Permanent`, `Temp`)."
           }
         },
         "employeeHireDate": {
           "mapTo": "employeeHireDate",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Employee hire date. Date format must be YYYY-MM-DD"
+          "schema": {
+            "description": "The user’s hire date. Date format must be YYYY-MM-DD.",
+            "x-agent-schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
           }
         },
         "companyName": {
           "mapTo": "companyName",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Company name"
+          "schema": {
+            "description": "The user’s company name."
           }
         },
         "employeeOrgData.costCenter": {
           "mapTo": "employeeOrgData.costCenter",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Cost center"
+          "schema": {
+            "description": "The user’s cost center name.",
+            "parent-schema": {
+                "description": "The user’s organization information like cost center and division."
+            }
           }
         },
         "employeeOrgData.division": {
           "mapTo": "employeeOrgData.division",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Division"
+          "schema": {
+            "description": "The user’s division name."
           }
         },
         "officeLocation": {
           "mapTo": "officeLocation",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Office location"
+          "schema": {
+            "description": "The user’s office location."
           }
         },
         "department": {
           "mapTo": "department",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Department"
+          "schema": {
+            "description": "The user’s department name."
           }
         },
         "manager": {
           "mapTo": "manager.managerId",
           "type": "string",
-          "x-agent-schema": {
-            "description": "manager.managerId is the userPrincipalName of the manager. To clear manager, set managerId value to an empty string (\"\")."
+          "schema": {
+            "description": "The manager’s `id` attribute. Never a `userName` or `displayName`. Set to \"\" to clear the manager.",
+            "parent-schema": {
+              "description": "The user’s manager, referenced by the manager’s `id` attribute in `manager.managerId`"
+            }
           }
         },
         "mail": {
           "mapTo": "mail",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Required for user creation. Mail address value MUST be generated by the agent from the 'userName' and must be globally unique and all lowercase. The agent MUST NOT ask the user for this value."
+          "schema": {
+            "description": "The user’s email address. On Create: Set equal to the final `userName` (including any number added on conflict)",
+            "required": true
           }
         },
         "mailNickname": {
           "mapTo": "mailNickname",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Required for user creation. Mail nickname value MUST be generated by the agent from the 'userName' field (by taking the part before the '@' symbol) and must be globally unique and all lowercase. The agent MUST NOT ask the user for this value."
+          "schema": {
+            "description": "The user’s casual name. On Create: Set equal to the final `userName` and omitting the `@domain` suffix.",
+            "required": true
           }
         },
         "proxyAddresses": {
           "mapTo": "proxyAddresses",
           "type": "array",
-          "x-agent-schema": {
-            "description": "Proxy addresses. Important: This field is read-only during user creation. The agent MUST NOT include this field in the initial create user request. To set proxy addresses, first create the user, then use a separate modify user request to add them."
+          "schema": {
+            "description": "The user’s proxy addresses. Important: This field is read-only during user creation. The agent MUST NOT include this field in the initial create user request. To set proxy addresses, first create the user, then use a separate modify user request to add them."
           }
         },
         "mobilePhone": {
           "mapTo": "mobilePhone",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Mobile phone number"
+          "schema": {
+            "description": "The user’s mobile phone number."
           }
         },
         "businessPhones": {
           "mapTo": "businessPhone",
           "type": "array",
           "typeInbound": "string",
-          "x-agent-schema": {
-            "description": "Business phone number"
+          "schema": {
+            "description": "The user’s work phone number. Entra ID accepts only one value."
           }
         },
         "faxNumber": {
           "mapTo": "faxNumber",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Fax number"
+          "schema": {
+            "description": "The user’s fax number."
           }
         },
         "country": {
           "mapTo": "country",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Country"
+          "schema": {
+            "description": "The user’s country."
           }
         },
         "city": {
           "mapTo": "city",
           "type": "string",
-          "x-agent-schema": {
-            "description": "City"
+          "schema": {
+            "description": "The user’s city."
           }
         },
         "streetAddress": {
           "mapTo": "streetAddress",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Street address"
+          "schema": {
+            "description": "The user’s street address."
           }
         },
         "postalCode": {
           "mapTo": "postalCode",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Postal code"
+          "schema": {
+            "description": "The user’s postal code."
           }
         },
         "state": {
           "mapTo": "state",
           "type": "string",
-          "x-agent-schema": {
-            "description": "State"
+          "schema": {
+            "description": "The user’s state."
           }
         },
         "passwordPolicies": {
           "mapTo": "passwordPolicies",
           "type": "string",
-          "x-agent-schema": {
+          "schema": {
+            "mutability": "readOnly",
             "description": "Read-only attribute representing Entra ID password policies."
           }
         },
         "passwordProfile.forceChangePasswordNextSignIn": {
           "mapTo": "passwordProfile.forceChangePasswordNextSignIn",
           "type": "boolean",
-          "x-agent-schema": {
-            "description": "Required for user creation. The agent MUST always set this value to 'true' without prompting the user. This ensures the user must change their password on the next sign-in. Default value is true.",
-            "x-agent-hints": {
-              "doNotPrompt": true
-            },
-            "x-agent-parent-schema": {
-              "description": "Password profile for the user. For creates the agent MUST set following: 'password' and 'forceChangePasswordNextSignIn'.",
-              "required": [
-                "password",
-                "forceChangePasswordNextSignIn"
-              ],
-              "x-agent-hints": {
-                "doNotPrompt": true
-              }
+          "schema": {
+            "description": "Force user to change password on next sign-in. On create and on password change: set to `true` unless explicitly specified otherwise by the user.",
+            "required": true,
+            "parent-schema": {
+                "description": "The user’s password profile. On create, set `password` (generated) and `forceChangePasswordNextSignIn`. On modify, send both when changing the password.",
+                "required": true
             }
           }
         },
         "passwordProfile.password": {
           "mapTo": "passwordProfile.password",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Required for user creation. The agent MUST generate and include a secure random password. Entra ID will reject the create if password is missing or empty. The agent do not prompt the user for this password.",
-            "x-agent-hints": {
-              "generatePassword": true,
-              "passwordPolicy": {
-                "minLength": 14,
-                "requireUppercase": true,
-                "requireLowercase": true,
-                "requireNumbers": true,
-                "requireSymbols": true
-              }
+          "schema": {
+            "description": "The user’s clear-text password, used to set an initial password or reset it. On create: the agent MUST generate a secure random password using ASCII-only characters and following `x-agent-schema`; Entra ID may reject non-ASCII characters. Do not derive it from the user’s name or personal data, and do not prompt the user for this password. On reset: if the user supplies a password, set it as given without asking for confirmation; otherwise generate one as on create. When a password is generated, show it once to the requester so it can be handed over.",
+            "required": true,
+            "mutability": "writeOnly",
+            "caseExact": true,
+            "returned": "never",
+            "x-agent-schema": {
+              "minLength": 14,
+              "requireUppercase": true,
+              "requireLowercase": true,
+              "requireNumbers": true,
+              "requireSymbols": true,
+              "allowedSymbols": "!@#$%^&*-_=+?",
+              "asciiOnly": true
             }
           }
         },
         "usageLocation": {
           "mapTo": "usageLocation",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Country as ISO 3166-1 alpha-2 code or a supported country name.",
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[A-Z]{2}$",
-                "description": "ISO 3166-1 alpha-2 code (e.g., NO, US)."
-              },
-              {
-                "type": "string",
-                "enum": [
-                  "Norway",
-                  "Sweden",
-                  "Denmark",
-                  "Finland",
-                  "United States",
-                  "United Kingdom",
-                  "Irland",
-                  "Germany",
-                  "France",
-                  "Spain",
-                  "Italy",
-                  "Netherlands",
-                  "Belgium",
-                  "Poland",
-                  "Austria",
-                  "Switzerland",
-                  "Ireland",
-                  "Portugal",
-                  "Canada",
-                  "Australia",
-                  "India",
-                  "Germany",
-                  "Belgium",
-                  "Czechia",
-                  "Estonia",
-                  "Latvia",
-                  "Lithuania"
-                ],
-                "description": "Common country names supported; server maps to the corresponding ISO code."
-              }
-            ]
+          "schema": {
+            "description": "Country where the user consumes Microsoft services, as ISO 3166-1 alpha-2 code (e.g. NO, US) or a supported country name. Required by Entra ID for license assignment: users without `usageLocation` cannot receive licenses (including via group-based licensing or access packages). On create: always set it. Use the stated `usageLocation`; otherwise derive it from the user's `country`; otherwise use `NO`. Not the same as `country` (postal address only). On modify: change only when explicitly requested; changing it can make licensed services unavailable.",
+            "required": true,
+            "caseExact": true,
+            "x-agent-schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2}$",
+                  "description": "ISO 3166-1 alpha-2 code (e.g., NO, US)."
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    "Norway",
+                    "Sweden",
+                    "Denmark",
+                    "Finland",
+                    "United States",
+                    "United Kingdom",
+                    "Ireland",
+                    "Germany",
+                    "France",
+                    "Spain",
+                    "Italy",
+                    "Netherlands",
+                    "Belgium",
+                    "Poland",
+                    "Austria",
+                    "Switzerland",
+                    "Portugal",
+                    "Canada",
+                    "Australia",
+                    "India",
+                    "Czechia",
+                    "Estonia",
+                    "Latvia",
+                    "Lithuania"
+                  ]
+                }
+              ]
+            }
           }
         },
         "preferredLanguage": {
           "mapTo": "preferredLanguage",
           "type": "string",
-          "x-agent-schema": {
-            "description": "Preferred language"
+          "schema": {
+            "description": "The user’s preferred language. A two-letter lowercase ISO 639 language code, a hyphen, then a two-letter uppercase ISO 3166 country/region code like `nb-NO`.",
+            "x-agent-schema": {
+              "type": "string",
+              "pattern":"^[a-z]{2}-[A-Z]{2}$"
+            }
           }
         },
         "onPremisesSyncEnabled": {
           "mapTo": "onPremisesSyncEnabled",
           "type": "boolean",
-          "x-agent-schema": {
-            "description": "Read-only attribute representing Entra ID onPremisesSyncEnabled. When true this account is synchronized from an on-premises Active Directory. DO NOT modify or delete this user via service; all authoritative changes must be made in the on-premises AD and allowed to sync to Entra ID. Agents should call 'list_users' or other read-only tools to discover the user's on-premises status and must not attempt write/delete operations when this flag is true.",
-            "readOnly": true
+          "schema": {
+            "description": "Read-only attribute representing the user’s Entra ID `onPremisesSyncEnabled`. When `true` this user is synchronized from an on-premises Active Directory and can not be modified or deleted.",
+            "mutability": "readOnly"
           }
         },
         "onPremisesImmutableId": {
           "mapTo": "onPremisesImmutableId",
-          "type": "boolean",
-          "x-agent-schema": {
-            "description": "Read-only attribute representing Entra ID onPremisesImmutableId.",
-            "readOnly": true
-          }
-        },
-        "x-agent-schema": {
-          "x-agent-hints": {
-            "nameSplit": {
-              "strategy": "all-but-last_vs_last",
-              "notes": "givenName = all tokens except last (joined with spaces), familyName = last token"
-            },
-            "lowercaseRules": {
-              "userName": true,
-              "mail": true,
-              "mailNickname": true
-            },
-            "generateMailNickname": {
-              "create": true,
-              "sourceField": "userName"
-            },
-            "onPremPolicy": "readonly-if-true",
-            "createConstraints": {
-              "allowProxyAddressesOnCreate": false,
-              "mailAndProxyAddressesPolicy": "If proxyAddresses are required, create with mail only and PATCH proxyAddresses afterwards.",
-              "generatePasswordOnConflict": true
-            }
+          "type": "string",
+          "schema": {
+            "description": "Read-only attribute representing the user’s Entra ID `onPremisesImmutableId`.",
+            "mutability": "readOnly"
           }
         }
       },
@@ -581,43 +604,35 @@
         },
         "displayName": {
           "mapTo": "displayName",
-          "type": "string",
-          "x-agent-schema": {
-            "description": "Required for group creation. The group's display name."
-          }
+          "type": "string"
         },
         "description": {
           "mapTo": "description",
           "type": "string",
-          "x-agent-schema": {
+          "schema": {
             "description": "A human-readable description of the group."
           }
         },
         "members": {
           "mapTo": "members",
-          "type": "complexArray",
-          "x-agent-schema": {
-            "description": "A list of members of the group. The members.value represents the unique identifier (ID) of each member in the group."
-          }
+          "type": "complexArray"
         },
         "securityEnabled": {
           "mapTo": "securityEnabled",
           "type": "boolean",
-          "x-agent-schema": {
-            "description": "Required for group creation. Entra ID security group (securityEnabled is set to 'true'). The agent MUST always set this value to 'true' without prompting the user. IMPORTANT: This field is read-only after the group is created.",
-            "x-agent-hints": {
-              "doNotPrompt": true
-            }
+          "schema": {
+            "description": "`true` or `false`, `true` represents an Entra ID security group. On Create: The agent MUST always set this value to `true`. IMPORTANT: This field is read-only after the group is created.",
+            "required": true,
+            "mutability": "immutable"
           }
         },
         "mailEnabled": {
           "mapTo": "mailEnabled",
           "type": "boolean",
-          "x-agent-schema": {
-            "description": "Required for group creation. Entra ID mail enabled group. The agent MUST always set this value to 'false' without prompting the user. IMPORTANT: This field is read-only after the group is created.",
-            "x-agent-hints": {
-              "doNotPrompt": true
-            }
+          "schema": {
+            "description": "`true` or `false`, `true` represents an Entra ID mail enabled group. On Create: The agent MUST always set this value to `false`. IMPORTANT: This field is read-only after the group is created.",
+            "required": true,
+            "mutability": "immutable"
           }
         }
       }
