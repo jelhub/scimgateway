@@ -1,5 +1,16 @@
 # Change Log
 
+### v6.3.1
+**[Improved]**
+- Add AI-friendly descriptions to the default SCIM v1.1 and v2.0 schemas
+- Use a new schema `object` in the configuration file's `endpoint.map` (endpointMapper) settings to define and override auto-generated SCIM schema attribute properties.
+- Update test users and groups to use IDs in the `id-of-<name>` format, keeping `userName` for users and `displayName` for groups separate from `id`
+- Case-insensitive filtering and a new `id` format for plugin-loki and plugin-mongodb (`id-of-<name>`)
+- Include the user's groups in modifyUser response
+- Improve error responses in modifyUser and modifyGroup
+- Brute-force attempt counting and handling per IP address instead of globally
+- Allow omitting the `count` parameter when using cursor-based pagination
+
 ### v6.3.0
 - **[Improved]** Cursor-based pagination [RFC 9865](https://www.rfc-editor.org/info/rfc9865) is now supported alongside the default index-based pagination. Cursor can also be used with plugins that use index-based pagination.
 

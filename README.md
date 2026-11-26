@@ -86,10 +86,10 @@ SCIM With Your Own Intelligence!
 ## What's New
 
 - Cursor-based pagination [RFC 9865](https://www.rfc-editor.org/info/rfc9865) is now supported alongside the default index-based pagination. Cursor can also be used with plugins that use index-based pagination.
-- **`plugin-entra-id`** now supports Entra ID roles, access packages and MFA, in addition to reading licenses.
+- **`plugin-entra-id`** now supports Entra ID roles, access packages and MFA, in addition to reading licenses
 - **`plugin-generic`** replaces `plugin-scim` — a flexible template using `endpointMapper` with the new `valueMap` option for allowlisting and name mapping e.g., groups
 - **`GET /Roles` and `GET /Entitlements`** endpoint support, with user management via SCIM `roles` and `entitlements` attributes; `plugin-entra-id` uses `entitlements` for Entra ID licenses (read-only) and access packages (full management) and `roles` for Permanent and Eligible PIM roles (full management)
-- **AI Agent ready** — `x-agent-schema` configuration in `endpointMapper` enables custom schema generation with MCP tool instructions for autonomous provisioning agents
+- **AI Agent ready** — Use a `schema` object in the configuration file's `endpoint.map` settings to define and override auto-generated SCIM schema attribute properties, including `x-agent-schema` definitions that provide MCP tool instructions for autonomous provisioning agents
 - **Bun binary builds** — compile a plugin into a single executable for simplified deployment
 - **ES module / TypeScript support in Node.js** via `tsx`
 - **v6.0.0** — API method response bodies returned as-is; new `publicApi()` method for unauthenticated `/pub/api` routes; `bearerJwtAzure.tenantIdGUID` replaced by `bearerJwt.azureTenantId`
@@ -100,7 +100,7 @@ SCIM With Your Own Intelligence!
 - **Remote real-time log subscription** via browser, curl, or custom client at `https://<host>/logger`
 - **Gateway chaining** — chain `gateway1 → gateway2 → gateway3 → endpoint` with reverse-proxy-style auth validation
 - **OAuth for email** — Microsoft Exchange Online and Google Workspace Gmail alongside traditional SMTP Auth
-- [SCIM Stream](https://elshaug.xyz/docs/scim-stream) — subscribe-based provisioning as an alternative to top-down IGA polling
+- [SCIM Stream](https://elshaug.xyz/docs/scim-stream) — subscribe-based outbound provisioning as an alternative to traditional top-down IGA inbound provisioning
 
 ---
 
@@ -108,7 +108,7 @@ SCIM With Your Own Intelligence!
 
 | Plugin | Endpoint Type | Description |
 |---|---|---|
-| **loki** | NoSQL | Standalone SCIM endpoint using [LokiJS](https://github.com/techfort/LokiJS). Includes test users and groups. Ideal for development. |
+| **loki** | NoSQL | Standalone SCIM endpoint using [LokiJS](https://github.com/techfort/LokiJS). Includes test users and groups by default. Ideal for SCIM testing. |
 | **mongodb** | NoSQL | Like Loki but backed by an external MongoDB. Demonstrates multi-tenant via `baseEntity`. |
 | **entra-id** | REST | Users/Groups/Roles/AccessPackages/Licenses provisioning to Microsoft Entra ID via Microsoft Graph API. |
 | **generic** | REST | Generic template using `endpointMapper` and the `valueMap` option for allowlisting and name mapping e.g., groups. Defaults to plugin-loki as the SCIM target. Can also act as a SCIM version gateway (e.g. 1.1 → 2.0). |
@@ -148,24 +148,25 @@ Then open a browser and try:
 
 ```
 # Health check
-GET http://localhost:8880/ping
+http://localhost:8880/ping
 
 # List users and groups (basic auth: gwadmin / password)
-GET http://localhost:8880/Users
-GET http://localhost:8880/Groups
+http://localhost:8880/Users
+http://localhost:8880/Groups
 
-# Real-time remote log monitoring
+# Real-time remote log monitoring (open a new browser)
 http://localhost:8880/logger
 
 # Fetch a specific user or group
-GET http://localhost:8880/Users/bjensen
-GET http://localhost:8880/Groups/Admins
+http://localhost:8880/Users/id-of-john.smith
+http://localhost:8880/Groups/id-of-admins
 
 # Filter examples
-GET http://localhost:8880/Users?filter=userName eq "bjensen"
-GET http://localhost:8880/Users?filter=emails.value co "@example.com"&attributes=userName,name.familyName,emails&sortBy=name.familyName&sortOrder=descending
-GET http://localhost:8880/Groups?filter=displayName eq "Admins"&excludedAttributes=members
-GET http://localhost:8880/Groups?filter=members.value eq "bjensen"&attributes=id,displayName,members.value
+http://localhost:8880/Users?filter=userName eq "john.smith"
+http://localhost:8880/Users?filter=emails.value co "@example.com"&attributes=userName,name.familyName,emails&sortBy=name.familyName&sortOrder=descending
+
+http://localhost:8880/Groups?filter=displayName eq "Admins"&excludedAttributes=members
+http://localhost:8880/Groups?filter=members.value eq "id-of-john.smith"&attributes=id,displayName,members.value
 ```
 
 Press `Ctrl+C` to stop.
@@ -255,7 +256,7 @@ With `skipTypeConvert: false` (default), emails are converted to type-keyed obje
 
 ```json
 "emails": {
-  "work": { "value": "jsmith@example.com", "type": "work" },
+  "work": { "value": "john.smith@example.com", "type": "work" },
   "home": { "value": "", "type": "home", "operation": "delete" }
 }
 ```
@@ -264,7 +265,7 @@ With `skipTypeConvert: true`, the array is passed as-is:
 
 ```json
 "emails": [
-  { "value": "jsmith@example.com", "type": "work" },
+  { "value": "john.smith@example.com", "type": "work" },
   { "value": "john.smith.org", "type": "home", "operation": "delete" }
 ]
 ```
@@ -818,7 +819,7 @@ helper.doRequest(baseEntity, method, path, body?, ctx?, options?)
       "azureTenantId": "<tenant-id>",
       "fedCred": {
         "issuer": "<https://FQDN-scimgateway>", // https://scimgateway.my-company.com
-        "subject": "<entra-application-object-id>",
+        "subject": "<entra-application-client-id>",
         "name": "<entra-fed-cred-unique-name>" // plugin-entra-id
       }
     }
@@ -1229,8 +1230,8 @@ Build and test incrementally:
 | `scimgateway.createGroup()` | Create a new group |
 | `scimgateway.deleteGroup()` | Delete a group |
 | `scimgateway.modifyGroup()` | Update group members/attributes |
-| `scimgateway.getEntitlements()` | Retrieve entitlements (e.g. Entra ID licenses) |
-| `scimgateway.getRoles()` | Retrieve roles (e.g. Entra ID PIM roles) |
+| `scimgateway.getEntitlements()` | Retrieve entitlements (e.g., Entra ID licenses) |
+| `scimgateway.getRoles()` | Retrieve roles (e.g., Entra ID PIM roles) |
 
 **API Gateway methods:**
 
@@ -1247,9 +1248,11 @@ Use VS Code IntelliSense on any method for inline documentation and type informa
 
 ### Custom Schemas
 
-If plugin use `endpointMapper`, SCIM schemas will be generated based on configured mapping.
+If a plugin includes `endpointMapper` configuration (`endpoint.map.user/group`), SCIM schemas are generated based on the configured mappings (see plugin-generic, plugin-ldap, and plugin-entra-id).
 
-To use custom SCIM schemas, copy `node_modules/scimgateway/lib/scimdef-v2.json` (or `scimdef-v1.json`) to `lib/` and edit as needed. The gateway will use your version when it detects the file.
+Default schema settings can be overridden per attribute by including a schema object in the attributes mapping configuration (see plugin-entra-id).
+
+To use custom SCIM schemas with no `endpointMapper` configuration, copy `node_modules/scimgateway/lib/scimdef-v2.json` (or `scimdef-v1.json`) to `lib/` and edit as needed. The gateway will use your version when it detects the file.
 
 ---
 
